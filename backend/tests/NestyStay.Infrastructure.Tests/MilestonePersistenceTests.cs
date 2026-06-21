@@ -1,0 +1,192 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using NestyStay.Application.Abstractions;
+using NestyStay.Application.PhaseOne;
+using NestyStay.Application.PhaseTwo;
+using NestyStay.Application.Services;
+using NestyStay.Domain;
+using NestyStay.Infrastructure.Persistence;
+using NestyStay.Infrastructure.Persistence.Milestones;
+
+namespace NestyStay.Infrastructure.Tests;
+
+public sealed class MilestonePersistenceTests
+{
+    [Fact]
+    public async Task PhaseOneStorePersistsUsersTwoFactorPropertiesBookingsAndVerificationFlow()
+    {
+        var databaseName = $"phase-one-persistence-{Guid.NewGuid():N}";
+        var root = new InMemoryDatabaseRoot();
+        var providers = new ProviderHarness();
+        Guid userId;
+        Guid bookingId;
+        string? transactionId;
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var registered = await store.RegisterAsync(
+                new RegisterUserRequest("persisted@test.local", "Password123!", "Persisted Guest", null),
+                CancellationToken.None);
+            var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
+            var booking = await store.CreateBookingAsync(
+                new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 4)),
+                CancellationToken.None);
+
+            userId = registered.UserId;
+            bookingId = booking.Id;
+            transactionId = booking.EkycTransactionId;
+        }
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var login = await store.LoginAsync(new LoginRequest("persisted@test.local", "Password123!"), CancellationToken.None);
+            var session = await store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(login.ChallengeId, login.TwoFactorCode), CancellationToken.None);
+            var booking = store.GetBooking(bookingId);
+
+            Assert.Equal(userId, session.UserId);
+            Assert.NotNull(booking);
+            Assert.Equal("PENDING", booking.Status);
+            Assert.True(booking.DatesHeld);
+
+            var approved = await store.ResolveVerificationAsync(
+                bookingId,
+                new ResolveVerificationRequest(true, transactionId),
+                CancellationToken.None);
+
+            Assert.NotNull(approved);
+            Assert.Equal("APPROVED", approved.Status);
+            Assert.Equal("AUTHORIZED", approved.PaymentStatus);
+        }
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var booking = store.GetBooking(bookingId);
+
+            Assert.NotNull(booking);
+            Assert.Equal("APPROVED", booking.Status);
+            Assert.Equal("AUTHORIZED", booking.PaymentStatus);
+            Assert.Contains(booking.Notifications, item => item.RecipientType == "guest");
+            Assert.Contains(booking.Timeline, item => item.Contains("Stripe manual-capture", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Fact]
+    public void PhaseTwoStorePersistsPricebookAssignmentsRenewalsCampaignsAndFoundingBenefits()
+    {
+        var databaseName = $"phase-two-persistence-{Guid.NewGuid():N}";
+        var root = new InMemoryDatabaseRoot();
+        var hostId = Guid.NewGuid();
+        var propertyId = Guid.NewGuid();
+        Guid assignmentId;
+
+        using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseTwoStore(db);
+            var updated = store.UpdatePricebookItem(
+                "verified-host-standard-annual",
+                new UpdatePricebookItemRequest(88.88m, "USD", "Annual"));
+            var verified = store.PurchaseBadge(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Verified, HostVerificationPassed: true));
+            var campaign = store.CreateCampaign(new CreateCampaignRequest(
+                $"trusted-{Guid.NewGuid():N}",
+                "Trusted test campaign",
+                "BadgePriceOverride",
+                39m,
+                "Hosts"));
+            var benefit = store.UpsertFoundingBenefit(new FoundingBenefitRequest(propertyId, FoundingTier.Gold));
+
+            assignmentId = verified.Id;
+            Assert.Equal(88.88m, updated.Amount);
+            Assert.True(campaign.IsActive);
+            Assert.Equal(36m, benefit.GuestFlatFee);
+        }
+
+        using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseTwoStore(db);
+            var pricebookItem = store.GetPricebookItem("verified-host-standard-annual");
+            var assignments = store.GetBadgeAssignments("Host", hostId);
+            var renewals = store.GetRenewals(assignmentId);
+            var featureAccess = store.GetFeatureAccess("Host", hostId);
+            var benefit = store.GetFoundingBenefit(propertyId);
+
+            Assert.NotNull(pricebookItem);
+            Assert.Equal(88.88m, pricebookItem.Amount);
+            Assert.Contains(assignments, assignment => assignment.Id == assignmentId);
+            Assert.Contains(renewals, renewal => renewal.PaymentStatus == "PENDING");
+            Assert.Equal(BadgeLevel.Verified, featureAccess.ActiveLevel);
+            Assert.NotNull(benefit);
+            Assert.Equal(FoundingTier.Gold, benefit.Tier);
+        }
+    }
+
+    private static NestyStayDbContext CreateContext(string databaseName, InMemoryDatabaseRoot root)
+    {
+        var options = new DbContextOptionsBuilder<NestyStayDbContext>()
+            .UseInMemoryDatabase(databaseName, root)
+            .Options;
+
+        return new NestyStayDbContext(options);
+    }
+
+    private static EfPhaseOneStore CreatePhaseOneStore(NestyStayDbContext db, ProviderHarness providers) =>
+        new(db, providers.EkycProvider, providers.PaymentGateway, providers.NotificationGateway, TimeProvider.System);
+
+    private static EfPhaseTwoStore CreatePhaseTwoStore(NestyStayDbContext db) =>
+        new(db, new PricebookService(), TimeProvider.System);
+
+    private sealed class ProviderHarness
+    {
+        public TestEkycProvider EkycProvider { get; } = new();
+        public TestPaymentGateway PaymentGateway { get; } = new();
+        public TestNotificationGateway NotificationGateway { get; } = new();
+    }
+
+    private sealed class TestEkycProvider : IEkycProvider
+    {
+        public string ProviderName => "Alibaba Cloud eKYC";
+
+        public Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new EkycStartResult(
+                ProviderName,
+                VerificationStatus.Pending,
+                $"test-ekyc-{request.MerchantBizId}",
+                "https://ekyc.test/start",
+                "{}"));
+    }
+
+    private sealed class TestPaymentGateway : IPaymentGateway
+    {
+        public string ProviderName => "Stripe";
+
+        public Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new PaymentAuthorizationResult(
+                ProviderName,
+                $"auth_{request.Currency}_{request.Amount:0.00}",
+                "client_secret_test",
+                PaymentStatus.Authorized,
+                DateTimeOffset.UtcNow.AddDays(7)));
+
+        public Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new PaymentCaptureResult(
+                ProviderName,
+                $"capture_{request.AuthorizationReference}",
+                PaymentStatus.Captured,
+                request.Amount,
+                request.Currency));
+    }
+
+    private sealed class TestNotificationGateway : INotificationGateway
+    {
+        public string ProviderName => "Test notifications";
+        public List<NotificationMessage> Messages { get; } = [];
+
+        public Task QueueAsync(NotificationMessage message, CancellationToken cancellationToken)
+        {
+            Messages.Add(message);
+            return Task.CompletedTask;
+        }
+    }
+}

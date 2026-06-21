@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# .NET
+bin/
+obj/
+TestResults/
+
+# Environment
+.env
+.env.local
+*.user
+
+# Logs
+*.log
+*.err.log
+
+# Temporary nested Git metadata backups
+.git.nested-backup/
+**/.git.nested-backup/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/

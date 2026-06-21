@@ -1,0 +1,18 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5019";
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      Accept: "application/json"
+    },
+    next: {
+      revalidate: 60
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`NestyStay API request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
