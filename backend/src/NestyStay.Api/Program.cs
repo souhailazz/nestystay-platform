@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using NestyStay.Api.Configuration;
 using NestyStay.Application;
 using NestyStay.Api.Middleware;
 using NestyStay.Api.Auth;
@@ -7,13 +8,21 @@ using NestyStay.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+ProductionIntegrationValidator.Validate(builder.Configuration, builder.Environment);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
-                "https://localhost:3000")
+                "https://localhost:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://localhost:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5174",
+                "https://localhost:5174")
             .AllowAnyHeader()
             .AllowAnyMethod());
 });

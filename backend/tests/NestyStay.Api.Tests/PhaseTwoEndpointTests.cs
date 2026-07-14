@@ -225,6 +225,44 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal(HttpStatusCode.OK, admin.StatusCode);
     }
 
+    [Fact]
+    public async Task AllAdminOnlyMutationEndpointsRejectMissingBearerToken()
+    {
+        using var client = _factory.CreateClient();
+        var assignmentId = Guid.NewGuid();
+
+        var requests = new[]
+        {
+            new HttpRequestMessage(HttpMethod.Put, "/api/badges-pricing/pricebook/verified-host-standard-annual")
+            {
+                Content = JsonContent.Create(new { amount = 70, currency = "USD", cadence = "Annual" })
+            },
+            new HttpRequestMessage(HttpMethod.Post, $"/api/badges-pricing/badges/assignments/{assignmentId}/expire"),
+            new HttpRequestMessage(HttpMethod.Post, $"/api/badges-pricing/badges/assignments/{assignmentId}/suspend"),
+            new HttpRequestMessage(HttpMethod.Post, "/api/badges-pricing/campaigns")
+            {
+                Content = JsonContent.Create(new
+                {
+                    key = $"admin-required-{Guid.NewGuid():N}",
+                    name = "Admin required",
+                    campaignType = "BadgePriceOverride",
+                    overrideAmount = 19,
+                    appliesTo = "Hosts"
+                })
+            },
+            new HttpRequestMessage(HttpMethod.Post, "/api/badges-pricing/founding-benefits")
+            {
+                Content = JsonContent.Create(new { propertyId = Guid.NewGuid(), tier = "Silver" })
+            }
+        };
+
+        foreach (var request in requests)
+        {
+            using var response = await client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+    }
+
     private sealed record PricebookResponse(string Key, decimal Amount);
 
     private sealed record BadgeDefinitionResponse(string Level, decimal AnnualPrice);

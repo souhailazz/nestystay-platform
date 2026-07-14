@@ -9,6 +9,7 @@ out/
 bin/
 obj/
 TestResults/
+.dotnet/
 
 # Environment
 .env
@@ -18,6 +19,9 @@ TestResults/
 # Logs
 *.log
 *.err.log
+
+# Local runtime state
+.postgres-data/
 
 # Temporary nested Git metadata backups
 .git.nested-backup/

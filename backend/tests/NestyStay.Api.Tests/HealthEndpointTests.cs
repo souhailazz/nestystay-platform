@@ -36,6 +36,19 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task BackendSchemaSeedPricebookEndpointReturnsSeedPrices()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/backend-schema/seed/pricebook");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("host-listing", body);
+        Assert.Contains("verified-host-standard-annual", body);
+    }
+
+    [Fact]
     public async Task BackendJobsEndpointReturnsPlannedJobs()
     {
         using var client = _factory.CreateClient();

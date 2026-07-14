@@ -4,7 +4,7 @@ Two-folder scaffold for the NestyStay full platform.
 
 ## Folders
 
-- `frontend`: Next.js TypeScript web app.
+- `frontend`: Vite React TypeScript web app.
 - `backend`: ASP.NET Core .NET 10 API with Domain, Application, Infrastructure, and Api layers.
 
 ## Run

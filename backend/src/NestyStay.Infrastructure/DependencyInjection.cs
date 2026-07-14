@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
@@ -32,7 +33,7 @@ public static class DependencyInjection
     }
 }
 
-internal sealed class AlibabaEkycProvider : IEkycProvider
+internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycProvider
 {
     public string ProviderName => "Alibaba Cloud eKYC";
 
@@ -44,7 +45,7 @@ internal sealed class AlibabaEkycProvider : IEkycProvider
         }
 
         var transactionId = $"aliyun_ekyc_{request.MerchantBizId[..Math.Min(request.MerchantBizId.Length, 24)]}";
-        var baseUrl = Environment.GetEnvironmentVariable("ALIBABA_EKYC_TRANSACTION_URL_BASE") ??
+        var baseUrl = ResolveSetting("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE") ??
                       "https://ekyc.alibaba-cloud.local/start";
         var transactionUrl =
             $"{baseUrl}?transactionId={Uri.EscapeDataString(transactionId)}&merchantBizId={Uri.EscapeDataString(request.MerchantBizId)}";
@@ -63,9 +64,17 @@ internal sealed class AlibabaEkycProvider : IEkycProvider
             transactionUrl,
             clientPayload));
     }
+
+    private string? ResolveSetting(string configurationKey, string environmentKey)
+    {
+        var configured = configuration[configurationKey];
+        return string.IsNullOrWhiteSpace(configured)
+            ? Environment.GetEnvironmentVariable(environmentKey)
+            : configured;
+    }
 }
 
-internal sealed class StripePaymentGateway : IPaymentGateway
+internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaymentGateway
 {
     private static readonly HttpClient HttpClient = new()
     {
@@ -76,7 +85,7 @@ internal sealed class StripePaymentGateway : IPaymentGateway
 
     public async Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken)
     {
-        var secretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
         if (string.IsNullOrWhiteSpace(secretKey))
         {
             var reference = $"stripe_local_auth_{request.BookingId:N}";
@@ -116,7 +125,7 @@ internal sealed class StripePaymentGateway : IPaymentGateway
 
     public async Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken)
     {
-        var secretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
         if (string.IsNullOrWhiteSpace(secretKey) || request.AuthorizationReference.StartsWith("stripe_local_auth_", StringComparison.Ordinal))
         {
             return new PaymentCaptureResult(
@@ -181,14 +190,35 @@ internal sealed class StripePaymentGateway : IPaymentGateway
             "requires_payment_method" or "requires_confirmation" or "requires_action" or "processing" => PaymentStatus.Pending,
             _ => PaymentStatus.Pending
         };
+
+    private string? ResolveSetting(string configurationKey, string environmentKey)
+    {
+        var configured = configuration[configurationKey];
+        return string.IsNullOrWhiteSpace(configured)
+            ? Environment.GetEnvironmentVariable(environmentKey)
+            : configured;
+    }
 }
 
-internal sealed class CloudflareR2StorageProvider : IStorageProvider
+internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) : IStorageProvider
 {
     public string ProviderName => "Cloudflare R2";
 
-    public Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken) =>
-        Task.FromResult($"https://storage.nestystay.local/upload/{Uri.EscapeDataString(objectKey)}");
+    public Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        var baseUrl = ResolveSetting("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE") ??
+                      "https://storage.nestystay.local/upload";
+
+        return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}");
+    }
+
+    private string? ResolveSetting(string configurationKey, string environmentKey)
+    {
+        var configured = configuration[configurationKey];
+        return string.IsNullOrWhiteSpace(configured)
+            ? Environment.GetEnvironmentVariable(environmentKey)
+            : configured;
+    }
 }
 
 internal sealed class CompositeNotificationGateway : INotificationGateway

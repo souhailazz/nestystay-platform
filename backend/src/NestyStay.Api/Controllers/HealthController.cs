@@ -11,7 +11,7 @@ public sealed class HealthController : ControllerBase
     {
         service = "NestyStay API",
         status = "ok",
-        architecture = "Next.js frontend + ASP.NET Core backend",
+        architecture = "Vite React frontend + ASP.NET Core backend",
         database = "PostgreSQL",
         openApi = "/openapi/v1.json"
     });
