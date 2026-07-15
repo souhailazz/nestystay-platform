@@ -103,7 +103,7 @@ export default function Hero3D() {
                 <Star key={star} size={11} fill="currentColor" />
               ))}
             </span>
-            loved by guests from yard and abroad
+            loved by guests near and far
           </span>
         </motion.div>
       </motion.div>
@@ -148,7 +148,7 @@ export default function Hero3D() {
           </div>
           <div className="stay-card__body">
             <div>
-              <span className="micro-label">Featured yard</span>
+              <span className="micro-label">Featured stay</span>
               <h3>Seaview Villa</h3>
               <span className="location">
                 <MapPin size={13} /> Port Antonio, Jamaica
@@ -180,13 +180,13 @@ export default function Hero3D() {
           <ShieldCheck size={18} />
           <span>
             <small>Booking safe</small>
-            No worries
+            Protected
           </span>
         </motion.div>
       </motion.div>
 
       <a className="scroll-cue" href="#experience">
-        <span>Scroll fi the vibe</span>
+        <span>Explore the experience</span>
         <ArrowDown size={16} />
       </a>
     </section>

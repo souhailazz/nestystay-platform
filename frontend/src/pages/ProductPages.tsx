@@ -69,17 +69,28 @@ function todayPlus(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function statusTone(value: string): "green" | "sun" | "coral" | "ink" {
+function statusTone(value: string): "green" | "sun" | "coral" | "ink" | "blue" | "slate" | "mint" {
   const normalized = value.toUpperCase();
-  if (normalized.includes("APPROVED") || normalized.includes("CAPTURED") || normalized.includes("PASSED")) {
+  if (
+    normalized.includes("APPROVED") ||
+    normalized.includes("CAPTURED") ||
+    normalized.includes("PASSED") ||
+    normalized.includes("COMPLETED") ||
+    normalized.includes("SUBMITTED") ||
+    normalized.includes("VERIFIED")
+  ) {
     return "green";
   }
   if (normalized.includes("REJECTED") || normalized.includes("FAILED") || normalized.includes("CANCELLED")) {
     return "coral";
   }
-  if (normalized.includes("PENDING") || normalized.includes("AUTHORIZED")) {
+  if (normalized.includes("PENDING") || normalized.includes("AUTHORIZED") || normalized.includes("REQUESTED")) {
     return "sun";
   }
+  if (normalized.includes("SCHEDULED") || normalized.includes("ASSIGNED") || normalized.includes("ACTIVE")) {
+    return "blue";
+  }
+  if (normalized.includes("WELLNESS")) return "mint";
   return "ink";
 }
 
@@ -579,7 +590,7 @@ function WellnessVisitList({ visits }: { visits: WellnessVisit[] }) {
   return (
     <div className="compact-list">
       {visits.map((visit) => (
-        <Card className="compact-list__item" key={visit.id}>
+        <Card className="compact-list__item wellness-visit-item" key={visit.id}>
           <ShieldCheck size={20} />
           <div>
             <strong>{visit.visitType.replace(/([A-Z])/g, " $1").trim()}</strong>
@@ -650,11 +661,11 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
   }
 
   return (
-    <div className="product-page">
+    <div className="product-page product-page--wellness">
       <PageHeader
         eyebrow="Host wellness"
         title="Schedule platform-managed wellness visits."
-        copy="Eligible hosts can request JCF officer wellness visits without direct officer contact. Jamaica emergency number 119 is shown where relevant."
+        copy="Eligible hosts can request officer wellness visits, track visit status, and keep officer contact mediated inside the platform."
         actions={
           <AppLink className={buttonClassName("outline")} href="/officer/wellness">
             Officer view <ArrowRight size={17} />
@@ -662,7 +673,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         }
       />
 
-      <section className="product-section">
+      <section className="product-section wellness-command-strip">
         <div className="metric-grid">
           <MetricCard icon={ShieldCheck} label="Visits" value={String(visits.length)} />
           <MetricCard icon={CalendarDays} label="Scheduled" value={String(visits.filter((visit) => visit.visitStatus === "Scheduled").length)} />
@@ -671,7 +682,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         </div>
       </section>
 
-      <section className="product-section management-layout">
+      <section className="product-section management-layout wellness-workflow">
         <form
           className="management-form"
           onSubmit={(event) => {
@@ -683,7 +694,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
             });
           }}
         >
-          <h2 className="section-subtitle">Request a visit</h2>
+          <h2 className="section-subtitle">Request a certified visit</h2>
           <div className="form-grid form-grid--two">
             <Field label="Property">
               <Select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}>
@@ -745,7 +756,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         </form>
 
         <div>
-          <h2 className="section-subtitle">Wellness schedule</h2>
+          <h2 className="section-subtitle">Visit status</h2>
           {isLoading && <LoadingState />}
           {error && <ErrorState message={error} onRetry={reload} />}
           <WellnessVisitList visits={visits} />
@@ -787,14 +798,14 @@ export function OfficerWellnessPage() {
   }
 
   return (
-    <div className="product-page">
+    <div className="product-page product-page--wellness">
       <PageHeader
         eyebrow="Officer wellness"
         title="Manage anonymous officer wellness work."
-        copy="Officer-facing flows show badge/ID number instead of personal names and keep host contact inside the platform."
+        copy="Officer-facing flows use badge numbers, visit IDs, report notes, and payout status instead of personal host contact."
       />
 
-      <section className="product-section management-layout">
+      <section className="product-section management-layout wellness-workflow">
         <form
           className="management-form"
           onSubmit={(event) => {
@@ -845,7 +856,7 @@ export function OfficerWellnessPage() {
         </form>
 
         <form className="management-form">
-          <h2 className="section-subtitle">Photo report</h2>
+          <h2 className="section-subtitle">Evidence report</h2>
           <div className="form-grid form-grid--two">
             <Field label="Visit id">
               <Input value={visitId} onChange={(event) => setVisitId(event.target.value)} />
@@ -877,7 +888,7 @@ export function OfficerWellnessPage() {
         </form>
       </section>
 
-      <section className="product-section">
+      <section className="product-section wellness-workflow">
         <h2 className="section-subtitle">Assigned visits</h2>
         <WellnessVisitList visits={assignedVisits} />
       </section>
@@ -1529,11 +1540,11 @@ export function AdminPage() {
   }
 
   return (
-    <div className="product-page">
+    <div className="product-page product-page--admin">
       <PageHeader
         eyebrow="Admin"
         title="Platform health, badges, pricing, and benefits."
-        copy="Admin surface reads platform metadata and operates the badges-pricing backend."
+        copy="A compact control surface for platform metadata, pricing, benefits, and wellness operations."
       />
       <section className="product-section">
         {isLoading && <LoadingState label="Checking backend admin endpoints" />}
@@ -1558,8 +1569,8 @@ export function AdminPage() {
         </div>
       </section>
 
-      <section className="product-section management-layout">
-        <form className="management-form">
+      <section className="product-section management-layout wellness-workflow">
+        <form className="management-form management-form--wellness">
           <h2 className="section-subtitle">Wellness operations</h2>
           <div className="form-grid form-grid--two">
             <Field label="Admin token" className="form-grid__full">

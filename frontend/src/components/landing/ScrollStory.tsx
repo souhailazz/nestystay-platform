@@ -9,14 +9,14 @@ const moments = [
   {
     step: "01",
     kicker: "Morning breeze",
-    title: "Find the right likkle corner.",
-    copy: "Beachside room, hillside villa, or Kingston hideaway - search by the vibe yuh want.",
+    title: "Find the right stay.",
+    copy: "Beachside room, hillside villa, or Kingston hideaway - search by location, mood, and host quality.",
     icon: CloudSun,
   },
   {
     step: "02",
     kicker: "Golden hour",
-    title: "Book it, no long talk.",
+    title: "Book with clarity.",
     copy: "Clear details, fair prices, and secure checkout in a few easy taps.",
     icon: Waves,
   },
@@ -24,7 +24,7 @@ const moments = [
     step: "03",
     kicker: "Afterglow",
     title: "Reach and settle in.",
-    copy: "Hosts keep things ready, check-in is smooth, and the place feels like yard.",
+    copy: "Hosts keep the details ready, check-in stays smooth, and the stay feels personal.",
     icon: KeyRound,
   },
 ];
