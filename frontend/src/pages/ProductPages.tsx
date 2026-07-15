@@ -57,6 +57,10 @@ import {
   type FoundingTransferEvaluation,
   type PhaseTwoPricebookItem,
   type PropertyListing,
+  type WellnessAdminDashboard,
+  type WellnessOfficer,
+  type WellnessQuote,
+  type WellnessVisit,
 } from "../lib/api";
 
 function todayPlus(days: number) {
@@ -556,6 +560,331 @@ function HostDashboardContent({ auth }: { auth: AuthController }) {
   );
 }
 
+function defaultWellnessDateTime() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(10, 0, 0, 0);
+  return date.toISOString().slice(0, 16);
+}
+
+function toApiDateTime(value: string) {
+  return new Date(value).toISOString();
+}
+
+function WellnessVisitList({ visits }: { visits: WellnessVisit[] }) {
+  if (visits.length === 0) {
+    return <EmptyState title="No wellness visits yet." copy="Requested visits will appear here after the backend saves them." />;
+  }
+
+  return (
+    <div className="compact-list">
+      {visits.map((visit) => (
+        <Card className="compact-list__item" key={visit.id}>
+          <ShieldCheck size={20} />
+          <div>
+            <strong>{visit.visitType.replace(/([A-Z])/g, " $1").trim()}</strong>
+            <span>
+              {new Date(visit.scheduledAt).toLocaleString()} · Officer{" "}
+              {visit.officerBadgeNumber ?? "not assigned"}
+            </span>
+          </div>
+          <StatusBadge value={`${visit.visitStatus} / ${visit.paymentStatus}`} />
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export function HostWellnessPage({ auth }: { auth: AuthController }) {
+  if (!auth.session) return <RequireAuth auth={auth} title="Host wellness needs an active host session." />;
+  return <HostWellnessContent auth={auth} />;
+}
+
+function HostWellnessContent({ auth }: { auth: AuthController }) {
+  const { properties, isLoading, error, reload } = useProperties();
+  const hostProperties = properties.filter((property) => property.hostUserId === auth.session?.userId);
+  const [propertyId, setPropertyId] = useState("");
+  const [visitType, setVisitType] = useState("StandardWellnessCheck");
+  const [scheduledAt, setScheduledAt] = useState(defaultWellnessDateTime);
+  const [parish, setParish] = useState("St. Ann");
+  const [area, setArea] = useState("Ocho Rios");
+  const [quote, setQuote] = useState<WellnessQuote | null>(null);
+  const [visits, setVisits] = useState<WellnessVisit[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const selectedProperty = hostProperties.find((property) => property.id === propertyId);
+
+  useEffect(() => {
+    if (!propertyId && hostProperties[0]) {
+      setPropertyId(hostProperties[0].id);
+    }
+  }, [hostProperties, propertyId]);
+
+  useEffect(() => {
+    void api.getWellnessVisits({ hostUserId: auth.session?.userId }).then(setVisits).catch(() => undefined);
+  }, [auth.session?.userId]);
+
+  async function runWellnessAction(action: () => Promise<string>) {
+    setActionError(null);
+    setNotice(null);
+    try {
+      const message = await action();
+      setNotice(message);
+      const refreshed = await api.getWellnessVisits({ hostUserId: auth.session?.userId });
+      setVisits(refreshed);
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "Wellness action failed.");
+    }
+  }
+
+  function buildRequest() {
+    if (!auth.session || !propertyId) throw new Error("Choose a host property.");
+    return {
+      hostUserId: auth.session.userId,
+      propertyId,
+      visitType,
+      scheduledAt: toApiDateTime(scheduledAt),
+      parish,
+      area,
+    };
+  }
+
+  return (
+    <div className="product-page">
+      <PageHeader
+        eyebrow="Host wellness"
+        title="Schedule platform-managed wellness visits."
+        copy="Eligible hosts can request JCF officer wellness visits without direct officer contact. Jamaica emergency number 119 is shown where relevant."
+        actions={
+          <AppLink className={buttonClassName("outline")} href="/officer/wellness">
+            Officer view <ArrowRight size={17} />
+          </AppLink>
+        }
+      />
+
+      <section className="product-section">
+        <div className="metric-grid">
+          <MetricCard icon={ShieldCheck} label="Visits" value={String(visits.length)} />
+          <MetricCard icon={CalendarDays} label="Scheduled" value={String(visits.filter((visit) => visit.visitStatus === "Scheduled").length)} />
+          <MetricCard icon={ReceiptText} label="Reports" value={String(visits.filter((visit) => visit.reportStatus === "Submitted").length)} />
+          <MetricCard icon={CreditCard} label="Emergency" value="119" />
+        </div>
+      </section>
+
+      <section className="product-section management-layout">
+        <form
+          className="management-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runWellnessAction(async () => {
+              const result = await api.quoteWellnessVisit(buildRequest());
+              setQuote(result);
+              return result.eligible ? "Wellness quote is eligible." : "Wellness is locked for this property.";
+            });
+          }}
+        >
+          <h2 className="section-subtitle">Request a visit</h2>
+          <div className="form-grid form-grid--two">
+            <Field label="Property">
+              <Select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}>
+                {hostProperties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.title}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Visit type">
+              <Select value={visitType} onChange={(event) => setVisitType(event.target.value)}>
+                <option value="StandardWellnessCheck">Standard wellness check</option>
+                <option value="InPersonGuestIdCheck">In-person guest ID check</option>
+                <option value="DriveByPatrol">Drive-by patrol</option>
+              </Select>
+            </Field>
+            <Field label="Scheduled time">
+              <Input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} />
+            </Field>
+            <Field label="Parish">
+              <Input value={parish} onChange={(event) => setParish(event.target.value)} />
+            </Field>
+            <Field label="Area" className="form-grid__full">
+              <Input value={area} onChange={(event) => setArea(event.target.value)} />
+            </Field>
+          </div>
+          <div className="button-row">
+            <Button type="submit" variant="outline">
+              <ReceiptText size={17} /> Quote
+            </Button>
+            <Button
+              type="button"
+              onClick={() =>
+                void runWellnessAction(async () => {
+                  const created = await api.createWellnessVisit(buildRequest());
+                  setQuote(null);
+                  return `${created.visitType} requested. Payment is ${created.paymentStatus}.`;
+                })
+              }
+            >
+              <ShieldCheck size={17} /> Request visit
+            </Button>
+          </div>
+          {quote && (
+            <div className="notice-panel">
+              {quote.eligible
+                ? `${formatMoney(quote.price, quote.currency)} visit · ${formatMoney(quote.officerPayoutAmount, quote.currency)} officer payout · call ${quote.emergencyNumber} for emergencies`
+                : quote.missingRequirements.join(" ")}
+            </div>
+          )}
+          {selectedProperty && selectedProperty.badgeLevel !== "Wellness" && (
+            <div className="notice-panel">
+              <Lock size={15} /> Wellness visits require a Wellness badge or unlocked Wellness visits feature.
+            </div>
+          )}
+          {notice && <div className="notice-panel">{notice}</div>}
+          {actionError && <ErrorState message={actionError} />}
+        </form>
+
+        <div>
+          <h2 className="section-subtitle">Wellness schedule</h2>
+          {isLoading && <LoadingState />}
+          {error && <ErrorState message={error} onRetry={reload} />}
+          <WellnessVisitList visits={visits} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export function OfficerWellnessPage() {
+  const [badgeNumber, setBadgeNumber] = useState("JCF-2026-119");
+  const [parish, setParish] = useState("St. Ann");
+  const [coverageArea, setCoverageArea] = useState("Ocho Rios");
+  const [isActiveOffDuty, setIsActiveOffDuty] = useState(true);
+  const [isRetired, setIsRetired] = useState(false);
+  const [visitId, setVisitId] = useState("");
+  const [notes, setNotes] = useState("Completed wellness visit. Photo evidence attached in local milestone mode.");
+  const [visits, setVisits] = useState<WellnessVisit[]>([]);
+  const [officer, setOfficer] = useState<WellnessOfficer | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const assignedVisits = visits.filter((visit) => visit.officerBadgeNumber === badgeNumber.trim().toUpperCase());
+
+  useEffect(() => {
+    void api.getWellnessVisits().then(setVisits).catch(() => undefined);
+  }, []);
+
+  async function runOfficerAction(action: () => Promise<string>) {
+    setActionError(null);
+    setNotice(null);
+    try {
+      const message = await action();
+      setNotice(message);
+      const refreshed = await api.getWellnessVisits();
+      setVisits(refreshed);
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "Officer wellness action failed.");
+    }
+  }
+
+  return (
+    <div className="product-page">
+      <PageHeader
+        eyebrow="Officer wellness"
+        title="Manage anonymous officer wellness work."
+        copy="Officer-facing flows show badge/ID number instead of personal names and keep host contact inside the platform."
+      />
+
+      <section className="product-section management-layout">
+        <form
+          className="management-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runOfficerAction(async () => {
+              const result = await api.onboardWellnessOfficer({
+                badgeNumber,
+                parish,
+                coverageArea,
+                isActiveOffDuty,
+                isRetired,
+              });
+              setOfficer(result);
+              return `Officer ${result.badgeNumber} onboarding is ${result.onboardingStatus}.`;
+            });
+          }}
+        >
+          <h2 className="section-subtitle">Officer onboarding</h2>
+          <div className="form-grid form-grid--two">
+            <Field label="Badge / ID number">
+              <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
+            </Field>
+            <Field label="Parish">
+              <Input value={parish} onChange={(event) => setParish(event.target.value)} />
+            </Field>
+            <Field label="Coverage area" className="form-grid__full">
+              <Input value={coverageArea} onChange={(event) => setCoverageArea(event.target.value)} />
+            </Field>
+          </div>
+          <div className="toggle-row">
+            <InlineLabel>
+              <input checked={isActiveOffDuty} type="checkbox" onChange={(event) => setIsActiveOffDuty(event.target.checked)} />
+              Active off-duty JCF
+            </InlineLabel>
+            <InlineLabel>
+              <input checked={isRetired} type="checkbox" onChange={(event) => setIsRetired(event.target.checked)} />
+              Retired
+            </InlineLabel>
+          </div>
+          <Button type="submit">
+            <BadgeCheck size={17} /> Submit onboarding
+          </Button>
+          {officer && (
+            <div className="notice-panel">
+              {officer.badgeNumber} · {officer.verificationStatus} · free badges {officer.freeBadges.join(", ") || "pending"}
+            </div>
+          )}
+        </form>
+
+        <form className="management-form">
+          <h2 className="section-subtitle">Photo report</h2>
+          <div className="form-grid form-grid--two">
+            <Field label="Visit id">
+              <Input value={visitId} onChange={(event) => setVisitId(event.target.value)} />
+            </Field>
+            <Field label="Officer badge">
+              <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
+            </Field>
+            <Field label="Notes" className="form-grid__full">
+              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+            </Field>
+          </div>
+          <Button
+            type="button"
+            onClick={() =>
+              void runOfficerAction(async () => {
+                const result = await api.submitWellnessReport(visitId, {
+                  officerBadgeNumber: badgeNumber,
+                  notes,
+                  photos: ["local://officer-report-photo.jpg"],
+                });
+                return `Report submitted. Visit is ${result.visitStatus}; payout is ${result.paymentStatus}.`;
+              })
+            }
+          >
+            <ReceiptText size={17} /> Submit report
+          </Button>
+          {notice && <div className="notice-panel">{notice}</div>}
+          {actionError && <ErrorState message={actionError} />}
+        </form>
+      </section>
+
+      <section className="product-section">
+        <h2 className="section-subtitle">Assigned visits</h2>
+        <WellnessVisitList visits={assignedVisits} />
+      </section>
+    </div>
+  );
+}
+
 export function PropertyManagementPage({ auth }: { auth: AuthController }) {
   if (!auth.session) return <RequireAuth auth={auth} title="Property management needs a host session." />;
   return <PropertyManagementContent auth={auth} />;
@@ -1030,6 +1359,8 @@ export function AdminPage() {
     renewals?: BadgeRenewal[];
     campaigns?: Campaign[];
     properties?: PropertyListing[];
+    wellness?: WellnessAdminDashboard;
+    wellnessOfficers?: WellnessOfficer[];
     errors: string[];
   }>({ errors: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -1071,6 +1402,9 @@ export function AdminPage() {
   const [foundingBenefit, setFoundingBenefit] = useState<FoundingBenefit | null>(null);
   const [transferEvaluation, setTransferEvaluation] = useState<FoundingTransferEvaluation | null>(null);
   const [commissionQuote, setCommissionQuote] = useState<CommissionQuote | null>(null);
+  const [selectedWellnessOfficerId, setSelectedWellnessOfficerId] = useState("");
+  const [selectedWellnessVisitId, setSelectedWellnessVisitId] = useState("");
+  const [wellnessReportNotes, setWellnessReportNotes] = useState("Admin local completion with photo metadata.");
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -1091,6 +1425,8 @@ export function AdminPage() {
       api.getBadgeRenewals(),
       api.getCampaigns(),
       api.getProperties(),
+      api.getWellnessAdminDashboard(adminToken),
+      api.getWellnessOfficers(adminToken),
     ]);
     if (cancelled?.()) return;
     const errors = results
@@ -1098,6 +1434,8 @@ export function AdminPage() {
       .map((result) => (result.reason instanceof Error ? result.reason.message : "Admin API request failed."));
     const pricebook = results[8].status === "fulfilled" ? results[8].value : [];
     const properties = results[13].status === "fulfilled" ? results[13].value : [];
+    const wellness = results[14].status === "fulfilled" ? results[14].value : undefined;
+    const wellnessOfficers = results[15].status === "fulfilled" ? results[15].value : [];
     setData({
       health: results[0].status === "fulfilled" ? results[0].value.status : undefined,
       modules: results[1].status === "fulfilled" ? results[1].value.length : undefined,
@@ -1113,6 +1451,8 @@ export function AdminPage() {
       renewals: results[11].status === "fulfilled" ? results[11].value : [],
       campaigns: results[12].status === "fulfilled" ? results[12].value : [],
       properties,
+      wellness,
+      wellnessOfficers,
       errors,
     });
 
@@ -1127,6 +1467,12 @@ export function AdminPage() {
     }
     if (properties[0] && !foundingPropertyId) {
       setFoundingPropertyId(properties[0].id);
+    }
+    if (wellnessOfficers[0] && !selectedWellnessOfficerId) {
+      setSelectedWellnessOfficerId(wellnessOfficers[0].id);
+    }
+    if (wellness?.recentVisits[0] && !selectedWellnessVisitId) {
+      setSelectedWellnessVisitId(wellness.recentVisits[0].id);
     }
     setIsLoading(false);
   }
@@ -1207,6 +1553,158 @@ export function AdminPage() {
           <MetricCard icon={ReceiptText} label="Seed prices" value={String(data.seedPricebook ?? 0)} />
           <MetricCard icon={BadgeCheck} label="Pricebook" value={String(data.pricebook?.length ?? 0)} />
           <MetricCard icon={Star} label="Campaigns" value={String(data.campaigns?.length ?? 0)} />
+          <MetricCard icon={ShieldCheck} label="Wellness visits" value={String(data.wellness?.requestedVisits ?? 0)} />
+          <MetricCard icon={CreditCard} label="Wellness payouts" value={String(data.wellness?.pendingPayouts ?? 0)} />
+        </div>
+      </section>
+
+      <section className="product-section management-layout">
+        <form className="management-form">
+          <h2 className="section-subtitle">Wellness operations</h2>
+          <div className="form-grid form-grid--two">
+            <Field label="Admin token" className="form-grid__full">
+              <Input value={adminToken} onChange={(event) => setAdminToken(event.target.value)} />
+            </Field>
+            <Field label="Officer">
+              <Select value={selectedWellnessOfficerId} onChange={(event) => setSelectedWellnessOfficerId(event.target.value)}>
+                {(data.wellnessOfficers ?? []).map((officer) => (
+                  <option key={officer.id} value={officer.id}>
+                    {officer.badgeNumber} · {officer.verificationStatus}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Visit">
+              <Select value={selectedWellnessVisitId} onChange={(event) => setSelectedWellnessVisitId(event.target.value)}>
+                {(data.wellness?.recentVisits ?? []).map((visit) => (
+                  <option key={visit.id} value={visit.id}>
+                    {visit.visitType} · {visit.visitStatus}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Report notes" className="form-grid__full">
+              <Textarea value={wellnessReportNotes} onChange={(event) => setWellnessReportNotes(event.target.value)} />
+            </Field>
+          </div>
+          <div className="button-row">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!selectedWellnessOfficerId}
+              onClick={() =>
+                void runAction(async () => {
+                  const officer = await api.approveWellnessOfficer(selectedWellnessOfficerId, adminToken, "Approved from admin dashboard.");
+                  return `${officer.badgeNumber} approved.`;
+                })
+              }
+            >
+              Approve
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={!selectedWellnessOfficerId}
+              onClick={() =>
+                void runAction(async () => {
+                  const officer = await api.rejectWellnessOfficer(selectedWellnessOfficerId, adminToken, "Rejected from admin dashboard.");
+                  return `${officer.badgeNumber} rejected.`;
+                })
+              }
+            >
+              Reject
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!selectedWellnessVisitId || !selectedWellnessOfficerId}
+              onClick={() =>
+                void runAction(async () => {
+                  const visit = await api.assignWellnessOfficer(selectedWellnessVisitId, selectedWellnessOfficerId, adminToken);
+                  return `Visit ${visit.id.slice(0, 8)} assigned to ${visit.officerBadgeNumber}.`;
+                })
+              }
+            >
+              Assign
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedWellnessVisitId}
+              onClick={() =>
+                void runAction(async () => {
+                  const visit = data.wellness?.recentVisits.find((item) => item.id === selectedWellnessVisitId);
+                  await api.completeWellnessVisit(selectedWellnessVisitId, adminToken, {
+                    officerBadgeNumber: visit?.officerBadgeNumber ?? "ADMIN",
+                    notes: wellnessReportNotes,
+                    photos: ["local://admin-wellness-report.jpg"],
+                  });
+                  return "Visit completed with local report.";
+                })
+              }
+            >
+              Complete
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={!selectedWellnessVisitId}
+              onClick={() =>
+                void runAction(async () => {
+                  await api.cancelWellnessVisit(selectedWellnessVisitId, adminToken, "Cancelled from admin dashboard.");
+                  return "Visit cancelled.";
+                })
+              }
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedWellnessVisitId}
+              onClick={() =>
+                void runAction(async () => {
+                  const payout = await api.markWellnessPayoutPaid(
+                    selectedWellnessVisitId,
+                    adminToken,
+                    `local-admin-${Date.now()}`,
+                    "Paid in local milestone mode.",
+                  );
+                  return `Payout ${payout.status.toLowerCase()} for ${formatMoney(payout.officerAmount, payout.currency)}.`;
+                })
+              }
+            >
+              Pay payout
+            </Button>
+          </div>
+          <div className="notice-panel">
+            Pending officers {data.wellness?.pendingOfficers ?? 0} · verified officers {data.wellness?.verifiedOfficers ?? 0} · pending payouts{" "}
+            {formatMoney(data.wellness?.pendingPayoutAmount ?? 0)}
+          </div>
+        </form>
+
+        <div>
+          <h2 className="section-subtitle">Wellness queue</h2>
+          <div className="compact-list">
+            {(data.wellnessOfficers ?? []).slice(0, 8).map((officer) => (
+              <Card className="compact-list__item" key={officer.id}>
+                <BadgeCheck size={20} />
+                <div>
+                  <strong>{officer.badgeNumber}</strong>
+                  <span>{officer.parish} · {officer.coverageArea}</span>
+                </div>
+                <StatusBadge value={officer.verificationStatus} />
+              </Card>
+            ))}
+            {(data.wellness?.recentVisits ?? []).slice(0, 6).map((visit) => (
+              <Card className="compact-list__item" key={visit.id}>
+                <CalendarDays size={20} />
+                <div>
+                  <strong>{visit.visitType}</strong>
+                  <span>{visit.officerBadgeNumber ?? "Unassigned"} · {formatMoney(visit.price, visit.currency)}</span>
+                </div>
+                <StatusBadge value={visit.visitStatus} />
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -127,6 +127,10 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneCampaign> MilestoneCampaigns => Set<MilestoneCampaign>();
     public DbSet<MilestoneCampaignEnrollment> MilestoneCampaignEnrollments => Set<MilestoneCampaignEnrollment>();
     public DbSet<MilestoneFoundingBenefit> MilestoneFoundingBenefits => Set<MilestoneFoundingBenefit>();
+    public DbSet<MilestoneWellnessOfficer> MilestoneWellnessOfficers => Set<MilestoneWellnessOfficer>();
+    public DbSet<MilestoneWellnessVisit> MilestoneWellnessVisits => Set<MilestoneWellnessVisit>();
+    public DbSet<MilestoneWellnessReport> MilestoneWellnessReports => Set<MilestoneWellnessReport>();
+    public DbSet<MilestoneWellnessPayout> MilestoneWellnessPayouts => Set<MilestoneWellnessPayout>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -158,6 +162,15 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneCampaign>().HasIndex(campaign => campaign.Key).IsUnique();
         modelBuilder.Entity<MilestoneCampaignEnrollment>().HasIndex(enrollment => new { enrollment.CampaignKey, enrollment.SubjectType, enrollment.SubjectId }).IsUnique();
         modelBuilder.Entity<MilestoneFoundingBenefit>().HasIndex(benefit => benefit.PropertyId).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessOfficer>().HasIndex(officer => officer.BadgeNumber).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessOfficer>().HasIndex(officer => new { officer.Parish, officer.VerificationStatus, officer.AvailabilityStatus });
+        modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => new { visit.PropertyId, visit.ScheduledAt });
+        modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => new { visit.OfficerId, visit.ScheduledAt });
+        modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.VisitStatus);
+        modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.PaymentStatus);
+        modelBuilder.Entity<MilestoneWellnessReport>().HasIndex(report => report.VisitId).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.VisitId).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.Status);
 
         NestyStaySeed.Apply(modelBuilder);
     }

@@ -320,6 +320,111 @@ export type CommissionQuote = {
   nestyStayRevenue: number;
 };
 
+export type WellnessOfficer = {
+  id: string;
+  userId?: string | null;
+  badgeNumber: string;
+  parish: string;
+  coverageArea: string;
+  isActiveOffDuty: boolean;
+  isRetired: boolean;
+  verificationStatus: string;
+  onboardingStatus: string;
+  availabilityStatus: string;
+  freeBadges: string[];
+  createdAt: string;
+  updatedAt: string;
+  adminReviewSummary?: string | null;
+};
+
+export type OnboardOfficerRequest = {
+  userId?: string | null;
+  badgeNumber: string;
+  parish: string;
+  coverageArea: string;
+  isActiveOffDuty: boolean;
+  isRetired: boolean;
+  verificationMetadata?: string | null;
+};
+
+export type WellnessQuote = {
+  hostUserId: string;
+  propertyId: string;
+  visitType: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  price: number;
+  platformFee: number;
+  officerPayoutAmount: number;
+  currency: string;
+  eligible: boolean;
+  missingRequirements: string[];
+  emergencyNumber: string;
+};
+
+export type WellnessQuoteRequest = {
+  hostUserId: string;
+  propertyId: string;
+  visitType: string;
+  scheduledAt: string;
+  parish: string;
+  area?: string | null;
+};
+
+export type CreateWellnessVisitRequest = WellnessQuoteRequest;
+
+export type WellnessVisit = {
+  id: string;
+  hostUserId: string;
+  propertyId: string;
+  officerId?: string | null;
+  officerBadgeNumber?: string | null;
+  parish: string;
+  area: string;
+  visitType: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  price: number;
+  platformFee: number;
+  officerPayoutAmount: number;
+  currency: string;
+  paymentStatus: string;
+  visitStatus: string;
+  reportStatus: string;
+  paymentAuthorizationReference?: string | null;
+  paymentCaptureReference?: string | null;
+  timeline: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WellnessPayout = {
+  id: string;
+  visitId: string;
+  officerId: string;
+  grossAmount: number;
+  platformFee: number;
+  officerAmount: number;
+  currency: string;
+  status: string;
+  eligibleAt?: string | null;
+  paidAt?: string | null;
+  providerReference?: string | null;
+};
+
+export type WellnessAdminDashboard = {
+  pendingOfficers: number;
+  verifiedOfficers: number;
+  requestedVisits: number;
+  scheduledVisits: number;
+  completedVisits: number;
+  pendingPayouts: number;
+  pendingPayoutAmount: number;
+  officerQueue: WellnessOfficer[];
+  recentVisits: WellnessVisit[];
+  payouts: WellnessPayout[];
+};
+
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string;
@@ -480,6 +585,65 @@ export const api = {
     }),
   quoteCommission: (body: CommissionQuoteRequest) =>
     request<CommissionQuote>("/badges-pricing/commission-quote", { method: "POST", body }),
+  onboardWellnessOfficer: (body: OnboardOfficerRequest) =>
+    request<WellnessOfficer>("/wellness/officers", { method: "POST", body }),
+  getWellnessOfficers: (token: string, status?: string) =>
+    request<WellnessOfficer[]>(withQuery("/wellness/officers", { status }), { token }),
+  getAvailableWellnessOfficers: (token: string, parish: string, scheduledAt: string) =>
+    request<WellnessOfficer[]>(withQuery("/wellness/officers/available", { parish, scheduledAt }), { token }),
+  approveWellnessOfficer: (officerId: string, token: string, reason?: string) =>
+    request<WellnessOfficer>(`/wellness/officers/${officerId}/approve`, {
+      method: "POST",
+      token,
+      body: { reason },
+    }),
+  rejectWellnessOfficer: (officerId: string, token: string, reason?: string) =>
+    request<WellnessOfficer>(`/wellness/officers/${officerId}/reject`, {
+      method: "POST",
+      token,
+      body: { reason },
+    }),
+  suspendWellnessOfficer: (officerId: string, token: string, reason?: string) =>
+    request<WellnessOfficer>(`/wellness/officers/${officerId}/suspend`, {
+      method: "POST",
+      token,
+      body: { reason },
+    }),
+  quoteWellnessVisit: (body: WellnessQuoteRequest) =>
+    request<WellnessQuote>("/wellness/quote", { method: "POST", body }),
+  createWellnessVisit: (body: CreateWellnessVisitRequest) =>
+    request<WellnessVisit>("/wellness/visits", { method: "POST", body }),
+  getWellnessVisits: (params: { hostUserId?: string; propertyId?: string; officerId?: string } = {}) =>
+    request<WellnessVisit[]>("/wellness/visits" + withQuery("", params)),
+  assignWellnessOfficer: (visitId: string, officerId: string, token: string) =>
+    request<WellnessVisit>(`/wellness/visits/${visitId}/assign`, {
+      method: "POST",
+      token,
+      body: { officerId },
+    }),
+  cancelWellnessVisit: (visitId: string, token: string, reason?: string) =>
+    request<WellnessVisit>(`/wellness/visits/${visitId}/cancel`, {
+      method: "POST",
+      token,
+      body: { reason },
+    }),
+  submitWellnessReport: (visitId: string, body: { officerBadgeNumber: string; notes: string; photos?: string[] }) =>
+    request<WellnessVisit>(`/wellness/visits/${visitId}/report`, { method: "POST", body }),
+  completeWellnessVisit: (
+    visitId: string,
+    token: string,
+    body: { officerBadgeNumber: string; notes: string; photos?: string[] },
+  ) => request<WellnessVisit>(`/wellness/visits/${visitId}/complete`, { method: "POST", token, body }),
+  markWellnessPayoutPaid: (visitId: string, token: string, providerReference?: string, notes?: string) =>
+    request<WellnessPayout>(`/wellness/visits/${visitId}/payout`, {
+      method: "POST",
+      token,
+      body: { providerReference, notes },
+    }),
+  getWellnessPayouts: (token: string, status?: string) =>
+    request<WellnessPayout[]>(withQuery("/wellness/payouts", { status }), { token }),
+  getWellnessAdminDashboard: (token: string) =>
+    request<WellnessAdminDashboard>("/wellness/admin/dashboard", { token }),
 };
 
 export function formatMoney(amount: number, currency = "USD") {

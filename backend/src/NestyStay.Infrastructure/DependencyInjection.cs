@@ -5,6 +5,7 @@ using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Domain;
+using NestyStay.Application.Wellness;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
 using System.Net.Http.Headers;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<IInsuranceProvider, InsuraGuestProvider>();
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
+        services.AddScoped<IWellnessStore, EfWellnessStore>();
 
         return services;
     }

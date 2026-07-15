@@ -154,3 +154,72 @@ public sealed class MilestoneFoundingBenefit : BaseEntity
     public bool IsTransferableWithProperty { get; set; }
     public bool IsForfeited { get; set; }
 }
+
+public sealed class MilestoneWellnessOfficer : BaseEntity
+{
+    public Guid? UserId { get; set; }
+    public string BadgeNumber { get; set; } = string.Empty;
+    public string Parish { get; set; } = string.Empty;
+    public string CoverageArea { get; set; } = string.Empty;
+    public bool IsActiveOffDuty { get; set; }
+    public bool IsRetired { get; set; }
+    public string VerificationStatus { get; set; } = "Pending";
+    public string OnboardingStatus { get; set; } = "Pending";
+    public string AvailabilityStatus { get; set; } = "Inactive";
+    public string VerificationMetadataJson { get; set; } = "{}";
+    public string AdminReviewMetadataJson { get; set; } = "{}";
+    public string FreeBadgesJson { get; set; } = "[]";
+    public string NotificationEventsJson { get; set; } = "[]";
+}
+
+public sealed class MilestoneWellnessVisit : BaseEntity
+{
+    public Guid HostUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public Guid? OfficerId { get; set; }
+    public string OfficerBadgeNumber { get; set; } = string.Empty;
+    public string Parish { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
+    public string VisitType { get; set; } = string.Empty;
+    public DateTimeOffset ScheduledAt { get; set; }
+    public int DurationMinutes { get; set; }
+    public decimal Price { get; set; }
+    public decimal PlatformFee { get; set; }
+    public decimal OfficerPayoutAmount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public string PaymentStatus { get; set; } = "Pending";
+    public string VisitStatus { get; set; } = "Requested";
+    public string ReportStatus { get; set; } = "Missing";
+    public string PaymentProvider { get; set; } = string.Empty;
+    public string PaymentAuthorizationReference { get; set; } = string.Empty;
+    public string PaymentClientSecret { get; set; } = string.Empty;
+    public string PaymentCaptureReference { get; set; } = string.Empty;
+    public string TimelineJson { get; set; } = "[]";
+    public string NotificationEventsJson { get; set; } = "[]";
+}
+
+public sealed class MilestoneWellnessReport : BaseEntity
+{
+    public Guid VisitId { get; set; }
+    public Guid OfficerId { get; set; }
+    public DateTimeOffset SubmittedAt { get; set; }
+    public string ReportStatus { get; set; } = "Submitted";
+    public string Notes { get; set; } = string.Empty;
+    public string PhotosJson { get; set; } = "[]";
+    public string LocationMetadataJson { get; set; } = "{}";
+}
+
+public sealed class MilestoneWellnessPayout : BaseEntity
+{
+    public Guid VisitId { get; set; }
+    public Guid OfficerId { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal PlatformFee { get; set; }
+    public decimal OfficerAmount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public string Status { get; set; } = "Pending";
+    public DateTimeOffset? EligibleAt { get; set; }
+    public DateTimeOffset? PaidAt { get; set; }
+    public string ProviderReference { get; set; } = string.Empty;
+    public string LedgerNotes { get; set; } = string.Empty;
+}

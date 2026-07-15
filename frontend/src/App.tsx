@@ -18,6 +18,8 @@ import {
   ExplorePage,
   GuestDashboardPage,
   HostDashboardPage,
+  HostWellnessPage,
+  OfficerWellnessPage,
   PaymentConfirmationPage,
   ProfileSettingsPage,
   PropertyDetailsPage,
@@ -28,6 +30,7 @@ const navItems = [
   ["Explore", "/explore"],
   ["Guest", "/guest-dashboard"],
   ["Host", "/host-dashboard"],
+  ["Wellness", "/host/wellness"],
   ["Calendar", "/calendar"],
   ["Bookings", "/bookings"],
 ] as const;
@@ -40,6 +43,8 @@ type Route =
   | { name: "register" }
   | { name: "guest-dashboard" }
   | { name: "host-dashboard" }
+  | { name: "host-wellness" }
+  | { name: "officer-wellness" }
   | { name: "property-management" }
   | { name: "calendar" }
   | { name: "bookings" }
@@ -58,6 +63,8 @@ function parseRoute(): Route {
   if (path === "/register") return { name: "register" };
   if (path === "/guest-dashboard") return { name: "guest-dashboard" };
   if (path === "/host-dashboard") return { name: "host-dashboard" };
+  if (path === "/host/wellness") return { name: "host-wellness" };
+  if (path === "/officer/wellness") return { name: "officer-wellness" };
   if (path === "/host/properties") return { name: "property-management" };
   if (path === "/calendar") return { name: "calendar" };
   if (path === "/bookings") return { name: "bookings" };
@@ -206,6 +213,10 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <GuestDashboardPage auth={auth} />;
     case "host-dashboard":
       return <HostDashboardPage auth={auth} />;
+    case "host-wellness":
+      return <HostWellnessPage auth={auth} />;
+    case "officer-wellness":
+      return <OfficerWellnessPage />;
     case "property-management":
       return <PropertyManagementPage auth={auth} />;
     case "calendar":
