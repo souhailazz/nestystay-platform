@@ -1,6 +1,7 @@
 import { ArrowRight, CalendarDays, Heart, MapPin, Search, ShieldCheck, Sparkles, Star, UsersRound } from "lucide-react";
 import { AppLink } from "../AppLink";
 import { buttonClassName } from "../ui/Button";
+import LandingScroll3D from "./LandingScroll3D";
 
 const trustItems = [
   {
@@ -90,6 +91,8 @@ export default function ReferenceLanding() {
           </div>
         </div>
       </section>
+
+      <LandingScroll3D />
 
       <section className="reference-trust">
         <div className="reference-heading">

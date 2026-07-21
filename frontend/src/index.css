@@ -4431,6 +4431,330 @@ body {
   background: #0a3d3b;
 }
 
+.reference-scroll3d {
+  display: grid;
+  min-height: 178vh;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  gap: 64px;
+  align-items: start;
+  padding: 112px max(32px, calc((100vw - 1280px) / 2 + 64px));
+  color: var(--ref-deep);
+  background:
+    linear-gradient(180deg, #f8f5ee 0%, #fffaf0 48%, #f3ece4 100%);
+}
+
+.reference-scroll3d__copy {
+  position: sticky;
+  grid-column: 1;
+  grid-row: 1;
+  top: 120px;
+  padding-top: 18px;
+}
+
+.reference-scroll3d__copy > small,
+.reference-featured__head small {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  color: var(--ref-palm);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reference-scroll3d__copy > small::before,
+.reference-featured__head small::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ref-yellow);
+}
+
+.reference-scroll3d__copy h2 {
+  max-width: 540px;
+  margin: 0;
+  color: var(--ref-deep);
+  font-family: var(--ref-serif);
+  font-size: clamp(42px, 4.4vw, 68px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.reference-scroll3d__copy > p {
+  max-width: 520px;
+  margin: 22px 0 0;
+  color: var(--ref-muted);
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.reference-scroll3d__steps {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.reference-scroll3d__steps article {
+  padding: 22px 0 20px 22px;
+  border-left: 3px solid rgb(6 43 43 / 12%);
+}
+
+.reference-scroll3d__steps article:hover {
+  border-color: var(--ref-yellow);
+}
+
+.reference-scroll3d__steps span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ref-palm);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reference-scroll3d__steps h3 {
+  margin: 12px 0 8px;
+  color: var(--ref-deep);
+  font-family: var(--ref-serif);
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.reference-scroll3d__steps p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--ref-muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.reference-scroll3d__sticky {
+  position: sticky;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  top: 104px;
+  min-height: min(780px, calc(100vh - 128px));
+  perspective: 1400px;
+}
+
+.reference-scroll3d__progress {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  transform-origin: left;
+  border-radius: 999px;
+  background: var(--ref-yellow);
+}
+
+.reference-scroll3d__stage {
+  position: relative;
+  width: min(640px, 100%);
+  height: min(720px, calc(100vh - 150px));
+  min-height: 620px;
+  margin-left: auto;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.reference-scroll3d__base {
+  position: absolute;
+  z-index: 1;
+  inset: 74px 44px 52px;
+  border: 1px solid rgb(6 43 43 / 10%);
+  border-radius: 34px;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 62%), rgb(255 248 231 / 42%)),
+    radial-gradient(circle at 22% 18%, rgb(255 210 31 / 18%), transparent 34%);
+  box-shadow: 0 30px 80px rgb(6 43 43 / 16%);
+  opacity: 0.72;
+  transform: translateZ(-140px) rotateX(68deg);
+  transform-style: preserve-3d;
+}
+
+.reference-scroll3d__base::before,
+.reference-scroll3d__base::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: rgb(47 125 58 / 14%);
+}
+
+.reference-scroll3d__base::before {
+  top: 52px;
+  left: 58px;
+  width: 240px;
+  height: 14px;
+}
+
+.reference-scroll3d__base::after {
+  right: 62px;
+  bottom: 68px;
+  width: 164px;
+  height: 14px;
+  background: rgb(29 100 167 / 14%);
+}
+
+.reference-scroll3d__photo {
+  position: absolute;
+  z-index: 3;
+  top: 42px;
+  left: 52px;
+  width: min(440px, calc(100% - 118px));
+  overflow: hidden;
+  border: 10px solid var(--ref-white);
+  border-radius: 26px;
+  background: var(--ref-white);
+  box-shadow: 0 34px 80px rgb(6 43 43 / 20%);
+  transform: translateZ(120px);
+}
+
+.reference-scroll3d__photo img {
+  display: block;
+  width: 100%;
+  height: 310px;
+  object-fit: cover;
+}
+
+.reference-scroll3d__photo span {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  color: var(--ref-deep);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 8px 20px rgb(6 43 43 / 14%);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.reference-scroll3d__booking-card,
+.reference-scroll3d__trust-card,
+.reference-scroll3d__key-card {
+  position: absolute;
+  z-index: 4;
+  color: var(--ref-deep);
+  border: 1px solid rgb(6 43 43 / 9%);
+  border-radius: 22px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 24px 56px rgb(6 43 43 / 16%);
+  backdrop-filter: blur(12px);
+}
+
+.reference-scroll3d__trust-card {
+  top: 272px;
+  right: 18px;
+  display: flex;
+  width: 254px;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  transform: translateZ(180px) rotateY(-8deg);
+}
+
+.reference-scroll3d__trust-card > svg,
+.reference-scroll3d__key-card > svg {
+  flex: 0 0 auto;
+  color: var(--ref-palm);
+}
+
+.reference-scroll3d__trust-card strong,
+.reference-scroll3d__trust-card span {
+  display: block;
+}
+
+.reference-scroll3d__trust-card strong {
+  font-size: 14px;
+}
+
+.reference-scroll3d__trust-card span,
+.reference-scroll3d__key-card span {
+  color: var(--ref-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.reference-scroll3d__booking-card {
+  z-index: 5;
+  right: 42px;
+  bottom: 82px;
+  width: min(390px, calc(100% - 84px));
+  padding: 22px;
+  transform: translateZ(240px) rotateY(-3deg);
+}
+
+.reference-scroll3d__booking-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.reference-scroll3d__booking-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.reference-scroll3d__booking-head b {
+  color: var(--ref-palm);
+  font-family: var(--ref-serif);
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.reference-scroll3d__booking-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.reference-scroll3d__booking-grid span {
+  min-height: 42px;
+  padding: 12px;
+  color: var(--ref-muted);
+  border-radius: 12px;
+  background: #f4f7f5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.reference-scroll3d__booking-card .ui-button {
+  width: 100%;
+}
+
+.reference-scroll3d__key-card {
+  z-index: 6;
+  bottom: 30px;
+  left: 10px;
+  display: flex;
+  width: 260px;
+  align-items: center;
+  gap: 12px;
+  padding: 17px;
+  transform: translateZ(90px) rotateY(9deg);
+}
+
 .reference-trust,
 .reference-featured,
 .reference-cta {
@@ -5268,6 +5592,27 @@ body {
 }
 
 @media (max-width: 1080px) {
+  .reference-scroll3d {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    gap: 42px;
+    padding: 88px 32px;
+  }
+
+  .reference-scroll3d__copy,
+  .reference-scroll3d__steps,
+  .reference-scroll3d__sticky {
+    position: relative;
+    grid-column: 1;
+    grid-row: auto;
+    top: auto;
+  }
+
+  .reference-scroll3d__stage {
+    width: min(620px, 100%);
+    margin: 0 auto;
+  }
+
   .reference-trust-grid,
   .reference-stay-grid,
   .stay-result-grid,
@@ -5370,9 +5715,19 @@ body {
   }
 
   .reference-trust,
+  .reference-scroll3d,
   .reference-featured,
   .reference-cta {
     padding: 76px 24px;
+  }
+
+  .reference-scroll3d__sticky {
+    min-height: auto;
+  }
+
+  .reference-scroll3d__stage {
+    height: 650px;
+    min-height: 650px;
   }
 
   .reference-trust-grid,
@@ -5469,9 +5824,57 @@ body {
   }
 
   .reference-hero__copy p,
+  .reference-scroll3d__copy > p,
   .reference-cta__card p {
     font-size: 15px;
     line-height: 1.6;
+  }
+
+  .reference-scroll3d__copy h2 {
+    font-size: 40px;
+    line-height: 1.04;
+  }
+
+  .reference-scroll3d__steps h3 {
+    font-size: 24px;
+  }
+
+  .reference-scroll3d__stage {
+    height: 560px;
+    min-height: 560px;
+  }
+
+  .reference-scroll3d__photo {
+    top: 24px;
+    left: 18px;
+    width: calc(100% - 36px);
+  }
+
+  .reference-scroll3d__photo img {
+    height: 230px;
+  }
+
+  .reference-scroll3d__trust-card {
+    top: 236px;
+    right: 10px;
+    width: min(245px, calc(100% - 60px));
+  }
+
+  .reference-scroll3d__booking-card {
+    right: 18px;
+    bottom: 62px;
+    width: calc(100% - 36px);
+  }
+
+  .reference-scroll3d__key-card {
+    bottom: 16px;
+    left: 18px;
+    width: calc(100% - 72px);
+  }
+
+  .reference-scroll3d__base {
+    inset: 60px 16px 36px;
+    border-radius: 26px;
   }
 
   .reference-cta__card {
