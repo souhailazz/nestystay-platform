@@ -26,6 +26,38 @@ import {
   PropertyDetailsPage,
   PropertyManagementPage,
 } from "./pages/ProductPages";
+import {
+  AccessRestrictedPage,
+  AdminKpiPage,
+  AdminReportsPage,
+  AuthPostLoginToastPage,
+  BusinessDirectoryPage,
+  ComingSoonPage,
+  DocumentMessagePage,
+  FavoritesCollectionsPage,
+  HostPropertyEditPage,
+  HostReportsPage,
+  InsuraGuestPage,
+  InvoicesPage,
+  LogoutScreenPage,
+  MapSearchPage,
+  NoFavoritesPage,
+  NoReservationsPage,
+  NotFoundPage,
+  NotificationsCenterPage,
+  OfficerIdResetPage,
+  PendingReviewsPage,
+  PoliceDirectoryPage,
+  PropertyManagerGatePage,
+  PropertyManagerReportsPage,
+  PropertyManagerUtilitiesPage,
+  PropertyManagerVerificationPage,
+  ProviderDashboardPage,
+  ServerErrorPage,
+  SignInRequiredPage,
+  TripSuggestionsPage,
+  WellnessBookingPage,
+} from "./pages/SpecScreens";
 
 const navItems = [
   ["Explore", "/explore"],
@@ -39,19 +71,49 @@ const navItems = [
 type Route =
   | { name: "home" }
   | { name: "explore" }
+  | { name: "map-search" }
+  | { name: "coming-soon" }
   | { name: "property"; propertyId?: string }
   | { name: "login" }
   | { name: "register" }
+  | { name: "auth-post" }
+  | { name: "logout" }
   | { name: "guest-dashboard" }
+  | { name: "trav-favorites" }
+  | { name: "trav-invoices" }
+  | { name: "trav-reviews" }
+  | { name: "trav-notifications" }
+  | { name: "trav-suggestions" }
   | { name: "host-dashboard" }
   | { name: "host-wellness" }
+  | { name: "officer-directory" }
+  | { name: "wellness-booking" }
   | { name: "officer-wellness" }
   | { name: "property-management" }
+  | { name: "host-property-edit" }
+  | { name: "host-reports" }
+  | { name: "pm-gates" }
+  | { name: "pm-utilities" }
+  | { name: "pm-verification" }
+  | { name: "pm-reports" }
+  | { name: "pm-insurance" }
+  | { name: "business-directory" }
+  | { name: "provider-dashboard" }
   | { name: "calendar" }
   | { name: "bookings" }
   | { name: "payment"; bookingId?: string }
   | { name: "profile" }
-  | { name: "admin" };
+  | { name: "document-message" }
+  | { name: "admin" }
+  | { name: "admin-kpis" }
+  | { name: "admin-reports" }
+  | { name: "officer-id-reset" }
+  | { name: "sign-in-required" }
+  | { name: "access-restricted" }
+  | { name: "server-error" }
+  | { name: "no-favorites" }
+  | { name: "no-reservations" }
+  | { name: "not-found" };
 
 function parseRoute(): Route {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -59,22 +121,52 @@ function parseRoute(): Route {
 
   if (path === "/") return { name: "home" };
   if (path === "/explore") return { name: "explore" };
+  if (path === "/explore/map") return { name: "map-search" };
+  if (path === "/coming-soon") return { name: "coming-soon" };
   if (path.startsWith("/properties/")) return { name: "property", propertyId: path.split("/")[2] };
   if (path === "/login") return { name: "login" };
   if (path === "/register") return { name: "register" };
+  if (path === "/auth/post-login-toast") return { name: "auth-post" };
+  if (path === "/logout") return { name: "logout" };
   if (path === "/guest-dashboard") return { name: "guest-dashboard" };
+  if (path === "/traveler/favorites" || path === "/wishlist") return { name: "trav-favorites" };
+  if (path === "/traveler/invoices") return { name: "trav-invoices" };
+  if (path === "/traveler/reviews") return { name: "trav-reviews" };
+  if (path === "/traveler/notifications" || path === "/notifications") return { name: "trav-notifications" };
+  if (path === "/traveler/suggestions") return { name: "trav-suggestions" };
   if (path === "/host-dashboard") return { name: "host-dashboard" };
   if (path === "/host/wellness") return { name: "host-wellness" };
+  if (path === "/host/wellness/directory") return { name: "officer-directory" };
+  if (path === "/host/wellness/book") return { name: "wellness-booking" };
   if (path === "/officer/wellness") return { name: "officer-wellness" };
   if (path === "/host/properties") return { name: "property-management" };
+  if (path === "/host/properties/edit") return { name: "host-property-edit" };
+  if (path === "/host/reports") return { name: "host-reports" };
+  if (path === "/pm/gates") return { name: "pm-gates" };
+  if (path === "/pm/utilities") return { name: "pm-utilities" };
+  if (path === "/pm/verification") return { name: "pm-verification" };
+  if (path === "/pm/reports") return { name: "pm-reports" };
+  if (path === "/pm/insurance") return { name: "pm-insurance" };
+  if (path === "/directory/businesses") return { name: "business-directory" };
+  if (path === "/directory/provider") return { name: "provider-dashboard" };
   if (path === "/calendar") return { name: "calendar" };
   if (path === "/bookings") return { name: "bookings" };
   if (path === "/payment-confirmation") {
     return { name: "payment", bookingId: search.get("bookingId") ?? undefined };
   }
   if (path === "/profile") return { name: "profile" };
+  if (path === "/messages/document") return { name: "document-message" };
   if (path === "/admin") return { name: "admin" };
-  return { name: "home" };
+  if (path === "/admin/kpis") return { name: "admin-kpis" };
+  if (path === "/admin/reports") return { name: "admin-reports" };
+  if (path === "/admin/officer-id-reset") return { name: "officer-id-reset" };
+  if (path === "/401") return { name: "sign-in-required" };
+  if (path === "/403") return { name: "access-restricted" };
+  if (path === "/500") return { name: "server-error" };
+  if (path === "/empty/favorites") return { name: "no-favorites" };
+  if (path === "/empty/reservations") return { name: "no-reservations" };
+  if (path === "/404") return { name: "not-found" };
+  return { name: "not-found" };
 }
 
 function useRoute() {
@@ -203,42 +295,122 @@ function LandingPage() {
 function isWorkspaceRoute(route: Route) {
   return [
     "guest-dashboard",
+    "trav-favorites",
+    "trav-invoices",
+    "trav-reviews",
+    "trav-notifications",
+    "trav-suggestions",
     "host-dashboard",
     "host-wellness",
+    "officer-directory",
+    "wellness-booking",
     "officer-wellness",
     "property-management",
+    "host-property-edit",
+    "host-reports",
+    "pm-gates",
+    "pm-utilities",
+    "pm-verification",
+    "pm-reports",
+    "pm-insurance",
+    "business-directory",
+    "provider-dashboard",
     "calendar",
     "bookings",
     "payment",
     "profile",
+    "document-message",
     "admin",
+    "admin-kpis",
+    "admin-reports",
+    "officer-id-reset",
+    "no-favorites",
+    "no-reservations",
   ].includes(route.name);
 }
 
 function hasPublicNav(route: Route) {
-  return ["home", "explore", "property"].includes(route.name);
+  return [
+    "home",
+    "explore",
+    "map-search",
+    "property",
+    "auth-post",
+    "sign-in-required",
+    "access-restricted",
+    "server-error",
+    "not-found",
+  ].includes(route.name);
+}
+
+function LogoutRoute({ auth }: { auth: AuthController }) {
+  useEffect(() => {
+    auth.logout();
+  }, [auth.logout]);
+
+  return <LogoutScreenPage />;
 }
 
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
   switch (route.name) {
     case "explore":
       return <ExplorePage auth={auth} />;
+    case "map-search":
+      return <MapSearchPage />;
+    case "coming-soon":
+      return <ComingSoonPage />;
     case "property":
       return <PropertyDetailsPage auth={auth} propertyId={route.propertyId} />;
     case "login":
       return <AuthPage auth={auth} mode="login" />;
     case "register":
       return <AuthPage auth={auth} mode="register" />;
+    case "auth-post":
+      return <AuthPostLoginToastPage />;
+    case "logout":
+      return <LogoutRoute auth={auth} />;
     case "guest-dashboard":
       return <GuestDashboardPage auth={auth} />;
+    case "trav-favorites":
+      return <FavoritesCollectionsPage />;
+    case "trav-invoices":
+      return <InvoicesPage />;
+    case "trav-reviews":
+      return <PendingReviewsPage />;
+    case "trav-notifications":
+      return <NotificationsCenterPage />;
+    case "trav-suggestions":
+      return <TripSuggestionsPage />;
     case "host-dashboard":
       return <HostDashboardPage auth={auth} />;
     case "host-wellness":
       return <HostWellnessPage auth={auth} />;
+    case "officer-directory":
+      return <PoliceDirectoryPage />;
+    case "wellness-booking":
+      return <WellnessBookingPage />;
     case "officer-wellness":
       return <OfficerWellnessPage />;
     case "property-management":
       return <PropertyManagementPage auth={auth} />;
+    case "host-property-edit":
+      return <HostPropertyEditPage />;
+    case "host-reports":
+      return <HostReportsPage />;
+    case "pm-gates":
+      return <PropertyManagerGatePage />;
+    case "pm-utilities":
+      return <PropertyManagerUtilitiesPage />;
+    case "pm-verification":
+      return <PropertyManagerVerificationPage />;
+    case "pm-reports":
+      return <PropertyManagerReportsPage />;
+    case "pm-insurance":
+      return <InsuraGuestPage />;
+    case "business-directory":
+      return <BusinessDirectoryPage />;
+    case "provider-dashboard":
+      return <ProviderDashboardPage />;
     case "calendar":
       return <CalendarPage />;
     case "bookings":
@@ -247,8 +419,28 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PaymentConfirmationPage bookingId={route.bookingId} />;
     case "profile":
       return <ProfileSettingsPage auth={auth} />;
+    case "document-message":
+      return <DocumentMessagePage />;
     case "admin":
       return <AdminPage />;
+    case "admin-kpis":
+      return <AdminKpiPage />;
+    case "admin-reports":
+      return <AdminReportsPage />;
+    case "officer-id-reset":
+      return <OfficerIdResetPage />;
+    case "sign-in-required":
+      return <SignInRequiredPage />;
+    case "access-restricted":
+      return <AccessRestrictedPage />;
+    case "server-error":
+      return <ServerErrorPage />;
+    case "no-favorites":
+      return <NoFavoritesPage />;
+    case "no-reservations":
+      return <NoReservationsPage />;
+    case "not-found":
+      return <NotFoundPage />;
     default:
       return <LandingPage />;
   }

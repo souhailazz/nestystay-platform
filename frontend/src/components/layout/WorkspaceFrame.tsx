@@ -1,13 +1,18 @@
 import {
   BadgeCheck,
+  BarChart3,
+  Bell,
   CalendarDays,
   CreditCard,
+  FileText,
   Home,
   LayoutDashboard,
   ListChecks,
+  Map,
   MessageSquare,
   Settings,
   ShieldCheck,
+  Wrench,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { AppLink } from "../AppLink";
@@ -20,15 +25,76 @@ type WorkspaceItem = {
 };
 
 const workspaceItems: WorkspaceItem[] = [
-  { label: "Overview", href: "/guest-dashboard", icon: <LayoutDashboard size={17} />, routes: ["guest-dashboard"] },
-  { label: "Host", href: "/host-dashboard", icon: <Home size={17} />, routes: ["host-dashboard"] },
-  { label: "Properties", href: "/host/properties", icon: <BadgeCheck size={17} />, routes: ["property-management"] },
-  { label: "Reservations", href: "/bookings", icon: <ListChecks size={17} />, routes: ["bookings", "payment"] },
+  {
+    label: "Overview",
+    href: "/guest-dashboard",
+    icon: <LayoutDashboard size={17} />,
+    routes: ["guest-dashboard", "trav-suggestions"],
+  },
+  {
+    label: "Wishlist",
+    href: "/traveler/favorites",
+    icon: <BadgeCheck size={17} />,
+    routes: ["trav-favorites", "no-favorites"],
+  },
+  {
+    label: "Payments",
+    href: "/traveler/invoices",
+    icon: <CreditCard size={17} />,
+    routes: ["trav-invoices", "payment"],
+  },
+  {
+    label: "Reviews",
+    href: "/traveler/reviews",
+    icon: <FileText size={17} />,
+    routes: ["trav-reviews"],
+  },
+  {
+    label: "Alerts",
+    href: "/traveler/notifications",
+    icon: <Bell size={17} />,
+    routes: ["trav-notifications"],
+  },
+  { label: "Host", href: "/host-dashboard", icon: <Home size={17} />, routes: ["host-dashboard", "host-reports"] },
+  {
+    label: "Properties",
+    href: "/host/properties",
+    icon: <BadgeCheck size={17} />,
+    routes: ["property-management", "host-property-edit"],
+  },
+  {
+    label: "Reservations",
+    href: "/bookings",
+    icon: <ListChecks size={17} />,
+    routes: ["bookings", "no-reservations"],
+  },
   { label: "Calendar", href: "/calendar", icon: <CalendarDays size={17} />, routes: ["calendar"] },
-  { label: "Wellness", href: "/host/wellness", icon: <ShieldCheck size={17} />, routes: ["host-wellness", "officer-wellness"] },
-  { label: "Messages", href: "/profile", icon: <MessageSquare size={17} />, routes: ["profile"] },
-  { label: "Payments", href: "/payment-confirmation", icon: <CreditCard size={17} />, routes: [] },
-  { label: "Admin", href: "/admin", icon: <Settings size={17} />, routes: ["admin"] },
+  {
+    label: "Wellness",
+    href: "/host/wellness",
+    icon: <ShieldCheck size={17} />,
+    routes: ["host-wellness", "officer-wellness", "officer-directory", "wellness-booking"],
+  },
+  {
+    label: "PM",
+    href: "/pm/gates",
+    icon: <Wrench size={17} />,
+    routes: ["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"],
+  },
+  {
+    label: "Directory",
+    href: "/directory/businesses",
+    icon: <Map size={17} />,
+    routes: ["business-directory", "provider-dashboard"],
+  },
+  { label: "Messages", href: "/messages/document", icon: <MessageSquare size={17} />, routes: ["profile", "document-message"] },
+  {
+    label: "Admin",
+    href: "/admin",
+    icon: <Settings size={17} />,
+    routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset"],
+  },
+  { label: "Reports", href: "/admin/kpis", icon: <BarChart3 size={17} />, routes: ["admin-kpis", "admin-reports"] },
 ];
 
 export function WorkspaceFrame({ routeName, children }: { routeName: string; children: ReactNode }) {

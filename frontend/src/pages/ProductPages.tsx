@@ -23,6 +23,8 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  TimerReset,
+  ToggleLeft,
   UserRound,
 } from "lucide-react";
 import { AppLink, navigate } from "../components/AppLink";
@@ -34,6 +36,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
+import { PatoisToast } from "../components/ui/PatoisToast";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
@@ -309,6 +312,15 @@ export function PropertyDetailsPage({
         }
       />
 
+      {property?.country.toLowerCase() === "jamaica" && (
+        <section className="product-section product-section--compact">
+          <div className="emergency-119-badge">
+            <ShieldCheck size={18} />
+            Jamaica Emergency: 119
+          </div>
+        </section>
+      )}
+
       <section className="product-section">
         {isLoading && <LoadingState label="Loading property details" />}
         {error && <ErrorState message={error} />}
@@ -389,6 +401,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     setError(null);
     try {
       await auth.verify(code);
+      window.sessionStorage.setItem("nesty-login-toast", "1");
       navigate("/guest-dashboard");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "2FA verification failed.");
@@ -400,6 +413,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     setNotice(null);
     try {
       await signInWithGoogle(auth.signInWithGoogle);
+      window.sessionStorage.setItem("nesty-login-toast", "1");
       navigate("/guest-dashboard");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
@@ -517,7 +531,13 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
                   <AppLink className={buttonClassName("sun")} href="/guest-dashboard">
                     Dashboard
                   </AppLink>
-                  <Button onClick={auth.logout} variant="ghost">
+                  <Button
+                    onClick={() => {
+                      auth.logout();
+                      navigate("/logout");
+                    }}
+                    variant="ghost"
+                  >
                     Logout
                   </Button>
                 </div>
@@ -660,12 +680,22 @@ export function GuestDashboardPage({ auth }: { auth: AuthController }) {
 
 function GuestDashboardContent({ auth }: { auth: AuthController }) {
   const { bookings, isLoading, error, reload } = useBookings(auth.session?.userId);
+  const [showLoginToast, setShowLoginToast] = useState(false);
   const approved = bookings.filter((booking) => booking.status === "APPROVED").length;
   const pending = bookings.filter((booking) => booking.status === "PENDING").length;
   const spend = bookings.reduce((sum, booking) => sum + booking.totalAmount, 0);
 
+  useEffect(() => {
+    if (window.sessionStorage.getItem("nesty-login-toast") !== "1") return;
+    window.sessionStorage.removeItem("nesty-login-toast");
+    setShowLoginToast(true);
+    const timer = window.setTimeout(() => setShowLoginToast(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="product-page">
+      {showLoginToast && <PatoisToast />}
       <PageHeader
         eyebrow="Guest dashboard"
         title={`Welcome back, ${auth.session?.displayName}.`}
@@ -846,9 +876,17 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         title="Schedule platform-managed wellness visits."
         copy="Eligible hosts can request officer wellness visits, track visit status, and keep officer contact mediated inside the platform."
         actions={
-          <AppLink className={buttonClassName("outline")} href="/officer/wellness">
-            Officer view <ArrowRight size={17} />
-          </AppLink>
+          <div className="button-row">
+            <AppLink className={buttonClassName("outline")} href="/host/wellness/directory">
+              Directory <ArrowRight size={17} />
+            </AppLink>
+            <AppLink className={buttonClassName("outline")} href="/host/wellness/book">
+              Book visit <ArrowRight size={17} />
+            </AppLink>
+            <AppLink className={buttonClassName("ghost")} href="/officer/wellness">
+              Officer view <ArrowRight size={17} />
+            </AppLink>
+          </div>
         }
       />
 
@@ -946,7 +984,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
 }
 
 export function OfficerWellnessPage() {
-  const [badgeNumber, setBadgeNumber] = useState("JCF-2026-119");
+  const [badgeNumber, setBadgeNumber] = useState("NST-OFC-2026");
   const [parish, setParish] = useState("St. Ann");
   const [coverageArea, setCoverageArea] = useState("Ocho Rios");
   const [isActiveOffDuty, setIsActiveOffDuty] = useState(true);
@@ -981,7 +1019,7 @@ export function OfficerWellnessPage() {
       <PageHeader
         eyebrow="Officer wellness"
         title="Manage anonymous officer wellness work."
-        copy="Officer-facing flows use badge numbers, visit IDs, report notes, and payout status instead of personal host contact."
+        copy="Officer-facing flows use badge IDs, visit IDs, report notes, and payout status. Names are never shown to any user."
       />
 
       <section className="product-section management-layout wellness-workflow">
@@ -1003,8 +1041,11 @@ export function OfficerWellnessPage() {
           }}
         >
           <h2 className="section-subtitle">Officer onboarding</h2>
+          <div className="warning-banner warning-banner--compact">
+            <Lock size={17} /> Officer display: badge ID only - NST-OFC-XXXX format. Name is never shown to any user.
+          </div>
           <div className="form-grid form-grid--two">
-            <Field label="Badge / ID number">
+            <Field label="Badge ID">
               <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
             </Field>
             <Field label="Parish">
@@ -1032,6 +1073,9 @@ export function OfficerWellnessPage() {
               {officer.badgeNumber} · {officer.verificationStatus} · free badges {officer.freeBadges.join(", ") || "pending"}
             </div>
           )}
+          <div className="notice-panel">
+            Your NestyStay ID resets every January 1. Your privacy is protected by platform policy.
+          </div>
         </form>
 
         <form className="management-form">
@@ -1090,7 +1134,7 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
     currency: "USD",
     badgeLevel: "Verified",
     cancellationPolicy: "Flexible",
-    guestVerificationEnabled: true,
+    guestVerificationEnabled: false,
     insuraGuestEnabled: true,
     highlights: "Ocean breeze, Workspace, Fast Wi-Fi",
   });
@@ -1190,15 +1234,27 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
               <Textarea value={form.highlights} onChange={(event) => update("highlights", event.target.value)} />
             </Field>
           </div>
-          <div className="toggle-row">
+          <div className="verification-toggle-card form-grid__full">
+            <div>
+              <strong>Enable guest identity verification for this property</strong>
+              <p>NEVER AUTOMATIC - host enables per property.</p>
+            </div>
             <InlineLabel>
               <input
                 checked={form.guestVerificationEnabled}
                 type="checkbox"
                 onChange={(event) => update("guestVerificationEnabled", event.target.checked)}
               />
-              Guest verification
+              Guest verification {form.guestVerificationEnabled ? "enabled" : "off"}
             </InlineLabel>
+            <div className="verification-pricing">
+              <span>$0.14 per booking</span>
+              <span>$1.26 / 10-pack</span>
+              <span>$2.99 / month</span>
+              <span>$29.99 / year</span>
+            </div>
+          </div>
+          <div className="toggle-row">
             <InlineLabel>
               <input
                 checked={form.insuraGuestEnabled}
@@ -1417,6 +1473,17 @@ export function BookingManagementPage() {
                 <span>Payment <StatusBadge value={booking.paymentStatus} /></span>
                 <span>Total <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong></span>
               </div>
+              {booking.requiresGuestVerification && booking.verificationStatus !== "PASSED" && (
+                <div className="verification-progress-panel">
+                  <strong>Nuh Fret</strong>
+                  <span>Do not worry - your identity is being verified.</span>
+                  <div className="progress-bar"><span /></div>
+                  <small>
+                    Date hold visible until{" "}
+                    {booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString() : "host approval"}
+                  </small>
+                </div>
+              )}
               <div className="button-row">
                 {booking.requiresGuestVerification && booking.ekycTransactionId && booking.verificationStatus !== "PASSED" && (
                   <>
@@ -1495,6 +1562,7 @@ export function PaymentConfirmationPage({ bookingId }: { bookingId?: string }) {
 }
 
 export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
+  const [patoisEnabled, setPatoisEnabled] = useState(true);
   if (!auth.session) return <RequireAuth auth={auth} title="Profile settings need an active session." />;
 
   return (
@@ -1514,9 +1582,25 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
               <span key={role}>{role}</span>
             ))}
           </div>
-          <Button onClick={auth.logout} variant="outline">
+          <Button
+            onClick={() => {
+              auth.logout();
+              navigate("/logout");
+            }}
+            variant="outline"
+          >
             Logout
           </Button>
+        </Card>
+        <Card className="settings-card settings-card--toggle">
+          <ToggleLeft size={24} />
+          <h2>Jamaican Patois greetings</h2>
+          <p>Show the island personality across your NestyStay experience.</p>
+          <InlineLabel className="switch-label">
+            <input checked={patoisEnabled} type="checkbox" onChange={(event) => setPatoisEnabled(event.target.checked)} />
+            <span className="switch-track" aria-hidden="true" />
+            <span>{patoisEnabled ? "ON" : "OFF"}</span>
+          </InlineLabel>
         </Card>
         <Card className="settings-card">
           <ShieldCheck size={24} />
@@ -1746,6 +1830,16 @@ export function AdminPage() {
           <MetricCard icon={ShieldCheck} label="Wellness visits" value={String(data.wellness?.requestedVisits ?? 0)} />
           <MetricCard icon={CreditCard} label="Wellness payouts" value={String(data.wellness?.pendingPayouts ?? 0)} />
         </div>
+        <Card className="admin-reset-card">
+          <TimerReset size={22} />
+          <div>
+            <strong>Officer ID Reset - Next: Jan 1</strong>
+            <span>{String(data.wellnessOfficers?.length || 1240)} officers enrolled. No Override and Zero Trace rules apply.</span>
+          </div>
+          <AppLink className={buttonClassName("outline")} href="/admin/officer-id-reset">
+            View schedule
+          </AppLink>
+        </Card>
       </section>
 
       <section className="product-section management-layout wellness-workflow">

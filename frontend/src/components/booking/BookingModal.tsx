@@ -161,6 +161,17 @@ export function BookingModal({
                 Verification is {booking.verificationStatus.toLowerCase()} and payment is{" "}
                 {booking.paymentStatus.toLowerCase()}.
               </p>
+              {booking.requiresGuestVerification && booking.verificationStatus !== "PASSED" && (
+                <div className="verification-progress-panel">
+                  <strong>Nuh Fret</strong>
+                  <span>Do not worry - your identity is being verified.</span>
+                  <div className="progress-bar"><span /></div>
+                  <small>
+                    Date hold visible until{" "}
+                    {booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString() : "host approval"}
+                  </small>
+                </div>
+              )}
               {booking.ekycTransactionUrl && (
                 <a href={booking.ekycTransactionUrl} rel="noreferrer" target="_blank">
                   Open eKYC transaction <ArrowRight size={14} />
