@@ -5409,10 +5409,7 @@ body {
 
 .page-hero-grid,
 .page-hero-orb,
-.hero-sun,
-.orbit,
-.property-orb,
-.final-orb {
+.property-orb {
   display: none !important;
 }
 
@@ -6065,5 +6062,184 @@ body {
 
   .workspace-content {
     padding: 24px 14px;
+  }
+}
+
+/* Restore original animated homepage while keeping the migrated app styling elsewhere. */
+.route-home {
+  --ink: #061f1d;
+  --deep: #07362f;
+  --green: #0f5a45;
+  --green-light: #337c4b;
+  --sun: #ffd228;
+  --sun-soft: #ffe996;
+  --cream: #f7f3e8;
+  --sand: #e9ddc5;
+  --coral: #e57b54;
+  --blue: #3267a8;
+  --blue-soft: #dce9f7;
+  --mint: #3b8f7a;
+  --mint-soft: #dff2ec;
+  --slate: #5a6675;
+  --slate-soft: #e8edf1;
+  --white: #ffffff;
+  background: var(--cream);
+}
+
+.route-home .site-nav {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  display: flex;
+  width: min(1240px, calc(100% - 48px));
+  height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 18px;
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
+  transform: translateX(-50%);
+  backdrop-filter: none;
+}
+
+.route-home .site-nav--scrolled {
+  top: 10px;
+  color: white;
+  border-color: rgb(255 255 255 / 12%);
+  background: rgb(4 31 29 / 84%);
+  box-shadow: 0 20px 45px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(16px);
+}
+
+.route-home .brand-lockup {
+  gap: 12px;
+  color: white;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: none;
+}
+
+.route-home .brand-mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 15px;
+  background: #020b0a;
+}
+
+.route-home .brand-mark svg {
+  width: 62px;
+  height: 54px;
+}
+
+.route-home .desktop-nav {
+  margin-left: 0;
+  gap: clamp(18px, 3vw, 38px);
+}
+
+.route-home .desktop-nav a {
+  color: rgb(255 255 255 / 74%);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.route-home .desktop-nav a::after {
+  bottom: -8px;
+  height: 1px;
+  background: var(--sun);
+}
+
+.route-home .desktop-nav a:hover,
+.route-home .desktop-nav a.is-active {
+  color: white;
+}
+
+.route-home .nav-cta {
+  min-height: 44px;
+  color: var(--ink);
+  border-radius: 12px;
+  background: var(--sun);
+  box-shadow: none;
+}
+
+.route-home .eyebrow,
+.route-home .section-tag {
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+}
+
+.route-home .eyebrow,
+.route-home .section-tag--light {
+  color: var(--sun);
+}
+
+@media (max-width: 900px) {
+  .route-home .site-nav {
+    top: 12px;
+    width: calc(100% - 28px);
+    height: 64px;
+    padding: 0 8px 0 12px;
+    border-color: rgb(255 255 255 / 12%);
+    border-radius: 16px;
+    background: rgb(4 31 29 / 76%);
+    backdrop-filter: blur(14px);
+  }
+
+  .route-home .desktop-nav,
+  .route-home .nav-cta {
+    display: none;
+  }
+
+  .route-home .menu-button {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    place-items: center;
+    color: var(--ink);
+    border-radius: 12px;
+    background: var(--sun);
+  }
+
+  .route-home .mobile-nav {
+    position: absolute;
+    top: 72px;
+    right: 0;
+    display: grid;
+    width: min(310px, calc(100vw - 28px));
+    gap: 2px;
+    padding: 10px;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 16px;
+    background: rgb(4 31 29 / 96%);
+    box-shadow: 0 24px 56px rgb(0 0 0 / 26%);
+  }
+
+  .route-home .mobile-nav a {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    color: rgb(255 255 255 / 76%);
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .route-home .mobile-nav a:hover {
+    color: var(--ink);
+    background: var(--sun);
   }
 }

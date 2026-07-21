@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
-import ReferenceLanding from "./components/landing/ReferenceLanding";
+import Hero3D from "./components/landing/Hero3D";
+import ScrollStory from "./components/landing/ScrollStory";
+import FeatureCards from "./components/landing/FeatureCards";
+import PropertyShowcase from "./components/landing/PropertyShowcase";
+import HowItWorks from "./components/landing/HowItWorks";
+import TrustSection from "./components/landing/TrustSection";
+import FinalCTA from "./components/landing/FinalCTA";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { useAuth, type AuthController } from "./hooks/useAuth";
 import {
@@ -84,7 +90,21 @@ function useRoute() {
 }
 
 function LogoMark({ className = "" }: { className?: string }) {
-  return <img className={className} src="/assets/reference/nestystay-logo.png" alt="" aria-hidden="true" />;
+  return (
+    <svg
+      className={className}
+      viewBox="560 150 930 700"
+      role="img"
+      aria-label="Nesty Stay"
+    >
+      <image
+        href="/assets/nesty/Nesty-Stay.png"
+        width="2048"
+        height="1280"
+        preserveAspectRatio="xMidYMid meet"
+      />
+    </svg>
+  );
 }
 
 function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
@@ -167,7 +187,17 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
 }
 
 function LandingPage() {
-  return <ReferenceLanding />;
+  return (
+    <>
+      <Hero3D />
+      <ScrollStory />
+      <FeatureCards />
+      <PropertyShowcase />
+      <HowItWorks />
+      <TrustSection />
+      <FinalCTA />
+    </>
+  );
 }
 
 function isWorkspaceRoute(route: Route) {
