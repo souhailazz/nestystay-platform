@@ -36,7 +36,7 @@ export default function ScrollStory() {
   useEffect(() => {
     const media = gsap.matchMedia();
 
-    media.add("(min-width: 900px) and (prefers-reduced-motion: no-preference)", () => {
+    media.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
       const section = sectionRef.current;
       const scene = sceneRef.current;
       if (!section || !scene) return;

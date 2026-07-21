@@ -15,6 +15,10 @@ public sealed class AuthController(IPhaseOneStore phaseOneStore) : ControllerBas
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.LoginAsync(request, cancellationToken));
 
+    [HttpPost("google")]
+    public async Task<IActionResult> Google(GoogleSignInRequest request, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.GoogleSignInAsync(request, cancellationToken));
+
     [HttpPost("2fa/verify")]
     public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken));

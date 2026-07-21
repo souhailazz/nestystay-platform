@@ -1,4 +1,4 @@
-import type { UserRole, VerifyTwoFactorResponse } from "./api";
+import type { GoogleSignInResponse, UserRole, VerifyTwoFactorResponse } from "./api";
 
 const STORAGE_KEY = "nestyStay.session";
 
@@ -20,6 +20,17 @@ export function createSession(
     userId: verification.userId,
     email,
     displayName: displayName?.trim() || email.split("@")[0] || "Nesty guest",
+    accessToken: verification.accessToken,
+    expiresAt: verification.expiresAt,
+    roles: verification.roles,
+  };
+}
+
+export function createGoogleSession(verification: GoogleSignInResponse): AuthSession {
+  return {
+    userId: verification.userId,
+    email: verification.email,
+    displayName: verification.displayName.trim() || verification.email.split("@")[0] || "Nesty guest",
     accessToken: verification.accessToken,
     expiresAt: verification.expiresAt,
     roles: verification.roles,

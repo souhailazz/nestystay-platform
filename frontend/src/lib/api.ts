@@ -38,6 +38,20 @@ export type VerifyTwoFactorResponse = {
   roles: UserRole[];
 };
 
+export type GoogleSignInRequest = {
+  email: string;
+  displayName: string;
+  googleSubject?: string | null;
+  pictureUrl?: string | null;
+  credential?: string | null;
+};
+
+export type GoogleSignInResponse = VerifyTwoFactorResponse & {
+  email: string;
+  displayName: string;
+  provider: "Google" | string;
+};
+
 export type PropertyListing = {
   id: string;
   hostUserId: string;
@@ -498,6 +512,8 @@ export const api = {
   register: (body: RegisterUserRequest) =>
     request<RegisterUserResponse>("/auth/register", { method: "POST", body }),
   login: (body: LoginRequest) => request<LoginResponse>("/auth/login", { method: "POST", body }),
+  googleSignIn: (body: GoogleSignInRequest) =>
+    request<GoogleSignInResponse>("/auth/google", { method: "POST", body }),
   verifyTwoFactor: (challengeId: string, code: string) =>
     request<VerifyTwoFactorResponse>("/auth/2fa/verify", {
       method: "POST",

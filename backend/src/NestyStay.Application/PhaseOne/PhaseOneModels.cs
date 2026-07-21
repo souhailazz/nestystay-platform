@@ -14,6 +14,17 @@ public sealed record VerifyTwoFactorRequest(string ChallengeId, string Code);
 
 public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles);
 
+public sealed record GoogleSignInRequest(string Email, string DisplayName, string? GoogleSubject, string? PictureUrl, string? Credential);
+
+public sealed record GoogleSignInResponse(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string AccessToken,
+    DateTimeOffset ExpiresAt,
+    IReadOnlyList<UserRole> Roles,
+    string Provider);
+
 public sealed record PropertyListingDto(
     Guid Id,
     Guid HostUserId,

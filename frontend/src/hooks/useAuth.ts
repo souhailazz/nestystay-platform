@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type LoginResponse, type RegisterUserRequest } from "../lib/api";
-import { clearSession, createSession, loadSession, saveSession, type AuthSession } from "../lib/auth";
+import { api, type GoogleSignInRequest, type LoginResponse, type RegisterUserRequest } from "../lib/api";
+import { clearSession, createGoogleSession, createSession, loadSession, saveSession, type AuthSession } from "../lib/auth";
 
 type PendingChallenge = {
   challengeId: string;
@@ -70,6 +70,20 @@ export function useAuth() {
     [pendingChallenge],
   );
 
+  const signInWithGoogle = useCallback(async (profile: GoogleSignInRequest) => {
+    setIsAuthBusy(true);
+    try {
+      const response = await api.googleSignIn(profile);
+      const nextSession = createGoogleSession(response);
+      saveSession(nextSession);
+      setSession(nextSession);
+      setPendingChallenge(null);
+      return nextSession;
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     clearSession();
     setSession(null);
@@ -84,10 +98,11 @@ export function useAuth() {
       isAuthBusy,
       register,
       login,
+      signInWithGoogle,
       verify,
       logout,
     }),
-    [isAuthBusy, login, logout, pendingChallenge, register, session, verify],
+    [isAuthBusy, login, logout, pendingChallenge, register, session, signInWithGoogle, verify],
   );
 }
 

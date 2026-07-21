@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -55,6 +56,7 @@ import {
   type FoundingBenefit,
   type FoundingTier,
   type FoundingTransferEvaluation,
+  type GoogleSignInRequest,
   type PhaseTwoPricebookItem,
   type PropertyListing,
   type WellnessAdminDashboard,
@@ -67,6 +69,21 @@ function todayPlus(days: number) {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+/* Reusable scroll-reveal wrapper for product sections */
+function AnimatedSection({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 36 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function statusTone(value: string): "green" | "sun" | "coral" | "ink" | "blue" | "slate" | "mint" {
@@ -117,6 +134,12 @@ function ProductCard({
   onBook: (property: PropertyListing) => void;
 }) {
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+    >
     <Card className="stay-result-card">
       <div className="stay-result-card__visual">
         <MiniPropertyArt index={index} title={property.title} />
@@ -154,6 +177,7 @@ function ProductCard({
         </div>
       </div>
     </Card>
+    </motion.div>
   );
 }
 
@@ -209,6 +233,7 @@ export function ExplorePage({ auth }: { auth: AuthController }) {
         }
       />
 
+      <AnimatedSection>
       <section className="product-section">
         <div className="search-panel">
           <Field label="Search">
@@ -243,6 +268,7 @@ export function ExplorePage({ auth }: { auth: AuthController }) {
           ))}
         </div>
       </section>
+      </AnimatedSection>
 
       <BookingModal
         open={Boolean(bookingProperty)}
@@ -369,91 +395,242 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     }
   }
 
-  return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Account access"
-        title="Sign in with backend auth."
-        copy="Registration, login, and 2FA all call the ASP.NET Core auth endpoints."
-      />
+  async function handleGoogleSignIn() {
+    setError(null);
+    setNotice(null);
+    try {
+      await signInWithGoogle(auth.signInWithGoogle);
+      navigate("/guest-dashboard");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
+    }
+  }
 
-      <section className="product-section auth-layout">
-        <form className="auth-panel" onSubmit={handleSubmit}>
-          <div className="segmented-control">
-            <button
-              type="button"
-              className={activeMode === "login" ? "is-active" : ""}
-              onClick={() => setActiveMode("login")}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={activeMode === "register" ? "is-active" : ""}
-              onClick={() => setActiveMode("register")}
-            >
-              Register
-            </button>
+  return (
+    <div className="product-page product-page--auth">
+      <section className="auth-shell">
+        <aside className="auth-brand-panel">
+          <Badge tone="mint">Secure access</Badge>
+          <h1>Welcome back to Nesty Stay.</h1>
+          <p>Manage trips, listings, wellness visits, and booking approvals from one protected account.</p>
+          <div className="auth-proof-grid">
+            <span>
+              <ShieldCheck size={18} />
+              Protected guest sessions
+            </span>
+            <span>
+              <KeyRound size={18} />
+              2FA for password sign-in
+            </span>
+            <span>
+              <UserRound size={18} />
+              Google account access
+            </span>
+          </div>
+        </aside>
+
+        <div className="auth-card">
+          <div className="auth-card__header">
+            <div>
+              <span className="product-eyebrow">Account</span>
+              <h2>{activeMode === "login" ? "Sign in" : "Create your account"}</h2>
+              <p>
+                {activeMode === "login"
+                  ? "Use your email and password, or continue with Google."
+                  : "Set up your profile, then confirm access with a short verification step."}
+              </p>
+            </div>
           </div>
 
-          {activeMode === "register" && (
-            <>
-              <Field label="Display name">
-                <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-              </Field>
-              <Field label="Phone">
-                <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
-              </Field>
-            </>
-          )}
-
-          <Field label="Email">
-            <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          </Field>
-          <Field label="Password">
-            <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-          </Field>
-          <Button disabled={auth.isAuthBusy} type="submit">
-            <Lock size={17} /> {activeMode === "login" ? "Start login" : "Create account"}
+          <Button className="google-auth-button" disabled={auth.isAuthBusy} type="button" variant="outline" onClick={handleGoogleSignIn}>
+            <span className="google-mark" aria-hidden="true">G</span>
+            Continue with Google
           </Button>
 
-          {notice && <div className="notice-panel">{notice}</div>}
-          {error && <ErrorState message={error} />}
-        </form>
+          <div className="auth-divider"><span>or use email</span></div>
 
-        <div className="auth-panel auth-panel--dark">
-          <Badge tone="sun">Two-factor challenge</Badge>
-          {auth.pendingChallenge ? (
-            <>
-              <h2>{auth.pendingChallenge.email}</h2>
-              <p>Challenge expires at {new Date(auth.pendingChallenge.expiresAt).toLocaleTimeString()}.</p>
-              <Field label="2FA code" hint={`Demo code from API: ${auth.pendingChallenge.demoCode}`}>
-                <Input value={code} onChange={(event) => setCode(event.target.value)} />
-              </Field>
-              <Button disabled={auth.isAuthBusy} onClick={handleVerify}>
-                Verify and enter <ArrowRight size={17} />
-              </Button>
-            </>
-          ) : auth.session ? (
-            <>
-              <h2>{auth.session.displayName}</h2>
-              <p>{auth.session.email}</p>
-              <div className="button-row">
-                <AppLink className={buttonClassName("sun")} href="/guest-dashboard">
-                  Dashboard
-                </AppLink>
-                <Button onClick={auth.logout} variant="glass">
-                  Logout
-                </Button>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="segmented-control auth-mode-toggle">
+              <button
+                type="button"
+                className={activeMode === "login" ? "is-active" : ""}
+                onClick={() => setActiveMode("login")}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                className={activeMode === "register" ? "is-active" : ""}
+                onClick={() => setActiveMode("register")}
+              >
+                Register
+              </button>
+            </div>
+
+            {activeMode === "register" && (
+              <div className="form-grid form-grid--two">
+                <Field label="Display name">
+                  <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+                </Field>
+                <Field label="Phone">
+                  <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
+                </Field>
               </div>
-            </>
-          ) : (
-            <p>Start login or registration to receive a backend 2FA challenge.</p>
-          )}
+            )}
+
+            <Field label="Email">
+              <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            </Field>
+            <Field label="Password">
+              <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            </Field>
+            <Button disabled={auth.isAuthBusy} type="submit">
+              <Lock size={17} /> {activeMode === "login" ? "Continue securely" : "Create account"}
+            </Button>
+
+            {notice && <div className="notice-panel">{notice}</div>}
+            {error && <ErrorState message={error} />}
+          </form>
+
+          <div className="auth-challenge-panel">
+            <div>
+              <Badge tone={auth.pendingChallenge ? "blue" : auth.session ? "green" : "slate"}>
+                {auth.pendingChallenge ? "Verification" : auth.session ? "Signed in" : "Next step"}
+              </Badge>
+            </div>
+            {auth.pendingChallenge ? (
+              <>
+                <h3>Check your verification code</h3>
+                <p>{auth.pendingChallenge.email} expires at {new Date(auth.pendingChallenge.expiresAt).toLocaleTimeString()}.</p>
+                <Field label="Verification code" hint={`Local milestone code: ${auth.pendingChallenge.demoCode}`}>
+                  <Input value={code} onChange={(event) => setCode(event.target.value)} />
+                </Field>
+                <Button disabled={auth.isAuthBusy} onClick={handleVerify}>
+                  Verify and enter <ArrowRight size={17} />
+                </Button>
+              </>
+            ) : auth.session ? (
+              <>
+                <h3>{auth.session.displayName}</h3>
+                <p>{auth.session.email}</p>
+                <div className="button-row">
+                  <AppLink className={buttonClassName("sun")} href="/guest-dashboard">
+                    Dashboard
+                  </AppLink>
+                  <Button onClick={auth.logout} variant="ghost">
+                    Logout
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p>Password sign-in uses 2FA. Google sign-in creates a verified guest session immediately.</p>
+            )}
+          </div>
         </div>
       </section>
     </div>
   );
+}
+
+async function signInWithGoogle(signIn: (profile: GoogleSignInRequest) => Promise<unknown>) {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  if (googleClientId) {
+    const credential = await requestGoogleCredential(googleClientId);
+    return signIn({
+      email: credential.email,
+      displayName: credential.name,
+      googleSubject: credential.sub,
+      pictureUrl: credential.picture,
+      credential: credential.raw,
+    });
+  }
+
+  return signIn({
+    email: "google.guest@nestystay.local",
+    displayName: "Google Guest",
+    googleSubject: "local-google-guest",
+    pictureUrl: null,
+    credential: "local-google-sign-in",
+  });
+}
+
+function requestGoogleCredential(clientId: string) {
+  return new Promise<{ email: string; name: string; sub: string; picture?: string; raw: string }>((resolve, reject) => {
+    const scriptId = "google-identity-services";
+    const existing = document.getElementById(scriptId);
+    const loadScript = existing
+      ? Promise.resolve()
+      : new Promise<void>((scriptResolve, scriptReject) => {
+          const script = document.createElement("script");
+          script.id = scriptId;
+          script.src = "https://accounts.google.com/gsi/client";
+          script.async = true;
+          script.defer = true;
+          script.onload = () => scriptResolve();
+          script.onerror = () => scriptReject(new Error("Google sign-in could not load."));
+          document.head.appendChild(script);
+        });
+
+    loadScript
+      .then(() => {
+        const google = window.google;
+        if (!google?.accounts?.id) {
+          reject(new Error("Google sign-in is unavailable in this browser."));
+          return;
+        }
+
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response: { credential?: string }) => {
+            if (!response.credential) {
+              reject(new Error("Google did not return a credential."));
+              return;
+            }
+            resolve(decodeGoogleCredential(response.credential));
+          },
+        });
+        google.accounts.id.prompt((notification: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => {
+          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+            reject(new Error("Google sign-in prompt was dismissed."));
+          }
+        });
+      })
+      .catch(reject);
+  });
+}
+
+function decodeGoogleCredential(raw: string) {
+  const payload = raw.split(".")[1];
+  if (!payload) throw new Error("Google credential is malformed.");
+  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const decoded = JSON.parse(window.atob(padded)) as {
+    email?: string;
+    name?: string;
+    sub?: string;
+    picture?: string;
+  };
+  if (!decoded.email || !decoded.sub) throw new Error("Google credential is missing account details.");
+  return {
+    email: decoded.email,
+    name: decoded.name ?? decoded.email.split("@")[0],
+    sub: decoded.sub,
+    picture: decoded.picture,
+    raw,
+  };
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (options: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
+          prompt: (callback?: (notification: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
+        };
+      };
+    };
+  }
 }
 
 function MetricCard({
@@ -499,6 +676,7 @@ function GuestDashboardContent({ auth }: { auth: AuthController }) {
           </AppLink>
         }
       />
+      <AnimatedSection>
       <section className="product-section">
         <div className="metric-grid">
           <MetricCard icon={BedDouble} label="Bookings" value={String(bookings.length)} />
@@ -508,6 +686,7 @@ function GuestDashboardContent({ auth }: { auth: AuthController }) {
         </div>
         <BookingList bookings={bookings} error={error} isLoading={isLoading} onReload={reload} />
       </section>
+      </AnimatedSection>
     </div>
   );
 }

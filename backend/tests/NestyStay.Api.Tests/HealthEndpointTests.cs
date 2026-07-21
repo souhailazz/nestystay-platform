@@ -131,6 +131,21 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(session);
         Assert.Equal(registered.UserId, session.UserId);
 
+        var google = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            email = $"google-{Guid.NewGuid():N}@gmail.com",
+            displayName = "Google Guest",
+            googleSubject = $"google-{Guid.NewGuid():N}",
+            pictureUrl = "https://lh3.googleusercontent.com/a/default-user",
+            credential = "local-google-credential"
+        });
+        Assert.Equal(HttpStatusCode.OK, google.StatusCode);
+        var googleSession = await google.Content.ReadFromJsonAsync<GoogleSignInResponse>();
+        Assert.NotNull(googleSession);
+        Assert.Equal("Google Guest", googleSession.DisplayName);
+        Assert.Equal("Google", googleSession.Provider);
+        Assert.NotEmpty(googleSession.AccessToken);
+
         var properties = await client.GetFromJsonAsync<List<PropertyResponse>>("/api/properties");
         Assert.NotNull(properties);
         var property = properties.First(item => item.GuestVerificationEnabled);
@@ -257,6 +272,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record LoginResponse(string ChallengeId, string TwoFactorCode);
 
     private sealed record TwoFactorResponse(Guid UserId, string AccessToken);
+
+    private sealed record GoogleSignInResponse(Guid UserId, string DisplayName, string AccessToken, string Provider);
 
     private sealed record PropertyResponse(Guid Id, bool GuestVerificationEnabled);
 

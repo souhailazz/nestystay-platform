@@ -93,6 +93,42 @@ public sealed class EfPhaseOneStore(
             GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()));
     }
 
+    public async Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizeGoogleEmail(request.Email);
+        var displayName = NormalizeGoogleDisplayName(request.DisplayName, email);
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(
+            item => item.NormalizedEmail == email,
+            cancellationToken);
+
+        if (user is null)
+        {
+            user = new MilestoneUser
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                NormalizedEmail = email,
+                PasswordHash = HashPassword(CreateExternalPasswordSeed(request.GoogleSubject, email)),
+                DisplayName = displayName,
+                Phone = null,
+                TwoFactorSecret = GenerateSecret(),
+                RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([UserRole.Guest])
+            };
+            db.MilestoneUsers.Add(user);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+        return new GoogleSignInResponse(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            $"local-google-token-{user.Id:N}",
+            tokenExpiresAt,
+            MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
+            "Google");
+    }
+
     public async Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken)
     {
         var challenge = await db.MilestoneTwoFactorChallenges.SingleOrDefaultAsync(
@@ -727,6 +763,33 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
         }
     }
+
+    private static string NormalizeGoogleEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("Google email is required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(email.Trim());
+            return address.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("Google returned an invalid email address.");
+        }
+    }
+
+    private static string NormalizeGoogleDisplayName(string displayName, string email)
+    {
+        var normalized = displayName.Trim();
+        return normalized.Length == 0 ? email.Split('@')[0] : normalized;
+    }
+
+    private static string CreateExternalPasswordSeed(string? subject, string email) =>
+        $"GOOGLE::{subject?.Trim() ?? email}::{Guid.NewGuid():N}";
 
     private static void ValidateProperty(CreatePropertyRequest request)
     {

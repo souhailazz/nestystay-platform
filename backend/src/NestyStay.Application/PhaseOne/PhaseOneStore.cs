@@ -12,6 +12,7 @@ public interface IPhaseOneStore
 {
     Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken);
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+    Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken);
     Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken);
     IReadOnlyList<PropertyListingDto> GetProperties();
     PropertyListingDto? GetProperty(Guid id);
@@ -138,6 +139,39 @@ public sealed class PhaseOneStore(
                 challenge.Id,
                 expiresAt,
                 GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow())));
+        }
+    }
+
+    public Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizeGoogleEmail(request.Email);
+        var displayName = NormalizeGoogleDisplayName(request.DisplayName, email);
+
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (user is null)
+            {
+                user = new PhaseOneUser(
+                    Guid.NewGuid(),
+                    email,
+                    HashPassword(CreateExternalPasswordSeed(request.GoogleSubject, email)),
+                    displayName,
+                    null,
+                    GenerateSecret(),
+                    [UserRole.Guest]);
+                _users.Add(user);
+            }
+
+            var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+            return Task.FromResult(new GoogleSignInResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                $"local-google-token-{user.Id:N}",
+                tokenExpiresAt,
+                user.Roles,
+                "Google"));
         }
     }
 
@@ -747,6 +781,33 @@ public sealed class PhaseOneStore(
             throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
         }
     }
+
+    private static string NormalizeGoogleEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("Google email is required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(email.Trim());
+            return address.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("Google returned an invalid email address.");
+        }
+    }
+
+    private static string NormalizeGoogleDisplayName(string displayName, string email)
+    {
+        var normalized = displayName.Trim();
+        return normalized.Length == 0 ? email.Split('@')[0] : normalized;
+    }
+
+    private static string CreateExternalPasswordSeed(string? subject, string email) =>
+        $"GOOGLE::{subject?.Trim() ?? email}::{Guid.NewGuid():N}";
 
     private static void ValidateProperty(CreatePropertyRequest request)
     {
