@@ -4553,9 +4553,20 @@ body {
   left: 0;
   width: 100%;
   height: 4px;
+  overflow: hidden;
   transform-origin: left;
   border-radius: 999px;
   background: var(--ref-yellow);
+  box-shadow: 0 0 18px rgb(255 210 31 / 36%);
+}
+
+.reference-scroll3d__progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 78%), transparent);
+  animation: reference-progress-glide 1.45s ease-in-out infinite;
 }
 
 .reference-scroll3d__stage {
@@ -4581,6 +4592,7 @@ body {
   opacity: 0.72;
   transform: translateZ(-140px) rotateX(68deg);
   transform-style: preserve-3d;
+  animation: reference-base-breathe 5.6s ease-in-out infinite;
 }
 
 .reference-scroll3d__base::before,
@@ -4618,6 +4630,7 @@ body {
   background: var(--ref-white);
   box-shadow: 0 34px 80px rgb(6 43 43 / 20%);
   transform: translateZ(120px);
+  animation: reference-photo-float 6s ease-in-out infinite;
 }
 
 .reference-scroll3d__photo img {
@@ -4641,6 +4654,7 @@ body {
   box-shadow: 0 8px 20px rgb(6 43 43 / 14%);
   font-size: 12px;
   font-weight: 900;
+  animation: reference-badge-pop 2.8s ease-in-out infinite;
 }
 
 .reference-scroll3d__booking-card,
@@ -4665,12 +4679,14 @@ body {
   gap: 14px;
   padding: 18px;
   transform: translateZ(180px) rotateY(-8deg);
+  animation: reference-trust-float 4.8s ease-in-out infinite;
 }
 
 .reference-scroll3d__trust-card > svg,
 .reference-scroll3d__key-card > svg {
   flex: 0 0 auto;
   color: var(--ref-palm);
+  animation: reference-icon-pulse 2.4s ease-in-out infinite;
 }
 
 .reference-scroll3d__trust-card strong,
@@ -4696,6 +4712,7 @@ body {
   width: min(390px, calc(100% - 84px));
   padding: 22px;
   transform: translateZ(240px) rotateY(-3deg);
+  animation: reference-booking-float 5.4s ease-in-out infinite;
 }
 
 .reference-scroll3d__booking-head {
@@ -4720,6 +4737,7 @@ body {
   font-family: var(--ref-serif);
   font-size: 30px;
   font-weight: 400;
+  animation: reference-price-pulse 2.2s ease-in-out infinite;
 }
 
 .reference-scroll3d__booking-grid {
@@ -4739,8 +4757,35 @@ body {
   font-weight: 800;
 }
 
+.reference-scroll3d__booking-grid span:nth-child(1) {
+  animation: reference-field-glow 4s ease-in-out infinite;
+}
+
+.reference-scroll3d__booking-grid span:nth-child(2) {
+  animation: reference-field-glow 4s ease-in-out 0.35s infinite;
+}
+
+.reference-scroll3d__booking-grid span:nth-child(3) {
+  animation: reference-field-glow 4s ease-in-out 0.7s infinite;
+}
+
+.reference-scroll3d__booking-grid span:nth-child(4) {
+  animation: reference-field-glow 4s ease-in-out 1.05s infinite;
+}
+
 .reference-scroll3d__booking-card .ui-button {
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.reference-scroll3d__booking-card .ui-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 42%), transparent);
+  animation: reference-button-shine 2.8s ease-in-out infinite;
 }
 
 .reference-scroll3d__key-card {
@@ -4753,6 +4798,139 @@ body {
   gap: 12px;
   padding: 17px;
   transform: translateZ(90px) rotateY(9deg);
+  animation: reference-key-float 5s ease-in-out 0.35s infinite;
+}
+
+@keyframes reference-progress-glide {
+  0% {
+    translate: -110% 0;
+  }
+  100% {
+    translate: 260% 0;
+  }
+}
+
+@keyframes reference-base-breathe {
+  0%, 100% {
+    opacity: 0.52;
+    scale: 0.98;
+  }
+  50% {
+    opacity: 0.82;
+    scale: 1.02;
+  }
+}
+
+@keyframes reference-photo-float {
+  0%, 100% {
+    translate: 0 0;
+    rotate: -0.4deg;
+  }
+  50% {
+    translate: 0 -16px;
+    rotate: 1.2deg;
+  }
+}
+
+@keyframes reference-trust-float {
+  0%, 100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  50% {
+    translate: -12px -18px;
+    rotate: -1.4deg;
+  }
+}
+
+@keyframes reference-booking-float {
+  0%, 100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  50% {
+    translate: 10px -22px;
+    rotate: 1deg;
+  }
+}
+
+@keyframes reference-key-float {
+  0%, 100% {
+    translate: 0 0;
+    rotate: -1deg;
+  }
+  50% {
+    translate: 16px -14px;
+    rotate: 1deg;
+  }
+}
+
+@keyframes reference-badge-pop {
+  0%, 100% {
+    scale: 1;
+    box-shadow: 0 8px 20px rgb(6 43 43 / 14%);
+  }
+  50% {
+    scale: 1.045;
+    box-shadow: 0 12px 28px rgb(6 43 43 / 20%);
+  }
+}
+
+@keyframes reference-icon-pulse {
+  0%, 100% {
+    scale: 1;
+    opacity: 0.78;
+  }
+  50% {
+    scale: 1.18;
+    opacity: 1;
+  }
+}
+
+@keyframes reference-price-pulse {
+  0%, 100% {
+    color: var(--ref-palm);
+    scale: 1;
+  }
+  50% {
+    color: #1d64a7;
+    scale: 1.04;
+  }
+}
+
+@keyframes reference-field-glow {
+  0%, 100% {
+    background: #f4f7f5;
+  }
+  50% {
+    background: #eaf5ea;
+  }
+}
+
+@keyframes reference-button-shine {
+  0%, 38% {
+    translate: -120% 0;
+  }
+  100% {
+    translate: 260% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-scroll3d__progress::after,
+  .reference-scroll3d__base,
+  .reference-scroll3d__photo,
+  .reference-scroll3d__photo span,
+  .reference-scroll3d__trust-card,
+  .reference-scroll3d__trust-card > svg,
+  .reference-scroll3d__key-card,
+  .reference-scroll3d__key-card > svg,
+  .reference-scroll3d__booking-card,
+  .reference-scroll3d__booking-head b,
+  .reference-scroll3d__booking-grid span,
+  .reference-scroll3d__booking-card .ui-button::after {
+    animation: none !important;
+  }
 }
 
 .reference-trust,
