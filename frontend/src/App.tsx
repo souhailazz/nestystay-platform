@@ -2,13 +2,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
-import Hero3D from "./components/landing/Hero3D";
-import ScrollStory from "./components/landing/ScrollStory";
-import FeatureCards from "./components/landing/FeatureCards";
-import PropertyShowcase from "./components/landing/PropertyShowcase";
-import HowItWorks from "./components/landing/HowItWorks";
-import TrustSection from "./components/landing/TrustSection";
-import FinalCTA from "./components/landing/FinalCTA";
+import ReferenceLanding from "./components/landing/ReferenceLanding";
+import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { useAuth, type AuthController } from "./hooks/useAuth";
 import {
   AdminPage,
@@ -89,21 +84,7 @@ function useRoute() {
 }
 
 function LogoMark({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="560 150 930 700"
-      role="img"
-      aria-label="Nesty Stay"
-    >
-      <image
-        href="/assets/nesty/Nesty-Stay.png"
-        width="2048"
-        height="1280"
-        preserveAspectRatio="xMidYMid meet"
-      />
-    </svg>
-  );
+  return <img className={className} src="/assets/reference/nestystay-logo.png" alt="" aria-hidden="true" />;
 }
 
 function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
@@ -186,17 +167,26 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
 }
 
 function LandingPage() {
-  return (
-    <>
-      <Hero3D />
-      <ScrollStory />
-      <FeatureCards />
-      <PropertyShowcase />
-      <HowItWorks />
-      <TrustSection />
-      <FinalCTA />
-    </>
-  );
+  return <ReferenceLanding />;
+}
+
+function isWorkspaceRoute(route: Route) {
+  return [
+    "guest-dashboard",
+    "host-dashboard",
+    "host-wellness",
+    "officer-wellness",
+    "property-management",
+    "calendar",
+    "bookings",
+    "payment",
+    "profile",
+    "admin",
+  ].includes(route.name);
+}
+
+function hasPublicNav(route: Route) {
+  return ["home", "explore", "property"].includes(route.name);
 }
 
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
@@ -244,11 +234,17 @@ export default function App() {
   }, [reduceMotion]);
 
   return (
-    <div className={`app-shell route-${route.name}`}>
-      <Navbar auth={auth} route={route} />
-      <main>
-        <CurrentPage auth={auth} route={route} />
-      </main>
+    <div className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}>
+      {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
+      {isWorkspaceRoute(route) ? (
+        <WorkspaceFrame routeName={route.name}>
+          <CurrentPage auth={auth} route={route} />
+        </WorkspaceFrame>
+      ) : (
+        <main>
+          <CurrentPage auth={auth} route={route} />
+        </main>
+      )}
     </div>
   );
 }
