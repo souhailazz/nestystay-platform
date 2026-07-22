@@ -29,7 +29,7 @@ const workspaceItems: WorkspaceItem[] = [
     label: "Overview",
     href: "/guest-dashboard",
     icon: <LayoutDashboard size={17} />,
-    routes: ["guest-dashboard", "trav-suggestions"],
+    routes: ["guest-dashboard", "trav-suggestions", "traveler-spec"],
   },
   {
     label: "Wishlist",
@@ -39,9 +39,9 @@ const workspaceItems: WorkspaceItem[] = [
   },
   {
     label: "Payments",
-    href: "/traveler/invoices",
+    href: "/traveler/payment-methods",
     icon: <CreditCard size={17} />,
-    routes: ["trav-invoices", "payment"],
+    routes: ["trav-invoices", "payment", "booking-state"],
   },
   {
     label: "Reviews",
@@ -55,7 +55,7 @@ const workspaceItems: WorkspaceItem[] = [
     icon: <Bell size={17} />,
     routes: ["trav-notifications"],
   },
-  { label: "Host", href: "/host-dashboard", icon: <Home size={17} />, routes: ["host-dashboard", "host-reports"] },
+  { label: "Host", href: "/host-dashboard", icon: <Home size={17} />, routes: ["host-dashboard", "host-reports", "host-spec", "host-profile"] },
   {
     label: "Properties",
     href: "/host/properties",
@@ -83,16 +83,16 @@ const workspaceItems: WorkspaceItem[] = [
   },
   {
     label: "Directory",
-    href: "/directory/businesses",
+    href: "/directory/custodians",
     icon: <Map size={17} />,
-    routes: ["business-directory", "provider-dashboard"],
+    routes: ["business-directory", "provider-dashboard", "directory-spec"],
   },
-  { label: "Messages", href: "/messages/document", icon: <MessageSquare size={17} />, routes: ["profile", "document-message"] },
+  { label: "Messages", href: "/messages", icon: <MessageSquare size={17} />, routes: ["profile", "document-message", "messages"] },
   {
     label: "Admin",
     href: "/admin",
     icon: <Settings size={17} />,
-    routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset"],
+    routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset", "admin-ops"],
   },
   { label: "Reports", href: "/admin/kpis", icon: <BarChart3 size={17} />, routes: ["admin-kpis", "admin-reports"] },
 ];

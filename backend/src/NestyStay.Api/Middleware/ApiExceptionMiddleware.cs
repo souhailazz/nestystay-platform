@@ -23,6 +23,18 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 traceId = context.TraceIdentifier
             }));
         }
+        catch (UnauthorizedAccessException exception)
+        {
+            logger.LogWarning(exception, "API authorization error");
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = exception.Message,
+                status = context.Response.StatusCode,
+                traceId = context.TraceIdentifier
+            }));
+        }
         catch (Exception exception)
         {
             logger.LogError(exception, "Unhandled API exception");

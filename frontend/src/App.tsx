@@ -11,6 +11,7 @@ import TrustSection from "./components/landing/TrustSection";
 import FinalCTA from "./components/landing/FinalCTA";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { useAuth, type AuthController } from "./hooks/useAuth";
+import { PatoisProvider, PatoisToggle } from "./lib/patois";
 import {
   AdminPage,
   AuthPage,
@@ -26,6 +27,19 @@ import {
   PropertyDetailsPage,
   PropertyManagementPage,
 } from "./pages/ProductPages";
+import {
+  AdminOpsSpecPage,
+  AuthSpecFlowPage,
+  BookingSpecStatePage,
+  DirectorySpecPage,
+  ExperiencesPage,
+  HostProfileSpecPage,
+  HostSpecPage,
+  JournalPage,
+  MessagesPage,
+  PublicContentRoute,
+  TravelerSpecPage,
+} from "./pages/CompletionPages";
 import {
   AccessRestrictedPage,
   AdminKpiPage,
@@ -73,6 +87,17 @@ type Route =
   | { name: "explore" }
   | { name: "map-search" }
   | { name: "coming-soon" }
+  | { name: "public-content"; slug: string }
+  | { name: "auth-spec"; kind: string }
+  | { name: "experiences"; slug?: string }
+  | { name: "journal"; slug?: string }
+  | { name: "booking-state"; state: string; bookingId?: string }
+  | { name: "traveler-spec"; view: string }
+  | { name: "messages"; conversationId?: string }
+  | { name: "directory-spec"; kind?: string; slug?: string }
+  | { name: "host-profile"; slug?: string; edit?: boolean }
+  | { name: "host-spec"; view: string }
+  | { name: "admin-ops"; view: string }
   | { name: "property"; propertyId?: string }
   | { name: "login" }
   | { name: "register" }
@@ -123,6 +148,59 @@ function parseRoute(): Route {
   if (path === "/explore") return { name: "explore" };
   if (path === "/explore/map") return { name: "map-search" };
   if (path === "/coming-soon") return { name: "coming-soon" };
+  if (["/about", "/trust", "/help", "/contact", "/terms", "/privacy", "/maintenance"].includes(path)) {
+    return { name: "public-content", slug: path.slice(1) };
+  }
+  if (path.startsWith("/help/")) return { name: "public-content", slug: path.slice(1) };
+  if (path === "/auth/role") return { name: "auth-spec", kind: "role" };
+  if (path === "/auth/email-verification") return { name: "auth-spec", kind: "email" };
+  if (path === "/auth/phone-verification") return { name: "auth-spec", kind: "phone" };
+  if (path === "/auth/otp") return { name: "auth-spec", kind: "otp" };
+  if (path === "/auth/forgot-password") return { name: "auth-spec", kind: "forgot" };
+  if (path === "/auth/reset-password") return { name: "auth-spec", kind: "reset" };
+  if (path === "/auth/2fa-setup") return { name: "auth-spec", kind: "twofa" };
+  if (path === "/auth/recovery-codes") return { name: "auth-spec", kind: "recovery" };
+  if (path === "/auth/social-consent") return { name: "auth-spec", kind: "social" };
+  if (path === "/experiences") return { name: "experiences" };
+  if (path.startsWith("/experiences/")) return { name: "experiences", slug: path.split("/")[2] };
+  if (path === "/journal" || path === "/blog") return { name: "journal" };
+  if (path.startsWith("/journal/") || path.startsWith("/blog/")) return { name: "journal", slug: path.split("/")[2] };
+  if (path.startsWith("/booking/")) {
+    const [, , bookingId, state = "review"] = path.split("/");
+    return { name: "booking-state", bookingId, state };
+  }
+  if (path === "/traveler/reservations" || path === "/traveler/reservations/upcoming") return { name: "traveler-spec", view: "reservations-upcoming" };
+  if (path === "/traveler/reservations/past") return { name: "traveler-spec", view: "reservations-past" };
+  if (path === "/traveler/reservations/cancelled") return { name: "traveler-spec", view: "reservations-cancelled" };
+  if (path.startsWith("/traveler/reservations/")) return { name: "traveler-spec", view: "reservation-detail" };
+  if (path === "/traveler/payment-methods") return { name: "traveler-spec", view: "payment-methods" };
+  if (path === "/traveler/payments") return { name: "traveler-spec", view: "payment-history" };
+  if (path === "/traveler/preferences") return { name: "traveler-spec", view: "preferences" };
+  if (path === "/traveler/identity") return { name: "traveler-spec", view: "identity" };
+  if (path === "/traveler/reviews/given") return { name: "traveler-spec", view: "reviews-given" };
+  if (path === "/traveler/reviews/pending") return { name: "traveler-spec", view: "reviews-pending" };
+  if (path.startsWith("/traveler/qr")) return { name: "traveler-spec", view: "qr" };
+  if (path === "/messages") return { name: "messages" };
+  if (path.startsWith("/messages/") && path !== "/messages/document") return { name: "messages", conversationId: path.split("/")[2] };
+  if (path === "/directory/custodians") return { name: "directory-spec", kind: "Custodian" };
+  if (path === "/directory/trades") return { name: "directory-spec", kind: "Trades" };
+  if (path === "/directory/businesses") return { name: "directory-spec", kind: "LocalBusiness" };
+  if (path === "/directory/guest-verification") return { name: "directory-spec", kind: "Verification" };
+  if (path === "/directory/provider/onboarding") return { name: "directory-spec", kind: "Provider" };
+  if (path.startsWith("/directory/providers/")) return { name: "directory-spec", slug: path.split("/")[3] };
+  if (path === "/hosts") return { name: "host-profile" };
+  if (path === "/host/profile/edit") return { name: "host-profile", edit: true };
+  if (path === "/host/profile/preview") return { name: "host-profile", slug: "my-host-profile" };
+  if (path.startsWith("/hosts/")) return { name: "host-profile", slug: path.split("/")[2] };
+  if (path === "/host/analytics") return { name: "host-spec", view: "analytics" };
+  if (path === "/host/pricing") return { name: "host-spec", view: "pricing" };
+  if (path === "/host/promotions") return { name: "host-spec", view: "promotions" };
+  if (path === "/host/exports") return { name: "host-spec", view: "exports" };
+  if (path === "/host/reviews") return { name: "host-spec", view: "reviews" };
+  if (path === "/host/badges") return { name: "host-spec", view: "badges" };
+  if (path === "/host/settings") return { name: "host-spec", view: "settings" };
+  if (path === "/host/properties/archived") return { name: "host-spec", view: "archived" };
+  if (path.startsWith("/admin/ops/")) return { name: "admin-ops", view: path.split("/")[3] };
   if (path.startsWith("/properties/")) return { name: "property", propertyId: path.split("/")[2] };
   if (path === "/login") return { name: "login" };
   if (path === "/register") return { name: "register" };
@@ -147,8 +225,7 @@ function parseRoute(): Route {
   if (path === "/pm/verification") return { name: "pm-verification" };
   if (path === "/pm/reports") return { name: "pm-reports" };
   if (path === "/pm/insurance") return { name: "pm-insurance" };
-  if (path === "/directory/businesses") return { name: "business-directory" };
-  if (path === "/directory/provider") return { name: "provider-dashboard" };
+  if (path === "/directory/provider") return { name: "directory-spec", kind: "ProviderDashboard" };
   if (path === "/calendar") return { name: "calendar" };
   if (path === "/bookings") return { name: "bookings" };
   if (path === "/payment-confirmation") {
@@ -241,6 +318,9 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
           </>
         )}
       </AppLink>
+      <div className="nav-patois-toggle">
+        <PatoisToggle />
+      </div>
 
       <button
         type="button"
@@ -300,7 +380,10 @@ function isWorkspaceRoute(route: Route) {
     "trav-reviews",
     "trav-notifications",
     "trav-suggestions",
+    "traveler-spec",
     "host-dashboard",
+    "host-spec",
+    "host-profile",
     "host-wellness",
     "officer-directory",
     "wellness-booking",
@@ -314,13 +397,16 @@ function isWorkspaceRoute(route: Route) {
     "pm-reports",
     "pm-insurance",
     "business-directory",
+    "directory-spec",
     "provider-dashboard",
     "calendar",
     "bookings",
     "payment",
     "profile",
     "document-message",
+    "messages",
     "admin",
+    "admin-ops",
     "admin-kpis",
     "admin-reports",
     "officer-id-reset",
@@ -334,6 +420,11 @@ function hasPublicNav(route: Route) {
     "home",
     "explore",
     "map-search",
+    "public-content",
+    "auth-spec",
+    "experiences",
+    "journal",
+    "host-profile",
     "property",
     "auth-post",
     "sign-in-required",
@@ -353,6 +444,28 @@ function LogoutRoute({ auth }: { auth: AuthController }) {
 
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
   switch (route.name) {
+    case "public-content":
+      return <PublicContentRoute slug={route.slug} />;
+    case "auth-spec":
+      return <AuthSpecFlowPage auth={auth} kind={route.kind} />;
+    case "experiences":
+      return <ExperiencesPage slug={route.slug} />;
+    case "journal":
+      return <JournalPage slug={route.slug} />;
+    case "booking-state":
+      return <BookingSpecStatePage auth={auth} bookingId={route.bookingId} state={route.state} />;
+    case "traveler-spec":
+      return <TravelerSpecPage auth={auth} view={route.view} />;
+    case "messages":
+      return <MessagesPage auth={auth} conversationId={route.conversationId} />;
+    case "directory-spec":
+      return <DirectorySpecPage auth={auth} kind={route.kind} slug={route.slug} />;
+    case "host-profile":
+      return <HostProfileSpecPage auth={auth} edit={route.edit} slug={route.slug} />;
+    case "host-spec":
+      return <HostSpecPage auth={auth} view={route.view} />;
+    case "admin-ops":
+      return <AdminOpsSpecPage view={route.view} />;
     case "explore":
       return <ExplorePage auth={auth} />;
     case "map-search":
@@ -456,17 +569,19 @@ export default function App() {
   }, [reduceMotion]);
 
   return (
-    <div className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}>
-      {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
-      {isWorkspaceRoute(route) ? (
-        <WorkspaceFrame routeName={route.name}>
-          <CurrentPage auth={auth} route={route} />
-        </WorkspaceFrame>
-      ) : (
-        <main>
-          <CurrentPage auth={auth} route={route} />
-        </main>
-      )}
-    </div>
+    <PatoisProvider>
+      <div className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}>
+        {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
+        {isWorkspaceRoute(route) ? (
+          <WorkspaceFrame routeName={route.name}>
+            <CurrentPage auth={auth} route={route} />
+          </WorkspaceFrame>
+        ) : (
+          <main>
+            <CurrentPage auth={auth} route={route} />
+          </main>
+        )}
+      </div>
+    </PatoisProvider>
   );
 }

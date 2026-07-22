@@ -1,8 +1,10 @@
+import { PatoisPhrase } from "../../lib/patois";
+
 export function LoadingState({ label = "Loading Nesty Stay data" }: { label?: string }) {
   return (
     <div className="ui-state">
       <span className="ui-spinner" />
-      <strong>Tek Time</strong>
+      <PatoisPhrase phrase="Tek Time" translation="Take your time - we're loading your island experience." />
       <p>{label}</p>
       <small>Taking a moment to load the latest NestyStay data.</small>
       <div className="loading-skeleton" aria-hidden="true">

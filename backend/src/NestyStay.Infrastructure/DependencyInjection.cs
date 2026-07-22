@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
+using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
 using NestyStay.Application.Wellness;
 using NestyStay.Infrastructure.Persistence;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
         services.AddScoped<IWellnessStore, EfWellnessStore>();
+        services.AddScoped<ISpecCompletionStore, EfSpecCompletionStore>();
 
         return services;
     }
