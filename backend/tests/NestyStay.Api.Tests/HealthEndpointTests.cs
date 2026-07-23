@@ -607,6 +607,15 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.Unauthorized, crossHostUpdateResponse.StatusCode);
 
+        var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D };
+        var crossHostPhotoPrepare = await client.PostAsJsonAsync($"/api/properties/{createdProperty.Id}/photos/uploads", new
+        {
+            fileName = "front-porch.png",
+            contentType = "image/png",
+            sizeBytes = pngBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostPhotoPrepare.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
             NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
@@ -629,6 +638,51 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var updatedProperty = await updatePropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
         Assert.NotNull(updatedProperty);
         Assert.Equal("API Updated Villa", updatedProperty.Title);
+
+        var invalidPhotoPrepare = await client.PostAsJsonAsync($"/api/properties/{createdProperty.Id}/photos/uploads", new
+        {
+            fileName = "front-porch.gif",
+            contentType = "image/gif",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidPhotoPrepare.StatusCode);
+
+        var spoofedPhotoBytes = Encoding.ASCII.GetBytes("not a png");
+        var spoofedPhotoPrepare = await client.PostAsJsonAsync($"/api/properties/{createdProperty.Id}/photos/uploads", new
+        {
+            fileName = "spoofed.png",
+            contentType = "image/png",
+            sizeBytes = spoofedPhotoBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, spoofedPhotoPrepare.StatusCode);
+        var spoofedPhoto = await spoofedPhotoPrepare.Content.ReadFromJsonAsync<PropertyPhotoUploadResponse>();
+        Assert.NotNull(spoofedPhoto);
+        using var spoofedPhotoContent = new ByteArrayContent(spoofedPhotoBytes);
+        spoofedPhotoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var rejectedPhotoUpload = await client.PutAsync($"/api/properties/{createdProperty.Id}/photos/{spoofedPhoto.Id}/content", spoofedPhotoContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedPhotoUpload.StatusCode);
+
+        var photoPrepare = await client.PostAsJsonAsync($"/api/properties/{createdProperty.Id}/photos/uploads", new
+        {
+            fileName = "../Front Porch.png",
+            contentType = "image/png",
+            sizeBytes = pngBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, photoPrepare.StatusCode);
+        var preparedPhoto = await photoPrepare.Content.ReadFromJsonAsync<PropertyPhotoUploadResponse>();
+        Assert.NotNull(preparedPhoto);
+        Assert.Equal("front-porch.png", preparedPhoto.FileName);
+        Assert.Equal("PendingUpload", preparedPhoto.Status);
+        Assert.Equal("PendingScan", preparedPhoto.ScanStatus);
+        using var photoContent = new ByteArrayContent(pngBytes);
+        photoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var uploadedPhotoResponse = await client.PutAsync($"/api/properties/{createdProperty.Id}/photos/{preparedPhoto.Id}/content", photoContent);
+        Assert.Equal(HttpStatusCode.OK, uploadedPhotoResponse.StatusCode);
+        var uploadedPhoto = await uploadedPhotoResponse.Content.ReadFromJsonAsync<PropertyPhotoUploadResponse>();
+        Assert.NotNull(uploadedPhoto);
+        Assert.Equal("Uploaded", uploadedPhoto.Status);
+        Assert.Equal("Clean", uploadedPhoto.ScanStatus);
+        Assert.NotEmpty(uploadedPhoto.Sha256Hash ?? string.Empty);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
@@ -884,6 +938,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record DisableTwoFactorResponse(bool Disabled);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled, string Title = "", bool IsArchived = false);
+
+    private sealed record PropertyPhotoUploadResponse(Guid Id, string FileName, string Status, string ScanStatus, string? Sha256Hash);
 
     private sealed record QuoteResponse(bool DatesAvailable, int Nights);
 

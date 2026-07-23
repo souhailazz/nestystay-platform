@@ -196,6 +196,12 @@ public sealed class WebhookSecurityTests
         public Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<PropertyPhotoUploadDto> PreparePropertyPhotoUploadAsync(Guid hostUserId, Guid propertyId, PreparePropertyPhotoUploadRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<PropertyPhotoUploadDto> UploadPropertyPhotoContentAsync(Guid hostUserId, Guid propertyId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

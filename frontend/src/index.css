@@ -3402,6 +3402,68 @@ svg {
   gap: 8px;
 }
 
+.property-upload-card {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.property-upload-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.property-photo-picker {
+  position: relative;
+  overflow: hidden;
+}
+
+.property-photo-picker input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.property-upload-list {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 8px;
+}
+
+.property-upload-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(90px, 0.35fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 76%);
+}
+
+.property-upload-item span,
+.property-upload-item small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.property-upload-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ece8;
+}
+
+.property-upload-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sun);
+  transition: width 0.18s ease;
+}
+
 .compact-list__item,
 .calendar-booking,
 .booking-row {
@@ -4080,6 +4142,22 @@ svg {
   .calendar-booking,
   .status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .property-upload-actions {
+    justify-content: flex-start;
+  }
+
+  .property-upload-list {
+    grid-column: 1;
+  }
+
+  .property-upload-item {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .property-upload-progress {
+    grid-column: 1 / -1;
   }
 
   .details-visual {

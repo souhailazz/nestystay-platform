@@ -98,6 +98,21 @@ export type PropertyListing = {
   isArchived?: boolean;
 };
 
+export type PropertyPhotoUpload = {
+  id: string;
+  propertyId: string;
+  hostUserId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  scanStatus: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+};
+
 export type CreatePropertyRequest = {
   hostUserId: string;
   hostName: string;
@@ -990,6 +1005,10 @@ export const api = {
     request<PropertyListing>("/properties", { method: "POST", token, body }),
   updateProperty: (id: string, token: string, body: UpdatePropertyRequest) =>
     request<PropertyListing>(`/properties/${id}`, { method: "PUT", token, body }),
+  preparePropertyPhotoUpload: (propertyId: string, token: string, body: { fileName: string; contentType: string; sizeBytes: number; sortOrder?: number }) =>
+    request<PropertyPhotoUpload>(`/properties/${propertyId}/photos/uploads`, { method: "POST", token, body }),
+  uploadPropertyPhotoContent: (propertyId: string, photoId: string, token: string, file: File, options?: UploadOptions) =>
+    requestUpload<PropertyPhotoUpload>(`/properties/${propertyId}/photos/${photoId}/content`, token, file, options),
   archiveProperty: (id: string, token: string) =>
     request<PropertyListing>(`/properties/${id}/archive`, { method: "POST", token }),
   restoreProperty: (id: string, token: string) =>

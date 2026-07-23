@@ -119,6 +119,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneUser> MilestoneUsers => Set<MilestoneUser>();
     public DbSet<MilestoneTwoFactorChallenge> MilestoneTwoFactorChallenges => Set<MilestoneTwoFactorChallenge>();
     public DbSet<MilestoneProperty> MilestoneProperties => Set<MilestoneProperty>();
+    public DbSet<MilestonePropertyPhoto> MilestonePropertyPhotos => Set<MilestonePropertyPhoto>();
     public DbSet<MilestoneBooking> MilestoneBookings => Set<MilestoneBooking>();
     public DbSet<MilestonePaymentAttempt> MilestonePaymentAttempts => Set<MilestonePaymentAttempt>();
     public DbSet<MilestonePricebookEntry> MilestonePricebookEntries => Set<MilestonePricebookEntry>();
@@ -176,6 +177,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneUser>().Property(user => user.IsTwoFactorEnabled).HasDefaultValue(true);
         modelBuilder.Entity<MilestoneTwoFactorChallenge>().HasIndex(challenge => challenge.ChallengeId).IsUnique();
         modelBuilder.Entity<MilestoneProperty>().HasIndex(property => property.HostUserId);
+        modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => new { photo.PropertyId, photo.HostUserId, photo.Status });
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => new { booking.PropertyId, booking.CheckIn, booking.CheckOut });
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => booking.EkycTransactionId);
         modelBuilder.Entity<MilestonePaymentAttempt>().HasIndex(attempt => attempt.IdempotencyKey).IsUnique();

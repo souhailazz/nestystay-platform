@@ -20,7 +20,9 @@ public sealed class EfPhaseOneStore(
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
-    ISecretProtector? secretProtector = null) : IPhaseOneStore
+    ISecretProtector? secretProtector = null,
+    IStorageProvider? storageProvider = null,
+    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -35,10 +37,24 @@ public sealed class EfPhaseOneStore(
     private const string PasswordResetStatusExpired = "Expired";
     private const string PasswordResetStatusFailed = "Failed";
     private const string PasswordResetStatusInvalidated = "Invalidated";
+    private const string UploadStatusPending = "PendingUpload";
+    private const string UploadStatusUploaded = "Uploaded";
+    private const string UploadStatusExpired = "Expired";
+    private const string UploadStatusQuarantined = "Quarantined";
+    private const string ScanStatusPending = "PendingScan";
+    private const string ScanStatusClean = "Clean";
     private const string TotpSecretPurpose = "MilestoneUser.TotpSecret";
+    private const long MaximumPropertyPhotoBytes = 10 * 1024 * 1024;
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan PropertyPhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedPropertyPhotoExtensions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/jpeg"] = [".jpg", ".jpeg"],
+        ["image/png"] = [".png"],
+        ["image/webp"] = [".webp"]
+    };
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
 
     public async Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
@@ -682,6 +698,70 @@ public sealed class EfPhaseOneStore(
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<PropertyPhotoUploadDto> PreparePropertyPhotoUploadAsync(Guid hostUserId, Guid propertyId, PreparePropertyPhotoUploadRequest request, CancellationToken cancellationToken)
+    {
+        await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        var storage = RequireStorageProvider();
+        var safeFileName = ValidatePropertyPhoto(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var photoId = Guid.NewGuid();
+        var objectKey = $"properties/{propertyId:N}/photos/{photoId:N}{extension}";
+        var uploadUrl = $"/api/properties/{propertyId}/photos/{photoId}/content";
+        var now = timeProvider.GetUtcNow();
+
+        var photo = new MilestonePropertyPhoto
+        {
+            Id = photoId,
+            PropertyId = propertyId,
+            HostUserId = hostUserId,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            SortOrder = request.SortOrder,
+            ObjectKey = objectKey,
+            UploadUrl = uploadUrl,
+            Status = UploadStatusPending,
+            StorageProviderName = storage.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(PropertyPhotoUploadLifetime),
+            CreatedByUserId = hostUserId,
+            UpdatedByUserId = hostUserId
+        };
+
+        db.MilestonePropertyPhotos.Add(photo);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
+    public async Task<PropertyPhotoUploadDto> UploadPropertyPhotoContentAsync(Guid hostUserId, Guid propertyId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken)
+    {
+        await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        var photo = await db.MilestonePropertyPhotos
+            .SingleOrDefaultAsync(item => item.Id == photoId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Property photo is not available to this host.");
+
+        var now = await RequirePendingPropertyPhotoUploadAsync(photo, hostUserId, cancellationToken);
+        ValidatePropertyPhotoUploadMetadata(photo, contentType, sizeBytes);
+
+        var upload = await RequireStorageProvider().SaveObjectAsync(
+            new StorageObjectWriteRequest(photo.ObjectKey, photo.ContentType, MaximumPropertyPhotoBytes),
+            content,
+            cancellationToken);
+        ValidatePropertyPhotoUploadMetadata(photo, upload.ContentType, upload.SizeBytes);
+
+        return await FinalizePropertyPhotoUploadAsync(
+            photo,
+            hostUserId,
+            now,
+            upload.ProviderName,
+            upload.ContentType,
+            upload.SizeBytes,
+            upload.Sha256Hash,
+            upload.HeaderBytes,
+            cancellationToken);
+    }
+
     public async Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken)
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);
@@ -1237,6 +1317,65 @@ public sealed class EfPhaseOneStore(
         return property;
     }
 
+    private async Task<DateTimeOffset> RequirePendingPropertyPhotoUploadAsync(MilestonePropertyPhoto photo, Guid hostUserId, CancellationToken cancellationToken)
+    {
+        if (photo.Status != UploadStatusPending)
+        {
+            throw new InvalidOperationException("Property photo upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (photo.UploadExpiresAt <= now)
+        {
+            photo.Status = UploadStatusExpired;
+            photo.UpdatedAt = now;
+            photo.UpdatedByUserId = hostUserId;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Property photo upload URL has expired.");
+        }
+
+        return now;
+    }
+
+    private async Task<PropertyPhotoUploadDto> FinalizePropertyPhotoUploadAsync(
+        MilestonePropertyPhoto photo,
+        Guid hostUserId,
+        DateTimeOffset verifiedAt,
+        string providerName,
+        string contentType,
+        long sizeBytes,
+        string sha256Hash,
+        byte[] headerBytes,
+        CancellationToken cancellationToken)
+    {
+        var scanner = RequireFileSafetyScanner();
+        var scan = await scanner.ScanAsync(
+            new FileSafetyScanRequest(photo.ObjectKey, photo.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
+            cancellationToken);
+
+        photo.StorageProviderName = providerName;
+        photo.VerifiedContentType = contentType;
+        photo.UploadedSizeBytes = sizeBytes;
+        photo.Sha256Hash = sha256Hash;
+        photo.ScanStatus = scan.Status;
+        photo.ScanProviderName = scanner.ProviderName;
+        photo.ScanCheckedAt = verifiedAt;
+        photo.UpdatedAt = verifiedAt;
+        photo.UpdatedByUserId = hostUserId;
+
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            photo.Status = UploadStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Property photo failed safety scanning.");
+        }
+
+        photo.Status = UploadStatusUploaded;
+        photo.UploadedAt = verifiedAt;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
     private Task<MilestoneBooking?> FindBlockingBookingAsync(
         Guid propertyId,
         DateOnly checkIn,
@@ -1371,6 +1510,12 @@ public sealed class EfPhaseOneStore(
             $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.GuestName}'s booking."))
     ];
 
+    private IStorageProvider RequireStorageProvider() =>
+        storageProvider ?? throw new InvalidOperationException("Storage provider is not configured.");
+
+    private IFileSafetyScanner RequireFileSafetyScanner() =>
+        fileSafetyScanner ?? throw new InvalidOperationException("File safety scanner is not configured.");
+
     private static PropertyListingDto ToListingDto(MilestoneProperty property) =>
         new(
             property.Id,
@@ -1387,6 +1532,21 @@ public sealed class EfPhaseOneStore(
             property.CancellationPolicy,
             MilestoneJson.DeserializeList<string>(property.HighlightsJson),
             property.IsArchived);
+
+    private static PropertyPhotoUploadDto ToDto(MilestonePropertyPhoto photo) =>
+        new(
+            photo.Id,
+            photo.PropertyId,
+            photo.HostUserId,
+            photo.SafeFileName,
+            photo.ContentType,
+            photo.SizeBytes,
+            photo.ObjectKey,
+            photo.UploadUrl,
+            photo.Status,
+            photo.ScanStatus,
+            photo.UploadExpiresAt,
+            photo.Sha256Hash);
 
     private static BookingPropertySummaryDto ToSummaryDto(MilestoneProperty property) =>
         new(
@@ -1575,6 +1735,73 @@ public sealed class EfPhaseOneStore(
             request.GuestVerificationEnabled,
             request.BadgeLevel);
     }
+
+    private static string ValidatePropertyPhoto(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumPropertyPhotoBytes)
+        {
+            throw new InvalidOperationException("Property photos must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeUploadContentType(contentType);
+        if (!AllowedPropertyPhotoExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Property photo type is not allowed.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Property photo extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeUploadFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "property-photo";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
+    private static void ValidatePropertyPhotoUploadMetadata(MilestonePropertyPhoto photo, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumPropertyPhotoBytes)
+        {
+            throw new InvalidOperationException("Property photos must be 10 MB or smaller.");
+        }
+
+        if (!NormalizeUploadContentType(contentType).Equals(photo.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded property photo content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != photo.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded property photo size does not match the prepared upload.");
+        }
+    }
+
+    private static string NormalizeUploadContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            throw new InvalidOperationException("Uploaded content type is required.");
+        }
+
+        return contentType.Trim().ToLowerInvariant();
+    }
+
+    private static bool IsSafeUploadFileNameCharacter(char character) =>
+        (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == '-';
 
     private static void ValidatePropertyFields(
         string hostName,

@@ -170,4 +170,27 @@ describe("api client", () => {
       sha256Hash: "a".repeat(64),
     });
   });
+
+  it("prepares host property photo uploads with bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.preparePropertyPhotoUpload("property-1", "signed-host-token", {
+      fileName: "front-porch.png",
+      contentType: "image/png",
+      sizeBytes: 12,
+      sortOrder: 2,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/properties/property-1/photos/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer signed-host-token");
+    expect(JSON.parse(init.body as string)).toEqual({
+      fileName: "front-porch.png",
+      contentType: "image/png",
+      sizeBytes: 12,
+      sortOrder: 2,
+    });
+  });
 });

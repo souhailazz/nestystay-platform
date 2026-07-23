@@ -112,6 +112,22 @@ public sealed record UpdatePropertyRequest(
     string CancellationPolicy = "Flexible",
     IReadOnlyList<string>? Highlights = null);
 
+public sealed record PreparePropertyPhotoUploadRequest(string FileName, string ContentType, long SizeBytes, int SortOrder = 0);
+
+public sealed record PropertyPhotoUploadDto(
+    Guid Id,
+    Guid PropertyId,
+    Guid HostUserId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    string ObjectKey,
+    string UploadUrl,
+    string Status,
+    string ScanStatus,
+    DateTimeOffset ExpiresAt,
+    string? Sha256Hash = null);
+
 public sealed record BookingPropertySummaryDto(
     Guid Id,
     string Title,

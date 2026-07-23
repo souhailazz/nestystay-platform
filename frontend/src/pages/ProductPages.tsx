@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -16,8 +16,10 @@ import {
   ListChecks,
   Lock,
   MapPin,
+  Paperclip,
   Plus,
   ReceiptText,
+  RotateCcw,
   Search,
   Settings,
   ShieldCheck,
@@ -26,6 +28,7 @@ import {
   TimerReset,
   ToggleLeft,
   UserRound,
+  X,
 } from "lucide-react";
 import { AppLink, navigate } from "../components/AppLink";
 import { BookingModal } from "../components/booking/BookingModal";
@@ -61,6 +64,7 @@ import {
   type FoundingTransferEvaluation,
   type GoogleSignInRequest,
   type PhaseTwoPricebookItem,
+  type PropertyPhotoUpload,
   type PropertyListing,
   type SocialAuthConfig,
   type WellnessAdminDashboard,
@@ -1173,6 +1177,20 @@ export function OfficerWellnessPage() {
   );
 }
 
+type PropertyPhotoUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type PropertyPhotoUploadItem = {
+  id: string;
+  propertyId: string;
+  file: File;
+  progress: number;
+  status: PropertyPhotoUploadStatus;
+  upload?: PropertyPhotoUpload;
+  error?: string;
+};
+
+const maximumPropertyPhotoBytes = 10 * 1024 * 1024;
+
 export function PropertyManagementPage({ auth }: { auth: AuthController }) {
   if (!auth.session) return <RequireAuth auth={auth} title="Property management needs a host session." />;
   return <PropertyManagementContent auth={auth} />;
@@ -1194,10 +1212,87 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
   });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [created, setCreated] = useState<PropertyListing | null>(null);
+  const [photoUploads, setPhotoUploads] = useState<PropertyPhotoUploadItem[]>([]);
+  const photoUploadControllers = useRef<Record<string, AbortController>>({});
   const hostProperties = properties.filter((property) => property.hostUserId === auth.session?.userId);
+
+  useEffect(() => () => {
+    Object.values(photoUploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updatePhotoUpload(id: string, patch: Partial<PropertyPhotoUploadItem>) {
+    setPhotoUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadPropertyPhoto(id: string, propertyId: string, file: File) {
+    if (!auth.session) return;
+    if (file.size > maximumPropertyPhotoBytes) {
+      updatePhotoUpload(id, { status: "failed", error: "Property photos must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    photoUploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolvePropertyPhotoContentType(file);
+      const prepared = await api.preparePropertyPhotoUpload(propertyId, auth.session.accessToken, {
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updatePhotoUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadPropertyPhotoContent(propertyId, prepared.id, auth.session.accessToken, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updatePhotoUpload(id, { progress, status: "uploading" }),
+      });
+      updatePhotoUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+    } catch (caught) {
+      updatePhotoUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Property photo upload failed.",
+      });
+    } finally {
+      delete photoUploadControllers.current[id];
+    }
+  }
+
+  function addPropertyPhotos(propertyId: string, files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createLocalUploadId();
+      const isTooLarge = file.size > maximumPropertyPhotoBytes;
+      setPhotoUploads((items) => [...items, {
+        id,
+        propertyId,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Property photos must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadPropertyPhoto(id, propertyId, file);
+      }
+    });
+  }
+
+  function cancelPropertyPhotoUpload(id: string) {
+    photoUploadControllers.current[id]?.abort();
+    updatePhotoUpload(id, { status: "cancelled", error: "Property photo upload cancelled." });
+  }
+
+  function retryPropertyPhotoUpload(item: PropertyPhotoUploadItem) {
+    updatePhotoUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadPropertyPhoto(item.id, item.propertyId, item.file);
+  }
+
+  function removePropertyPhotoUpload(id: string) {
+    photoUploadControllers.current[id]?.abort();
+    setPhotoUploads((items) => items.filter((item) => item.id !== id));
   }
 
   async function handleCreate(event: FormEvent) {
@@ -1333,21 +1428,57 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
             <EmptyState title="No host listings yet." copy="Your saved properties will appear here." />
           )}
           <div className="compact-list">
-            {hostProperties.map((property) => (
-              <Card className="compact-list__item" key={property.id}>
-                <Home size={20} />
-                <div>
-                  <strong>{property.title}</strong>
-                  <span>{property.location}</span>
-                </div>
-                <StatusBadge value={property.badgeLevel} />
-              </Card>
-            ))}
+            {hostProperties.map((property) => {
+              const uploadsForProperty = photoUploads.filter((upload) => upload.propertyId === property.id);
+              return (
+                <Card className="compact-list__item property-upload-card" key={property.id}>
+                  <Home size={20} />
+                  <div>
+                    <strong>{property.title}</strong>
+                    <span>{property.location}</span>
+                  </div>
+                  <StatusBadge value={property.badgeLevel} />
+                  <div className="property-upload-actions">
+                    <label className={buttonClassName("outline", "property-photo-picker")}>
+                      <Paperclip size={16} /> Photos
+                      <input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { addPropertyPhotos(property.id, event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+                    </label>
+                  </div>
+                  {uploadsForProperty.length > 0 && (
+                    <div className="property-upload-list">
+                      {uploadsForProperty.map((upload) => (
+                        <div className="property-upload-item" key={upload.id}>
+                          <span>{upload.file.name}</span>
+                          <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                          <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+                          {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelPropertyPhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+                          {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryPropertyPhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+                          {upload.status !== "uploading" && <Button onClick={() => removePropertyPhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
     </div>
   );
+}
+
+function createLocalUploadId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function resolvePropertyPhotoContentType(file: File) {
+  if (file.type) return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  return "application/octet-stream";
 }
 
 export function CalendarPage({ auth }: { auth: AuthController }) {
