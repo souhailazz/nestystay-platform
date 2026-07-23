@@ -506,6 +506,87 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(createdProperty);
         Assert.Equal(hostUserId, createdProperty.HostUserId);
 
+        var otherHostUserId = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(otherHostUserId, UserRole.Host));
+        var crossHostUpdateResponse = await client.PutAsJsonAsync($"/api/properties/{createdProperty.Id}", new
+        {
+            hostName = "Cross Host",
+            hostEmail = "cross-host@test.local",
+            title = "Cross Host Edit",
+            location = "Kingston",
+            country = "Jamaica",
+            nightlyRate = 210,
+            currency = "USD",
+            badgeLevel = "Verified",
+            guestVerificationEnabled = false,
+            insuraGuestEnabled = true,
+            cancellationPolicy = "Flexible",
+            highlights = new[] { "Should not save" }
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostUpdateResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
+        var updatePropertyResponse = await client.PutAsJsonAsync($"/api/properties/{createdProperty.Id}", new
+        {
+            hostName = "API Verified Host",
+            hostEmail = "api-host@test.local",
+            title = "API Updated Villa",
+            location = "Runaway Bay, St. Ann",
+            country = "Jamaica",
+            nightlyRate = 205,
+            currency = "USD",
+            badgeLevel = "Verified",
+            guestVerificationEnabled = true,
+            insuraGuestEnabled = true,
+            cancellationPolicy = "Moderate",
+            highlights = new[] { "Updated", "Owner controlled" }
+        });
+        Assert.Equal(HttpStatusCode.OK, updatePropertyResponse.StatusCode);
+        var updatedProperty = await updatePropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
+        Assert.NotNull(updatedProperty);
+        Assert.Equal("API Updated Villa", updatedProperty.Title);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(otherHostUserId, UserRole.Host));
+        var crossHostArchiveResponse = await client.PostAsync($"/api/properties/{createdProperty.Id}/archive", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostArchiveResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
+        var archivePropertyResponse = await client.PostAsync($"/api/properties/{createdProperty.Id}/archive", null);
+        Assert.Equal(HttpStatusCode.OK, archivePropertyResponse.StatusCode);
+        var archivedProperty = await archivePropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
+        Assert.NotNull(archivedProperty);
+        Assert.True(archivedProperty.IsArchived);
+        var archivedPublicLookup = await client.GetAsync($"/api/properties/{createdProperty.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, archivedPublicLookup.StatusCode);
+
+        var restorePropertyResponse = await client.PostAsync($"/api/properties/{createdProperty.Id}/restore", null);
+        Assert.Equal(HttpStatusCode.OK, restorePropertyResponse.StatusCode);
+        var restoredProperty = await restorePropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
+        Assert.NotNull(restoredProperty);
+        Assert.False(restoredProperty.IsArchived);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(otherHostUserId, UserRole.Host));
+        var crossHostDeleteResponse = await client.DeleteAsync($"/api/properties/{createdProperty.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostDeleteResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
+        var deletePropertyResponse = await client.DeleteAsync($"/api/properties/{createdProperty.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deletePropertyResponse.StatusCode);
+        var deletedPublicLookup = await client.GetAsync($"/api/properties/{createdProperty.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, deletedPublicLookup.StatusCode);
+
         var freeUpsellResponse = await client.PostAsJsonAsync("/api/properties", new
         {
             hostUserId = Guid.NewGuid(),
@@ -659,7 +740,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record TwoFactorEnrollmentConfirmResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
 
-    private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled);
+    private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled, string Title = "", bool IsArchived = false);
 
     private sealed record QuoteResponse(bool DatesAvailable, int Nights);
 

@@ -88,6 +88,7 @@ export type PropertyListing = {
   insuraGuestEnabled: boolean;
   cancellationPolicy: string;
   highlights: string[];
+  isArchived?: boolean;
 };
 
 export type CreatePropertyRequest = {
@@ -105,6 +106,8 @@ export type CreatePropertyRequest = {
   cancellationPolicy: string;
   highlights: string[];
 };
+
+export type UpdatePropertyRequest = Omit<CreatePropertyRequest, "hostUserId">;
 
 export type BookingPriceLine = {
   code: string;
@@ -843,8 +846,16 @@ export const api = {
     request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
   getProperties: () => request<PropertyListing[]>("/properties"),
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
-  createProperty: (body: CreatePropertyRequest) =>
-    request<PropertyListing>("/properties", { method: "POST", body }),
+  createProperty: (body: CreatePropertyRequest, token: string) =>
+    request<PropertyListing>("/properties", { method: "POST", token, body }),
+  updateProperty: (id: string, token: string, body: UpdatePropertyRequest) =>
+    request<PropertyListing>(`/properties/${id}`, { method: "PUT", token, body }),
+  archiveProperty: (id: string, token: string) =>
+    request<PropertyListing>(`/properties/${id}/archive`, { method: "POST", token }),
+  restoreProperty: (id: string, token: string) =>
+    request<PropertyListing>(`/properties/${id}/restore`, { method: "POST", token }),
+  deleteProperty: (id: string, token: string) =>
+    request<void>(`/properties/${id}`, { method: "DELETE", token }),
   getBookings: (token?: string) =>
     request<Booking[]>("/bookings", { token }),
   getBooking: (id: string, token?: string) => request<Booking>(`/bookings/${id}`, { token }),

@@ -1204,7 +1204,7 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
     };
 
     try {
-      const property = await api.createProperty(payload);
+      const property = await api.createProperty(payload, auth.session.accessToken);
       setCreated(property);
       await reload();
     } catch (caught) {

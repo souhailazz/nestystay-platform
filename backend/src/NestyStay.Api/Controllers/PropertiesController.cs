@@ -26,10 +26,48 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
         return Ok(await phaseOneStore.CreatePropertyAsync(request with { HostUserId = hostUserId }, cancellationToken));
     }
 
+    [Authorize(Roles = "Host")]
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> UpdateProperty(Guid id, UpdatePropertyRequest request, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireHost();
+        return Ok(await phaseOneStore.UpdatePropertyAsync(hostUserId, id, request, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/archive")]
+    public async Task<IActionResult> ArchiveProperty(Guid id, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireHost();
+        return Ok(await phaseOneStore.ArchivePropertyAsync(hostUserId, id, true, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/restore")]
+    public async Task<IActionResult> RestoreProperty(Guid id, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireHost();
+        return Ok(await phaseOneStore.ArchivePropertyAsync(hostUserId, id, false, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteProperty(Guid id, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireHost();
+        await phaseOneStore.DeletePropertyAsync(hostUserId, id, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}")]
     public IActionResult GetProperty(Guid id)
     {
         var property = phaseOneStore.GetProperty(id);
         return property is null ? NotFound() : Ok(property);
+    }
+
+    private Guid RequireHost()
+    {
+        return currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated host id is required.");
     }
 }

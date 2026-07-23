@@ -68,10 +68,25 @@ public sealed record PropertyListingDto(
     bool GuestVerificationEnabled,
     bool InsuraGuestEnabled,
     string CancellationPolicy,
-    IReadOnlyList<string> Highlights);
+    IReadOnlyList<string> Highlights,
+    bool IsArchived = false);
 
 public sealed record CreatePropertyRequest(
     Guid HostUserId,
+    string HostName,
+    string HostEmail,
+    string Title,
+    string Location,
+    string Country,
+    decimal NightlyRate,
+    string Currency,
+    BadgeLevel BadgeLevel = BadgeLevel.Free,
+    bool GuestVerificationEnabled = false,
+    bool InsuraGuestEnabled = false,
+    string CancellationPolicy = "Flexible",
+    IReadOnlyList<string>? Highlights = null);
+
+public sealed record UpdatePropertyRequest(
     string HostName,
     string HostEmail,
     string Title,

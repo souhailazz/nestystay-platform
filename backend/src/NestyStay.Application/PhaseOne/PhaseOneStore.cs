@@ -24,6 +24,9 @@ public interface IPhaseOneStore
     IReadOnlyList<PropertyListingDto> GetProperties();
     PropertyListingDto? GetProperty(Guid id);
     Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken);
+    Task<PropertyListingDto> UpdatePropertyAsync(Guid hostUserId, Guid propertyId, UpdatePropertyRequest request, CancellationToken cancellationToken);
+    Task<PropertyListingDto> ArchivePropertyAsync(Guid hostUserId, Guid propertyId, bool isArchived, CancellationToken cancellationToken);
+    Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken);
     Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken);
     IReadOnlyList<BookingDto> GetBookings(Guid? guestUserId = null);
     BookingDto? GetBooking(Guid id);
@@ -76,7 +79,9 @@ public sealed class PhaseOneStore(
             true,
             true,
             "Moderate",
-            ["Alibaba eKYC", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"]),
+            ["Alibaba eKYC", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"],
+            false,
+            false),
         new(
             Guid.Parse("22222222-2222-4222-8222-222222222222"),
             Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
@@ -91,7 +96,9 @@ public sealed class PhaseOneStore(
             true,
             true,
             "Flexible",
-            ["Trusted host", "Local business directory", "Split payments", "Messaging code"]),
+            ["Trusted host", "Local business directory", "Split payments", "Messaging code"],
+            false,
+            false),
         new(
             Guid.Parse("33333333-3333-4333-8333-333333333333"),
             Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
@@ -106,7 +113,9 @@ public sealed class PhaseOneStore(
             false,
             false,
             "Strict",
-            ["Free listing", "Calendar", "Messaging", "Host keeps 97% payout"])
+            ["Free listing", "Calendar", "Messaging", "Host keeps 97% payout"],
+            false,
+            false)
     ];
 
     public Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
@@ -509,10 +518,10 @@ public sealed class PhaseOneStore(
     }
 
     public IReadOnlyList<PropertyListingDto> GetProperties() =>
-        _properties.Select(ToListingDto).ToList();
+        _properties.Where(property => !property.IsDeleted && !property.IsArchived).Select(ToListingDto).ToList();
 
     public PropertyListingDto? GetProperty(Guid id) =>
-        _properties.SingleOrDefault(property => property.Id == id) is { } property ? ToListingDto(property) : null;
+        _properties.SingleOrDefault(property => property.Id == id && !property.IsDeleted && !property.IsArchived) is { } property ? ToListingDto(property) : null;
 
     public Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken)
     {
@@ -536,10 +545,99 @@ public sealed class PhaseOneStore(
                 request.CancellationPolicy.Trim(),
                 request.Highlights is null || request.Highlights.Count == 0
                     ? ["Host-created listing"]
-                    : request.Highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList());
+                    : request.Highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList(),
+                false,
+                false);
 
             _properties.Add(property);
             return Task.FromResult(ToListingDto(property));
+        }
+    }
+
+    public Task<PropertyListingDto> UpdatePropertyAsync(Guid hostUserId, Guid propertyId, UpdatePropertyRequest request, CancellationToken cancellationToken)
+    {
+        ValidateProperty(request);
+
+        lock (_gate)
+        {
+            var index = _properties.FindIndex(property => property.Id == propertyId && !property.IsDeleted);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Property not found.");
+            }
+
+            var property = _properties[index];
+            if (property.HostUserId != hostUserId)
+            {
+                throw new UnauthorizedAccessException("Property is not available to this host.");
+            }
+
+            var updated = property with
+            {
+                HostName = request.HostName.Trim(),
+                HostEmail = request.HostEmail.Trim().ToLowerInvariant(),
+                Title = request.Title.Trim(),
+                Location = request.Location.Trim(),
+                Country = string.IsNullOrWhiteSpace(request.Country) ? "Jamaica" : request.Country.Trim(),
+                NightlyRate = decimal.Round(request.NightlyRate, 2),
+                Currency = request.Currency.Trim().ToUpperInvariant(),
+                BadgeLevel = request.BadgeLevel,
+                GuestVerificationEnabled = request.GuestVerificationEnabled,
+                InsuraGuestEnabled = request.InsuraGuestEnabled,
+                CancellationPolicy = request.CancellationPolicy.Trim(),
+                Highlights = NormalizeHighlights(request.Highlights)
+            };
+
+            _properties[index] = updated;
+            return Task.FromResult(ToListingDto(updated));
+        }
+    }
+
+    public Task<PropertyListingDto> ArchivePropertyAsync(Guid hostUserId, Guid propertyId, bool isArchived, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var index = _properties.FindIndex(property => property.Id == propertyId && !property.IsDeleted);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Property not found.");
+            }
+
+            var property = _properties[index];
+            if (property.HostUserId != hostUserId)
+            {
+                throw new UnauthorizedAccessException("Property is not available to this host.");
+            }
+
+            var updated = property with { IsArchived = isArchived };
+            _properties[index] = updated;
+            return Task.FromResult(ToListingDto(updated));
+        }
+    }
+
+    public Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var index = _properties.FindIndex(property => property.Id == propertyId && !property.IsDeleted);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Property not found.");
+            }
+
+            var property = _properties[index];
+            if (property.HostUserId != hostUserId)
+            {
+                throw new UnauthorizedAccessException("Property is not available to this host.");
+            }
+
+            if (_bookings.Any(booking => booking.PropertyId == propertyId && booking.Status is BookingStatus.PendingVerification or BookingStatus.Approved or BookingStatus.PaymentCaptured or BookingStatus.Confirmed))
+            {
+                throw new InvalidOperationException("Properties with active bookings cannot be deleted.");
+            }
+
+            _properties[index] = property with { IsDeleted = true };
+            return Task.CompletedTask;
         }
     }
 
@@ -929,7 +1027,7 @@ public sealed class PhaseOneStore(
     }
 
     private PhaseOneProperty FindProperty(Guid propertyId) =>
-        _properties.SingleOrDefault(property => property.Id == propertyId)
+        _properties.SingleOrDefault(property => property.Id == propertyId && !property.IsDeleted && !property.IsArchived)
         ?? throw new InvalidOperationException("Property not found.");
 
     private PhaseOneBooking? FindBlockingBookingNoLock(Guid propertyId, DateOnly checkIn, DateOnly checkOut, DateTimeOffset now) =>
@@ -1011,7 +1109,8 @@ public sealed class PhaseOneStore(
             property.GuestVerificationEnabled,
             property.InsuraGuestEnabled,
             property.CancellationPolicy,
-            property.Highlights);
+            property.Highlights,
+            property.IsArchived);
 
     private static BookingPropertySummaryDto ToSummaryDto(PhaseOneProperty property) =>
         new(
@@ -1166,41 +1265,87 @@ public sealed class PhaseOneStore(
 
     private static void ValidateProperty(CreatePropertyRequest request)
     {
-        if (request.HostUserId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(request.HostName) ||
-            string.IsNullOrWhiteSpace(request.HostEmail) ||
-            string.IsNullOrWhiteSpace(request.Title) ||
-            string.IsNullOrWhiteSpace(request.Location) ||
-            string.IsNullOrWhiteSpace(request.Currency) ||
-            string.IsNullOrWhiteSpace(request.CancellationPolicy))
+        if (request.HostUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Host, title, location, currency, and cancellation policy are required.");
+        }
+
+        ValidatePropertyFields(
+            request.HostName,
+            request.HostEmail,
+            request.Title,
+            request.Location,
+            request.Currency,
+            request.CancellationPolicy,
+            request.NightlyRate,
+            request.GuestVerificationEnabled,
+            request.BadgeLevel);
+    }
+
+    private static void ValidateProperty(UpdatePropertyRequest request)
+    {
+        ValidatePropertyFields(
+            request.HostName,
+            request.HostEmail,
+            request.Title,
+            request.Location,
+            request.Currency,
+            request.CancellationPolicy,
+            request.NightlyRate,
+            request.GuestVerificationEnabled,
+            request.BadgeLevel);
+    }
+
+    private static void ValidatePropertyFields(
+        string hostName,
+        string hostEmail,
+        string title,
+        string location,
+        string currency,
+        string cancellationPolicy,
+        decimal nightlyRate,
+        bool guestVerificationEnabled,
+        BadgeLevel badgeLevel)
+    {
+        if (string.IsNullOrWhiteSpace(hostName) ||
+            string.IsNullOrWhiteSpace(hostEmail) ||
+            string.IsNullOrWhiteSpace(title) ||
+            string.IsNullOrWhiteSpace(location) ||
+            string.IsNullOrWhiteSpace(currency) ||
+            string.IsNullOrWhiteSpace(cancellationPolicy))
         {
             throw new InvalidOperationException("Host, title, location, currency, and cancellation policy are required.");
         }
 
         try
         {
-            _ = new MailAddress(request.HostEmail.Trim());
+            _ = new MailAddress(hostEmail.Trim());
         }
         catch (FormatException)
         {
             throw new InvalidOperationException("A valid host email address is required.");
         }
 
-        if (request.NightlyRate <= 0)
+        if (nightlyRate <= 0)
         {
             throw new InvalidOperationException("Nightly rate must be greater than zero.");
         }
 
-        if (request.Currency.Trim().Length != 3)
+        if (currency.Trim().Length != 3)
         {
             throw new InvalidOperationException("Currency must be a three-letter code.");
         }
 
-        if (request.GuestVerificationEnabled && request.BadgeLevel == BadgeLevel.Free)
+        if (guestVerificationEnabled && badgeLevel == BadgeLevel.Free)
         {
             throw new InvalidOperationException("Guest verification upsell requires a Verified, Trusted, or Wellness host badge.");
         }
     }
+
+    private static IReadOnlyList<string> NormalizeHighlights(IReadOnlyList<string>? highlights) =>
+        highlights is null || highlights.Count == 0
+            ? ["Host-created listing"]
+            : highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList();
 
     private static string ToMilestoneStatus(BookingStatus status) =>
         status switch
@@ -1451,7 +1596,9 @@ public sealed class PhaseOneStore(
         bool GuestVerificationEnabled,
         bool InsuraGuestEnabled,
         string CancellationPolicy,
-        IReadOnlyList<string> Highlights);
+        IReadOnlyList<string> Highlights,
+        bool IsArchived,
+        bool IsDeleted);
 
     private sealed record PendingNotification(string RecipientType, NotificationMessage Message);
 

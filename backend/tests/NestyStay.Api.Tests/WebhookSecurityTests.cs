@@ -105,6 +105,15 @@ public sealed class WebhookSecurityTests
         public Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<PropertyListingDto> UpdatePropertyAsync(Guid hostUserId, Guid propertyId, UpdatePropertyRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<PropertyListingDto> ArchivePropertyAsync(Guid hostUserId, Guid propertyId, bool isArchived, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

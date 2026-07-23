@@ -44,6 +44,7 @@ public sealed class MilestoneProperty : BaseEntity
     public bool InsuraGuestEnabled { get; set; }
     public string CancellationPolicy { get; set; } = string.Empty;
     public string HighlightsJson { get; set; } = "[]";
+    public bool IsArchived { get; set; }
 }
 
 public sealed class MilestoneBooking : BaseEntity

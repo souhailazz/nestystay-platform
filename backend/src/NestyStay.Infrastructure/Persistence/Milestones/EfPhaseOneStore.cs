@@ -515,6 +515,7 @@ public sealed class EfPhaseOneStore(
         EnsurePhaseOneSeeded();
         return db.MilestoneProperties
             .AsNoTracking()
+            .Where(property => !property.IsDeleted && !property.IsArchived)
             .OrderBy(property => property.Title)
             .ToList()
             .Select(ToListingDto)
@@ -526,7 +527,7 @@ public sealed class EfPhaseOneStore(
         EnsurePhaseOneSeeded();
         return db.MilestoneProperties
             .AsNoTracking()
-            .SingleOrDefault(property => property.Id == id) is { } property
+            .SingleOrDefault(property => property.Id == id && !property.IsDeleted && !property.IsArchived) is { } property
             ? ToListingDto(property)
             : null;
     }
@@ -560,6 +561,53 @@ public sealed class EfPhaseOneStore(
         await db.SaveChangesAsync(cancellationToken);
 
         return ToListingDto(property);
+    }
+
+    public async Task<PropertyListingDto> UpdatePropertyAsync(Guid hostUserId, Guid propertyId, UpdatePropertyRequest request, CancellationToken cancellationToken)
+    {
+        ValidateProperty(request);
+
+        var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        ApplyPropertyChanges(property, request);
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = hostUserId;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(property);
+    }
+
+    public async Task<PropertyListingDto> ArchivePropertyAsync(Guid hostUserId, Guid propertyId, bool isArchived, CancellationToken cancellationToken)
+    {
+        var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        property.IsArchived = isArchived;
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = hostUserId;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(property);
+    }
+
+    public async Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        var hasActiveBookings = await db.MilestoneBookings.AnyAsync(
+            booking =>
+                booking.PropertyId == propertyId &&
+                !booking.IsDeleted &&
+                (booking.Status == BookingStatus.PendingVerification ||
+                 booking.Status == BookingStatus.Approved ||
+                 booking.Status == BookingStatus.PaymentCaptured ||
+                 booking.Status == BookingStatus.Confirmed),
+            cancellationToken);
+        if (hasActiveBookings)
+        {
+            throw new InvalidOperationException("Properties with active bookings cannot be deleted.");
+        }
+
+        property.IsDeleted = true;
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = hostUserId;
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken)
@@ -901,8 +949,20 @@ public sealed class EfPhaseOneStore(
     }
 
     private async Task<MilestoneProperty> FindPropertyAsync(Guid propertyId, CancellationToken cancellationToken) =>
-        await db.MilestoneProperties.SingleOrDefaultAsync(property => property.Id == propertyId, cancellationToken)
+        await db.MilestoneProperties.SingleOrDefaultAsync(property => property.Id == propertyId && !property.IsDeleted && !property.IsArchived, cancellationToken)
         ?? throw new InvalidOperationException("Property not found.");
+
+    private async Task<MilestoneProperty> FindHostPropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        var property = await db.MilestoneProperties.SingleOrDefaultAsync(item => item.Id == propertyId && !item.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Property not found.");
+        if (property.HostUserId != hostUserId)
+        {
+            throw new UnauthorizedAccessException("Property is not available to this host.");
+        }
+
+        return property;
+    }
 
     private Task<MilestoneBooking?> FindBlockingBookingAsync(
         Guid propertyId,
@@ -1040,7 +1100,8 @@ public sealed class EfPhaseOneStore(
             property.GuestVerificationEnabled,
             property.InsuraGuestEnabled,
             property.CancellationPolicy,
-            MilestoneJson.DeserializeList<string>(property.HighlightsJson));
+            MilestoneJson.DeserializeList<string>(property.HighlightsJson),
+            property.IsArchived);
 
     private static BookingPropertySummaryDto ToSummaryDto(MilestoneProperty property) =>
         new(
@@ -1195,41 +1256,103 @@ public sealed class EfPhaseOneStore(
 
     private static void ValidateProperty(CreatePropertyRequest request)
     {
-        if (request.HostUserId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(request.HostName) ||
-            string.IsNullOrWhiteSpace(request.HostEmail) ||
-            string.IsNullOrWhiteSpace(request.Title) ||
-            string.IsNullOrWhiteSpace(request.Location) ||
-            string.IsNullOrWhiteSpace(request.Currency) ||
-            string.IsNullOrWhiteSpace(request.CancellationPolicy))
+        if (request.HostUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Host, title, location, currency, and cancellation policy are required.");
+        }
+
+        ValidatePropertyFields(
+            request.HostName,
+            request.HostEmail,
+            request.Title,
+            request.Location,
+            request.Currency,
+            request.CancellationPolicy,
+            request.NightlyRate,
+            request.GuestVerificationEnabled,
+            request.BadgeLevel);
+    }
+
+    private static void ValidateProperty(UpdatePropertyRequest request)
+    {
+        ValidatePropertyFields(
+            request.HostName,
+            request.HostEmail,
+            request.Title,
+            request.Location,
+            request.Currency,
+            request.CancellationPolicy,
+            request.NightlyRate,
+            request.GuestVerificationEnabled,
+            request.BadgeLevel);
+    }
+
+    private static void ValidatePropertyFields(
+        string hostName,
+        string hostEmail,
+        string title,
+        string location,
+        string currency,
+        string cancellationPolicy,
+        decimal nightlyRate,
+        bool guestVerificationEnabled,
+        BadgeLevel badgeLevel)
+    {
+        if (string.IsNullOrWhiteSpace(hostName) ||
+            string.IsNullOrWhiteSpace(hostEmail) ||
+            string.IsNullOrWhiteSpace(title) ||
+            string.IsNullOrWhiteSpace(location) ||
+            string.IsNullOrWhiteSpace(currency) ||
+            string.IsNullOrWhiteSpace(cancellationPolicy))
         {
             throw new InvalidOperationException("Host, title, location, currency, and cancellation policy are required.");
         }
 
         try
         {
-            _ = new MailAddress(request.HostEmail.Trim());
+            _ = new MailAddress(hostEmail.Trim());
         }
         catch (FormatException)
         {
             throw new InvalidOperationException("A valid host email address is required.");
         }
 
-        if (request.NightlyRate <= 0)
+        if (nightlyRate <= 0)
         {
             throw new InvalidOperationException("Nightly rate must be greater than zero.");
         }
 
-        if (request.Currency.Trim().Length != 3)
+        if (currency.Trim().Length != 3)
         {
             throw new InvalidOperationException("Currency must be a three-letter code.");
         }
 
-        if (request.GuestVerificationEnabled && request.BadgeLevel == BadgeLevel.Free)
+        if (guestVerificationEnabled && badgeLevel == BadgeLevel.Free)
         {
             throw new InvalidOperationException("Guest verification upsell requires a Verified, Trusted, or Wellness host badge.");
         }
     }
+
+    private static void ApplyPropertyChanges(MilestoneProperty property, UpdatePropertyRequest request)
+    {
+        property.HostName = request.HostName.Trim();
+        property.HostEmail = request.HostEmail.Trim().ToLowerInvariant();
+        property.Title = request.Title.Trim();
+        property.Location = request.Location.Trim();
+        property.Country = string.IsNullOrWhiteSpace(request.Country) ? "Jamaica" : request.Country.Trim();
+        property.NightlyRate = decimal.Round(request.NightlyRate, 2);
+        property.Currency = request.Currency.Trim().ToUpperInvariant();
+        property.BadgeLevel = request.BadgeLevel;
+        property.GuestVerificationEnabled = request.GuestVerificationEnabled;
+        property.InsuraGuestEnabled = request.InsuraGuestEnabled;
+        property.CancellationPolicy = request.CancellationPolicy.Trim();
+        property.HighlightsJson = MilestoneJson.Serialize(NormalizeHighlights(request.Highlights));
+    }
+
+    private static IReadOnlyList<string> NormalizeHighlights(IReadOnlyList<string>? highlights) =>
+        highlights is null || highlights.Count == 0
+            ? ["Host-created listing"]
+            : highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList();
 
     private static string ToMilestoneStatus(BookingStatus status) =>
         status switch
