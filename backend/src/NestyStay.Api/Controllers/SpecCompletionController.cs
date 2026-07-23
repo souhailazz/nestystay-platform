@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Application.PhaseOne;
 using NestyStay.Application.SpecCompletion;
 
 namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/spec")]
-public sealed class SpecCompletionController(ISpecCompletionStore store, CurrentUserContext currentUser) : ControllerBase
+public sealed class SpecCompletionController(
+    ISpecCompletionStore store,
+    IPhaseOneStore phaseOneStore,
+    CurrentUserContext currentUser) : ControllerBase
 {
     [HttpPost("seed")]
     public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken) =>
@@ -230,6 +234,11 @@ public sealed class SpecCompletionController(ISpecCompletionStore store, Current
     public async Task<ActionResult<HostPricingRuleDto>> SavePricingRule(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
     {
         RequireUser(hostUserId);
+        if (!HostOwnsProperty(hostUserId, request.PropertyId))
+        {
+            return NotFound();
+        }
+
         return Ok(await store.SaveHostPricingRuleAsync(hostUserId, request, cancellationToken));
     }
 
@@ -237,6 +246,11 @@ public sealed class SpecCompletionController(ISpecCompletionStore store, Current
     public async Task<ActionResult<HostPromotionDto>> SavePromotion(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken)
     {
         RequireUser(hostUserId);
+        if (!HostOwnsProperty(hostUserId, request.PropertyId))
+        {
+            return NotFound();
+        }
+
         return Ok(await store.SaveHostPromotionAsync(hostUserId, request, cancellationToken));
     }
 
@@ -280,6 +294,9 @@ public sealed class SpecCompletionController(ISpecCompletionStore store, Current
         Ok(await store.GetSocialAuthConfigAsync(cancellationToken));
 
     private Guid RequireAnyUser() => currentUser.UserId ?? throw new UnauthorizedAccessException("A signed session bearer token is required.");
+
+    private bool HostOwnsProperty(Guid hostUserId, Guid propertyId) =>
+        phaseOneStore.GetProperty(propertyId) is { } property && property.HostUserId == hostUserId;
 
     private Guid RequireUser(Guid expectedUserId)
     {

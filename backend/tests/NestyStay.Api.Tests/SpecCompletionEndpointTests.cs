@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
 
@@ -131,7 +132,8 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var travelerId = Guid.NewGuid();
         var otherTravelerId = Guid.NewGuid();
         var hostId = Guid.NewGuid();
-        var propertyId = Guid.NewGuid();
+        var propertyId = await CreateHostPropertyAsync(client, hostId);
+        client.DefaultRequestHeaders.Authorization = null;
 
         var travelerNoToken = await client.GetAsync($"/api/spec/traveler/{travelerId}");
         Assert.Equal(HttpStatusCode.Unauthorized, travelerNoToken.StatusCode);
@@ -334,6 +336,18 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         });
         Assert.Equal(HttpStatusCode.OK, pricingRule.StatusCode);
 
+        var crossHostPricingRule = await client.PostAsJsonAsync($"/api/spec/host/{hostId}/pricing-rules", new
+        {
+            propertyId = Guid.NewGuid(),
+            name = "Cross host attempt",
+            startsOn = "2026-09-01",
+            endsOn = "2026-09-05",
+            nightlyRate = 225,
+            minimumStay = 2,
+            isActive = true
+        });
+        Assert.Equal(HttpStatusCode.NotFound, crossHostPricingRule.StatusCode);
+
         var invalidPromotion = await client.PostAsJsonAsync($"/api/spec/host/{hostId}/promotions", new
         {
             propertyId,
@@ -402,8 +416,34 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.Contains(audit, item => item.Action == "AdminCaseResolved");
     }
 
-    private static AuthenticationHeaderValue LocalUser(Guid userId) =>
-        new("Bearer", NestyStayApiFactory.UserToken(userId));
+    private static AuthenticationHeaderValue LocalUser(Guid userId, params UserRole[] roles) =>
+        new("Bearer", NestyStayApiFactory.UserToken(userId, roles));
+
+    private static async Task<Guid> CreateHostPropertyAsync(HttpClient client, Guid hostId)
+    {
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
+        var response = await client.PostAsJsonAsync("/api/properties", new
+        {
+            hostUserId = Guid.NewGuid(),
+            hostName = "Spec Host",
+            hostEmail = $"spec-host-{Guid.NewGuid():N}@test.local",
+            title = $"Spec Host Property {Guid.NewGuid():N}",
+            location = "Kingston",
+            country = "Jamaica",
+            nightlyRate = 180,
+            currency = "USD",
+            badgeLevel = "Trusted",
+            guestVerificationEnabled = true,
+            insuraGuestEnabled = true,
+            cancellationPolicy = "Flexible",
+            highlights = new[] { "Spec owned property" }
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var property = await response.Content.ReadFromJsonAsync<PropertyResponse>();
+        Assert.NotNull(property);
+        Assert.Equal(hostId, property.HostUserId);
+        return property.Id;
+    }
 
     private sealed record SpecSeedResponse(bool Seeded, int PublicPages, int Experiences, int JournalArticles, int HostProfiles, int DirectoryProviders);
 
@@ -420,6 +460,8 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
     private sealed record RecoveryCodeResponse(string Code, bool Used);
 
     private sealed record SocialConfigResponse(IReadOnlyList<string> RequiredEnvironmentVariables);
+
+    private sealed record PropertyResponse(Guid Id, Guid HostUserId);
 
     private sealed record TravelerWorkspaceResponse(
         IReadOnlyList<WishlistCollectionResponse> WishlistCollections,
