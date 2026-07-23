@@ -40,6 +40,18 @@ export type VerifyTwoFactorResponse = {
   roles: UserRole[];
 };
 
+export type TwoFactorEnrollment = {
+  enrollmentId: string;
+  manualKey: string;
+  otpAuthUri: string;
+  expiresAt: string;
+};
+
+export type ConfirmTwoFactorEnrollmentResponse = {
+  enabled: boolean;
+  recoveryCodes: string[];
+};
+
 export type GoogleSignInRequest = {
   credential: string;
   role?: Extract<UserRole, "Guest" | "Host">;
@@ -816,6 +828,10 @@ export const api = {
       method: "POST",
       body: { challengeId, code },
     }),
+  beginTwoFactorEnrollment: (token: string) =>
+    request<TwoFactorEnrollment>("/auth/2fa/enrollments", { method: "POST", token }),
+  confirmTwoFactorEnrollment: (token: string, body: { enrollmentId: string; code: string }) =>
+    request<ConfirmTwoFactorEnrollmentResponse>("/auth/2fa/enrollments/confirm", { method: "POST", token, body }),
   requestPasswordReset: (email: string) =>
     request<PasswordResetRequestResponse>("/auth/password-reset/request", {
       method: "POST",

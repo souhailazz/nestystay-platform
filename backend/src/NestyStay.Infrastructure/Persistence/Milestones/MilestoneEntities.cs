@@ -16,6 +16,9 @@ public sealed class MilestoneUser : BaseEntity
     public DateTimeOffset? LockoutEndsAt { get; set; }
     public DateTimeOffset? SessionInvalidatedAt { get; set; }
     public long? LastAcceptedTotpCounter { get; set; }
+    public string? PendingTwoFactorEnrollmentId { get; set; }
+    public byte[]? PendingTwoFactorSecret { get; set; }
+    public DateTimeOffset? PendingTwoFactorExpiresAt { get; set; }
 }
 
 public sealed class MilestoneTwoFactorChallenge : BaseEntity

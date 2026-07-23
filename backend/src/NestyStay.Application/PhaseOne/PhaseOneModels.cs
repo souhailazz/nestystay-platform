@@ -24,6 +24,16 @@ public sealed record VerifyTwoFactorRequest(string ChallengeId, string Code);
 
 public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles);
 
+public sealed record BeginTwoFactorEnrollmentResponse(
+    string EnrollmentId,
+    string ManualKey,
+    string OtpAuthUri,
+    DateTimeOffset ExpiresAt);
+
+public sealed record ConfirmTwoFactorEnrollmentRequest(string EnrollmentId, string Code);
+
+public sealed record ConfirmTwoFactorEnrollmentResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
+
 public sealed record GoogleSignInRequest(string Credential, UserRole? Role = null);
 
 public sealed record GoogleSignInResponse(

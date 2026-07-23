@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import QRCode from "qrcode";
 import {
   BadgeCheck,
   Bell,
@@ -376,9 +377,71 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
 
 function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }) {
   const [codes, setCodes] = useState<{ code: string; used: boolean }[]>([]);
+  const [enrollment, setEnrollment] = useState<{ enrollmentId: string; manualKey: string; otpAuthUri: string; expiresAt: string } | null>(null);
+  const [qrDataUri, setQrDataUri] = useState("");
+  const [setupCode, setSetupCode] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!enrollment) {
+      setQrDataUri("");
+      return;
+    }
+
+    QRCode.toDataURL(enrollment.otpAuthUri, { margin: 1, width: 184 })
+      .then((dataUri) => {
+        if (!cancelled) setQrDataUri(dataUri);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Authenticator QR could not be rendered.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enrollment]);
 
   async function generate() {
-    setCodes(await api.generateRecoveryCodes(userId, token));
+    await run(async () => {
+      setCodes(await api.generateRecoveryCodes(userId, token));
+      setNotice("Recovery codes regenerated. Store them now; they are shown once.");
+    });
+  }
+
+  async function beginEnrollment() {
+    await run(async () => {
+      const started = await api.beginTwoFactorEnrollment(token);
+      setEnrollment(started);
+      setCodes([]);
+      setSetupCode("");
+      setNotice("Authenticator setup started.");
+    });
+  }
+
+  async function confirmEnrollment() {
+    if (!enrollment) return;
+    await run(async () => {
+      const confirmed = await api.confirmTwoFactorEnrollment(token, {
+        enrollmentId: enrollment.enrollmentId,
+        code: setupCode,
+      });
+      setCodes(confirmed.recoveryCodes.map((code) => ({ code, used: false })));
+      setEnrollment(null);
+      setSetupCode("");
+      setNotice("Authenticator enabled. Recovery codes are shown once.");
+    });
+  }
+
+  async function run(action: () => Promise<void>) {
+    setError(null);
+    setNotice(null);
+    try {
+      await action();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Two-factor action failed.");
+    }
   }
 
   function download() {
@@ -393,8 +456,23 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
 
   return (
     <>
-      <div className="qr-demo" aria-label="Authenticator QR setup">NESTY-2FA</div>
-      <Button onClick={generate}><Lock size={17} /> Generate recovery codes</Button>
+      <Button onClick={beginEnrollment}><ShieldCheck size={17} /> Start authenticator setup</Button>
+      {enrollment && (
+        <div className="notice-panel">
+          {qrDataUri && <img className="auth-qr-image" src={qrDataUri} alt="Authenticator QR code" />}
+          <Field label="Manual setup key">
+            <Input readOnly value={enrollment.manualKey} />
+          </Field>
+          <Field label="Authenticator code">
+            <Input inputMode="numeric" value={setupCode} onChange={(event) => setSetupCode(event.target.value)} />
+          </Field>
+          <small>Expires at {new Date(enrollment.expiresAt).toLocaleTimeString()}.</small>
+          <Button onClick={confirmEnrollment}><Lock size={17} /> Enable authenticator</Button>
+        </div>
+      )}
+      <Button onClick={generate} variant="outline"><Lock size={17} /> Regenerate recovery codes</Button>
+      {notice && <div className="notice-panel">{notice}</div>}
+      {error && <ErrorState message={error} />}
       {codes.length > 0 && (
         <div className="spec-table-wrap">
           <table className="spec-table"><tbody>{codes.map((item) => <tr key={item.code}><td>{item.code}</td><td>{item.used ? "Used" : "Unused"}</td></tr>)}</tbody></table>

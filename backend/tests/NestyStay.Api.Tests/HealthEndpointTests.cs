@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -247,6 +248,89 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         {
             challengeId = replayChallenge.ChallengeId,
             code = recoveryCode
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, replay.StatusCode);
+    }
+
+    [Fact]
+    public async Task TwoFactorEnrollmentRequiresValidTotpAndReturnsOneTimeRecoveryCodes()
+    {
+        using var client = _factory.CreateClient();
+        var email = $"enroll-{Guid.NewGuid():N}@test.local";
+
+        var register = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password123!",
+            displayName = "Enrollment Guest",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
+        });
+        Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(challenge);
+        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{challenge.ChallengeId}");
+        Assert.NotNull(developmentCode);
+        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = challenge.ChallengeId,
+            code = developmentCode.Code
+        });
+        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
+        var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        Assert.NotNull(session);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var enrollmentResponse = await client.PostAsync("/api/auth/2fa/enrollments", null);
+        Assert.Equal(HttpStatusCode.OK, enrollmentResponse.StatusCode);
+        var enrollment = await enrollmentResponse.Content.ReadFromJsonAsync<TwoFactorEnrollmentResponse>();
+        Assert.NotNull(enrollment);
+        Assert.StartsWith("otpauth://totp/", enrollment.OtpAuthUri);
+        Assert.Contains("issuer=NestyStay", enrollment.OtpAuthUri);
+        Assert.NotEmpty(enrollment.ManualKey);
+
+        var invalidConfirm = await client.PostAsJsonAsync("/api/auth/2fa/enrollments/confirm", new
+        {
+            enrollmentId = enrollment.EnrollmentId,
+            code = "000000"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidConfirm.StatusCode);
+
+        var setupCode = GenerateTotpFromManualKey(enrollment.ManualKey);
+        var confirm = await client.PostAsJsonAsync("/api/auth/2fa/enrollments/confirm", new
+        {
+            enrollmentId = enrollment.EnrollmentId,
+            code = setupCode
+        });
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+        var confirmed = await confirm.Content.ReadFromJsonAsync<TwoFactorEnrollmentConfirmResponse>();
+        Assert.NotNull(confirmed);
+        Assert.True(confirmed.Enabled);
+        Assert.Equal(8, confirmed.RecoveryCodes.Count);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var replayLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, replayLogin.StatusCode);
+        var replayChallenge = await replayLogin.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(replayChallenge);
+        var replay = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = replayChallenge.ChallengeId,
+            code = setupCode
         });
         Assert.Equal(HttpStatusCode.BadRequest, replay.StatusCode);
     }
@@ -567,6 +651,14 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record RecoveryCodeResponse(string Code, bool Used);
 
+    private sealed record TwoFactorEnrollmentResponse(
+        string EnrollmentId,
+        string ManualKey,
+        string OtpAuthUri,
+        DateTimeOffset ExpiresAt);
+
+    private sealed record TwoFactorEnrollmentConfirmResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
+
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled);
 
     private sealed record QuoteResponse(bool DatesAvailable, int Nights);
@@ -582,4 +674,51 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         IReadOnlyList<NotificationResponse> Notifications);
 
     private sealed record NotificationResponse(string RecipientType);
+
+    private static string GenerateTotpFromManualKey(string manualKey)
+    {
+        var secret = DecodeBase32(manualKey);
+        var counter = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30;
+        var counterBytes = BitConverter.GetBytes(counter);
+        if (BitConverter.IsLittleEndian)
+        {
+            Array.Reverse(counterBytes);
+        }
+
+        using var hmac = new HMACSHA1(secret);
+        var hash = hmac.ComputeHash(counterBytes);
+        var offset = hash[^1] & 0x0f;
+        var binaryCode =
+            ((hash[offset] & 0x7f) << 24) |
+            ((hash[offset + 1] & 0xff) << 16) |
+            ((hash[offset + 2] & 0xff) << 8) |
+            (hash[offset + 3] & 0xff);
+        return (binaryCode % 1_000_000).ToString("D6");
+    }
+
+    private static byte[] DecodeBase32(string value)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var bits = 0;
+        var bitCount = 0;
+        var output = new List<byte>();
+        foreach (var character in value.Trim().TrimEnd('=').ToUpperInvariant())
+        {
+            var index = alphabet.IndexOf(character, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Invalid base32 character.");
+            }
+
+            bits = (bits << 5) | index;
+            bitCount += 5;
+            if (bitCount >= 8)
+            {
+                output.Add((byte)((bits >> (bitCount - 8)) & 0xff));
+                bitCount -= 8;
+            }
+        }
+
+        return output.ToArray();
+    }
 }

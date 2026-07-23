@@ -32,6 +32,7 @@ public sealed class EfPhaseOneStore(
     private const string PasswordResetStatusInvalidated = "Invalidated";
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
 
     public async Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
@@ -143,6 +144,76 @@ public sealed class EfPhaseOneStore(
             challenge.ChallengeId,
             GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()),
             challenge.ExpiresAt);
+    }
+
+    public async Task<BeginTwoFactorEnrollmentResponse> BeginTwoFactorEnrollmentAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User was not found.");
+        var now = timeProvider.GetUtcNow();
+        var secret = GenerateSecret();
+        var manualKey = ToBase32(secret);
+        user.PendingTwoFactorEnrollmentId = Guid.NewGuid().ToString("N");
+        user.PendingTwoFactorSecret = secret;
+        user.PendingTwoFactorExpiresAt = now.Add(TwoFactorEnrollmentLifetime);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new BeginTwoFactorEnrollmentResponse(
+            user.PendingTwoFactorEnrollmentId,
+            manualKey,
+            BuildOtpAuthUri(user.Email, manualKey),
+            user.PendingTwoFactorExpiresAt.Value);
+    }
+
+    public async Task<ConfirmTwoFactorEnrollmentResponse> ConfirmTwoFactorEnrollmentAsync(
+        Guid userId,
+        ConfirmTwoFactorEnrollmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User was not found.");
+        if (user.PendingTwoFactorSecret is null ||
+            user.PendingTwoFactorExpiresAt is null ||
+            user.PendingTwoFactorEnrollmentId is null ||
+            !user.PendingTwoFactorEnrollmentId.Equals(request.EnrollmentId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Authenticator enrollment was not found.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (user.PendingTwoFactorExpiresAt <= now)
+        {
+            ClearPendingTwoFactorEnrollment(user);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Authenticator enrollment has expired.");
+        }
+
+        if (!TryVerifyTotp(user.PendingTwoFactorSecret, request.Code, now, out var acceptedCounter))
+        {
+            throw new InvalidOperationException("Authenticator code is invalid.");
+        }
+
+        user.TwoFactorSecret = user.PendingTwoFactorSecret;
+        user.LastAcceptedTotpCounter = acceptedCounter;
+        ClearPendingTwoFactorEnrollment(user);
+
+        var existing = await db.MilestoneRecoveryCodes.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken);
+        db.MilestoneRecoveryCodes.RemoveRange(existing);
+        var codes = Enumerable.Range(0, 8).Select(_ => GenerateRecoveryCode()).ToList();
+        foreach (var code in codes)
+        {
+            var salt = RandomNumberGenerator.GetBytes(16);
+            db.MilestoneRecoveryCodes.Add(new MilestoneRecoveryCode
+            {
+                UserId = user.Id,
+                CodeHash = HashBoundSecret("RecoveryCode", user.Id, user.Id.ToString("N"), code, salt),
+                SecretSalt = Convert.ToBase64String(salt),
+                CreatedByUserId = user.Id
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return new ConfirmTwoFactorEnrollmentResponse(true, codes);
     }
 
     public async Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
@@ -1269,6 +1340,12 @@ public sealed class EfPhaseOneStore(
 
     private static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(20);
 
+    private static string GenerateRecoveryCode()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(8);
+        return $"{Convert.ToHexString(bytes[..4])}-{Convert.ToHexString(bytes[4..])}";
+    }
+
     private async Task<bool> TryConsumeRecoveryCodeAsync(
         Guid userId,
         string code,
@@ -1318,6 +1395,45 @@ public sealed class EfPhaseOneStore(
 
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string ToBase32(byte[] bytes)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var output = new StringBuilder();
+        var bitBuffer = 0;
+        var bitCount = 0;
+        foreach (var value in bytes)
+        {
+            bitBuffer = (bitBuffer << 8) | value;
+            bitCount += 8;
+            while (bitCount >= 5)
+            {
+                output.Append(alphabet[(bitBuffer >> (bitCount - 5)) & 31]);
+                bitCount -= 5;
+            }
+        }
+
+        if (bitCount > 0)
+        {
+            output.Append(alphabet[(bitBuffer << (5 - bitCount)) & 31]);
+        }
+
+        return output.ToString();
+    }
+
+    private static string BuildOtpAuthUri(string email, string manualKey)
+    {
+        var label = Uri.EscapeDataString($"NestyStay:{email}");
+        var issuer = Uri.EscapeDataString("NestyStay");
+        return $"otpauth://totp/{label}?secret={manualKey}&issuer={issuer}&algorithm=SHA1&digits=6&period={TotpStepSeconds}";
+    }
+
+    private static void ClearPendingTwoFactorEnrollment(MilestoneUser user)
+    {
+        user.PendingTwoFactorEnrollmentId = null;
+        user.PendingTwoFactorSecret = null;
+        user.PendingTwoFactorExpiresAt = null;
+    }
 
     private static bool TryVerifyTotp(byte[] secret, string code, DateTimeOffset now, out long acceptedCounter)
     {

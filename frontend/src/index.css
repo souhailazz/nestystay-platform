@@ -7123,6 +7123,15 @@ body {
   font-weight: 900;
 }
 
+.auth-qr-image {
+  width: min(184px, 100%);
+  aspect-ratio: 1;
+  border: 1px solid rgb(6 43 43 / 14%);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+
 @media (min-width: 1120px) {
   .nav-patois-toggle {
     display: block;

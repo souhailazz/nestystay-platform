@@ -13,6 +13,8 @@ public interface IPhaseOneStore
     Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken);
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken);
+    Task<BeginTwoFactorEnrollmentResponse> BeginTwoFactorEnrollmentAsync(Guid userId, CancellationToken cancellationToken);
+    Task<ConfirmTwoFactorEnrollmentResponse> ConfirmTwoFactorEnrollmentAsync(Guid userId, ConfirmTwoFactorEnrollmentRequest request, CancellationToken cancellationToken);
     Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken);
     Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken);
     Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken);
@@ -50,11 +52,13 @@ public sealed class PhaseOneStore(
     private const string PasswordResetStatusFailed = "Failed";
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
     private readonly object _gate = new();
     private readonly List<PhaseOneUser> _users = [];
     private readonly List<PhaseOneChallenge> _challenges = [];
     private readonly List<PhaseOnePasswordReset> _passwordResets = [];
+    private readonly List<PhaseOneRecoveryCode> _recoveryCodes = [];
     private readonly List<PhaseOneBooking> _bookings = [];
     private readonly List<PhaseOneProperty> _properties =
     [
@@ -196,6 +200,74 @@ public sealed class PhaseOneStore(
         }
     }
 
+    public Task<BeginTwoFactorEnrollmentResponse> BeginTwoFactorEnrollmentAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new InvalidOperationException("User was not found.");
+            var now = timeProvider.GetUtcNow();
+            var secret = GenerateSecret();
+            var manualKey = ToBase32(secret);
+            user.PendingTwoFactorEnrollmentId = Guid.NewGuid().ToString("N");
+            user.PendingTwoFactorSecret = secret;
+            user.PendingTwoFactorExpiresAt = now.Add(TwoFactorEnrollmentLifetime);
+
+            return Task.FromResult(new BeginTwoFactorEnrollmentResponse(
+                user.PendingTwoFactorEnrollmentId,
+                manualKey,
+                BuildOtpAuthUri(user.Email, manualKey),
+                user.PendingTwoFactorExpiresAt.Value));
+        }
+    }
+
+    public Task<ConfirmTwoFactorEnrollmentResponse> ConfirmTwoFactorEnrollmentAsync(
+        Guid userId,
+        ConfirmTwoFactorEnrollmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new InvalidOperationException("User was not found.");
+            if (user.PendingTwoFactorSecret is null ||
+                user.PendingTwoFactorExpiresAt is null ||
+                user.PendingTwoFactorEnrollmentId is null ||
+                !user.PendingTwoFactorEnrollmentId.Equals(request.EnrollmentId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Authenticator enrollment was not found.");
+            }
+
+            var now = timeProvider.GetUtcNow();
+            if (user.PendingTwoFactorExpiresAt <= now)
+            {
+                ClearPendingTwoFactorEnrollment(user);
+                throw new InvalidOperationException("Authenticator enrollment has expired.");
+            }
+
+            if (!TryVerifyTotp(user.PendingTwoFactorSecret, request.Code, now, out var acceptedCounter))
+            {
+                throw new InvalidOperationException("Authenticator code is invalid.");
+            }
+
+            user.TwoFactorSecret = user.PendingTwoFactorSecret;
+            user.LastAcceptedTotpCounter = acceptedCounter;
+            ClearPendingTwoFactorEnrollment(user);
+            _recoveryCodes.RemoveAll(item => item.UserId == user.Id);
+            var codes = Enumerable.Range(0, 8).Select(_ => GenerateRecoveryCode()).ToList();
+            foreach (var code in codes)
+            {
+                var salt = RandomNumberGenerator.GetBytes(16);
+                _recoveryCodes.Add(new PhaseOneRecoveryCode(
+                    user.Id,
+                    Convert.ToBase64String(salt),
+                    HashBoundSecret("RecoveryCode", user.Id, user.Id.ToString("N"), code, salt)));
+            }
+
+            return Task.FromResult(new ConfirmTwoFactorEnrollmentResponse(true, codes));
+        }
+    }
+
     public async Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
     {
         if (googleIdentityValidator is null || !googleIdentityValidator.IsConfigured)
@@ -253,6 +325,17 @@ public sealed class PhaseOneStore(
 
             var user = _users.Single(item => item.Id == challenge.UserId);
             var now = timeProvider.GetUtcNow();
+            if (!string.IsNullOrWhiteSpace(request.Code) && TryConsumeRecoveryCode(user.Id, request.Code, now))
+            {
+                _challenges.Remove(challenge);
+                var recoveryTokenExpiresAt = now.AddHours(8);
+                return Task.FromResult(new VerifyTwoFactorResponse(
+                    user.Id,
+                    _accessTokenService.Issue(user.Id, user.Roles, recoveryTokenExpiresAt),
+                    recoveryTokenExpiresAt,
+                    user.Roles));
+            }
+
             if (string.IsNullOrWhiteSpace(request.Code) ||
                 !TryVerifyTotp(user.TwoFactorSecret, request.Code, now, out var acceptedCounter) ||
                 user.LastAcceptedTotpCounter is not null && acceptedCounter <= user.LastAcceptedTotpCounter.Value)
@@ -1169,6 +1252,31 @@ public sealed class PhaseOneStore(
     private static string GenerateSecureToken() =>
         Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 
+    private static string GenerateRecoveryCode()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(8);
+        return $"{Convert.ToHexString(bytes[..4])}-{Convert.ToHexString(bytes[4..])}";
+    }
+
+    private bool TryConsumeRecoveryCode(Guid userId, string code, DateTimeOffset usedAt)
+    {
+        var normalizedCode = code.Trim();
+        foreach (var candidate in _recoveryCodes.Where(item => item.UserId == userId && item.UsedAt is null))
+        {
+            var salt = Convert.FromBase64String(candidate.SecretSalt);
+            var actualHash = HashBoundSecret("RecoveryCode", userId, userId.ToString("N"), normalizedCode, salt);
+            if (!FixedTimeEquals(actualHash, candidate.CodeHash))
+            {
+                continue;
+            }
+
+            candidate.UsedAt = usedAt;
+            return true;
+        }
+
+        return false;
+    }
+
     private static string HashBoundSecret(string purpose, Guid? userId, string destination, string secret, byte[] salt)
     {
         var binding = $"{purpose}|{userId?.ToString("N") ?? "anonymous"}|{destination}|{secret}";
@@ -1185,6 +1293,45 @@ public sealed class PhaseOneStore(
 
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string ToBase32(byte[] bytes)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var output = new StringBuilder();
+        var bitBuffer = 0;
+        var bitCount = 0;
+        foreach (var value in bytes)
+        {
+            bitBuffer = (bitBuffer << 8) | value;
+            bitCount += 8;
+            while (bitCount >= 5)
+            {
+                output.Append(alphabet[(bitBuffer >> (bitCount - 5)) & 31]);
+                bitCount -= 5;
+            }
+        }
+
+        if (bitCount > 0)
+        {
+            output.Append(alphabet[(bitBuffer << (5 - bitCount)) & 31]);
+        }
+
+        return output.ToString();
+    }
+
+    private static string BuildOtpAuthUri(string email, string manualKey)
+    {
+        var label = Uri.EscapeDataString($"NestyStay:{email}");
+        var issuer = Uri.EscapeDataString("NestyStay");
+        return $"otpauth://totp/{label}?secret={manualKey}&issuer={issuer}&algorithm=SHA1&digits=6&period={TotpStepSeconds}";
+    }
+
+    private static void ClearPendingTwoFactorEnrollment(PhaseOneUser user)
+    {
+        user.PendingTwoFactorEnrollmentId = null;
+        user.PendingTwoFactorSecret = null;
+        user.PendingTwoFactorExpiresAt = null;
+    }
 
     private static bool TryVerifyTotp(byte[] secret, string code, DateTimeOffset now, out long acceptedCounter)
     {
@@ -1246,12 +1393,15 @@ public sealed class PhaseOneStore(
         public string PasswordHash { get; set; } = passwordHash;
         public string DisplayName { get; } = displayName;
         public string? Phone { get; } = phone;
-        public byte[] TwoFactorSecret { get; } = twoFactorSecret;
+        public byte[] TwoFactorSecret { get; set; } = twoFactorSecret;
         public IReadOnlyList<UserRole> Roles { get; } = roles;
         public int FailedLoginAttempts { get; set; }
         public DateTimeOffset? LockoutEndsAt { get; set; }
         public DateTimeOffset? SessionInvalidatedAt { get; set; }
         public long? LastAcceptedTotpCounter { get; set; }
+        public string? PendingTwoFactorEnrollmentId { get; set; }
+        public byte[]? PendingTwoFactorSecret { get; set; }
+        public DateTimeOffset? PendingTwoFactorExpiresAt { get; set; }
     }
 
     private sealed class PhaseOneChallenge(string id, Guid userId, DateTimeOffset expiresAt)
@@ -1280,6 +1430,11 @@ public sealed class PhaseOneStore(
         public DateTimeOffset ExpiresAt { get; } = expiresAt;
         public DateTimeOffset? UsedAt { get; set; }
         public DateTimeOffset? InvalidatedAt { get; set; }
+    }
+
+    private sealed record PhaseOneRecoveryCode(Guid UserId, string SecretSalt, string CodeHash)
+    {
+        public DateTimeOffset? UsedAt { get; set; }
     }
 
     private sealed record PhaseOneProperty(
