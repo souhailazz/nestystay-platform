@@ -31,7 +31,8 @@ public sealed class PhaseOneStore(
     IPaymentGateway paymentGateway,
     INotificationGateway notificationGateway,
     TimeProvider timeProvider,
-    IAccessTokenService? accessTokenService = null) : IPhaseOneStore
+    IAccessTokenService? accessTokenService = null,
+    IGoogleIdentityValidator? googleIdentityValidator = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -183,36 +184,48 @@ public sealed class PhaseOneStore(
         }
     }
 
-    public Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
+    public async Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)
     {
-        var email = NormalizeGoogleEmail(request.Email);
-        var displayName = NormalizeGoogleDisplayName(request.DisplayName, email);
+        if (googleIdentityValidator is null || !googleIdentityValidator.IsConfigured)
+        {
+            throw new InvalidOperationException("Google sign-in is unavailable until server-side OAuth validation is configured.");
+        }
+
+        var identity = await googleIdentityValidator.ValidateAsync(request.Credential, cancellationToken);
+        if (!identity.EmailVerified)
+        {
+            throw new InvalidOperationException("Google account email must be verified.");
+        }
+
+        var email = NormalizeGoogleEmail(identity.Email);
+        var displayName = NormalizeGoogleDisplayName(identity.DisplayName, email);
 
         lock (_gate)
         {
             var user = _users.SingleOrDefault(item => item.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
             if (user is null)
             {
+                var role = ResolveSocialRegistrationRole(request.Role);
                 user = new PhaseOneUser(
                     Guid.NewGuid(),
                     email,
-                    HashPassword(CreateExternalPasswordSeed(request.GoogleSubject, email)),
+                    HashPassword(CreateExternalPasswordSeed(identity.Subject, email)),
                     displayName,
                     null,
                     GenerateSecret(),
-                    [UserRole.Guest]);
+                    [role]);
                 _users.Add(user);
             }
 
             var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
-            return Task.FromResult(new GoogleSignInResponse(
+            return new GoogleSignInResponse(
                 user.Id,
                 user.Email,
                 user.DisplayName,
                 _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
                 user.Roles,
-                "Google"));
+                "Google");
         }
     }
 
@@ -871,6 +884,16 @@ public sealed class PhaseOneStore(
 
     private static string CreateExternalPasswordSeed(string? subject, string email) =>
         $"GOOGLE::{subject?.Trim() ?? email}::{Guid.NewGuid():N}";
+
+    private static UserRole ResolveSocialRegistrationRole(UserRole? role)
+    {
+        if (role is not (UserRole.Guest or UserRole.Host))
+        {
+            throw new InvalidOperationException("Role confirmation is required before creating a social account.");
+        }
+
+        return role.Value;
+    }
 
     private static void ValidateProperty(CreatePropertyRequest request)
     {

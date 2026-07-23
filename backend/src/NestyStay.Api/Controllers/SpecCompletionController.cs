@@ -11,7 +11,9 @@ namespace NestyStay.Api.Controllers;
 public sealed class SpecCompletionController(
     ISpecCompletionStore store,
     IPhaseOneStore phaseOneStore,
-    CurrentUserContext currentUser) : ControllerBase
+    CurrentUserContext currentUser,
+    IHostEnvironment environment,
+    IConfiguration configuration) : ControllerBase
 {
     [HttpPost("seed")]
     public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken) =>
@@ -276,11 +278,25 @@ public sealed class SpecCompletionController(
 
     [HttpPost("auth/flows")]
     public async Task<ActionResult<AuthFlowResultDto>> StartAuthFlow(StartAuthFlowRequest request, CancellationToken cancellationToken) =>
-        Ok(await store.StartAuthFlowAsync(request, cancellationToken));
+        Ok(await store.StartAuthFlowAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));
 
     [HttpPost("auth/flows/complete")]
     public async Task<ActionResult<AuthFlowResultDto>> CompleteAuthFlow(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
         Ok(await store.CompleteAuthFlowAsync(request, cancellationToken));
+
+    [HttpGet("auth/development/flows/{flowId:guid}")]
+    public async Task<ActionResult<DevelopmentAuthFlowSecretDto>> GetDevelopmentAuthFlowSecret(Guid flowId, CancellationToken cancellationToken)
+    {
+        if (environment.IsProduction() ||
+            (!environment.IsEnvironment("Testing") && !configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes")))
+        {
+            return NotFound();
+        }
+
+        return await store.GetDevelopmentAuthFlowSecretAsync(flowId, cancellationToken) is { } secret
+            ? Ok(secret)
+            : NotFound();
+    }
 
     [HttpPost("auth/{userId:guid}/recovery-codes")]
     public async Task<ActionResult<IReadOnlyList<RecoveryCodeDto>>> GenerateRecoveryCodes(Guid userId, CancellationToken cancellationToken)
@@ -310,4 +326,9 @@ public sealed class SpecCompletionController(
     }
 
     private Guid? TryGetUserFromBearer() => currentUser.UserId;
+
+    private string ResolveRequesterIp() =>
+        HttpContext.Connection.RemoteIpAddress?.ToString() ??
+        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
+        "unknown";
 }

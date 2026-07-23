@@ -156,18 +156,26 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
         var google = await client.PostAsJsonAsync("/api/auth/google", new
         {
-            email = $"google-{Guid.NewGuid():N}@gmail.com",
-            displayName = "Google Guest",
-            googleSubject = $"google-{Guid.NewGuid():N}",
-            pictureUrl = "https://lh3.googleusercontent.com/a/default-user",
-            credential = "local-google-credential"
+            email = "browser-spoof@test.local",
+            displayName = "Browser Spoof",
+            googleSubject = "browser-spoof-subject",
+            pictureUrl = "https://example.invalid/spoof.png",
+            credential = "valid-google-credential",
+            role = "Guest"
         });
         Assert.Equal(HttpStatusCode.OK, google.StatusCode);
         var googleSession = await google.Content.ReadFromJsonAsync<GoogleSignInResponse>();
         Assert.NotNull(googleSession);
-        Assert.Equal("Google Guest", googleSession.DisplayName);
+        Assert.Equal("Validated Google Guest", googleSession.DisplayName);
         Assert.Equal("Google", googleSession.Provider);
         Assert.NotEmpty(googleSession.AccessToken);
+
+        var invalidGoogle = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            credential = "local-google-sign-in",
+            role = "Guest"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidGoogle.StatusCode);
 
         var properties = await client.GetFromJsonAsync<List<PropertyResponse>>("/api/properties");
         Assert.NotNull(properties);

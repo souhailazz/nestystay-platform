@@ -75,10 +75,12 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
             destination = "guest@test.local"
         });
         Assert.Equal(HttpStatusCode.OK, authFlow.StatusCode);
+        var startedBody = await authFlow.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("code", startedBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("token", startedBody, StringComparison.OrdinalIgnoreCase);
         var started = await authFlow.Content.ReadFromJsonAsync<AuthFlowResponse>();
         Assert.NotNull(started);
         Assert.Equal("Pending", started.Status);
-        Assert.NotEmpty(started.Code);
 
         var invalidCompletion = await client.PostAsJsonAsync("/api/spec/auth/flows/complete", new
         {
@@ -96,16 +98,26 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.Equal(HttpStatusCode.OK, restarted.StatusCode);
         var phone = await restarted.Content.ReadFromJsonAsync<AuthFlowResponse>();
         Assert.NotNull(phone);
+        var phoneSecret = await client.GetFromJsonAsync<DevelopmentAuthFlowSecretResponse>(
+            $"/api/spec/auth/development/flows/{phone.Id}");
+        Assert.NotNull(phoneSecret);
 
         var completedResponse = await client.PostAsJsonAsync("/api/spec/auth/flows/complete", new
         {
             flowId = phone.Id,
-            code = phone.Code
+            code = phoneSecret.Code
         });
         Assert.Equal(HttpStatusCode.OK, completedResponse.StatusCode);
         var completed = await completedResponse.Content.ReadFromJsonAsync<AuthFlowResponse>();
         Assert.NotNull(completed);
         Assert.Equal("Completed", completed.Status);
+
+        var reusedCompletion = await client.PostAsJsonAsync("/api/spec/auth/flows/complete", new
+        {
+            flowId = phone.Id,
+            code = phoneSecret.Code
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reusedCompletion.StatusCode);
 
         var recoveryWithoutToken = await client.PostAsync($"/api/spec/auth/{userId}/recovery-codes", null);
         Assert.Equal(HttpStatusCode.Unauthorized, recoveryWithoutToken.StatusCode);
@@ -455,7 +467,9 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record JournalArticleResponse(string Slug);
 
-    private sealed record AuthFlowResponse(Guid Id, string Status, string Code);
+    private sealed record AuthFlowResponse(Guid Id, string Status, int AttemptsRemaining);
+
+    private sealed record DevelopmentAuthFlowSecretResponse(Guid Id, string Code, string Token, DateTimeOffset ExpiresAt);
 
     private sealed record RecoveryCodeResponse(string Code, bool Used);
 

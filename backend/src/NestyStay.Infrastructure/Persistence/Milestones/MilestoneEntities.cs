@@ -232,18 +232,27 @@ public sealed class MilestoneAuthFlow : BaseEntity
     public Guid? UserId { get; set; }
     public string FlowType { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
-    public string Token { get; set; } = string.Empty;
+    public string NormalizedDestination { get; set; } = string.Empty;
+    public string DestinationHash { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;
+    public string TokenHash { get; set; } = string.Empty;
+    public string SecretSalt { get; set; } = string.Empty;
     public string Status { get; set; } = "Pending";
+    public string DeliveryChannel { get; set; } = string.Empty;
+    public string RequestIpHash { get; set; } = string.Empty;
+    public int FailedAttempts { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? LastSentAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset? InvalidatedAt { get; set; }
     public string MetadataJson { get; set; } = "{}";
 }
 
 public sealed class MilestoneRecoveryCode : BaseEntity
 {
     public Guid UserId { get; set; }
-    public string Code { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;
+    public string SecretSalt { get; set; } = string.Empty;
     public DateTimeOffset? UsedAt { get; set; }
 }
 

@@ -9,7 +9,9 @@ using NestyStay.Domain;
 using NestyStay.Application.Wellness;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
+using System.Globalization;
 using System.Net.Http.Headers;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
@@ -27,6 +29,10 @@ public static class DependencyInjection
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
         services.AddSingleton<IStorageProvider, CloudflareR2StorageProvider>();
         services.AddSingleton<INotificationGateway, CompositeNotificationGateway>();
+        services.AddSingleton<IEmailSender, LocalDevelopmentEmailSender>();
+        services.AddSingleton<ISmsSender, LocalDevelopmentSmsSender>();
+        services.AddSingleton<IDevelopmentAuthSecretStore, InMemoryDevelopmentAuthSecretStore>();
+        services.AddSingleton<IGoogleIdentityValidator, GoogleTokenInfoValidator>();
         services.AddSingleton<IInsuranceProvider, InsuraGuestProvider>();
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
@@ -231,6 +237,146 @@ internal sealed class CompositeNotificationGateway : INotificationGateway
 
     public Task QueueAsync(NotificationMessage message, CancellationToken cancellationToken) =>
         Task.CompletedTask;
+}
+
+internal sealed class LocalDevelopmentEmailSender : IEmailSender
+{
+    public string ProviderName => "Local development email";
+
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
+internal sealed class LocalDevelopmentSmsSender : ISmsSender
+{
+    public string ProviderName => "Local development SMS";
+
+    public Task SendAsync(SmsMessage message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
+internal sealed class InMemoryDevelopmentAuthSecretStore(TimeProvider timeProvider) : IDevelopmentAuthSecretStore
+{
+    private readonly ConcurrentDictionary<Guid, DevelopmentAuthSecret> _secrets = new();
+
+    public void Store(DevelopmentAuthSecret secret)
+    {
+        PruneExpired();
+        _secrets[secret.CorrelationId] = secret;
+    }
+
+    public DevelopmentAuthSecret? Get(Guid correlationId)
+    {
+        PruneExpired();
+        return _secrets.TryGetValue(correlationId, out var secret) ? secret : null;
+    }
+
+    public void Remove(Guid correlationId) =>
+        _secrets.TryRemove(correlationId, out _);
+
+    private void PruneExpired()
+    {
+        var now = timeProvider.GetUtcNow();
+        foreach (var item in _secrets.Where(item => item.Value.ExpiresAt <= now))
+        {
+            _secrets.TryRemove(item.Key, out _);
+        }
+    }
+}
+
+internal sealed class GoogleTokenInfoValidator(IConfiguration configuration, TimeProvider timeProvider) : IGoogleIdentityValidator
+{
+    private static readonly HttpClient HttpClient = new()
+    {
+        BaseAddress = new Uri("https://oauth2.googleapis.com")
+    };
+
+    public string ProviderName => "Google Identity Services";
+
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(ClientId);
+
+    public async Task<GoogleIdentity> ValidateAsync(string credential, CancellationToken cancellationToken)
+    {
+        if (!IsConfigured)
+        {
+            throw new InvalidOperationException("Google sign-in is unavailable until server-side OAuth validation is configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(credential))
+        {
+            throw new InvalidOperationException("Google credential is required.");
+        }
+
+        using var response = await HttpClient.GetAsync($"/tokeninfo?id_token={Uri.EscapeDataString(credential.Trim())}", cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException("Google credential validation failed.");
+        }
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var audience = RequiredString(root, "aud", "Google credential audience is missing.");
+        if (!audience.Equals(ClientId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Google credential audience is invalid.");
+        }
+
+        var issuer = RequiredString(root, "iss", "Google credential issuer is missing.");
+        if (issuer is not ("accounts.google.com" or "https://accounts.google.com"))
+        {
+            throw new InvalidOperationException("Google credential issuer is invalid.");
+        }
+
+        var expiresAt = DateTimeOffset.FromUnixTimeSeconds(long.Parse(
+            RequiredString(root, "exp", "Google credential expiration is missing."),
+            CultureInfo.InvariantCulture));
+        if (expiresAt <= timeProvider.GetUtcNow())
+        {
+            throw new InvalidOperationException("Google credential has expired.");
+        }
+
+        var emailVerified = root.TryGetProperty("email_verified", out var verifiedElement) &&
+                            verifiedElement.ValueKind switch
+                            {
+                                JsonValueKind.True => true,
+                                JsonValueKind.String => verifiedElement.GetString()?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
+                                _ => false
+                            };
+        if (!emailVerified)
+        {
+            throw new InvalidOperationException("Google account email must be verified.");
+        }
+
+        var email = RequiredString(root, "email", "Google credential email is missing.");
+        var subject = RequiredString(root, "sub", "Google credential subject is missing.");
+        var displayName = root.TryGetProperty("name", out var nameElement) && !string.IsNullOrWhiteSpace(nameElement.GetString())
+            ? nameElement.GetString()!
+            : email.Split('@')[0];
+        var picture = root.TryGetProperty("picture", out var pictureElement) ? pictureElement.GetString() : null;
+
+        return new GoogleIdentity(subject, email, displayName, true, expiresAt, issuer, audience, picture);
+    }
+
+    private string? ClientId => ResolveSetting("Authentication:Google:ClientId", "GOOGLE_AUTH_CLIENT_ID");
+
+    private string? ResolveSetting(string configurationKey, string environmentKey)
+    {
+        var configured = configuration[configurationKey];
+        return string.IsNullOrWhiteSpace(configured)
+            ? Environment.GetEnvironmentVariable(environmentKey)
+            : configured;
+    }
+
+    private static string RequiredString(JsonElement root, string propertyName, string error)
+    {
+        if (!root.TryGetProperty(propertyName, out var property) || string.IsNullOrWhiteSpace(property.GetString()))
+        {
+            throw new InvalidOperationException(error);
+        }
+
+        return property.GetString()!;
+    }
 }
 
 internal sealed class InsuraGuestProvider : IInsuranceProvider

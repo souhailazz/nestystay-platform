@@ -189,22 +189,43 @@ function screenForPage(page: PublicContentPage) {
 
 export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthController }) {
   const social = useAsync(() => api.getSocialAuthConfig(), []);
-  const [flow, setFlow] = useState<{ id: string; code: string; status: string } | null>(null);
+  const [flow, setFlow] = useState<{ id: string; deliveryChannel: string; expiresAt: string; status: string; attemptsRemaining: number } | null>(null);
   const [destination, setDestination] = useState(auth.session?.email ?? "guest@nestystay.local");
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const canUseDevelopmentDelivery = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   async function start(flowType = kind) {
     const started = await api.startAuthFlow({ userId: auth.session?.userId, flowType, destination });
-    setFlow({ id: started.id, code: started.code, status: started.status });
-    setCode(started.code);
+    setFlow({
+      id: started.id,
+      deliveryChannel: started.deliveryChannel,
+      expiresAt: started.expiresAt,
+      status: started.status,
+      attemptsRemaining: started.attemptsRemaining,
+    });
+    setCode("");
+    setNotice(`Code sent by ${started.deliveryChannel.toLowerCase()}.`);
   }
 
   async function complete() {
     if (!flow) return;
     const completed = await api.completeAuthFlow({ flowId: flow.id, code });
-    setFlow({ id: completed.id, code: completed.code, status: completed.status });
+    setFlow({
+      id: completed.id,
+      deliveryChannel: completed.deliveryChannel,
+      expiresAt: completed.expiresAt,
+      status: completed.status,
+      attemptsRemaining: completed.attemptsRemaining,
+    });
     setNotice(`${completed.flowType} completed: ${completed.status}`);
+  }
+
+  async function useDevelopmentDelivery() {
+    if (!flow) return;
+    const secret = await api.getDevelopmentAuthFlowSecret(flow.id);
+    setCode(secret.code);
+    setNotice(`Development delivery loaded. Expires at ${new Date(secret.expiresAt).toLocaleTimeString()}.`);
   }
 
   const titleMap: Record<string, [string, string, string]> = {
@@ -253,8 +274,11 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
           )}
           {flow && (
             <div className="notice-panel">
-              Local code: <strong>{flow.code}</strong>
+              <span>{flow.deliveryChannel} delivery pending until {new Date(flow.expiresAt).toLocaleTimeString()}.</span>
               <Field label="Enter code"><Input value={code} onChange={(event) => setCode(event.target.value)} /></Field>
+              {canUseDevelopmentDelivery && (
+                <Button onClick={useDevelopmentDelivery} variant="ghost">Use development delivery</Button>
+              )}
               <Button onClick={complete}>Verify code</Button>
             </div>
           )}

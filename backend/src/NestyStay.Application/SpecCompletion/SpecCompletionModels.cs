@@ -45,6 +45,7 @@ public interface ISpecCompletionStore
     Task<IReadOnlyList<AuditEventDto>> GetAuditEventsAsync(CancellationToken cancellationToken);
     Task<AuthFlowResultDto> StartAuthFlowAsync(StartAuthFlowRequest request, CancellationToken cancellationToken);
     Task<AuthFlowResultDto> CompleteAuthFlowAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken);
+    Task<DevelopmentAuthFlowSecretDto?> GetDevelopmentAuthFlowSecretAsync(Guid flowId, CancellationToken cancellationToken);
     Task<IReadOnlyList<RecoveryCodeDto>> GenerateRecoveryCodesAsync(Guid userId, CancellationToken cancellationToken);
     Task<SocialAuthConfigDto> GetSocialAuthConfigAsync(CancellationToken cancellationToken);
 }
@@ -92,8 +93,18 @@ public sealed record AdminCaseDto(Guid Id, string CaseType, string SubjectType, 
 public sealed record CreateAdminCaseRequest(string CaseType, string SubjectType, Guid? SubjectId, string Priority, string Reason, string AssignedTo = "");
 public sealed record ResolveAdminCaseRequest(string ResolutionNotes, string Status = "Resolved");
 public sealed record AuditEventDto(Guid Id, Guid? ActorUserId, string ActorRole, string Action, string SubjectType, Guid? SubjectId, string Reason, DateTimeOffset CreatedAt);
-public sealed record AuthFlowResultDto(Guid Id, Guid? UserId, string FlowType, string Destination, string Status, string Code, string Token, DateTimeOffset ExpiresAt);
-public sealed record StartAuthFlowRequest(Guid? UserId, string FlowType, string Destination);
+public sealed record AuthFlowResultDto(
+    Guid Id,
+    Guid? UserId,
+    string FlowType,
+    string Destination,
+    string Status,
+    string DeliveryChannel,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? LastSentAt,
+    int AttemptsRemaining);
+public sealed record DevelopmentAuthFlowSecretDto(Guid Id, string Code, string Token, DateTimeOffset ExpiresAt);
+public sealed record StartAuthFlowRequest(Guid? UserId, string FlowType, string Destination, string? RequestIp = null);
 public sealed record CompleteAuthFlowRequest(Guid FlowId, string Code);
 public sealed record RecoveryCodeDto(string Code, bool Used);
 public sealed record SocialAuthConfigDto(bool GoogleEnabled, bool AppleEnabled, bool FacebookEnabled, IReadOnlyList<string> RequiredEnvironmentVariables);

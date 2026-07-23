@@ -1,11 +1,33 @@
+using System.Net.Mail;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using NestyStay.Application.Abstractions;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
 
 namespace NestyStay.Infrastructure.Persistence.Milestones;
 
-public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider timeProvider) : ISpecCompletionStore
+public sealed class EfSpecCompletionStore(
+    NestyStayDbContext db,
+    TimeProvider timeProvider,
+    IEmailSender emailSender,
+    ISmsSender smsSender,
+    IDevelopmentAuthSecretStore developmentAuthSecrets,
+    IGoogleIdentityValidator googleIdentityValidator) : ISpecCompletionStore
 {
+    private const int MaximumAuthFlowAttempts = 5;
+    private const int MaximumAccountAuthFlowsPerWindow = 5;
+    private const int MaximumIpAuthFlowsPerWindow = 20;
+    private const string AuthStatusPending = "Pending";
+    private const string AuthStatusCompleted = "Completed";
+    private const string AuthStatusExpired = "Expired";
+    private const string AuthStatusFailed = "Failed";
+    private const string AuthStatusInvalidated = "Invalidated";
+    private static readonly TimeSpan AuthFlowResendCooldown = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan AuthFlowRateLimitWindow = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan VerificationCodeLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly Guid SeedHostUserId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     private static readonly Guid SeedGuestUserId = Guid.Parse("99999999-9999-4999-8999-999999999999");
     private static readonly Guid SeedPropertyId = Guid.Parse("11111111-1111-4111-8111-111111111111");
@@ -668,20 +690,88 @@ public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider ti
 
     public async Task<AuthFlowResultDto> StartAuthFlowAsync(StartAuthFlowRequest request, CancellationToken cancellationToken)
     {
-        var flowType = RequireText(request.FlowType, "Flow type");
+        var flowType = NormalizeFlowType(request.FlowType);
         var destination = RequireText(request.Destination, "Destination");
+        var deliveryChannel = ResolveDeliveryChannel(flowType, destination);
+        var normalizedDestination = NormalizeDestination(destination, deliveryChannel);
+        var requestIpHash = HashOpaque(string.IsNullOrWhiteSpace(request.RequestIp) ? "unknown" : request.RequestIp.Trim());
         var now = timeProvider.GetUtcNow();
+        var cooldownThreshold = now.Subtract(AuthFlowResendCooldown);
+
+        await EnforceAuthFlowRateLimitsAsync(request.UserId, normalizedDestination, requestIpHash, now, cancellationToken);
+
+        var recentFlow = await db.MilestoneAuthFlows
+            .Where(item =>
+                !item.IsDeleted &&
+                item.UserId == request.UserId &&
+                item.FlowType == flowType &&
+                item.NormalizedDestination == normalizedDestination &&
+                item.Status == AuthStatusPending)
+            .OrderByDescending(item => item.LastSentAt ?? item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (recentFlow is not null && (recentFlow.LastSentAt ?? recentFlow.CreatedAt) > cooldownThreshold)
+        {
+            await AddAuditAsync(
+                "AuthFlowResendCooldown",
+                "AuthFlow",
+                recentFlow.Id,
+                $"{flowType} request was throttled by resend cooldown.",
+                request.UserId,
+                cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Please wait before requesting another verification code.");
+        }
+
+        var pendingFlows = await db.MilestoneAuthFlows
+            .Where(item =>
+                !item.IsDeleted &&
+                item.UserId == request.UserId &&
+                item.FlowType == flowType &&
+                item.NormalizedDestination == normalizedDestination &&
+                item.Status == AuthStatusPending)
+            .ToListAsync(cancellationToken);
+        foreach (var pendingFlow in pendingFlows)
+        {
+            pendingFlow.Status = AuthStatusInvalidated;
+            pendingFlow.InvalidatedAt = now;
+            pendingFlow.UpdatedAt = now;
+        }
+
+        var code = GenerateSixDigitCode();
+        var token = GenerateSecureToken();
+        var salt = RandomNumberGenerator.GetBytes(16);
         var flow = new MilestoneAuthFlow
         {
+            Id = Guid.NewGuid(),
             UserId = request.UserId,
             FlowType = flowType,
-            Destination = destination,
-            Code = Random.Shared.Next(100000, 999999).ToString(),
-            Token = Guid.NewGuid().ToString("N"),
-            Status = "Pending",
-            ExpiresAt = now.AddMinutes(flowType.Equals("PasswordReset", StringComparison.OrdinalIgnoreCase) ? 30 : 5)
+            Destination = NormalizeDisplayDestination(destination, deliveryChannel),
+            NormalizedDestination = normalizedDestination,
+            DestinationHash = HashOpaque(normalizedDestination),
+            CodeHash = HashBoundSecret(flowType, request.UserId, normalizedDestination, code, salt),
+            TokenHash = HashBoundSecret(flowType, request.UserId, normalizedDestination, token, salt),
+            SecretSalt = Convert.ToBase64String(salt),
+            Status = AuthStatusPending,
+            DeliveryChannel = deliveryChannel,
+            RequestIpHash = requestIpHash,
+            ExpiresAt = now.Add(flowType.Equals("PasswordReset", StringComparison.OrdinalIgnoreCase)
+                ? PasswordResetLifetime
+                : VerificationCodeLifetime),
+            LastSentAt = now
         };
+
         db.MilestoneAuthFlows.Add(flow);
+        developmentAuthSecrets.Store(new DevelopmentAuthSecret(
+            flow.Id,
+            flow.Destination,
+            flow.DeliveryChannel,
+            code,
+            token,
+            flow.ExpiresAt,
+            now));
+        await SendAuthFlowAsync(flow, code, token, cancellationToken);
+        await AddAuditAsync("AuthFlowStarted", "AuthFlow", flow.Id, $"{flowType} code delivered by {deliveryChannel}.", request.UserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(flow);
     }
@@ -690,42 +780,96 @@ public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider ti
     {
         var flow = await db.MilestoneAuthFlows.SingleOrDefaultAsync(item => item.Id == request.FlowId && !item.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Verification flow not found.");
-        if (flow.ExpiresAt < timeProvider.GetUtcNow())
+        var now = timeProvider.GetUtcNow();
+
+        if (flow.Status != AuthStatusPending)
         {
-            flow.Status = "Expired";
+            throw new InvalidOperationException(flow.Status switch
+            {
+                AuthStatusCompleted => "Verification code was already used.",
+                AuthStatusExpired => "Verification link or code has expired.",
+                AuthStatusInvalidated => "Verification code was replaced by a newer request.",
+                AuthStatusFailed => "Verification flow is no longer valid.",
+                _ => "Verification flow is no longer valid."
+            });
+        }
+
+        if (flow.ExpiresAt < now)
+        {
+            flow.Status = AuthStatusExpired;
+            flow.UpdatedAt = now;
+            developmentAuthSecrets.Remove(flow.Id);
+            await AddAuditAsync("AuthFlowExpired", "AuthFlow", flow.Id, $"{flow.FlowType} code expired before completion.", flow.UserId, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Verification link or code has expired.");
         }
 
-        if (!flow.Code.Equals(request.Code.Trim(), StringComparison.Ordinal))
+        if (!VerifyBoundSecret(flow, request.Code))
         {
-            flow.Status = "Failed";
+            flow.FailedAttempts++;
+            flow.UpdatedAt = now;
+            if (flow.FailedAttempts >= MaximumAuthFlowAttempts)
+            {
+                flow.Status = AuthStatusFailed;
+                developmentAuthSecrets.Remove(flow.Id);
+            }
+
+            await AddAuditAsync("AuthFlowFailed", "AuthFlow", flow.Id, $"{flow.FlowType} code verification failed.", flow.UserId, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Verification code is invalid.");
         }
 
-        flow.Status = "Completed";
-        flow.CompletedAt = timeProvider.GetUtcNow();
+        flow.Status = AuthStatusCompleted;
+        flow.CompletedAt = now;
+        flow.UpdatedAt = now;
+        developmentAuthSecrets.Remove(flow.Id);
+        await AddAuditAsync("AuthFlowCompleted", "AuthFlow", flow.Id, $"{flow.FlowType} code completed.", flow.UserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(flow);
+    }
+
+    public async Task<DevelopmentAuthFlowSecretDto?> GetDevelopmentAuthFlowSecretAsync(Guid flowId, CancellationToken cancellationToken)
+    {
+        var flow = await db.MilestoneAuthFlows.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == flowId && !item.IsDeleted, cancellationToken);
+        if (flow is null || flow.Status != AuthStatusPending || flow.ExpiresAt < timeProvider.GetUtcNow())
+        {
+            return null;
+        }
+
+        var secret = developmentAuthSecrets.Get(flowId);
+        if (secret is null || secret.ExpiresAt < timeProvider.GetUtcNow())
+        {
+            return null;
+        }
+
+        return new DevelopmentAuthFlowSecretDto(flow.Id, secret.Code, secret.Token, flow.ExpiresAt);
     }
 
     public async Task<IReadOnlyList<RecoveryCodeDto>> GenerateRecoveryCodesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var existing = await db.MilestoneRecoveryCodes.Where(item => item.UserId == userId).ToListAsync(cancellationToken);
         db.MilestoneRecoveryCodes.RemoveRange(existing);
-        var codes = Enumerable.Range(0, 8).Select(_ => RandomCode()).ToList();
+        var codes = Enumerable.Range(0, 8).Select(_ => GenerateRecoveryCode()).ToList();
         foreach (var code in codes)
         {
-            db.MilestoneRecoveryCodes.Add(new MilestoneRecoveryCode { UserId = userId, Code = code, CreatedByUserId = userId });
+            var salt = RandomNumberGenerator.GetBytes(16);
+            db.MilestoneRecoveryCodes.Add(new MilestoneRecoveryCode
+            {
+                UserId = userId,
+                CodeHash = HashBoundSecret("RecoveryCode", userId, userId.ToString("N"), code, salt),
+                SecretSalt = Convert.ToBase64String(salt),
+                CreatedByUserId = userId
+            });
         }
+        await AddAuditAsync("RecoveryCodesRegenerated", "RecoveryCode", null, "Recovery codes regenerated and previous codes invalidated.", userId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return codes.Select(code => new RecoveryCodeDto(code, false)).ToList();
     }
 
     public Task<SocialAuthConfigDto> GetSocialAuthConfigAsync(CancellationToken cancellationToken)
     {
-        var google = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GOOGLE_AUTH_CLIENT_ID"));
+        var google = googleIdentityValidator.IsConfigured;
         var apple = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLE_AUTH_CLIENT_ID"));
         var facebook = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FACEBOOK_AUTH_APP_ID"));
         return Task.FromResult(new SocialAuthConfigDto(google, apple, facebook, [
@@ -1008,6 +1152,178 @@ public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider ti
         await Task.CompletedTask;
     }
 
+    private async Task EnforceAuthFlowRateLimitsAsync(
+        Guid? userId,
+        string normalizedDestination,
+        string requestIpHash,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var windowStart = now.Subtract(AuthFlowRateLimitWindow);
+        var accountFlowCount = await db.MilestoneAuthFlows.CountAsync(
+            item =>
+                !item.IsDeleted &&
+                item.CreatedAt >= windowStart &&
+                (item.NormalizedDestination == normalizedDestination || (userId != null && item.UserId == userId)),
+            cancellationToken);
+        if (accountFlowCount >= MaximumAccountAuthFlowsPerWindow)
+        {
+            await AddAuditAsync(
+                "AuthFlowAccountRateLimited",
+                "AuthFlow",
+                null,
+                "Verification request was blocked by account or destination rate limit.",
+                userId,
+                cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Too many verification requests. Try again later.");
+        }
+
+        var ipFlowCount = await db.MilestoneAuthFlows.CountAsync(
+            item =>
+                !item.IsDeleted &&
+                item.CreatedAt >= windowStart &&
+                item.RequestIpHash == requestIpHash,
+            cancellationToken);
+        if (ipFlowCount >= MaximumIpAuthFlowsPerWindow)
+        {
+            await AddAuditAsync(
+                "AuthFlowIpRateLimited",
+                "AuthFlow",
+                null,
+                "Verification request was blocked by IP rate limit.",
+                userId,
+                cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Too many verification requests from this network. Try again later.");
+        }
+    }
+
+    private async Task SendAuthFlowAsync(MilestoneAuthFlow flow, string code, string token, CancellationToken cancellationToken)
+    {
+        var purpose = flow.FlowType switch
+        {
+            "PasswordReset" => "password reset",
+            "PhoneVerification" => "phone verification",
+            "OneTimePasscode" => "one-time passcode",
+            "TwoFactorSetup" => "authenticator setup",
+            _ => "email verification"
+        };
+
+        if (flow.DeliveryChannel == "Sms")
+        {
+            await smsSender.SendAsync(
+                new SmsMessage(
+                    flow.Destination,
+                    $"Your NestyStay {purpose} code is {code}. It expires at {flow.ExpiresAt:O}.",
+                    flow.Id),
+                cancellationToken);
+            return;
+        }
+
+        var body = flow.FlowType == "PasswordReset"
+            ? $"Use this NestyStay reset code: {code}. Reset token: {token}. It expires at {flow.ExpiresAt:O}."
+            : $"Use this NestyStay {purpose} code: {code}. It expires at {flow.ExpiresAt:O}.";
+        await emailSender.SendAsync(
+            new EmailMessage(flow.Destination, $"NestyStay {purpose} code", body, flow.Id),
+            cancellationToken);
+    }
+
+    private static string NormalizeFlowType(string flowType)
+    {
+        var normalized = RequireText(flowType, "Flow type")
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal);
+        return normalized.ToLowerInvariant() switch
+        {
+            "email" or "emailverification" => "EmailVerification",
+            "phone" or "phoneverification" => "PhoneVerification",
+            "otp" or "onetimepasscode" => "OneTimePasscode",
+            "forgot" or "reset" or "passwordreset" or "resetpassword" => "PasswordReset",
+            "twofa" or "totp" or "twofactorsetup" => "TwoFactorSetup",
+            _ => throw new InvalidOperationException("Unsupported authentication flow type.")
+        };
+    }
+
+    private static string ResolveDeliveryChannel(string flowType, string destination)
+    {
+        if (flowType == "PhoneVerification" ||
+            (flowType == "OneTimePasscode" && !destination.Contains('@', StringComparison.Ordinal)))
+        {
+            return "Sms";
+        }
+
+        return "Email";
+    }
+
+    private static string NormalizeDestination(string destination, string deliveryChannel)
+    {
+        if (deliveryChannel == "Sms")
+        {
+            var trimmed = RequireText(destination, "Destination");
+            var normalized = new string(trimmed.Where(character => char.IsDigit(character) || character == '+').ToArray());
+            if (normalized.Length < 8)
+            {
+                throw new InvalidOperationException("A valid phone number is required.");
+            }
+
+            return normalized;
+        }
+
+        try
+        {
+            var address = new MailAddress(RequireText(destination, "Destination"));
+            return address.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("A valid email address is required.");
+        }
+    }
+
+    private static string NormalizeDisplayDestination(string destination, string deliveryChannel) =>
+        deliveryChannel == "Sms"
+            ? NormalizeDestination(destination, deliveryChannel)
+            : new MailAddress(RequireText(destination, "Destination")).Address.ToLowerInvariant();
+
+    private static bool VerifyBoundSecret(MilestoneAuthFlow flow, string? secret)
+    {
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            return false;
+        }
+
+        var salt = Convert.FromBase64String(flow.SecretSalt);
+        var actualHash = Convert.FromBase64String(HashBoundSecret(flow.FlowType, flow.UserId, flow.NormalizedDestination, secret.Trim(), salt));
+        var expectedHash = Convert.FromBase64String(flow.CodeHash);
+        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+    }
+
+    private static string HashBoundSecret(string purpose, Guid? userId, string destination, string secret, byte[] salt)
+    {
+        var binding = $"{purpose}|{userId?.ToString("N") ?? "anonymous"}|{destination}|{secret}";
+        using var hmac = new HMACSHA256(salt);
+        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(binding)));
+    }
+
+    private static string HashOpaque(string value) =>
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant())));
+
+    private static string GenerateSixDigitCode() =>
+        RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
+    private static string GenerateSecureToken() =>
+        Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+
+    private static string GenerateRecoveryCode()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(8);
+        return $"{Convert.ToHexString(bytes[..4])}-{Convert.ToHexString(bytes[4..])}";
+    }
+
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
     private static string NormalizeSlug(string value) =>
         string.Join("-", value.Trim().ToLowerInvariant().Split(Path.GetInvalidFileNameChars().Concat([' ', '_', '/', '\\']).ToArray(), StringSplitOptions.RemoveEmptyEntries));
 
@@ -1029,8 +1345,6 @@ public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider ti
         }
     }
 
-    private static string RandomCode() => $"{Guid.NewGuid():N}"[..10].ToUpperInvariant();
-
     private static PublicContentPageDto ToDto(MilestonePublicContentPage page) => new(page.Slug, page.Title, page.Kind, page.Summary, page.Body, MilestoneJson.DeserializeList<string>(page.SectionsJson), MilestoneJson.DeserializeList<string>(page.LinksJson));
     private static ContactRequestDto ToDto(MilestoneContactRequest request) => new(request.Id, request.Name, request.Email, request.Subject, request.Message, request.Status, request.CreatedAt);
     private static ExperienceDto ToDto(MilestoneExperience item) => new(item.Id, item.Slug, item.Name, item.Category, item.Parish, item.ProviderName, item.Price, item.Currency, item.DurationMinutes, item.Rating, item.Summary, item.Description, MilestoneJson.DeserializeList<string>(item.ImagesJson), MilestoneJson.DeserializeList<string>(item.IncludedJson), MilestoneJson.DeserializeList<string>(item.RulesJson), MilestoneJson.DeserializeList<string>(item.AvailabilityJson));
@@ -1047,5 +1361,14 @@ public sealed class EfSpecCompletionStore(NestyStayDbContext db, TimeProvider ti
     private static HostPromotionDto ToDto(MilestoneHostPromotion item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.DiscountPercent, item.StartsOn, item.EndsOn, item.MinimumNights, item.BadgeLevel, item.IsActive);
     private static AdminCaseDto ToDto(MilestoneAdminCase item) => new(item.Id, item.CaseType, item.SubjectType, item.SubjectId, item.Status, item.Priority, item.Reason, item.AssignedTo, item.ResolutionNotes, item.CreatedAt, item.UpdatedAt, item.ResolvedAt);
     private static AuditEventDto ToDto(MilestoneAuditEvent item) => new(item.Id, item.ActorUserId, item.ActorRole, item.Action, item.SubjectType, item.SubjectId, item.Reason, item.CreatedAt);
-    private static AuthFlowResultDto ToDto(MilestoneAuthFlow item) => new(item.Id, item.UserId, item.FlowType, item.Destination, item.Status, item.Code, item.Token, item.ExpiresAt);
+    private static AuthFlowResultDto ToDto(MilestoneAuthFlow item) => new(
+        item.Id,
+        item.UserId,
+        item.FlowType,
+        item.Destination,
+        item.Status,
+        item.DeliveryChannel,
+        item.ExpiresAt,
+        item.LastSentAt,
+        Math.Max(0, MaximumAuthFlowAttempts - item.FailedAttempts));
 }

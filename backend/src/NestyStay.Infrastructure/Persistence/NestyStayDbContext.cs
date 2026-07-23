@@ -191,9 +191,10 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneWellnessReport>().HasIndex(report => report.VisitId).IsUnique();
         modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.VisitId).IsUnique();
         modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.Status);
-        modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => flow.Token).IsUnique();
-        modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => new { flow.UserId, flow.FlowType, flow.Status });
-        modelBuilder.Entity<MilestoneRecoveryCode>().HasIndex(code => new { code.UserId, code.Code }).IsUnique();
+        modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => flow.TokenHash).IsUnique();
+        modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => new { flow.UserId, flow.FlowType, flow.NormalizedDestination, flow.Status });
+        modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => new { flow.RequestIpHash, flow.CreatedAt });
+        modelBuilder.Entity<MilestoneRecoveryCode>().HasIndex(code => new { code.UserId, code.CodeHash }).IsUnique();
         modelBuilder.Entity<MilestonePublicContentPage>().HasIndex(page => page.Slug).IsUnique();
         modelBuilder.Entity<MilestoneExperience>().HasIndex(experience => experience.Slug).IsUnique();
         modelBuilder.Entity<MilestoneExperience>().HasIndex(experience => new { experience.Category, experience.Parish });

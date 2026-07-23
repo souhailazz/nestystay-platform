@@ -27,6 +27,32 @@ public interface INotificationGateway
     Task QueueAsync(NotificationMessage message, CancellationToken cancellationToken);
 }
 
+public interface IEmailSender
+{
+    string ProviderName { get; }
+    Task SendAsync(EmailMessage message, CancellationToken cancellationToken);
+}
+
+public interface ISmsSender
+{
+    string ProviderName { get; }
+    Task SendAsync(SmsMessage message, CancellationToken cancellationToken);
+}
+
+public interface IGoogleIdentityValidator
+{
+    string ProviderName { get; }
+    bool IsConfigured { get; }
+    Task<GoogleIdentity> ValidateAsync(string credential, CancellationToken cancellationToken);
+}
+
+public interface IDevelopmentAuthSecretStore
+{
+    void Store(DevelopmentAuthSecret secret);
+    DevelopmentAuthSecret? Get(Guid correlationId);
+    void Remove(Guid correlationId);
+}
+
 public interface IInsuranceProvider
 {
     string ProviderName { get; }
@@ -74,3 +100,26 @@ public sealed record PaymentCaptureResult(
     string Currency);
 
 public sealed record NotificationMessage(string Recipient, string Subject, string Body);
+
+public sealed record EmailMessage(string To, string Subject, string Body, Guid? CorrelationId = null);
+
+public sealed record SmsMessage(string To, string Body, Guid? CorrelationId = null);
+
+public sealed record GoogleIdentity(
+    string Subject,
+    string Email,
+    string DisplayName,
+    bool EmailVerified,
+    DateTimeOffset ExpiresAt,
+    string Issuer,
+    string Audience,
+    string? PictureUrl);
+
+public sealed record DevelopmentAuthSecret(
+    Guid CorrelationId,
+    string Destination,
+    string Channel,
+    string Code,
+    string Token,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset CreatedAt);

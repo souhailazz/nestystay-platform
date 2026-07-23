@@ -41,11 +41,8 @@ export type VerifyTwoFactorResponse = {
 };
 
 export type GoogleSignInRequest = {
-  email: string;
-  displayName: string;
-  googleSubject?: string | null;
-  pictureUrl?: string | null;
-  credential?: string | null;
+  credential: string;
+  role?: Extract<UserRole, "Guest" | "Host">;
 };
 
 export type GoogleSignInResponse = VerifyTwoFactorResponse & {
@@ -715,9 +712,10 @@ export type AuthFlowResult = {
   flowType: string;
   destination: string;
   status: string;
-  code: string;
-  token: string;
+  deliveryChannel: string;
   expiresAt: string;
+  lastSentAt?: string | null;
+  attemptsRemaining: number;
 };
 
 export type SocialAuthConfig = {
@@ -1021,6 +1019,8 @@ export const api = {
     request<AuthFlowResult>("/spec/auth/flows", { method: "POST", body }),
   completeAuthFlow: (body: { flowId: string; code: string }) =>
     request<AuthFlowResult>("/spec/auth/flows/complete", { method: "POST", body }),
+  getDevelopmentAuthFlowSecret: (flowId: string) =>
+    request<{ id: string; code: string; token: string; expiresAt: string }>(`/spec/auth/development/flows/${flowId}`),
   generateRecoveryCodes: (userId: string, token: string) =>
     request<{ code: string; used: boolean }[]>(`/spec/auth/${userId}/recovery-codes`, { method: "POST", token }),
   getSocialAuthConfig: () => request<SocialAuthConfig>("/spec/auth/social-config"),

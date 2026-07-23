@@ -381,6 +381,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const googleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -425,7 +426,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     setError(null);
     setNotice(null);
     try {
-      await signInWithGoogle(auth.signInWithGoogle);
+      await signInWithGoogle(auth.signInWithGoogle, role);
       window.sessionStorage.setItem("nesty-login-toast", "1");
       navigate("/guest-dashboard");
     } catch (caught) {
@@ -469,10 +470,11 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
             </div>
           </div>
 
-          <Button className="google-auth-button" disabled={auth.isAuthBusy} type="button" variant="outline" onClick={handleGoogleSignIn}>
+          <Button className="google-auth-button" disabled={auth.isAuthBusy || !googleConfigured} type="button" variant="outline" onClick={handleGoogleSignIn}>
             <span className="google-mark" aria-hidden="true">G</span>
             Continue with Google
           </Button>
+          {!googleConfigured && <p className="micro-note">Google sign-in is unavailable until OAuth is configured.</p>}
 
           <div className="auth-divider"><span>or use email</span></div>
 
@@ -585,7 +587,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
                 </div>
               </>
             ) : (
-              <p>Password sign-in uses 2FA. Google sign-in creates a verified guest session immediately.</p>
+              <p>Password sign-in uses 2FA. Social sign-in requires configured OAuth and account role confirmation.</p>
             )}
           </div>
         </div>
@@ -594,26 +596,14 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
   );
 }
 
-async function signInWithGoogle(signIn: (profile: GoogleSignInRequest) => Promise<unknown>) {
+async function signInWithGoogle(signIn: (profile: GoogleSignInRequest) => Promise<unknown>, role: "Guest" | "Host") {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-  if (googleClientId) {
-    const credential = await requestGoogleCredential(googleClientId);
-    return signIn({
-      email: credential.email,
-      displayName: credential.name,
-      googleSubject: credential.sub,
-      pictureUrl: credential.picture,
-      credential: credential.raw,
-    });
+  if (!googleClientId) {
+    throw new Error("Google sign-in is unavailable until OAuth is configured.");
   }
 
-  return signIn({
-    email: "google.guest@nestystay.local",
-    displayName: "Google Guest",
-    googleSubject: "local-google-guest",
-    pictureUrl: null,
-    credential: "local-google-sign-in",
-  });
+  const credential = await requestGoogleCredential(googleClientId);
+  return signIn({ credential: credential.raw, role });
 }
 
 function requestGoogleCredential(clientId: string) {
