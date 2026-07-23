@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
+using NestyStay.Domain.Documents;
+using NestyStay.Domain.Verification;
 
 namespace NestyStay.Infrastructure.Persistence.Milestones;
 
@@ -236,6 +238,7 @@ public sealed class EfSpecCompletionStore(
             userId,
             await GetWishlistCollectionsNoSeedAsync(userId, cancellationToken),
             await db.MilestoneTravelerPaymentMethods.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.IsDefault).Select(item => ToDto(item)).ToListAsync(cancellationToken),
+            await GetIdentityDocumentsNoSeedAsync(userId, cancellationToken),
             await db.MilestoneReviews.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken),
             await db.MilestoneTravelerNotifications.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken));
     }
@@ -409,6 +412,75 @@ public sealed class EfSpecCompletionStore(
         var method = await FindPaymentMethodAsync(userId, paymentMethodId, cancellationToken);
         method.IsDeleted = true;
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IdentityDocumentUploadDto> PrepareIdentityDocumentUploadAsync(Guid userId, PrepareIdentityDocumentUploadRequest request, CancellationToken cancellationToken)
+    {
+        var safeFileName = ValidateIdentityDocument(request.FileName, request.ContentType, request.SizeBytes);
+        var documentType = RequireText(request.DocumentType, "Document type");
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var uploadId = Guid.NewGuid();
+        var objectKey = $"identity/{userId:N}/{uploadId:N}{extension}";
+        var now = timeProvider.GetUtcNow();
+        var upload = new MilestoneIdentityDocumentUpload
+        {
+            Id = uploadId,
+            UserId = userId,
+            DocumentType = documentType,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = objectKey,
+            UploadUrl = $"/api/spec/traveler/{userId}/identity-documents/uploads/{uploadId}/content",
+            Status = AttachmentStatusPendingUpload,
+            StorageProviderName = storageProvider.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(AttachmentUploadLifetime),
+            IssuingCountry = string.IsNullOrWhiteSpace(request.IssuingCountry) ? string.Empty : request.IssuingCountry.Trim().ToUpperInvariant(),
+            ExpiresOn = request.ExpiresOn,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        };
+
+        db.MilestoneIdentityDocumentUploads.Add(upload);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(upload);
+    }
+
+    public async Task<IdentityDocumentUploadDto> UploadIdentityDocumentContentAsync(
+        Guid userId,
+        Guid uploadId,
+        string contentType,
+        long sizeBytes,
+        Stream content,
+        CancellationToken cancellationToken)
+    {
+        var upload = await db.MilestoneIdentityDocumentUploads
+            .SingleOrDefaultAsync(item => item.Id == uploadId && item.UserId == userId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Identity document upload is not available to this traveler.");
+
+        var now = await RequirePendingIdentityDocumentUploadAsync(upload, userId, cancellationToken);
+        ValidateIdentityDocumentUploadMetadata(upload, contentType, sizeBytes);
+
+        var stored = await storageProvider.SaveObjectAsync(
+            new StorageObjectWriteRequest(upload.ObjectKey, upload.ContentType, MaximumAttachmentBytes),
+            content,
+            cancellationToken);
+        ValidateIdentityDocumentUploadMetadata(upload, stored.ContentType, stored.SizeBytes);
+
+        return await FinalizeIdentityDocumentUploadAsync(
+            upload,
+            userId,
+            now,
+            stored.ProviderName,
+            stored.ContentType,
+            stored.SizeBytes,
+            stored.Sha256Hash,
+            stored.HeaderBytes,
+            cancellationToken);
     }
 
     public async Task<ReviewDto> SubmitReviewAsync(Guid userId, SaveReviewRequest request, CancellationToken cancellationToken)
@@ -766,6 +838,105 @@ public sealed class EfSpecCompletionStore(
         attachment.UploadedAt = verifiedAt;
         await db.SaveChangesAsync(cancellationToken);
         return ToUploadDto(attachment);
+    }
+
+    private async Task<DateTimeOffset> RequirePendingIdentityDocumentUploadAsync(MilestoneIdentityDocumentUpload upload, Guid userId, CancellationToken cancellationToken)
+    {
+        if (upload.Status != AttachmentStatusPendingUpload)
+        {
+            throw new InvalidOperationException("Identity document upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (upload.UploadExpiresAt <= now)
+        {
+            upload.Status = AttachmentStatusExpired;
+            upload.UpdatedAt = now;
+            upload.UpdatedByUserId = userId;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Identity document upload URL has expired.");
+        }
+
+        return now;
+    }
+
+    private async Task<IdentityDocumentUploadDto> FinalizeIdentityDocumentUploadAsync(
+        MilestoneIdentityDocumentUpload upload,
+        Guid userId,
+        DateTimeOffset verifiedAt,
+        string providerName,
+        string contentType,
+        long sizeBytes,
+        string sha256Hash,
+        byte[] headerBytes,
+        CancellationToken cancellationToken)
+    {
+        var scan = await fileSafetyScanner.ScanAsync(
+            new FileSafetyScanRequest(upload.ObjectKey, upload.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
+            cancellationToken);
+
+        upload.StorageProviderName = providerName;
+        upload.VerifiedContentType = contentType;
+        upload.UploadedSizeBytes = sizeBytes;
+        upload.Sha256Hash = sha256Hash;
+        upload.ScanStatus = scan.Status;
+        upload.ScanProviderName = fileSafetyScanner.ProviderName;
+        upload.ScanCheckedAt = verifiedAt;
+        upload.UpdatedAt = verifiedAt;
+        upload.UpdatedByUserId = userId;
+
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            upload.Status = AttachmentStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Identity document failed safety scanning.");
+        }
+
+        var storageObject = new StorageObject
+        {
+            Id = Guid.NewGuid(),
+            Provider = providerName,
+            Bucket = "identity-documents",
+            ObjectKey = upload.ObjectKey,
+            ContentType = contentType,
+            SizeBytes = sizeBytes,
+            Checksum = sha256Hash,
+            AccessScope = StorageAccessScope.Private,
+            CreatedAt = verifiedAt,
+            UpdatedAt = verifiedAt,
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        };
+        var identityDocument = new IdentityDocument
+        {
+            Id = Guid.NewGuid(),
+            SubjectType = VerificationSubjectType.User,
+            SubjectId = userId,
+            StorageObjectId = storageObject.Id,
+            EncryptedMetadataJson = MilestoneJson.Serialize(new
+            {
+                uploadId = upload.Id,
+                documentType = upload.DocumentType,
+                fileName = upload.SafeFileName,
+                storageProvider = providerName,
+                scanStatus = scan.Status
+            }),
+            IssuingCountry = string.IsNullOrWhiteSpace(upload.IssuingCountry) ? null : upload.IssuingCountry,
+            ExpiresOn = upload.ExpiresOn,
+            CreatedAt = verifiedAt,
+            UpdatedAt = verifiedAt,
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        };
+
+        db.StorageObjects.Add(storageObject);
+        db.IdentityDocuments.Add(identityDocument);
+        upload.IdentityDocumentId = identityDocument.Id;
+        upload.Status = AttachmentStatusUploaded;
+        upload.UploadedAt = verifiedAt;
+        await AddAuditAsync("IdentityDocumentUploaded", "IdentityDocument", identityDocument.Id, "Traveler uploaded a verified identity document.", userId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(upload);
     }
 
     public async Task<AttachmentDownloadDto> GetMessageAttachmentDownloadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken)
@@ -1352,6 +1523,22 @@ public sealed class EfSpecCompletionStore(
         return collections.Select(collection => new WishlistCollectionDto(collection.Id, collection.UserId, collection.Name, collection.SortOrder, items.Where(item => item.CollectionId == collection.Id).ToList())).ToList();
     }
 
+    private async Task<IReadOnlyList<IdentityDocumentDto>> GetIdentityDocumentsNoSeedAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var uploads = await db.MilestoneIdentityDocumentUploads
+            .AsNoTracking()
+            .Where(item =>
+                item.UserId == userId &&
+                item.Status == AttachmentStatusUploaded &&
+                item.ScanStatus == ScanStatusClean &&
+                item.IdentityDocumentId != null &&
+                !item.IsDeleted)
+            .OrderByDescending(item => item.UploadedAt)
+            .ToListAsync(cancellationToken);
+
+        return uploads.Select(ToDto).ToList();
+    }
+
     private async Task<MilestoneWishlistCollection> FindCollectionAsync(Guid userId, Guid collectionId, CancellationToken cancellationToken) =>
         await db.MilestoneWishlistCollections.SingleOrDefaultAsync(item => item.Id == collectionId && item.UserId == userId && !item.IsDeleted, cancellationToken)
         ?? throw new UnauthorizedAccessException("Wishlist collection was not found for this traveler.");
@@ -1485,6 +1672,47 @@ public sealed class EfSpecCompletionStore(
         return $"{safeStem}{extension}";
     }
 
+    private static string ValidateIdentityDocument(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
+        {
+            throw new InvalidOperationException("Identity documents must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeContentType(contentType);
+        if (!AllowedAttachmentExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Identity document type is not allowed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException("Identity document filename is required.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Identity document extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "identity-document";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
     private static void ValidateAttachmentUploadMetadata(MilestoneMessageAttachment attachment, string? contentType, long sizeBytes)
     {
         if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
@@ -1501,6 +1729,25 @@ public sealed class EfSpecCompletionStore(
         if (sizeBytes != attachment.SizeBytes)
         {
             throw new InvalidOperationException("Uploaded attachment size does not match the prepared upload.");
+        }
+    }
+
+    private static void ValidateIdentityDocumentUploadMetadata(MilestoneIdentityDocumentUpload upload, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
+        {
+            throw new InvalidOperationException("Identity documents must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeContentType(contentType);
+        if (!normalizedContentType.Equals(upload.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded identity document content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != upload.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded identity document size does not match the prepared upload.");
         }
     }
 
@@ -1797,6 +2044,7 @@ public sealed class EfSpecCompletionStore(
     private static HostProfileDto ToDto(MilestoneHostProfile item) => new(item.Id, item.HostUserId, item.Slug, item.DisplayName, item.Parish, item.Bio, item.ResponseTime, MilestoneJson.DeserializeList<BadgeLevel>(item.BadgesJson), MilestoneJson.DeserializeList<Guid>(item.ListingIdsJson), item.Rating, item.ReviewCount, item.IsPublic, MilestoneJson.DeserializeList<string>(item.HighlightsJson));
     private static WishlistItemDto ToDto(MilestoneWishlistItem item) => new(item.Id, item.CollectionId, item.UserId, item.PropertyId, item.PropertyTitle, item.Status, item.SortOrder, item.CreatedAt);
     private static PaymentMethodDto ToDto(MilestoneTravelerPaymentMethod item) => new(item.Id, item.UserId, item.ProviderName, item.ProviderPaymentMethodReference, item.Brand, item.Last4, item.ExpMonth, item.ExpYear, item.IsDefault, item.CreatedAt);
+    private static IdentityDocumentDto ToDto(MilestoneIdentityDocumentUpload item) => new(item.IdentityDocumentId ?? item.Id, item.UserId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt ?? item.UpdatedAt, string.IsNullOrWhiteSpace(item.IssuingCountry) ? null : item.IssuingCountry, item.ExpiresOn);
     private static ReviewDto ToDto(MilestoneReview item) => new(item.Id, item.UserId, item.PropertyId, item.BookingId, item.SubjectTitle, item.Rating, item.Text, item.Status, item.HostReply, item.CreatedAt, item.EditableUntil);
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
     private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);
@@ -1815,6 +2063,20 @@ public sealed class EfSpecCompletionStore(
         item.StorageProviderName,
         item.ScanStatus,
         item.Sha256Hash);
+    private static IdentityDocumentUploadDto ToUploadDto(MilestoneIdentityDocumentUpload item) => new(
+        item.Id,
+        item.UserId,
+        item.DocumentType,
+        item.SafeFileName,
+        item.ContentType,
+        item.SizeBytes,
+        item.ObjectKey,
+        item.UploadUrl,
+        item.Status,
+        item.ScanStatus,
+        item.UploadExpiresAt,
+        item.Sha256Hash,
+        item.IdentityDocumentId);
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);
     private static HostPromotionDto ToDto(MilestoneHostPromotion item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.DiscountPercent, item.StartsOn, item.EndsOn, item.MinimumNights, item.BadgeLevel, item.IsActive);

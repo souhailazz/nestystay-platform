@@ -33,7 +33,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
-import { api, formatMoney, type AdminCase, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { api, formatMoney, type AdminCase, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 
@@ -715,7 +715,7 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
             {view === "payment-history" ? <PaymentHistoryPanel bookings={bookings} token={token} /> : null}
             {view === "invoices" ? <InvoiceListPanel bookings={bookings} token={token} /> : null}
             {view === "preferences" || view === "profile" ? <PreferencesPanel /> : null}
-            {view === "identity" ? <IdentityPanel /> : null}
+            {view === "identity" ? <IdentityPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "notifications" ? <NotificationsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
           </section>
@@ -912,8 +912,167 @@ function PreferencesPanel() {
   return <Card className="settings-card"><PatoisToggle /><Field label="Currency"><Select defaultValue="USD"><option>USD</option><option>JMD</option></Select></Field><Field label="Communication"><Select defaultValue="email"><option value="email">Email</option><option value="sms">SMS</option></Select></Field></Card>;
 }
 
-function IdentityPanel() {
-  return <Card className="settings-card"><ShieldCheck size={28} /><h3>Identity verification</h3><p>Alibaba eKYC status: Verified / Pending / Action required. Re-verification launches through the protected booking and auth flow.</p><Button>Re-verify</Button></Card>;
+type IdentityUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type IdentityUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: IdentityUploadStatus;
+  upload?: IdentityDocumentUpload;
+  error?: string;
+};
+
+const maximumIdentityDocumentBytes = 10 * 1024 * 1024;
+
+function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  const [documentType, setDocumentType] = useState("Passport");
+  const [issuingCountry, setIssuingCountry] = useState("JM");
+  const [expiresOn, setExpiresOn] = useState("");
+  const [uploads, setUploads] = useState<IdentityUploadItem[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+  const identityDocuments = data.identityDocuments ?? [];
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  function updateUpload(id: string, patch: Partial<IdentityUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice(null);
+    if (file.size > maximumIdentityDocumentBytes) {
+      updateUpload(id, { status: "failed", error: "Identity documents must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareIdentityDocumentUpload(userId, token, {
+        documentType,
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+        issuingCountry,
+        expiresOn: expiresOn || null,
+      });
+      updateUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadIdentityDocumentContent(userId, prepared.id, token, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+      setNotice(`${uploaded.fileName} uploaded and verified.`);
+      reload();
+    } catch (caught) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Identity document upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumIdentityDocumentBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Identity documents must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Identity document upload cancelled." });
+  }
+
+  function retryUpload(item: IdentityUploadItem) {
+    updateUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  return (
+    <Card className="settings-card identity-document-card">
+      <ShieldCheck size={28} />
+      <h3>Identity verification</h3>
+      <p>Alibaba eKYC status: Verified / Pending / Action required. Re-verification launches through the protected booking and auth flow.</p>
+      <div className="form-grid form-grid--two">
+        <Field label="Document type">
+          <Select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
+            <option value="Passport">Passport</option>
+            <option value="DriverLicense">Driver license</option>
+            <option value="NationalId">National ID</option>
+          </Select>
+        </Field>
+        <Field label="Issuing country">
+          <Input maxLength={2} value={issuingCountry} onChange={(event) => setIssuingCountry(event.target.value.toUpperCase())} />
+        </Field>
+        <Field label="Expires on" className="form-grid__full">
+          <Input type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.target.value)} />
+        </Field>
+      </div>
+      <div className="message-upload-bar">
+        <label className={buttonClassName("outline", "message-file-picker")}>
+          <Paperclip size={17} /> Upload document
+          <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+        </label>
+      </div>
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item" key={upload.id}>
+              <FileText size={16} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={16} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={16} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove document" variant="ghost"><X size={16} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {identityDocuments.length > 0 && (
+        <div className="compact-list">
+          {identityDocuments.map((document) => (
+            <div className="compact-list__item identity-document-row" key={document.id}>
+              <FileText size={18} />
+              <div>
+                <strong>{document.documentType}</strong>
+                <span>{document.fileName} · {document.scanStatus}</span>
+              </div>
+              <Badge tone="green">{document.status}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <div className="notice-panel">{notice}</div>}
+    </Card>
+  );
 }
 
 function ReviewsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
@@ -1390,7 +1549,7 @@ function HostOpsPanel({ view, data, hostUserId, token, reload }: { view: string;
   if (view === "analytics") return <MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["ADR", formatMoney(data.analytics.averageNightlyRate)], ["Bookings", String(data.analytics.bookingCount)]]} />;
   if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
   if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
-  if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], reviews: data.reviews, notifications: [] }} userId={hostUserId} token={token} reload={reload} />;
+  if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} userId={hostUserId} token={token} reload={reload} />;
   return <MetricCards items={[["Badge progress", "Verified -> Trusted"], ["Exports", "CSV ready"], ["Archived properties", "0"], ["Notifications", "Enabled"]]} />;
 }
 

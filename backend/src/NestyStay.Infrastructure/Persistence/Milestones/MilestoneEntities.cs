@@ -454,6 +454,32 @@ public sealed class MilestoneTravelerNotification : BaseEntity
     public DateTimeOffset? ReadAt { get; set; }
 }
 
+public sealed class MilestoneIdentityDocumentUpload : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public Guid? IdentityDocumentId { get; set; }
+    public string DocumentType { get; set; } = string.Empty;
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string SafeFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
+    public string ObjectKey { get; set; } = string.Empty;
+    public string UploadUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "PendingUpload";
+    public string StorageProviderName { get; set; } = string.Empty;
+    public string? VerifiedContentType { get; set; }
+    public long? UploadedSizeBytes { get; set; }
+    public string? Sha256Hash { get; set; }
+    public string ScanStatus { get; set; } = "PendingScan";
+    public string? ScanProviderName { get; set; }
+    public DateTimeOffset? ScanCheckedAt { get; set; }
+    public string? ThumbnailObjectKey { get; set; }
+    public DateTimeOffset UploadExpiresAt { get; set; }
+    public DateTimeOffset? UploadedAt { get; set; }
+    public string IssuingCountry { get; set; } = string.Empty;
+    public DateOnly? ExpiresOn { get; set; }
+}
+
 public sealed class MilestoneConversation : BaseEntity
 {
     public string Subject { get; set; } = string.Empty;

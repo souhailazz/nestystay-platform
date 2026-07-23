@@ -146,6 +146,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneTravelerPaymentMethod> MilestoneTravelerPaymentMethods => Set<MilestoneTravelerPaymentMethod>();
     public DbSet<MilestoneReview> MilestoneReviews => Set<MilestoneReview>();
     public DbSet<MilestoneTravelerNotification> MilestoneTravelerNotifications => Set<MilestoneTravelerNotification>();
+    public DbSet<MilestoneIdentityDocumentUpload> MilestoneIdentityDocumentUploads => Set<MilestoneIdentityDocumentUpload>();
     public DbSet<MilestoneConversation> MilestoneConversations => Set<MilestoneConversation>();
     public DbSet<MilestoneConversationParticipant> MilestoneConversationParticipants => Set<MilestoneConversationParticipant>();
     public DbSet<MilestoneMessage> MilestoneMessages => Set<MilestoneMessage>();
@@ -219,6 +220,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneTravelerPaymentMethod>().HasIndex(method => method.ProviderPaymentMethodReference);
         modelBuilder.Entity<MilestoneReview>().HasIndex(review => new { review.UserId, review.PropertyId, review.BookingId });
         modelBuilder.Entity<MilestoneTravelerNotification>().HasIndex(notification => new { notification.UserId, notification.IsRead });
+        modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => document.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => new { document.UserId, document.Status });
+        modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => document.IdentityDocumentId);
         modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => new { participant.ConversationId, participant.UserId }).IsUnique();
         modelBuilder.Entity<MilestoneMessage>().HasIndex(message => new { message.ConversationId, message.SentAt });
         modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => attachment.ObjectKey).IsUnique();

@@ -145,6 +145,33 @@ public sealed class SpecCompletionController(
         return NoContent();
     }
 
+    [HttpPost("traveler/{userId:guid}/identity-documents/uploads")]
+    public async Task<ActionResult<IdentityDocumentUploadDto>> PrepareIdentityDocumentUpload(
+        Guid userId,
+        PrepareIdentityDocumentUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.PrepareIdentityDocumentUploadAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPut("traveler/{userId:guid}/identity-documents/uploads/{uploadId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<IdentityDocumentUploadDto>> UploadIdentityDocumentContent(
+        Guid userId,
+        Guid uploadId,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.UploadIdentityDocumentContentAsync(
+            userId,
+            uploadId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            cancellationToken));
+    }
+
     [HttpPost("traveler/{userId:guid}/reviews")]
     public async Task<ActionResult<ReviewDto>> SubmitReview(Guid userId, SaveReviewRequest request, CancellationToken cancellationToken)
     {

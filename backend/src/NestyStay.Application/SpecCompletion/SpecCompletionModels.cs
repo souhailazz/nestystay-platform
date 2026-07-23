@@ -25,6 +25,8 @@ public interface ISpecCompletionStore
     Task<PaymentMethodDto> AddPaymentMethodAsync(Guid userId, SavePaymentMethodRequest request, CancellationToken cancellationToken);
     Task SetDefaultPaymentMethodAsync(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken);
     Task RemovePaymentMethodAsync(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken);
+    Task<IdentityDocumentUploadDto> PrepareIdentityDocumentUploadAsync(Guid userId, PrepareIdentityDocumentUploadRequest request, CancellationToken cancellationToken);
+    Task<IdentityDocumentUploadDto> UploadIdentityDocumentContentAsync(Guid userId, Guid uploadId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken);
     Task<ReviewDto> SubmitReviewAsync(Guid userId, SaveReviewRequest request, CancellationToken cancellationToken);
     Task<ReviewDto> ReplyToReviewAsync(Guid hostUserId, Guid reviewId, SaveReviewReplyRequest request, CancellationToken cancellationToken);
     Task MarkNotificationReadAsync(Guid userId, Guid notificationId, CancellationToken cancellationToken);
@@ -63,7 +65,7 @@ public sealed record ExperienceDto(Guid Id, string Slug, string Name, string Cat
 public sealed record JournalArticleDto(Guid Id, string Slug, string Title, string Category, string Author, DateTimeOffset PublishedAt, string Summary, string Body, IReadOnlyList<string> Tags, IReadOnlyList<string> RelatedSlugs);
 public sealed record HostProfileDto(Guid Id, Guid HostUserId, string Slug, string DisplayName, string Parish, string Bio, string ResponseTime, IReadOnlyList<BadgeLevel> Badges, IReadOnlyList<Guid> ListingIds, decimal Rating, int ReviewCount, bool IsPublic, IReadOnlyList<string> Highlights);
 public sealed record UpsertHostProfileRequest(Guid HostUserId, string DisplayName, string Parish, string Bio, string ResponseTime, IReadOnlyList<BadgeLevel>? Badges, IReadOnlyList<Guid>? ListingIds, bool IsPublic, IReadOnlyList<string>? Highlights);
-public sealed record TravelerWorkspaceDto(Guid UserId, IReadOnlyList<WishlistCollectionDto> WishlistCollections, IReadOnlyList<PaymentMethodDto> PaymentMethods, IReadOnlyList<ReviewDto> Reviews, IReadOnlyList<TravelerNotificationDto> Notifications);
+public sealed record TravelerWorkspaceDto(Guid UserId, IReadOnlyList<WishlistCollectionDto> WishlistCollections, IReadOnlyList<PaymentMethodDto> PaymentMethods, IReadOnlyList<IdentityDocumentDto> IdentityDocuments, IReadOnlyList<ReviewDto> Reviews, IReadOnlyList<TravelerNotificationDto> Notifications);
 public sealed record WishlistCollectionDto(Guid Id, Guid UserId, string Name, int SortOrder, IReadOnlyList<WishlistItemDto> Items);
 public sealed record WishlistItemDto(Guid Id, Guid CollectionId, Guid UserId, Guid PropertyId, string PropertyTitle, string Status, int SortOrder, DateTimeOffset CreatedAt);
 public sealed record SaveWishlistCollectionRequest(string Name, int SortOrder = 0);
@@ -71,6 +73,9 @@ public sealed record SaveWishlistItemRequest(Guid PropertyId, string PropertyTit
 public sealed record PaymentMethodSetupIntentDto(string ProviderName, string SetupIntentReference, string ClientSecret, string Status, DateTimeOffset ExpiresAt, string? PublishableKey);
 public sealed record PaymentMethodDto(Guid Id, Guid UserId, string ProviderName, string ProviderPaymentMethodReference, string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault, DateTimeOffset CreatedAt);
 public sealed record SavePaymentMethodRequest(string SetupIntentReference, bool IsDefault = false);
+public sealed record PrepareIdentityDocumentUploadRequest(string DocumentType, string FileName, string ContentType, long SizeBytes, string? IssuingCountry = null, DateOnly? ExpiresOn = null);
+public sealed record IdentityDocumentUploadDto(Guid Id, Guid UserId, string DocumentType, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null, Guid? IdentityDocumentId = null);
+public sealed record IdentityDocumentDto(Guid Id, Guid UserId, string DocumentType, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? IssuingCountry, DateOnly? ExpiresOn);
 public sealed record ReviewDto(Guid Id, Guid UserId, Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text, string Status, string? HostReply, DateTimeOffset CreatedAt, DateTimeOffset EditableUntil);
 public sealed record SaveReviewRequest(Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text);
 public sealed record SaveReviewReplyRequest(string Reply);

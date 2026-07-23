@@ -568,6 +568,7 @@ export type TravelerWorkspace = {
   userId: string;
   wishlistCollections: WishlistCollection[];
   paymentMethods: TravelerPaymentMethod[];
+  identityDocuments: IdentityDocument[];
   reviews: TravelerReview[];
   notifications: TravelerNotification[];
 };
@@ -611,6 +612,36 @@ export type PaymentMethodSetupIntent = {
   status: string;
   expiresAt: string;
   publishableKey?: string | null;
+};
+
+export type IdentityDocument = {
+  id: string;
+  userId: string;
+  documentType: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  scanStatus: string;
+  uploadedAt: string;
+  issuingCountry?: string | null;
+  expiresOn?: string | null;
+};
+
+export type IdentityDocumentUpload = {
+  id: string;
+  userId: string;
+  documentType: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  scanStatus: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+  identityDocumentId?: string | null;
 };
 
 export type TravelerReview = {
@@ -1206,6 +1237,10 @@ export const api = {
     request<HostProfile>(`/spec/host-profiles/${slug}`, { method: "PUT", token, body }),
   getTravelerWorkspace: (userId: string, token: string) =>
     request<TravelerWorkspace>(`/spec/traveler/${userId}`, { token }),
+  prepareIdentityDocumentUpload: (userId: string, token: string, body: { documentType: string; fileName: string; contentType: string; sizeBytes: number; issuingCountry?: string | null; expiresOn?: string | null }) =>
+    request<IdentityDocumentUpload>(`/spec/traveler/${userId}/identity-documents/uploads`, { method: "POST", token, body }),
+  uploadIdentityDocumentContent: (userId: string, uploadId: string, token: string, file: File, options?: UploadOptions) =>
+    requestUpload<IdentityDocumentUpload>(`/spec/traveler/${userId}/identity-documents/uploads/${uploadId}/content`, token, file, options),
   createWishlistCollection: (userId: string, token: string, body: { name: string; sortOrder?: number }) =>
     request<WishlistCollection>(`/spec/traveler/${userId}/wishlist/collections`, { method: "POST", token, body }),
   renameWishlistCollection: (userId: string, collectionId: string, token: string, body: { name: string; sortOrder?: number }) =>

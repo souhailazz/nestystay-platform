@@ -252,7 +252,78 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var crossTravelerRemovePayment = await client.DeleteAsync($"/api/spec/traveler/{otherTravelerId}/payment-methods/{payment.Id}");
         Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerRemovePayment.StatusCode);
 
+        var crossTravelerIdentityPrepare = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/identity-documents/uploads", new
+        {
+            documentType = "Passport",
+            fileName = "passport.pdf",
+            contentType = "application/pdf",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerIdentityPrepare.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = LocalUser(travelerId);
+        var invalidIdentityPrepare = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/identity-documents/uploads", new
+        {
+            documentType = "Passport",
+            fileName = "passport.gif",
+            contentType = "image/gif",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidIdentityPrepare.StatusCode);
+
+        var spoofedIdentityBytes = Encoding.ASCII.GetBytes("not a pdf");
+        var spoofedIdentityPrepare = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/identity-documents/uploads", new
+        {
+            documentType = "Passport",
+            fileName = "spoofed.pdf",
+            contentType = "application/pdf",
+            sizeBytes = spoofedIdentityBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, spoofedIdentityPrepare.StatusCode);
+        var spoofedIdentity = await spoofedIdentityPrepare.Content.ReadFromJsonAsync<IdentityDocumentUploadResponse>();
+        Assert.NotNull(spoofedIdentity);
+        using var spoofedIdentityContent = new ByteArrayContent(spoofedIdentityBytes);
+        spoofedIdentityContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var rejectedIdentityUpload = await client.PutAsync(
+            $"/api/spec/traveler/{travelerId}/identity-documents/uploads/{spoofedIdentity.Id}/content",
+            spoofedIdentityContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedIdentityUpload.StatusCode);
+
+        var identityPdfBytes = Encoding.ASCII.GetBytes("%PDF-1.7\nidentity document");
+        var identityPrepare = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/identity-documents/uploads", new
+        {
+            documentType = "Passport",
+            fileName = "../Passport.pdf",
+            contentType = "application/pdf",
+            sizeBytes = identityPdfBytes.Length,
+            issuingCountry = "jm"
+        });
+        Assert.Equal(HttpStatusCode.OK, identityPrepare.StatusCode);
+        var preparedIdentity = await identityPrepare.Content.ReadFromJsonAsync<IdentityDocumentUploadResponse>();
+        Assert.NotNull(preparedIdentity);
+        Assert.Equal("passport.pdf", preparedIdentity.FileName);
+        Assert.Equal("PendingUpload", preparedIdentity.Status);
+        Assert.Equal("PendingScan", preparedIdentity.ScanStatus);
+        using var identityContent = new ByteArrayContent(identityPdfBytes);
+        identityContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var uploadedIdentityResponse = await client.PutAsync(
+            $"/api/spec/traveler/{travelerId}/identity-documents/uploads/{preparedIdentity.Id}/content",
+            identityContent);
+        Assert.Equal(HttpStatusCode.OK, uploadedIdentityResponse.StatusCode);
+        var uploadedIdentity = await uploadedIdentityResponse.Content.ReadFromJsonAsync<IdentityDocumentUploadResponse>();
+        Assert.NotNull(uploadedIdentity);
+        Assert.Equal("Uploaded", uploadedIdentity.Status);
+        Assert.Equal("Clean", uploadedIdentity.ScanStatus);
+        Assert.NotEmpty(uploadedIdentity.Sha256Hash ?? string.Empty);
+        Assert.NotNull(uploadedIdentity.IdentityDocumentId);
+
+        var identityWorkspace = await client.GetFromJsonAsync<TravelerWorkspaceResponse>($"/api/spec/traveler/{travelerId}");
+        Assert.NotNull(identityWorkspace);
+        var identityDocument = Assert.Single(identityWorkspace.IdentityDocuments);
+        Assert.Equal(uploadedIdentity.IdentityDocumentId, identityDocument.Id);
+        Assert.Equal("Passport", identityDocument.DocumentType);
+        Assert.Equal("passport.pdf", identityDocument.FileName);
+
         var reviewResponse = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/reviews", new
         {
             propertyId,
@@ -687,6 +758,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record TravelerWorkspaceResponse(
         IReadOnlyList<WishlistCollectionResponse> WishlistCollections,
+        IReadOnlyList<IdentityDocumentResponse> IdentityDocuments,
         IReadOnlyList<TravelerNotificationResponse> Notifications);
 
     private sealed record WishlistCollectionResponse(Guid Id, string Name);
@@ -696,6 +768,10 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
     private sealed record PaymentSetupIntentResponse(string SetupIntentReference, string ClientSecret);
 
     private sealed record PaymentMethodResponse(Guid Id, string ProviderPaymentMethodReference, bool IsDefault);
+
+    private sealed record IdentityDocumentUploadResponse(Guid Id, string FileName, string Status, string ScanStatus, string? Sha256Hash, Guid? IdentityDocumentId);
+
+    private sealed record IdentityDocumentResponse(Guid Id, string DocumentType, string FileName);
 
     private sealed record ReviewResponse(Guid Id, string? HostReply);
 

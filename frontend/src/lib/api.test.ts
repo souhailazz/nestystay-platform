@@ -233,4 +233,29 @@ describe("api client", () => {
     expect(init.method).toBe("POST");
     expect(headers.get("Authorization")).toBe("Bearer admin-token");
   });
+
+  it("prepares traveler identity document uploads with bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "identity-upload-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.prepareIdentityDocumentUpload("traveler-1", "signed-session-token", {
+      documentType: "Passport",
+      fileName: "passport.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 32,
+      issuingCountry: "JM",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/spec/traveler/traveler-1/identity-documents/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(JSON.parse(init.body as string)).toEqual({
+      documentType: "Passport",
+      fileName: "passport.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 32,
+      issuingCountry: "JM",
+    });
+  });
 });
