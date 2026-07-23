@@ -6,6 +6,8 @@ using Microsoft.Extensions.Hosting;
 using NestyStay.Api.Controllers;
 using NestyStay.Api.Webhooks;
 using NestyStay.Application.PhaseOne;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace NestyStay.Api.Tests;
 
@@ -16,7 +18,7 @@ public sealed class WebhookSecurityTests
     {
         var controller = CreateController();
 
-        var result = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{}"));
+        var result = controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}"));
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
@@ -27,10 +29,40 @@ public sealed class WebhookSecurityTests
         var controller = CreateController();
         controller.Request.Headers["X-NestyStay-Webhook-Secret"] = "test-webhook-secret";
 
-        var result = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{}"));
+        var result = controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}", Guid.NewGuid().ToString("N")));
 
         var accepted = Assert.IsType<AcceptedResult>(result);
         Assert.NotNull(accepted.Value);
+    }
+
+    [Fact]
+    public void StripeWebhookRejectsInvalidSignatureInProduction()
+    {
+        var controller = CreateController();
+        controller.Request.Headers["Stripe-Signature"] = "t=1,v1=bad";
+
+        var result = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{\"id\":\"evt_bad\"}", "evt_bad"));
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    [Fact]
+    public void StripeWebhookAcceptsValidSignatureAndRejectsReplayInProduction()
+    {
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var payload = $"{{\"id\":\"{eventId}\"}}";
+        var controller = CreateController();
+        controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+
+        var acceptedResult = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId));
+
+        Assert.IsType<AcceptedResult>(acceptedResult);
+
+        var replayController = CreateController();
+        replayController.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        var replayResult = replayController.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId));
+
+        Assert.IsType<ConflictObjectResult>(replayResult);
     }
 
     private static WebhooksController CreateController()
@@ -38,7 +70,8 @@ public sealed class WebhookSecurityTests
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Webhooks:SharedSecret"] = "test-webhook-secret"
+                ["Webhooks:SharedSecret"] = "test-webhook-secret",
+                ["Webhooks:StripeSigningSecret"] = "whsec_test"
             })
             .Build();
 
@@ -51,6 +84,14 @@ public sealed class WebhookSecurityTests
         };
 
         return controller;
+    }
+
+    private static string CreateStripeSignature(string payload)
+    {
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("whsec_test"));
+        var signature = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes($"{timestamp}.{payload}"))).ToLowerInvariant();
+        return $"t={timestamp},v1={signature}";
     }
 
     private sealed class ProductionEnvironment : IHostEnvironment

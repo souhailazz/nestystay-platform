@@ -211,6 +211,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
         {
             ["Security:AdminTokenSha256"] = new('a', 64),
             ["Webhooks:SharedSecret"] = "webhook-shared-secret",
+            ["Webhooks:StripeSigningSecret"] = "whsec_test",
             ["Integrations:StripeSecretKey"] = "sk_test_local",
             ["Integrations:AlibabaEkycTransactionUrlBase"] = "https://example.test/ekyc",
             ["Integrations:CloudflareR2UploadUrlBase"] = "https://example.test/r2",
@@ -232,6 +233,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             "NESTYSTAY_ADMIN_TOKEN_SHA256",
             "NESTYSTAY_SESSION_TOKEN_SECRET",
             "NESTYSTAY_WEBHOOK_SHARED_SECRET",
+            "STRIPE_WEBHOOK_SECRET",
             "STRIPE_SECRET_KEY",
             "ALIBABA_EKYC_TRANSACTION_URL_BASE",
             "CLOUDFLARE_R2_UPLOAD_URL_BASE",
