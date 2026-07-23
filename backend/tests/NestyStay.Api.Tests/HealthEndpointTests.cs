@@ -745,6 +745,37 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             NestyStayApiFactory.UserToken(Guid.NewGuid(), UserRole.Host));
         var crossHostReceiptResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
         Assert.Equal(HttpStatusCode.NotFound, crossHostReceiptResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var guestRefundResponse = await client.PostAsJsonAsync($"/api/bookings/{booking.Id}/refund-payment", new
+        {
+            reason = "Guest attempted to self-refund."
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, guestRefundResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var refundResponse = await client.PostAsJsonAsync($"/api/bookings/{booking.Id}/refund-payment", new
+        {
+            amount = captured.TotalAmount,
+            reason = "Admin approved cancellation refund.",
+            idempotencyKey = $"test-refund-{booking.Id:N}"
+        });
+        Assert.Equal(HttpStatusCode.OK, refundResponse.StatusCode);
+        var refunded = await refundResponse.Content.ReadFromJsonAsync<BookingResponse>();
+        Assert.NotNull(refunded);
+        Assert.Equal("REFUNDED", refunded.PaymentStatus);
+        Assert.Equal(captured.TotalAmount, refunded.RefundedAmount);
+        Assert.NotNull(refunded.PaymentRefundReference);
+        Assert.Contains(refunded.Notifications, item => item.RecipientType == "guest");
+        Assert.Contains(refunded.Notifications, item => item.RecipientType == "host");
+
+        var duplicateRefundResponse = await client.PostAsJsonAsync($"/api/bookings/{booking.Id}/refund-payment", new
+        {
+            amount = captured.TotalAmount,
+            reason = "Admin approved cancellation refund.",
+            idempotencyKey = $"test-refund-{booking.Id:N}"
+        });
+        Assert.Equal(HttpStatusCode.OK, duplicateRefundResponse.StatusCode);
     }
 
     private sealed record RegisterResponse(Guid UserId, bool RequiresTwoFactor);
@@ -781,8 +812,11 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         string Status,
         string PaymentStatus,
         bool DatesHeld,
+        decimal TotalAmount,
         string? EkycProvider,
         string? EkycTransactionId,
+        string? PaymentRefundReference,
+        decimal RefundedAmount,
         IReadOnlyList<NotificationResponse> Notifications);
 
     private sealed record NotificationResponse(string RecipientType);

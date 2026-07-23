@@ -77,6 +77,10 @@ public sealed class MilestoneBooking : BaseEntity
     public string? PaymentAuthorizationReference { get; set; }
     public string? PaymentClientSecret { get; set; }
     public string? PaymentCaptureReference { get; set; }
+    public string? PaymentRefundReference { get; set; }
+    public decimal RefundedAmount { get; set; }
+    public string? RefundReason { get; set; }
+    public DateTimeOffset? RefundedAt { get; set; }
     public string PriceBreakdownJson { get; set; } = "[]";
     public string NotificationsJson { get; set; } = "[]";
     public string TimelineJson { get; set; } = "[]";

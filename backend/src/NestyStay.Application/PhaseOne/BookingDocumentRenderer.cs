@@ -50,6 +50,9 @@ public static class BookingDocumentRenderer
         lines.Add($"Payment provider: {ValueOrDash(booking.PaymentProvider)}");
         lines.Add($"Authorization reference: {ValueOrDash(booking.PaymentAuthorizationReference)}");
         lines.Add($"Capture reference: {ValueOrDash(booking.PaymentCaptureReference)}");
+        lines.Add($"Refund reference: {ValueOrDash(booking.PaymentRefundReference)}");
+        lines.Add($"Refunded amount: {Money(booking.RefundedAmount, booking.Currency)}");
+        lines.Add($"Refund reason: {ValueOrDash(booking.RefundReason)}");
         lines.Add(string.Empty);
         lines.Add(documentType.Equals("Receipt", StringComparison.Ordinal)
             ? "This receipt confirms captured payment for the booking above."

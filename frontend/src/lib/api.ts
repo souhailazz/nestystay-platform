@@ -171,6 +171,10 @@ export type Booking = {
   paymentAuthorizationReference?: string | null;
   paymentClientSecret?: string | null;
   paymentCaptureReference?: string | null;
+  paymentRefundReference?: string | null;
+  refundedAmount: number;
+  refundReason?: string | null;
+  refundedAt?: string | null;
   priceBreakdown: BookingPriceLine[];
   notifications: {
     recipientType: string;
@@ -932,6 +936,8 @@ export const api = {
     }),
   capturePayment: (bookingId: string, token: string) =>
     request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST", token }),
+  refundPayment: (bookingId: string, token: string, body: { amount?: number; reason?: string; idempotencyKey?: string }) =>
+    request<Booking>(`/bookings/${bookingId}/refund-payment`, { method: "POST", token, body }),
   downloadBookingInvoice: (bookingId: string, token: string) =>
     requestFile(`/bookings/${bookingId}/invoice`, token),
   downloadBookingReceipt: (bookingId: string, token: string) =>

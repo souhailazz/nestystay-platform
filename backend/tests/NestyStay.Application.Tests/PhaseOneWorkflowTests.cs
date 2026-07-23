@@ -393,6 +393,7 @@ public sealed class PhaseOneWorkflowTests
         public string ProviderName => "Stripe";
         public int AuthorizationCount { get; private set; }
         public int CaptureCount { get; private set; }
+        public int RefundCount { get; private set; }
 
         public Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken)
         {
@@ -414,6 +415,18 @@ public sealed class PhaseOneWorkflowTests
                 PaymentStatus.Captured,
                 request.Amount,
                 request.Currency));
+        }
+
+        public Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken)
+        {
+            RefundCount++;
+            return Task.FromResult(new PaymentRefundResult(
+                ProviderName,
+                $"refund_{request.PaymentReference}",
+                PaymentStatus.Refunded,
+                request.Amount,
+                request.Currency,
+                DateTimeOffset.UtcNow));
         }
     }
 

@@ -13,6 +13,7 @@ public interface IPaymentGateway
     string ProviderName { get; }
     Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken);
     Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken);
+    Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken);
 }
 
 public interface IStorageProvider
@@ -101,6 +102,21 @@ public sealed record PaymentCaptureResult(
     PaymentStatus Status,
     decimal CapturedAmount,
     string Currency);
+
+public sealed record PaymentRefundRequest(
+    string PaymentReference,
+    decimal Amount,
+    string Currency,
+    string Reason,
+    string IdempotencyKey = "");
+
+public sealed record PaymentRefundResult(
+    string ProviderName,
+    string RefundReference,
+    PaymentStatus Status,
+    decimal RefundedAmount,
+    string Currency,
+    DateTimeOffset RefundedAt);
 
 public sealed record NotificationMessage(string Recipient, string Subject, string Body);
 

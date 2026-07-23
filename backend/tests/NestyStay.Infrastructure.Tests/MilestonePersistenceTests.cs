@@ -72,6 +72,20 @@ public sealed class MilestonePersistenceTests
             var captureAttempt = await db.MilestonePaymentAttempts.SingleAsync(item => item.BookingId == bookingId && item.Operation == "Capture");
             Assert.Equal(PaymentStatus.Captured, captureAttempt.Status);
             Assert.StartsWith($"booking:{bookingId:N}:capture", captureAttempt.IdempotencyKey, StringComparison.Ordinal);
+
+            var refunded = await store.RefundPaymentAsync(
+                bookingId,
+                new RefundBookingRequest(Reason: "Persistence refund test", IdempotencyKey: $"refund-{bookingId:N}"),
+                CancellationToken.None);
+            Assert.NotNull(refunded);
+            Assert.Equal("REFUNDED", refunded.PaymentStatus);
+            Assert.Equal(refunded.TotalAmount, refunded.RefundedAmount);
+            Assert.NotNull(refunded.PaymentRefundReference);
+
+            var refundAttempt = await db.MilestonePaymentAttempts.SingleAsync(item => item.BookingId == bookingId && item.Operation == "Refund");
+            Assert.Equal(PaymentStatus.Refunded, refundAttempt.Status);
+            Assert.Equal(refunded.TotalAmount, refundAttempt.Amount);
+            Assert.Equal($"refund-{bookingId:N}", refundAttempt.IdempotencyKey);
         }
 
         await using (var db = CreateContext(databaseName, root))
@@ -81,10 +95,13 @@ public sealed class MilestonePersistenceTests
 
             Assert.NotNull(booking);
             Assert.Equal("APPROVED", booking.Status);
-            Assert.Equal("CAPTURED", booking.PaymentStatus);
+            Assert.Equal("REFUNDED", booking.PaymentStatus);
+            Assert.Equal(booking.TotalAmount, booking.RefundedAmount);
+            Assert.Equal("Persistence refund test", booking.RefundReason);
             Assert.Contains(booking.Notifications, item => item.RecipientType == "guest");
             Assert.Contains(booking.Timeline, item => item.Contains("Stripe manual-capture", StringComparison.OrdinalIgnoreCase));
-            Assert.Equal(2, await db.MilestonePaymentAttempts.CountAsync(item => item.BookingId == bookingId));
+            Assert.Contains(booking.Timeline, item => item.Contains("refund", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(3, await db.MilestonePaymentAttempts.CountAsync(item => item.BookingId == bookingId));
         }
     }
 
@@ -191,6 +208,15 @@ public sealed class MilestonePersistenceTests
                 PaymentStatus.Captured,
                 request.Amount,
                 request.Currency));
+
+        public Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new PaymentRefundResult(
+                ProviderName,
+                $"refund_{request.PaymentReference}",
+                PaymentStatus.Refunded,
+                request.Amount,
+                request.Currency,
+                DateTimeOffset.UtcNow));
     }
 
     private sealed class TestNotificationGateway : INotificationGateway

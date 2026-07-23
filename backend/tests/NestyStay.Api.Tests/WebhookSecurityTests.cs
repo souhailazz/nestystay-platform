@@ -178,5 +178,8 @@ public sealed class WebhookSecurityTests
 
         public Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

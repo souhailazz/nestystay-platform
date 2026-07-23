@@ -91,6 +91,14 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
         return booking is null ? NotFound() : Ok(booking);
     }
 
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [HttpPost("{id:guid}/refund-payment")]
+    public async Task<IActionResult> RefundPayment(Guid id, RefundBookingRequest request, CancellationToken cancellationToken)
+    {
+        var booking = await phaseOneStore.RefundPaymentAsync(id, request, cancellationToken);
+        return booking is null ? NotFound() : Ok(booking);
+    }
+
     private async Task<IActionResult> DownloadBookingDocumentAsync(
         Guid id,
         Func<Guid, CancellationToken, Task<BookingDocumentDto?>> loadDocument,

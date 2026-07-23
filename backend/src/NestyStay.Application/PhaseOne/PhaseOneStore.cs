@@ -35,6 +35,7 @@ public interface IPhaseOneStore
     Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken);
     Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken);
     Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken);
+    Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class PhaseOneStore(
@@ -67,6 +68,7 @@ public sealed class PhaseOneStore(
     private readonly List<PhaseOnePasswordReset> _passwordResets = [];
     private readonly List<PhaseOneRecoveryCode> _recoveryCodes = [];
     private readonly List<PhaseOneBooking> _bookings = [];
+    private readonly HashSet<string> _completedRefundIdempotencyKeys = [];
     private readonly List<PhaseOneProperty> _properties =
     [
         new(
@@ -913,6 +915,86 @@ public sealed class PhaseOneStore(
         }
     }
 
+    public async Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken)
+    {
+        PhaseOneBooking? booking;
+        PaymentRefundRequest refundRequest;
+        string reason;
+        string idempotencyKey;
+
+        lock (_gate)
+        {
+            booking = _bookings.SingleOrDefault(item => item.Id == bookingId);
+            if (booking is null)
+            {
+                return null;
+            }
+
+            if (booking.PaymentStatus == PaymentStatus.Refunded)
+            {
+                return ToDto(booking);
+            }
+
+            if (booking.PaymentStatus != PaymentStatus.Captured)
+            {
+                throw new InvalidOperationException("Refunds require a captured payment.");
+            }
+
+            if (string.IsNullOrWhiteSpace(booking.PaymentCaptureReference))
+            {
+                throw new InvalidOperationException("Refunds require a payment capture reference.");
+            }
+
+            var amount = BookingRefundPolicy.ResolveAmount(request.Amount, booking.TotalAmount, booking.RefundedAmount);
+            reason = BookingRefundPolicy.NormalizeReason(request.Reason);
+            idempotencyKey = BookingRefundPolicy.ResolveIdempotencyKey(booking.Id, amount, request.IdempotencyKey);
+            if (_completedRefundIdempotencyKeys.Contains(idempotencyKey))
+            {
+                return ToDto(booking);
+            }
+
+            refundRequest = new PaymentRefundRequest(
+                booking.PaymentCaptureReference,
+                amount,
+                booking.Currency,
+                reason,
+                idempotencyKey);
+        }
+
+        var refund = await paymentGateway.RefundAsync(refundRequest, cancellationToken);
+        var notifications = BuildPaymentRefundedNotifications(booking, refund.RefundedAmount, refund.Currency);
+
+        lock (_gate)
+        {
+            booking.PaymentProvider = refund.ProviderName;
+            booking.PaymentRefundReference = refund.RefundReference;
+            if (refund.Status == PaymentStatus.Refunded)
+            {
+                booking.RefundedAmount = decimal.Round(booking.RefundedAmount + refund.RefundedAmount, 2, MidpointRounding.AwayFromZero);
+                booking.RefundReason = reason;
+                booking.RefundedAt = refund.RefundedAt;
+                if (BookingRefundPolicy.IsFullyRefunded(booking.TotalAmount, booking.RefundedAmount))
+                {
+                    booking.PaymentStatus = PaymentStatus.Refunded;
+                }
+            }
+
+            _completedRefundIdempotencyKeys.Add(idempotencyKey);
+            booking.Timeline.Add($"Stripe refund {ToApiStatus(refund.Status)} for {refund.Currency.ToUpperInvariant()} {refund.RefundedAmount:0.00}");
+            booking.Timeline.Add($"Refund reason: {reason}");
+        }
+
+        if (refund.Status == PaymentStatus.Refunded)
+        {
+            await QueueNotificationsAsync(booking, notifications, cancellationToken);
+        }
+
+        lock (_gate)
+        {
+            return ToDto(booking);
+        }
+    }
+
     private async Task StartEkycAsync(PhaseOneBooking booking, CreateBookingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1123,6 +1205,18 @@ public sealed class PhaseOneStore(
             $"Stripe payment for {booking.GuestName}'s booking has been captured."))
     ];
 
+    private static IReadOnlyList<PendingNotification> BuildPaymentRefundedNotifications(PhaseOneBooking booking, decimal amount, string currency) =>
+    [
+        new("guest", new NotificationMessage(
+            booking.GuestEmail,
+            "NestyStay payment refunded",
+            $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.PropertyTitle}.")),
+        new("host", new NotificationMessage(
+            booking.HostEmail,
+            "NestyStay payment refunded",
+            $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.GuestName}'s booking."))
+    ];
+
     private static PropertyListingDto ToListingDto(PhaseOneProperty property) =>
         new(
             property.Id,
@@ -1181,6 +1275,10 @@ public sealed class PhaseOneStore(
             booking.PaymentAuthorizationReference,
             booking.PaymentClientSecret,
             booking.PaymentCaptureReference,
+            booking.PaymentRefundReference,
+            booking.RefundedAmount,
+            booking.RefundReason,
+            booking.RefundedAt,
             booking.PriceBreakdown.ToList(),
             booking.Notifications.ToList(),
             booking.Timeline.ToList());
@@ -1695,6 +1793,10 @@ public sealed class PhaseOneStore(
         public string? PaymentAuthorizationReference { get; set; } = paymentAuthorizationReference;
         public string? PaymentClientSecret { get; set; } = paymentClientSecret;
         public string? PaymentCaptureReference { get; set; } = paymentCaptureReference;
+        public string? PaymentRefundReference { get; set; }
+        public decimal RefundedAmount { get; set; }
+        public string? RefundReason { get; set; }
+        public DateTimeOffset? RefundedAt { get; set; }
         public List<BookingPriceLineDto> PriceBreakdown { get; } = [.. priceBreakdown];
         public List<BookingNotificationDto> Notifications { get; } = [];
         public List<string> Timeline { get; } = [.. timeline];

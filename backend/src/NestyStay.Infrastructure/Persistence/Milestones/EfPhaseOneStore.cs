@@ -27,6 +27,7 @@ public sealed class EfPhaseOneStore(
     private const int MaximumChallengeAttempts = 5;
     private const string PaymentOperationAuthorize = "Authorize";
     private const string PaymentOperationCapture = "Capture";
+    private const string PaymentOperationRefund = "Refund";
     private const string PasswordResetStatusPending = "Pending";
     private const string PasswordResetStatusCompleted = "Completed";
     private const string PasswordResetStatusExpired = "Expired";
@@ -853,6 +854,84 @@ public sealed class EfPhaseOneStore(
         return ToDto(booking);
     }
 
+    public async Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken)
+    {
+        var booking = await db.MilestoneBookings.SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
+        if (booking is null)
+        {
+            return null;
+        }
+
+        if (booking.PaymentStatus == PaymentStatus.Refunded)
+        {
+            return ToDto(booking);
+        }
+
+        if (booking.PaymentStatus != PaymentStatus.Captured)
+        {
+            throw new InvalidOperationException("Refunds require a captured payment.");
+        }
+
+        if (string.IsNullOrWhiteSpace(booking.PaymentCaptureReference))
+        {
+            throw new InvalidOperationException("Refunds require a payment capture reference.");
+        }
+
+        var amount = BookingRefundPolicy.ResolveAmount(request.Amount, booking.TotalAmount, booking.RefundedAmount);
+        var reason = BookingRefundPolicy.NormalizeReason(request.Reason);
+        var idempotencyKey = BookingRefundPolicy.ResolveIdempotencyKey(booking.Id, amount, request.IdempotencyKey);
+        var attempt = await BeginPaymentAttemptAsync(booking.Id, PaymentOperationRefund, idempotencyKey, amount, booking.Currency, cancellationToken);
+        if (attempt.CompletedAt is not null && attempt.Status == PaymentStatus.Refunded)
+        {
+            return ToDto(booking);
+        }
+
+        PaymentRefundResult refund;
+        try
+        {
+            refund = await paymentGateway.RefundAsync(
+                new PaymentRefundRequest(
+                    booking.PaymentCaptureReference,
+                    amount,
+                    booking.Currency,
+                    reason,
+                    idempotencyKey),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            await FailPaymentAttemptAsync(attempt, exception, cancellationToken);
+            throw;
+        }
+
+        booking.PaymentProvider = refund.ProviderName;
+        booking.PaymentRefundReference = refund.RefundReference;
+        if (refund.Status == PaymentStatus.Refunded)
+        {
+            booking.RefundedAmount = decimal.Round(booking.RefundedAmount + refund.RefundedAmount, 2, MidpointRounding.AwayFromZero);
+            booking.RefundReason = reason;
+            booking.RefundedAt = refund.RefundedAt;
+            if (BookingRefundPolicy.IsFullyRefunded(booking.TotalAmount, booking.RefundedAmount))
+            {
+                booking.PaymentStatus = PaymentStatus.Refunded;
+            }
+        }
+
+        CompletePaymentAttempt(attempt, refund.ProviderName, refund.RefundReference, refund.Status);
+        AddTimeline(
+            booking,
+            $"Stripe refund {ToApiStatus(refund.Status)} for {refund.Currency.ToUpperInvariant()} {refund.RefundedAmount:0.00}",
+            $"Refund reason: {reason}");
+        if (refund.Status == PaymentStatus.Refunded)
+        {
+            await QueueNotificationsAsync(booking, BuildPaymentRefundedNotifications(booking, refund.RefundedAmount, refund.Currency), cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ToDto(booking);
+    }
+
     private async Task StartEkycAsync(MilestoneBooking booking, CreateBookingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1185,6 +1264,18 @@ public sealed class EfPhaseOneStore(
             $"Stripe payment for {booking.GuestName}'s booking has been captured."))
     ];
 
+    private static IReadOnlyList<PendingNotification> BuildPaymentRefundedNotifications(MilestoneBooking booking, decimal amount, string currency) =>
+    [
+        new("guest", new NotificationMessage(
+            booking.GuestEmail,
+            "NestyStay payment refunded",
+            $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.PropertyTitle}.")),
+        new("host", new NotificationMessage(
+            booking.HostEmail,
+            "NestyStay payment refunded",
+            $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.GuestName}'s booking."))
+    ];
+
     private static PropertyListingDto ToListingDto(MilestoneProperty property) =>
         new(
             property.Id,
@@ -1243,6 +1334,10 @@ public sealed class EfPhaseOneStore(
             booking.PaymentAuthorizationReference,
             booking.PaymentClientSecret,
             booking.PaymentCaptureReference,
+            booking.PaymentRefundReference,
+            booking.RefundedAmount,
+            booking.RefundReason,
+            booking.RefundedAt,
             MilestoneJson.DeserializeList<BookingPriceLineDto>(booking.PriceBreakdownJson),
             MilestoneJson.DeserializeList<BookingNotificationDto>(booking.NotificationsJson),
             MilestoneJson.DeserializeList<string>(booking.TimelineJson));

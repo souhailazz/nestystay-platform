@@ -168,6 +168,50 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             request.Currency);
     }
 
+    public async Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken)
+    {
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey) || request.PaymentReference.StartsWith("stripe_local_capture_", StringComparison.Ordinal))
+        {
+            var refundReference = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? $"stripe_local_refund_{Guid.NewGuid():N}"
+                : $"stripe_local_refund_{request.IdempotencyKey.Replace(":", "_", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal)}";
+            return new PaymentRefundResult(
+                ProviderName,
+                refundReference,
+                PaymentStatus.Refunded,
+                request.Amount,
+                request.Currency,
+                DateTimeOffset.UtcNow);
+        }
+
+        var payload = new Dictionary<string, string>
+        {
+            ["payment_intent"] = request.PaymentReference,
+            ["amount"] = ToMinorUnits(request.Amount).ToString(CultureInfo.InvariantCulture),
+            ["reason"] = "requested_by_customer",
+            ["metadata[reason]"] = request.Reason
+        };
+
+        using var document = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Post,
+            "/v1/refunds",
+            payload,
+            request.IdempotencyKey,
+            cancellationToken);
+        var root = document.RootElement;
+        var status = root.GetProperty("status").GetString() ?? string.Empty;
+
+        return new PaymentRefundResult(
+            ProviderName,
+            root.GetProperty("id").GetString() ?? string.Empty,
+            MapStripeRefundStatus(status),
+            request.Amount,
+            request.Currency,
+            DateTimeOffset.UtcNow);
+    }
+
     private static async Task<JsonDocument> SendStripeFormAsync(
         string secretKey,
         HttpMethod method,
@@ -208,6 +252,14 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             "succeeded" => PaymentStatus.Captured,
             "canceled" => PaymentStatus.Cancelled,
             "requires_payment_method" or "requires_confirmation" or "requires_action" or "processing" => PaymentStatus.Pending,
+            _ => PaymentStatus.Pending
+        };
+
+    private static PaymentStatus MapStripeRefundStatus(string status) =>
+        status switch
+        {
+            "succeeded" => PaymentStatus.Refunded,
+            "failed" or "canceled" => PaymentStatus.Failed,
             _ => PaymentStatus.Pending
         };
 

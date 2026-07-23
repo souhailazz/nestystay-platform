@@ -144,6 +144,11 @@ public sealed record CreateBookingRequest(
     string? DocumentType = null,
     string? EkycCallbackUrl = null);
 
+public sealed record RefundBookingRequest(
+    decimal? Amount = null,
+    string? Reason = null,
+    string? IdempotencyKey = null);
+
 public sealed record BookingNotificationDto(
     string RecipientType,
     string Recipient,
@@ -178,6 +183,10 @@ public sealed record BookingDto(
     string? PaymentAuthorizationReference,
     string? PaymentClientSecret,
     string? PaymentCaptureReference,
+    string? PaymentRefundReference,
+    decimal RefundedAmount,
+    string? RefundReason,
+    DateTimeOffset? RefundedAt,
     IReadOnlyList<BookingPriceLineDto> PriceBreakdown,
     IReadOnlyList<BookingNotificationDto> Notifications,
     IReadOnlyList<string> Timeline);
