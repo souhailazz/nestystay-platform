@@ -210,6 +210,39 @@ public sealed class SpecCompletionController(
         return Ok(await store.CreateConversationAsync(userId, request, cancellationToken));
     }
 
+    [HttpPost("messages/conversations/{conversationId:guid}/attachments/uploads")]
+    public async Task<ActionResult<AttachmentUploadDto>> PrepareMessageAttachmentUpload(
+        Guid conversationId,
+        [FromQuery] Guid userId,
+        PrepareMessageAttachmentUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        RequireUser(userId);
+        return Ok(await store.PrepareMessageAttachmentUploadAsync(userId, conversationId, request, cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/complete")]
+    public async Task<ActionResult<AttachmentUploadDto>> CompleteMessageAttachmentUpload(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        RequireUser(userId);
+        return Ok(await store.CompleteMessageAttachmentUploadAsync(userId, conversationId, attachmentId, cancellationToken));
+    }
+
+    [HttpGet("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<ActionResult<AttachmentDownloadDto>> GetMessageAttachmentDownload(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        RequireUser(userId);
+        return Ok(await store.GetMessageAttachmentDownloadAsync(userId, conversationId, attachmentId, cancellationToken));
+    }
+
     [HttpPost("messages/conversations/{conversationId:guid}/messages")]
     public async Task<ActionResult<MessageDto>> SendMessage(Guid conversationId, [FromQuery] Guid userId, SendMessageRequest request, CancellationToken cancellationToken)
     {

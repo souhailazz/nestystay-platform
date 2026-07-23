@@ -637,11 +637,36 @@ export type ConversationParticipant = {
 };
 
 export type MessageAttachment = {
+  attachmentId?: string | null;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  url?: string | null;
+  status: string;
+  objectKey?: string | null;
+  expiresAt?: string | null;
+};
+
+export type AttachmentUpload = {
+  id: string;
+  conversationId: string;
+  ownerUserId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  expiresAt: string;
+};
+
+export type AttachmentDownload = {
+  id: string;
   fileName: string;
   contentType: string;
   sizeBytes: number;
   url: string;
-  status: string;
+  expiresAt: string;
 };
 
 export type Message = {
@@ -1046,6 +1071,12 @@ export const api = {
     request<Conversation>(withQuery(`/spec/messages/conversations/${conversationId}`, { userId }), { token }),
   createConversation: (userId: string, token: string, body: { subject: string; bookingId?: string | null; isSupportThread: boolean; participants: { userId: string; displayName: string; role: string }[]; initialMessage: string }) =>
     request<Conversation>(withQuery("/spec/messages/conversations", { userId }), { method: "POST", token, body }),
+  prepareMessageAttachmentUpload: (conversationId: string, userId: string, token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
+    request<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/uploads`, { userId }), { method: "POST", token, body }),
+  completeMessageAttachmentUpload: (conversationId: string, attachmentId: string, userId: string, token: string) =>
+    request<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/complete`, { userId }), { method: "POST", token }),
+  getMessageAttachmentDownload: (conversationId: string, attachmentId: string, userId: string, token: string) =>
+    request<AttachmentDownload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/download`, { userId }), { token }),
   sendMessage: (conversationId: string, userId: string, token: string, body: { body: string; attachments?: MessageAttachment[] }) =>
     request<Message>(withQuery(`/spec/messages/conversations/${conversationId}/messages`, { userId }), { method: "POST", token, body }),
   markConversationRead: (conversationId: string, userId: string, token: string) =>

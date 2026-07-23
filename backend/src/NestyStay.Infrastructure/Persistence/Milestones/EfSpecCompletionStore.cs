@@ -14,7 +14,8 @@ public sealed class EfSpecCompletionStore(
     IEmailSender emailSender,
     ISmsSender smsSender,
     IDevelopmentAuthSecretStore developmentAuthSecrets,
-    IGoogleIdentityValidator googleIdentityValidator) : ISpecCompletionStore
+    IGoogleIdentityValidator googleIdentityValidator,
+    IStorageProvider storageProvider) : ISpecCompletionStore
 {
     private const int MaximumAuthFlowAttempts = 5;
     private const int MaximumAccountAuthFlowsPerWindow = 5;
@@ -24,8 +25,18 @@ public sealed class EfSpecCompletionStore(
     private const string AuthStatusExpired = "Expired";
     private const string AuthStatusFailed = "Failed";
     private const string AuthStatusInvalidated = "Invalidated";
+    private const long MaximumAttachmentBytes = 10 * 1024 * 1024;
     private static readonly TimeSpan AuthFlowResendCooldown = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan AuthFlowRateLimitWindow = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan AttachmentUploadLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan AttachmentDownloadLifetime = TimeSpan.FromHours(24);
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedAttachmentExtensions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/jpeg"] = [".jpg", ".jpeg"],
+        ["image/png"] = [".png"],
+        ["image/webp"] = [".webp"],
+        ["application/pdf"] = [".pdf"]
+    };
     private static readonly TimeSpan VerificationCodeLifetime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly Guid SeedHostUserId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
@@ -558,6 +569,73 @@ public sealed class EfSpecCompletionStore(
         return (await GetConversationAsync(userId, conversation.Id, cancellationToken))!;
     }
 
+    public async Task<AttachmentUploadDto> PrepareMessageAttachmentUploadAsync(Guid userId, Guid conversationId, PrepareMessageAttachmentUploadRequest request, CancellationToken cancellationToken)
+    {
+        await RequireParticipantAsync(userId, conversationId, cancellationToken);
+        var safeFileName = ValidateAttachment(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var objectKey = $"messages/{conversationId:N}/{userId:N}/{Guid.NewGuid():N}{extension}";
+        var uploadUrl = await storageProvider.CreateUploadUrlAsync(objectKey, cancellationToken);
+        var now = timeProvider.GetUtcNow();
+
+        var attachment = new MilestoneMessageAttachment
+        {
+            ConversationId = conversationId,
+            OwnerUserId = userId,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = objectKey,
+            UploadUrl = uploadUrl,
+            Status = "PendingUpload",
+            UploadExpiresAt = now.Add(AttachmentUploadLifetime),
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        };
+        db.MilestoneMessageAttachments.Add(attachment);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(attachment);
+    }
+
+    public async Task<AttachmentUploadDto> CompleteMessageAttachmentUploadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await RequireParticipantAsync(userId, conversationId, cancellationToken);
+        var attachment = await RequireOwnedAttachmentAsync(userId, conversationId, attachmentId, cancellationToken);
+        if (attachment.Status != "PendingUpload")
+        {
+            throw new InvalidOperationException("Attachment upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (attachment.UploadExpiresAt <= now)
+        {
+            attachment.Status = "Expired";
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Attachment upload URL has expired.");
+        }
+
+        attachment.Status = "Uploaded";
+        attachment.UploadedAt = now;
+        attachment.UpdatedAt = now;
+        attachment.UpdatedByUserId = userId;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(attachment);
+    }
+
+    public async Task<AttachmentDownloadDto> GetMessageAttachmentDownloadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await RequireParticipantAsync(userId, conversationId, cancellationToken);
+        var attachment = await db.MilestoneMessageAttachments
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == attachmentId && item.ConversationId == conversationId && item.MessageId != null && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Attachment is not available to this conversation participant.");
+
+        var expiresAt = timeProvider.GetUtcNow().Add(AttachmentDownloadLifetime);
+        var url = await storageProvider.CreateDownloadUrlAsync(attachment.ObjectKey, expiresAt, cancellationToken);
+        return new AttachmentDownloadDto(attachment.Id, attachment.SafeFileName, attachment.ContentType, attachment.SizeBytes, url, expiresAt);
+    }
+
     public async Task<MessageDto> SendMessageAsync(Guid userId, Guid conversationId, SendMessageRequest request, CancellationToken cancellationToken)
     {
         await RequireParticipantAsync(userId, conversationId, cancellationToken);
@@ -568,10 +646,10 @@ public sealed class EfSpecCompletionStore(
             Body = RequireText(request.Body, "Message"),
             SentAt = timeProvider.GetUtcNow(),
             Status = "Delivered",
-            AttachmentsJson = MilestoneJson.Serialize(request.Attachments ?? []),
             CreatedByUserId = userId,
             UpdatedByUserId = userId
         };
+        message.AttachmentsJson = MilestoneJson.Serialize(await AttachUploadedFilesAsync(userId, conversationId, message.Id, message.SentAt, request.Attachments, cancellationToken));
         db.MilestoneMessages.Add(message);
         var conversation = await db.MilestoneConversations.SingleAsync(item => item.Id == conversationId, cancellationToken);
         conversation.UpdatedAt = message.SentAt;
@@ -1168,6 +1246,106 @@ public sealed class EfSpecCompletionStore(
         await db.MilestoneConversationParticipants.SingleOrDefaultAsync(item => item.ConversationId == conversationId && item.UserId == userId && !item.IsDeleted, cancellationToken)
         ?? throw new UnauthorizedAccessException("Conversation is not available to this user.");
 
+    private async Task<MilestoneMessageAttachment> RequireOwnedAttachmentAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken) =>
+        await db.MilestoneMessageAttachments.SingleOrDefaultAsync(item => item.Id == attachmentId && item.ConversationId == conversationId && item.OwnerUserId == userId && !item.IsDeleted, cancellationToken)
+        ?? throw new UnauthorizedAccessException("Attachment is not available to this user.");
+
+    private async Task<IReadOnlyList<MessageAttachmentDto>> AttachUploadedFilesAsync(
+        Guid userId,
+        Guid conversationId,
+        Guid messageId,
+        DateTimeOffset attachedAt,
+        IReadOnlyList<MessageAttachmentDto>? attachments,
+        CancellationToken cancellationToken)
+    {
+        if (attachments is null || attachments.Count == 0)
+        {
+            return [];
+        }
+
+        if (attachments.Any(item => item.AttachmentId is null))
+        {
+            throw new InvalidOperationException("Message attachments must be prepared and uploaded before sending.");
+        }
+
+        var ids = attachments.Select(item => item.AttachmentId!.Value).Distinct().ToArray();
+        var persisted = await db.MilestoneMessageAttachments
+            .Where(item => ids.Contains(item.Id) && item.ConversationId == conversationId && item.OwnerUserId == userId && !item.IsDeleted)
+            .ToListAsync(cancellationToken);
+        if (persisted.Count != ids.Length)
+        {
+            throw new UnauthorizedAccessException("One or more attachments are not available to this user.");
+        }
+
+        foreach (var attachment in persisted)
+        {
+            if (attachment.Status != "Uploaded")
+            {
+                throw new InvalidOperationException("Message attachments must finish uploading before sending.");
+            }
+
+            attachment.MessageId = messageId;
+            attachment.Status = "Attached";
+            attachment.AttachedAt = attachedAt;
+            attachment.UpdatedAt = attachedAt;
+            attachment.UpdatedByUserId = userId;
+        }
+
+        var byId = persisted.ToDictionary(item => item.Id);
+        return ids.Select(id =>
+        {
+            var attachment = byId[id];
+            return new MessageAttachmentDto(
+                attachment.Id,
+                attachment.SafeFileName,
+                attachment.ContentType,
+                attachment.SizeBytes,
+                $"/api/spec/messages/conversations/{conversationId}/attachments/{attachment.Id}/download",
+                "Attached",
+                attachment.ObjectKey,
+                attachedAt.Add(AttachmentDownloadLifetime));
+        }).ToList();
+    }
+
+    private static string ValidateAttachment(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
+        {
+            throw new InvalidOperationException("Attachments must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = contentType.Trim().ToLowerInvariant();
+        if (!AllowedAttachmentExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Attachment type is not allowed.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Attachment extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "attachment";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
+    private static bool IsSafeFileNameCharacter(char character) =>
+        (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == '-';
+
     private async Task EnsureReviewBelongsToHostAsync(Guid hostUserId, MilestoneReview review, CancellationToken cancellationToken)
     {
         if (review.PropertyId is { } propertyId &&
@@ -1413,6 +1591,7 @@ public sealed class EfSpecCompletionStore(
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
     private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);
     private static ConversationParticipantDto ToDto(MilestoneConversationParticipant item) => new(item.UserId, item.DisplayName, item.Role, item.LastReadAt, item.OnlineStatus);
+    private static AttachmentUploadDto ToUploadDto(MilestoneMessageAttachment item) => new(item.Id, item.ConversationId, item.OwnerUserId, item.SafeFileName, item.ContentType, item.SizeBytes, item.ObjectKey, item.UploadUrl, item.Status, item.UploadExpiresAt);
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);
     private static HostPromotionDto ToDto(MilestoneHostPromotion item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.DiscountPercent, item.StartsOn, item.EndsOn, item.MinimumNights, item.BadgeLevel, item.IsActive);

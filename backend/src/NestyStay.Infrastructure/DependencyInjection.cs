@@ -222,6 +222,16 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
         return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}");
     }
 
+    public Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken)
+    {
+        var baseUrl = ResolveSetting("Integrations:CloudflareR2DownloadUrlBase", "CLOUDFLARE_R2_DOWNLOAD_URL_BASE") ??
+                      ResolveSetting("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE") ??
+                      "https://storage.nestystay.local/download";
+
+        var expires = expiresAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}?expires={Uri.EscapeDataString(expires)}");
+    }
+
     private string? ResolveSetting(string configurationKey, string environmentKey)
     {
         var configured = configuration[configurationKey];

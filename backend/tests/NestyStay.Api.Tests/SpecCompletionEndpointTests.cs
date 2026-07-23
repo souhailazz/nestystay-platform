@@ -384,9 +384,9 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.Equal(2, conversation.Participants.Count);
         Assert.Single(conversation.Messages);
 
-        var sendMessage = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/messages?userId={travelerId}", new
+        var unpreparedAttachmentMessage = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/messages?userId={travelerId}", new
         {
-            body = "Attached is my arrival note.",
+            body = "This arbitrary URL should not be trusted.",
             attachments = new[]
             {
                 new
@@ -394,7 +394,51 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
                     fileName = "arrival-note.pdf",
                     contentType = "application/pdf",
                     sizeBytes = 2048,
-                    url = "local://arrival-note.pdf",
+                    url = "https://example.invalid/arrival-note.pdf",
+                    status = "Uploaded"
+                }
+            }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, unpreparedAttachmentMessage.StatusCode);
+
+        var invalidAttachmentUpload = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/uploads?userId={travelerId}", new
+        {
+            fileName = "arrival-note.exe",
+            contentType = "application/octet-stream",
+            sizeBytes = 2048
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidAttachmentUpload.StatusCode);
+
+        var uploadResponse = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/uploads?userId={travelerId}", new
+        {
+            fileName = "../Arrival Note.pdf",
+            contentType = "application/pdf",
+            sizeBytes = 2048
+        });
+        Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+        var upload = await uploadResponse.Content.ReadFromJsonAsync<AttachmentUploadResponse>();
+        Assert.NotNull(upload);
+        Assert.Equal("arrival-note.pdf", upload.FileName);
+        Assert.Equal("PendingUpload", upload.Status);
+
+        var completedUploadResponse = await client.PostAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{upload.Id}/complete?userId={travelerId}", null);
+        Assert.Equal(HttpStatusCode.OK, completedUploadResponse.StatusCode);
+        var completedUpload = await completedUploadResponse.Content.ReadFromJsonAsync<AttachmentUploadResponse>();
+        Assert.NotNull(completedUpload);
+        Assert.Equal("Uploaded", completedUpload.Status);
+
+        var sendMessage = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/messages?userId={travelerId}", new
+        {
+            body = "Attached is my arrival note.",
+            attachments = new[]
+            {
+                new
+                {
+                    attachmentId = completedUpload.Id,
+                    fileName = "ignored.svg",
+                    contentType = "image/svg+xml",
+                    sizeBytes = 1,
+                    url = "https://example.invalid/ignored.svg",
                     status = "Uploaded"
                 }
             }
@@ -403,8 +447,20 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var message = await sendMessage.Content.ReadFromJsonAsync<MessageResponse>();
         Assert.NotNull(message);
         Assert.Single(message.Attachments);
+        var attachment = message.Attachments.Single();
+        Assert.Equal(completedUpload.Id, attachment.AttachmentId);
+        Assert.Equal("arrival-note.pdf", attachment.FileName);
+
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherTravelerId);
+        var crossUserDownload = await client.GetAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{attachment.AttachmentId}/download?userId={otherTravelerId}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossUserDownload.StatusCode);
 
         client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        var attachmentDownload = await client.GetFromJsonAsync<AttachmentDownloadResponse>($"/api/spec/messages/conversations/{conversation.Id}/attachments/{attachment.AttachmentId}/download?userId={hostId}");
+        Assert.NotNull(attachmentDownload);
+        Assert.Equal("arrival-note.pdf", attachmentDownload.FileName);
+        Assert.Contains("expires=", attachmentDownload.Url);
+
         var hostThread = await client.GetFromJsonAsync<ConversationResponse>($"/api/spec/messages/conversations/{conversation.Id}?userId={hostId}");
         Assert.NotNull(hostThread);
         Assert.Equal(2, hostThread.Messages.Count);
@@ -587,7 +643,11 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record MessageResponse(IReadOnlyList<MessageAttachmentResponse> Attachments);
 
-    private sealed record MessageAttachmentResponse(string FileName);
+    private sealed record AttachmentUploadResponse(Guid Id, string FileName, string Status);
+
+    private sealed record AttachmentDownloadResponse(string FileName, string Url);
+
+    private sealed record MessageAttachmentResponse(Guid? AttachmentId, string FileName);
 
     private sealed record HostOperationsResponse(HostAnalyticsResponse Analytics, IReadOnlyList<HostPricingRuleResponse> PricingRules);
 

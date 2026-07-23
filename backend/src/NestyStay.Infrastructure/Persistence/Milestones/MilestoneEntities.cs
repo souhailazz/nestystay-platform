@@ -412,6 +412,23 @@ public sealed class MilestoneMessage : BaseEntity
     public string AttachmentsJson { get; set; } = "[]";
 }
 
+public sealed class MilestoneMessageAttachment : BaseEntity
+{
+    public Guid ConversationId { get; set; }
+    public Guid? MessageId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string SafeFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
+    public string ObjectKey { get; set; } = string.Empty;
+    public string UploadUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "PendingUpload";
+    public DateTimeOffset UploadExpiresAt { get; set; }
+    public DateTimeOffset? UploadedAt { get; set; }
+    public DateTimeOffset? AttachedAt { get; set; }
+}
+
 public sealed class MilestoneDirectoryProvider : BaseEntity
 {
     public Guid? OwnerUserId { get; set; }

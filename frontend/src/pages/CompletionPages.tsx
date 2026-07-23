@@ -782,7 +782,7 @@ function MessagesWorkspace({ userId, token, conversationId }: { userId: string; 
 function ConversationPanel({ conversation, userId, token, reload }: { conversation: Conversation; userId: string; token: string; reload: () => void }) {
   const [body, setBody] = useState("");
   async function send() {
-    await api.sendMessage(conversation.id, userId, token, { body, attachments: body.toLowerCase().includes("pdf") ? [{ fileName: "Arrival_Guide.pdf", contentType: "application/pdf", sizeBytes: 1400000, url: "/messages/document", status: "Uploaded" }] : [] });
+    await api.sendMessage(conversation.id, userId, token, { body, attachments: [] });
     setBody("");
     reload();
   }

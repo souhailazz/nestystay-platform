@@ -146,6 +146,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneConversation> MilestoneConversations => Set<MilestoneConversation>();
     public DbSet<MilestoneConversationParticipant> MilestoneConversationParticipants => Set<MilestoneConversationParticipant>();
     public DbSet<MilestoneMessage> MilestoneMessages => Set<MilestoneMessage>();
+    public DbSet<MilestoneMessageAttachment> MilestoneMessageAttachments => Set<MilestoneMessageAttachment>();
     public DbSet<MilestoneDirectoryProvider> MilestoneDirectoryProviders => Set<MilestoneDirectoryProvider>();
     public DbSet<MilestoneHostPricingRule> MilestoneHostPricingRules => Set<MilestoneHostPricingRule>();
     public DbSet<MilestoneHostPromotion> MilestoneHostPromotions => Set<MilestoneHostPromotion>();
@@ -208,6 +209,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneTravelerNotification>().HasIndex(notification => new { notification.UserId, notification.IsRead });
         modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => new { participant.ConversationId, participant.UserId }).IsUnique();
         modelBuilder.Entity<MilestoneMessage>().HasIndex(message => new { message.ConversationId, message.SentAt });
+        modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => attachment.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => new { attachment.ConversationId, attachment.OwnerUserId, attachment.Status });
+        modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => attachment.MessageId);
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.Slug).IsUnique();
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.OwnerUserId);
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Kind, provider.Category, provider.Parish });

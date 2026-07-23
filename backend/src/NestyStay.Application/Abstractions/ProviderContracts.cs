@@ -19,6 +19,7 @@ public interface IStorageProvider
 {
     string ProviderName { get; }
     Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken);
+    Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 }
 
 public interface INotificationGateway
