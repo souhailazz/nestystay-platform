@@ -133,8 +133,12 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         client.DefaultRequestHeaders.Authorization = null;
         var socialConfig = await client.GetFromJsonAsync<SocialConfigResponse>("/api/spec/auth/social-config");
         Assert.NotNull(socialConfig);
-        Assert.Contains("APPLE_AUTH_CLIENT_ID", socialConfig.RequiredEnvironmentVariables);
-        Assert.Contains("FACEBOOK_AUTH_APP_ID", socialConfig.RequiredEnvironmentVariables);
+        Assert.True(socialConfig.GoogleEnabled);
+        Assert.False(socialConfig.AppleEnabled);
+        Assert.False(socialConfig.FacebookEnabled);
+        Assert.Contains("GOOGLE_AUTH_CLIENT_ID", socialConfig.RequiredEnvironmentVariables);
+        Assert.DoesNotContain("APPLE_AUTH_CLIENT_ID", socialConfig.RequiredEnvironmentVariables);
+        Assert.DoesNotContain("FACEBOOK_AUTH_APP_ID", socialConfig.RequiredEnvironmentVariables);
     }
 
     [Fact]
@@ -614,7 +618,11 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record RecoveryCodeResponse(string Code, bool Used);
 
-    private sealed record SocialConfigResponse(IReadOnlyList<string> RequiredEnvironmentVariables);
+    private sealed record SocialConfigResponse(
+        bool GoogleEnabled,
+        bool AppleEnabled,
+        bool FacebookEnabled,
+        IReadOnlyList<string> RequiredEnvironmentVariables);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId);
 

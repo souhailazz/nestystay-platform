@@ -973,12 +973,8 @@ public sealed class EfSpecCompletionStore(
     public Task<SocialAuthConfigDto> GetSocialAuthConfigAsync(CancellationToken cancellationToken)
     {
         var google = googleIdentityValidator.IsConfigured;
-        var apple = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLE_AUTH_CLIENT_ID"));
-        var facebook = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FACEBOOK_AUTH_APP_ID"));
-        return Task.FromResult(new SocialAuthConfigDto(google, apple, facebook, [
-            "GOOGLE_AUTH_CLIENT_ID",
-            "APPLE_AUTH_CLIENT_ID",
-            "FACEBOOK_AUTH_APP_ID"
+        return Task.FromResult(new SocialAuthConfigDto(google, false, false, [
+            "GOOGLE_AUTH_CLIENT_ID"
         ]));
     }
 

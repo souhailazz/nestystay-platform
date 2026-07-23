@@ -62,6 +62,7 @@ import {
   type GoogleSignInRequest,
   type PhaseTwoPricebookItem,
   type PropertyListing,
+  type SocialAuthConfig,
   type WellnessAdminDashboard,
   type WellnessOfficer,
   type WellnessQuote,
@@ -381,7 +382,23 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const googleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const [socialConfig, setSocialConfig] = useState<SocialAuthConfig | null>(null);
+  const googleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID && socialConfig?.googleEnabled);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getSocialAuthConfig()
+      .then((config) => {
+        if (!cancelled) setSocialConfig(config);
+      })
+      .catch(() => {
+        if (!cancelled) setSocialConfig({ googleEnabled: false, appleEnabled: false, facebookEnabled: false, requiredEnvironmentVariables: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

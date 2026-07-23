@@ -360,7 +360,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
           {(config) => (
             <Card className="settings-card">
               <h3>Social authentication</h3>
-              <p>Buttons are active only when provider environment variables are configured.</p>
+              <p>Google is active only when server-side OAuth validation is configured. Apple and Facebook stay unavailable until complete secure flows ship.</p>
               <div className="button-row">
                 <Button disabled={!config.googleEnabled} variant="outline">Google</Button>
                 <Button disabled={!config.appleEnabled} variant="outline">Apple</Button>

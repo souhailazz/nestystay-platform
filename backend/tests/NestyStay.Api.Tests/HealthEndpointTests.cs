@@ -412,7 +412,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(directLogin);
         Assert.False(directLogin.RequiresTwoFactor);
         Assert.Null(directLogin.ChallengeId);
-        Assert.NotEmpty(directLogin.AccessToken);
+        Assert.False(string.IsNullOrWhiteSpace(directLogin.AccessToken));
     }
 
     [Fact]

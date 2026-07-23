@@ -102,7 +102,7 @@ public sealed class PhaseOneWorkflowTests
         clock.Advance(TimeSpan.FromMinutes(16));
         var challenge = await harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None);
 
-        Assert.NotEmpty(challenge.ChallengeId);
+        Assert.False(string.IsNullOrWhiteSpace(challenge.ChallengeId));
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public sealed class PhaseOneWorkflowTests
         var directLogin = await harness.Store.LoginAsync(new LoginRequest("disable@test.local", "Password123!"), CancellationToken.None);
         Assert.False(directLogin.RequiresTwoFactor);
         Assert.Null(directLogin.ChallengeId);
-        Assert.NotEmpty(directLogin.AccessToken);
+        Assert.False(string.IsNullOrWhiteSpace(directLogin.AccessToken));
         Assert.Contains(UserRole.Guest, directLogin.Roles ?? []);
     }
 
