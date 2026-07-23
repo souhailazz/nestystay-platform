@@ -10,8 +10,7 @@ namespace NestyStay.Api.Controllers;
 [Route("api/spec")]
 public sealed class SpecCompletionController(
     ISpecCompletionStore store,
-    IPhaseOneStore phaseOneStore,
-    CurrentUserContext currentUser,
+    IResourceAuthorizationService authorization,
     IHostEnvironment environment,
     IConfiguration configuration) : ControllerBase
 {
@@ -68,35 +67,35 @@ public sealed class SpecCompletionController(
         UpsertHostProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = RequireUser(request.HostUserId);
+        var actor = authorization.RequireHostOwner(request.HostUserId);
         return Ok(await store.UpsertHostProfileAsync(slug, request, actor, cancellationToken));
     }
 
     [HttpGet("traveler/{userId:guid}")]
     public async Task<ActionResult<TravelerWorkspaceDto>> GetTraveler(Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.GetTravelerWorkspaceAsync(userId, cancellationToken));
     }
 
     [HttpPost("traveler/{userId:guid}/wishlist/collections")]
     public async Task<ActionResult<WishlistCollectionDto>> CreateWishlistCollection(Guid userId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.CreateWishlistCollectionAsync(userId, request, cancellationToken));
     }
 
     [HttpPut("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}")]
     public async Task<ActionResult<WishlistCollectionDto>> RenameWishlistCollection(Guid userId, Guid collectionId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.RenameWishlistCollectionAsync(userId, collectionId, request, cancellationToken));
     }
 
     [HttpDelete("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}")]
     public async Task<IActionResult> DeleteWishlistCollection(Guid userId, Guid collectionId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.DeleteWishlistCollectionAsync(userId, collectionId, cancellationToken);
         return NoContent();
     }
@@ -104,14 +103,14 @@ public sealed class SpecCompletionController(
     [HttpPost("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}/items")]
     public async Task<ActionResult<WishlistItemDto>> AddWishlistItem(Guid userId, Guid collectionId, SaveWishlistItemRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.AddWishlistItemAsync(userId, collectionId, request, cancellationToken));
     }
 
     [HttpDelete("traveler/{userId:guid}/wishlist/items/{itemId:guid}")]
     public async Task<IActionResult> RemoveWishlistItem(Guid userId, Guid itemId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.RemoveWishlistItemAsync(userId, itemId, cancellationToken);
         return NoContent();
     }
@@ -119,14 +118,14 @@ public sealed class SpecCompletionController(
     [HttpPost("traveler/{userId:guid}/payment-methods")]
     public async Task<ActionResult<PaymentMethodDto>> AddPaymentMethod(Guid userId, SavePaymentMethodRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.AddPaymentMethodAsync(userId, request, cancellationToken));
     }
 
     [HttpPost("traveler/{userId:guid}/payment-methods/{paymentMethodId:guid}/default")]
     public async Task<IActionResult> SetDefaultPaymentMethod(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.SetDefaultPaymentMethodAsync(userId, paymentMethodId, cancellationToken);
         return NoContent();
     }
@@ -134,7 +133,7 @@ public sealed class SpecCompletionController(
     [HttpDelete("traveler/{userId:guid}/payment-methods/{paymentMethodId:guid}")]
     public async Task<IActionResult> RemovePaymentMethod(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.RemovePaymentMethodAsync(userId, paymentMethodId, cancellationToken);
         return NoContent();
     }
@@ -142,21 +141,21 @@ public sealed class SpecCompletionController(
     [HttpPost("traveler/{userId:guid}/reviews")]
     public async Task<ActionResult<ReviewDto>> SubmitReview(Guid userId, SaveReviewRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.SubmitReviewAsync(userId, request, cancellationToken));
     }
 
     [HttpPost("host/{hostUserId:guid}/reviews/{reviewId:guid}/reply")]
     public async Task<ActionResult<ReviewDto>> ReplyToReview(Guid hostUserId, Guid reviewId, SaveReviewReplyRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(hostUserId);
+        authorization.RequireHostOwner(hostUserId);
         return Ok(await store.ReplyToReviewAsync(hostUserId, reviewId, request, cancellationToken));
     }
 
     [HttpPost("traveler/{userId:guid}/notifications/{notificationId:guid}/read")]
     public async Task<IActionResult> MarkNotificationRead(Guid userId, Guid notificationId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.MarkNotificationReadAsync(userId, notificationId, cancellationToken);
         return NoContent();
     }
@@ -164,7 +163,7 @@ public sealed class SpecCompletionController(
     [HttpPost("traveler/{userId:guid}/notifications/read-all")]
     public async Task<IActionResult> MarkAllNotificationsRead(Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.MarkAllNotificationsReadAsync(userId, cancellationToken);
         return NoContent();
     }
@@ -185,28 +184,28 @@ public sealed class SpecCompletionController(
     [HttpPost("directories/providers")]
     public async Task<ActionResult<DirectoryProviderDto>> UpsertDirectoryProvider(UpsertDirectoryProviderRequest request, CancellationToken cancellationToken)
     {
-        var actor = RequireAnyUser();
+        var actor = authorization.RequireSignedInUser();
         return Ok(await store.UpsertDirectoryProviderAsync(request, actor, cancellationToken));
     }
 
     [HttpGet("messages/inbox")]
     public async Task<ActionResult<MessagingInboxDto>> GetInbox([FromQuery] Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.GetInboxAsync(userId, cancellationToken));
     }
 
     [HttpGet("messages/conversations/{conversationId:guid}")]
     public async Task<ActionResult<ConversationDto>> GetConversation(Guid conversationId, [FromQuery] Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return await store.GetConversationAsync(userId, conversationId, cancellationToken) is { } conversation ? Ok(conversation) : NotFound();
     }
 
     [HttpPost("messages/conversations")]
     public async Task<ActionResult<ConversationDto>> CreateConversation([FromQuery] Guid userId, CreateConversationRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.CreateConversationAsync(userId, request, cancellationToken));
     }
 
@@ -217,7 +216,7 @@ public sealed class SpecCompletionController(
         PrepareMessageAttachmentUploadRequest request,
         CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.PrepareMessageAttachmentUploadAsync(userId, conversationId, request, cancellationToken));
     }
 
@@ -228,7 +227,7 @@ public sealed class SpecCompletionController(
         [FromQuery] Guid userId,
         CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.CompleteMessageAttachmentUploadAsync(userId, conversationId, attachmentId, cancellationToken));
     }
 
@@ -239,21 +238,21 @@ public sealed class SpecCompletionController(
         [FromQuery] Guid userId,
         CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.GetMessageAttachmentDownloadAsync(userId, conversationId, attachmentId, cancellationToken));
     }
 
     [HttpPost("messages/conversations/{conversationId:guid}/messages")]
     public async Task<ActionResult<MessageDto>> SendMessage(Guid conversationId, [FromQuery] Guid userId, SendMessageRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.SendMessageAsync(userId, conversationId, request, cancellationToken));
     }
 
     [HttpPost("messages/conversations/{conversationId:guid}/read")]
     public async Task<IActionResult> MarkConversationRead(Guid conversationId, [FromQuery] Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         await store.MarkConversationReadAsync(userId, conversationId, cancellationToken);
         return NoContent();
     }
@@ -261,15 +260,15 @@ public sealed class SpecCompletionController(
     [HttpGet("host/{hostUserId:guid}/operations")]
     public async Task<ActionResult<HostOperationsDto>> GetHostOperations(Guid hostUserId, CancellationToken cancellationToken)
     {
-        RequireUser(hostUserId);
+        authorization.RequireHostOwner(hostUserId);
         return Ok(await store.GetHostOperationsAsync(hostUserId, cancellationToken));
     }
 
     [HttpPost("host/{hostUserId:guid}/pricing-rules")]
     public async Task<ActionResult<HostPricingRuleDto>> SavePricingRule(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(hostUserId);
-        if (!HostOwnsProperty(hostUserId, request.PropertyId))
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId))
         {
             return NotFound();
         }
@@ -280,8 +279,8 @@ public sealed class SpecCompletionController(
     [HttpPost("host/{hostUserId:guid}/promotions")]
     public async Task<ActionResult<HostPromotionDto>> SavePromotion(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken)
     {
-        RequireUser(hostUserId);
-        if (!HostOwnsProperty(hostUserId, request.PropertyId))
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId))
         {
             return NotFound();
         }
@@ -297,12 +296,12 @@ public sealed class SpecCompletionController(
     [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
     [HttpPost("admin/cases")]
     public async Task<ActionResult<AdminCaseDto>> CreateAdminCase(CreateAdminCaseRequest request, CancellationToken cancellationToken) =>
-        Ok(await store.CreateAdminCaseAsync(request, TryGetUserFromBearer(), cancellationToken));
+        Ok(await store.CreateAdminCaseAsync(request, authorization.TryGetSignedInUser(), cancellationToken));
 
     [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
     [HttpPost("admin/cases/{caseId:guid}/resolve")]
     public async Task<ActionResult<AdminCaseDto>> ResolveAdminCase(Guid caseId, ResolveAdminCaseRequest request, CancellationToken cancellationToken) =>
-        Ok(await store.ResolveAdminCaseAsync(caseId, request, TryGetUserFromBearer(), cancellationToken));
+        Ok(await store.ResolveAdminCaseAsync(caseId, request, authorization.TryGetSignedInUser(), cancellationToken));
 
     [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
     [HttpGet("admin/audit-log")]
@@ -334,31 +333,13 @@ public sealed class SpecCompletionController(
     [HttpPost("auth/{userId:guid}/recovery-codes")]
     public async Task<ActionResult<IReadOnlyList<RecoveryCodeDto>>> GenerateRecoveryCodes(Guid userId, CancellationToken cancellationToken)
     {
-        RequireUser(userId);
+        authorization.RequireResourceOwner(userId);
         return Ok(await store.GenerateRecoveryCodesAsync(userId, cancellationToken));
     }
 
     [HttpGet("auth/social-config")]
     public async Task<ActionResult<SocialAuthConfigDto>> SocialConfig(CancellationToken cancellationToken) =>
         Ok(await store.GetSocialAuthConfigAsync(cancellationToken));
-
-    private Guid RequireAnyUser() => currentUser.UserId ?? throw new UnauthorizedAccessException("A signed session bearer token is required.");
-
-    private bool HostOwnsProperty(Guid hostUserId, Guid propertyId) =>
-        phaseOneStore.GetProperty(propertyId) is { } property && property.HostUserId == hostUserId;
-
-    private Guid RequireUser(Guid expectedUserId)
-    {
-        var actual = RequireAnyUser();
-        if (actual != expectedUserId)
-        {
-            throw new UnauthorizedAccessException("The bearer token does not match this resource owner.");
-        }
-
-        return actual;
-    }
-
-    private Guid? TryGetUserFromBearer() => currentUser.UserId;
 
     private string ResolveRequesterIp() =>
         HttpContext.Connection.RemoteIpAddress?.ToString() ??

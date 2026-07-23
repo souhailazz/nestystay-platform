@@ -35,6 +35,7 @@ builder.Services.AddControllers()
     });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrentUserContext>();
+builder.Services.AddScoped<IResourceAuthorizationService, ResourceAuthorizationService>();
 builder.Services.AddSingleton<IAccessTokenService, SignedAccessTokenService>();
 builder.Services.AddAuthentication(AdminTokenAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, AdminTokenAuthenticationHandler>(

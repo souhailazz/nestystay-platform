@@ -8,22 +8,22 @@ namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/bookings")]
-public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUserContext currentUser) : ControllerBase
+public sealed class BookingsController(IPhaseOneStore phaseOneStore, IResourceAuthorizationService authorization) : ControllerBase
 {
     [Authorize]
     [HttpGet]
     public IActionResult List()
     {
-        if (User.IsInRole(UserRole.Admin.ToString()))
+        if (authorization.IsInRole(UserRole.Admin))
         {
             return Ok(phaseOneStore.GetBookings());
         }
 
-        var userId = RequireAuthenticatedUserId();
+        var userId = authorization.RequireSignedInUser("Authenticated user id is required.");
         var bookings = phaseOneStore.GetBookings()
             .Where(booking =>
                 booking.GuestUserId == userId ||
-                (User.IsInRole(UserRole.Host.ToString()) && booking.HostUserId == userId))
+                (authorization.IsInRole(UserRole.Host) && booking.HostUserId == userId))
             .ToList();
         return Ok(bookings);
     }
@@ -38,7 +38,7 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
             return NotFound();
         }
 
-        return CanAccessBooking(booking) ? Ok(booking) : NotFound();
+        return authorization.CanAccessBooking(booking) ? Ok(booking) : NotFound();
     }
 
     [Authorize]
@@ -59,7 +59,7 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
     [HttpPost]
     public async Task<IActionResult> Create(CreateBookingRequest request, CancellationToken cancellationToken)
     {
-        var guestUserId = RequireAuthenticatedUserId();
+        var guestUserId = authorization.RequireSignedInUser("Authenticated user id is required.");
         return Ok(await phaseOneStore.CreateBookingAsync(request with { GuestUserId = guestUserId }, cancellationToken));
     }
 
@@ -81,8 +81,7 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
             return NotFound();
         }
 
-        if (!User.IsInRole(UserRole.Admin.ToString()) &&
-            !(User.IsInRole(UserRole.Host.ToString()) && currentUser.UserId == existing.HostUserId))
+        if (!authorization.CanCaptureBooking(existing))
         {
             return Forbid();
         }
@@ -105,7 +104,7 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
         CancellationToken cancellationToken)
     {
         var booking = phaseOneStore.GetBooking(id);
-        if (booking is null || !CanAccessBooking(booking))
+        if (booking is null || !authorization.CanAccessBooking(booking))
         {
             return NotFound();
         }
@@ -116,18 +115,4 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
             : File(document.Content, document.ContentType, document.FileName);
     }
 
-    private Guid RequireAuthenticatedUserId() =>
-        currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated user id is required.");
-
-    private bool CanAccessBooking(BookingDto booking)
-    {
-        if (User.IsInRole(UserRole.Admin.ToString()))
-        {
-            return true;
-        }
-
-        var userId = RequireAuthenticatedUserId();
-        return booking.GuestUserId == userId ||
-            (User.IsInRole(UserRole.Host.ToString()) && booking.HostUserId == userId);
-    }
 }

@@ -195,6 +195,30 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.NotNull(wishlistItem);
         Assert.Equal(propertyId, wishlistItem.PropertyId);
 
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherTravelerId);
+        var crossTravelerCollectionRename = await client.PutAsJsonAsync($"/api/spec/traveler/{otherTravelerId}/wishlist/collections/{collection.Id}", new
+        {
+            name = "Takeover list",
+            sortOrder = 1
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerCollectionRename.StatusCode);
+
+        var crossTravelerCollectionDelete = await client.DeleteAsync($"/api/spec/traveler/{otherTravelerId}/wishlist/collections/{collection.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerCollectionDelete.StatusCode);
+
+        var crossTravelerWishlistItemAdd = await client.PostAsJsonAsync($"/api/spec/traveler/{otherTravelerId}/wishlist/collections/{collection.Id}/items", new
+        {
+            propertyId,
+            propertyTitle = "Cross traveler property",
+            status = "Available",
+            sortOrder = 1
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerWishlistItemAdd.StatusCode);
+
+        var crossTravelerWishlistItemRemove = await client.DeleteAsync($"/api/spec/traveler/{otherTravelerId}/wishlist/items/{wishlistItem.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerWishlistItemRemove.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = LocalUser(travelerId);
         var invalidPayment = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/payment-methods", new
         {
             brand = "Visa",
@@ -218,6 +242,14 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.NotNull(payment);
         Assert.True(payment.IsDefault);
 
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherTravelerId);
+        var crossTravelerDefaultPayment = await client.PostAsync($"/api/spec/traveler/{otherTravelerId}/payment-methods/{payment.Id}/default", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerDefaultPayment.StatusCode);
+
+        var crossTravelerRemovePayment = await client.DeleteAsync($"/api/spec/traveler/{otherTravelerId}/payment-methods/{payment.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossTravelerRemovePayment.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = LocalUser(travelerId);
         var reviewResponse = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/reviews", new
         {
             propertyId,
@@ -230,15 +262,19 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var review = await reviewResponse.Content.ReadFromJsonAsync<ReviewResponse>();
         Assert.NotNull(review);
 
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        var hostRouteAsGuest = await client.GetAsync($"/api/spec/host/{hostId}/operations");
+        Assert.Equal(HttpStatusCode.Forbidden, hostRouteAsGuest.StatusCode);
+
         var otherHostId = Guid.NewGuid();
-        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId, UserRole.Host);
         var crossHostReplyResponse = await client.PostAsJsonAsync($"/api/spec/host/{otherHostId}/reviews/{review.Id}/reply", new
         {
             reply = "This host should not be able to reply."
         });
         Assert.Equal(HttpStatusCode.Unauthorized, crossHostReplyResponse.StatusCode);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         var replyResponse = await client.PostAsJsonAsync($"/api/spec/host/{hostId}/reviews/{review.Id}/reply", new
         {
             reply = "Big thanks for staying with us."
@@ -256,7 +292,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.All(refreshedWorkspace.Notifications, item => Assert.True(item.IsRead));
 
         var otherHostPropertyId = await CreateHostPropertyAsync(client, otherHostId);
-        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         var hostProfileResponse = await client.PutAsJsonAsync("/api/spec/host-profiles/profile-ownership-test", new
         {
             hostUserId = hostId,
@@ -285,7 +321,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         });
         Assert.Equal(HttpStatusCode.Unauthorized, foreignListingProfileResponse.StatusCode);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId, UserRole.Host);
         var crossHostProfileResponse = await client.PutAsJsonAsync("/api/spec/host-profiles/profile-ownership-test", new
         {
             hostUserId = otherHostId,
@@ -314,7 +350,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         });
         Assert.Equal(HttpStatusCode.Unauthorized, directoryCreateNoToken.StatusCode);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         var seedProviderEditResponse = await client.PostAsJsonAsync("/api/spec/directories/providers", new
         {
             slug = "spark-cleaning-team",
@@ -353,7 +389,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.NotNull(providerLookup);
         Assert.Equal("Kingston Turnover Team", providerLookup.Name);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId, UserRole.Host);
         var providerTakeoverResponse = await client.PostAsJsonAsync("/api/spec/directories/providers", new
         {
             slug = "kingston-turnover-team",
@@ -459,7 +495,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var crossUserDownload = await client.GetAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{attachment.AttachmentId}/download?userId={otherTravelerId}");
         Assert.Equal(HttpStatusCode.Unauthorized, crossUserDownload.StatusCode);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         var attachmentDownload = await client.GetFromJsonAsync<AttachmentDownloadResponse>($"/api/spec/messages/conversations/{conversation.Id}/attachments/{attachment.AttachmentId}/download?userId={hostId}");
         Assert.NotNull(attachmentDownload);
         Assert.Equal("arrival-note.pdf", attachmentDownload.FileName);
@@ -475,7 +511,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var hostOpsNoToken = await client.GetAsync($"/api/spec/host/{hostId}/operations");
         Assert.Equal(HttpStatusCode.Unauthorized, hostOpsNoToken.StatusCode);
 
-        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         var hostOps = await client.GetFromJsonAsync<HostOperationsResponse>($"/api/spec/host/{hostId}/operations");
         Assert.NotNull(hostOps);
         Assert.True(hostOps.Analytics.Revenue > 0);
@@ -632,9 +668,9 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record WishlistCollectionResponse(Guid Id, string Name);
 
-    private sealed record WishlistItemResponse(Guid PropertyId);
+    private sealed record WishlistItemResponse(Guid Id, Guid PropertyId);
 
-    private sealed record PaymentMethodResponse(bool IsDefault);
+    private sealed record PaymentMethodResponse(Guid Id, bool IsDefault);
 
     private sealed record ReviewResponse(Guid Id, string? HostReply);
 

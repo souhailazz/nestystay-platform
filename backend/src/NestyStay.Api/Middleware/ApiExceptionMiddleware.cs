@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using NestyStay.Api.Auth;
 
 namespace NestyStay.Api.Middleware;
 
@@ -27,6 +28,18 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
         {
             logger.LogWarning(exception, "API authorization error");
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = exception.Message,
+                status = context.Response.StatusCode,
+                traceId = context.TraceIdentifier
+            }));
+        }
+        catch (ForbiddenAccessException exception)
+        {
+            logger.LogWarning(exception, "API forbidden error");
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
             context.Response.ContentType = "application/problem+json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(new
             {

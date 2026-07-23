@@ -8,7 +8,7 @@ namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/properties")]
-public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUserContext currentUser) : ControllerBase
+public sealed class PropertiesController(IPhaseOneStore phaseOneStore, IResourceAuthorizationService authorization) : ControllerBase
 {
     [HttpGet]
     public IActionResult GetProperties() => Ok(phaseOneStore.GetProperties());
@@ -17,12 +17,7 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
     [HttpPost]
     public async Task<IActionResult> CreateProperty(CreatePropertyRequest request, CancellationToken cancellationToken)
     {
-        if (!User.IsInRole(UserRole.Host.ToString()))
-        {
-            return Forbid();
-        }
-
-        var hostUserId = currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated host id is required.");
+        var hostUserId = authorization.RequireHost();
         return Ok(await phaseOneStore.CreatePropertyAsync(request with { HostUserId = hostUserId }, cancellationToken));
     }
 
@@ -30,7 +25,7 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProperty(Guid id, UpdatePropertyRequest request, CancellationToken cancellationToken)
     {
-        var hostUserId = RequireHost();
+        var hostUserId = authorization.RequireHost();
         return Ok(await phaseOneStore.UpdatePropertyAsync(hostUserId, id, request, cancellationToken));
     }
 
@@ -38,7 +33,7 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
     [HttpPost("{id:guid}/archive")]
     public async Task<IActionResult> ArchiveProperty(Guid id, CancellationToken cancellationToken)
     {
-        var hostUserId = RequireHost();
+        var hostUserId = authorization.RequireHost();
         return Ok(await phaseOneStore.ArchivePropertyAsync(hostUserId, id, true, cancellationToken));
     }
 
@@ -46,7 +41,7 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
     [HttpPost("{id:guid}/restore")]
     public async Task<IActionResult> RestoreProperty(Guid id, CancellationToken cancellationToken)
     {
-        var hostUserId = RequireHost();
+        var hostUserId = authorization.RequireHost();
         return Ok(await phaseOneStore.ArchivePropertyAsync(hostUserId, id, false, cancellationToken));
     }
 
@@ -54,7 +49,7 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteProperty(Guid id, CancellationToken cancellationToken)
     {
-        var hostUserId = RequireHost();
+        var hostUserId = authorization.RequireHost();
         await phaseOneStore.DeletePropertyAsync(hostUserId, id, cancellationToken);
         return NoContent();
     }
@@ -66,8 +61,4 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, CurrentUs
         return property is null ? NotFound() : Ok(property);
     }
 
-    private Guid RequireHost()
-    {
-        return currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated host id is required.");
-    }
 }
