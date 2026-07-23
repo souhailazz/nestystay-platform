@@ -3101,6 +3101,28 @@ svg {
   gap: 14px;
 }
 
+.auth-form .inline-check {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  color: #31443e;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.auth-form .inline-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f766e;
+}
+
+.auth-form .inline-check input:focus-visible {
+  outline: 3px solid rgb(15 118 110 / 24%);
+  outline-offset: 3px;
+}
+
 .auth-mode-toggle {
   width: 100%;
 }

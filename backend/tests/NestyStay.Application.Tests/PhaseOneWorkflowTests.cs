@@ -12,7 +12,7 @@ public sealed class PhaseOneWorkflowTests
     {
         var harness = CreateHarness();
         var registered = await harness.Store.RegisterAsync(
-            new RegisterUserRequest("secure@test.local", "Password123!", "Secure Guest", "254-248-2435"),
+            Registration("secure@test.local", "Secure Guest", "254-248-2435"),
             CancellationToken.None);
 
         Assert.True(registered.RequiresTwoFactor);
@@ -20,13 +20,19 @@ public sealed class PhaseOneWorkflowTests
         Assert.Equal("Secure Guest", registered.DisplayName);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.RegisterAsync(new RegisterUserRequest("secure@test.local", "Password123!", "Secure Guest", null), CancellationToken.None));
+            harness.Store.RegisterAsync(Registration("secure@test.local", "Secure Guest"), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.RegisterAsync(new RegisterUserRequest("not-an-email", "Password123!", "Bad Email", null), CancellationToken.None));
+            harness.Store.RegisterAsync(Registration("not-an-email", "Bad Email"), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.RegisterAsync(new RegisterUserRequest("", "Password123!", "No Email", null), CancellationToken.None));
+            harness.Store.RegisterAsync(Registration("", "No Email"), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.RegisterAsync(new RegisterUserRequest("weak@test.local", "short", "Weak Password", null), CancellationToken.None));
+            harness.Store.RegisterAsync(Registration("weak@test.local", "Weak Password", password: "short"), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.RegisterAsync(new RegisterUserRequest("mismatch@test.local", "Password123!", "Mismatch", null, "Password124!", true, true), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.RegisterAsync(new RegisterUserRequest("terms@test.local", "Password123!", "Terms", null, "Password123!", false, true), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.RegisterAsync(new RegisterUserRequest("admin@test.local", "Password123!", "Admin", null, "Password123!", true, true, UserRole.Admin), CancellationToken.None));
 
         var passwordHash = ExtractStoredPasswordHash(harness.Store, registered.UserId);
         Assert.NotEqual("Password123!", passwordHash);
@@ -39,7 +45,7 @@ public sealed class PhaseOneWorkflowTests
         var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
         var harness = CreateHarness(clock);
         var registered = await harness.Store.RegisterAsync(
-            new RegisterUserRequest("secure@test.local", "Password123!", "Secure Guest", null),
+            Registration("secure@test.local", "Secure Guest"),
             CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -113,7 +119,7 @@ public sealed class PhaseOneWorkflowTests
     public async Task BookingWithGuestVerificationMovesThroughPendingApprovedAndIdempotentPaymentCapture()
     {
         var harness = CreateHarness();
-        var user = await harness.Store.RegisterAsync(new RegisterUserRequest("phase1@test.local", "Password123!", "Phase Guest", null), CancellationToken.None);
+        var user = await harness.Store.RegisterAsync(Registration("phase1@test.local", "Phase Guest"), CancellationToken.None);
         var property = harness.Store.GetProperties().First(item => item.GuestVerificationEnabled);
 
         var quote = await harness.Store.QuoteBookingAsync(new BookingQuoteRequest(property.Id, new DateOnly(2026, 6, 10), new DateOnly(2026, 6, 13)), CancellationToken.None);
@@ -163,7 +169,7 @@ public sealed class PhaseOneWorkflowTests
     public async Task RejectionFlowReleasesDatesAndPreventsPaymentOrConflictingWebhook()
     {
         var harness = CreateHarness();
-        var user = await harness.Store.RegisterAsync(new RegisterUserRequest("reject@test.local", "Password123!", "Reject Guest", null), CancellationToken.None);
+        var user = await harness.Store.RegisterAsync(Registration("reject@test.local", "Reject Guest"), CancellationToken.None);
         var property = harness.Store.GetProperties().First(item => item.GuestVerificationEnabled);
         var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 4)), CancellationToken.None);
 
@@ -194,7 +200,7 @@ public sealed class PhaseOneWorkflowTests
     public async Task BookingQuotesAndCreationRejectInvalidUnavailableAndUnknownInputs()
     {
         var harness = CreateHarness();
-        var user = await harness.Store.RegisterAsync(new RegisterUserRequest("held@test.local", "Password123!", "Held Guest", null), CancellationToken.None);
+        var user = await harness.Store.RegisterAsync(Registration("held@test.local", "Held Guest"), CancellationToken.None);
         var property = harness.Store.GetProperties().First(item => item.GuestVerificationEnabled);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -217,7 +223,7 @@ public sealed class PhaseOneWorkflowTests
     public async Task NonVerificationPropertyApprovesImmediatelyAndDoesNotStartEkyc()
     {
         var harness = CreateHarness();
-        var user = await harness.Store.RegisterAsync(new RegisterUserRequest("approved@test.local", "Password123!", "Approved Guest", null), CancellationToken.None);
+        var user = await harness.Store.RegisterAsync(Registration("approved@test.local", "Approved Guest"), CancellationToken.None);
         var property = await harness.Store.CreatePropertyAsync(new CreatePropertyRequest(
             Guid.NewGuid(),
             "Free Host",
@@ -247,6 +253,14 @@ public sealed class PhaseOneWorkflowTests
         var store = new PhaseOneStore(ekycProvider, paymentGateway, notificationGateway, timeProvider ?? TimeProvider.System);
         return new PhaseOneHarness(store, ekycProvider, paymentGateway, notificationGateway);
     }
+
+    private static RegisterUserRequest Registration(
+        string email,
+        string displayName,
+        string? phone = null,
+        string password = "Password123!",
+        UserRole role = UserRole.Guest) =>
+        new(email, password, displayName, phone, password, true, true, role);
 
     private static string ExtractStoredPasswordHash(PhaseOneStore store, Guid userId)
     {

@@ -26,7 +26,7 @@ public sealed class MilestonePersistenceTests
         {
             var store = CreatePhaseOneStore(db, providers);
             var registered = await store.RegisterAsync(
-                new RegisterUserRequest("persisted@test.local", "Password123!", "Persisted Guest", null),
+                new RegisterUserRequest("persisted@test.local", "Password123!", "Persisted Guest", null, "Password123!", true, true),
                 CancellationToken.None);
             var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
             var booking = await store.CreateBookingAsync(

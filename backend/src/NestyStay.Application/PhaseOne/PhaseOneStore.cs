@@ -109,7 +109,7 @@ public sealed class PhaseOneStore(
                 request.DisplayName.Trim(),
                 request.Phone?.Trim(),
                 GenerateSecret(),
-                [UserRole.Guest]);
+                [request.Role]);
 
             _users.Add(user);
             return Task.FromResult(new RegisterUserResponse(
@@ -799,6 +799,21 @@ public sealed class PhaseOneStore(
             !request.Password.Any(char.IsDigit))
         {
             throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+        }
+
+        if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Password confirmation must match.");
+        }
+
+        if (!request.AcceptedTerms || !request.AcceptedPrivacy)
+        {
+            throw new InvalidOperationException("Terms of service and privacy policy acceptance are required.");
+        }
+
+        if (request.Role is not (UserRole.Guest or UserRole.Host))
+        {
+            throw new InvalidOperationException("Only traveler and host self-service registration is available.");
         }
     }
 

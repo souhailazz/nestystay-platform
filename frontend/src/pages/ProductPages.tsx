@@ -372,8 +372,12 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
   const [activeMode, setActiveMode] = useState(mode);
   const [email, setEmail] = useState("guest@nestystay.local");
   const [password, setPassword] = useState("NestyStay1");
+  const [confirmPassword, setConfirmPassword] = useState("NestyStay1");
   const [displayName, setDisplayName] = useState("Nesty Guest");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"Guest" | "Host">("Guest");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -384,7 +388,16 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     setNotice(null);
     try {
       if (activeMode === "register") {
-        await auth.register({ email, password, displayName, phone });
+        await auth.register({
+          email,
+          password,
+          displayName,
+          phone,
+          confirmPassword,
+          acceptedTerms,
+          acceptedPrivacy,
+          role,
+        });
         setCode("");
         setNotice("Registration saved. Enter the verification code from your authenticator app.");
       } else {
@@ -483,12 +496,41 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
 
             {activeMode === "register" && (
               <div className="form-grid form-grid--two">
+                <Field label="Account type">
+                  <Select value={role} onChange={(event) => setRole(event.target.value as "Guest" | "Host")}>
+                    <option value="Guest">Traveler</option>
+                    <option value="Host">Host</option>
+                  </Select>
+                </Field>
                 <Field label="Display name">
                   <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
                 </Field>
                 <Field label="Phone">
                   <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
                 </Field>
+                <Field label="Confirm password">
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                </Field>
+                <label className="inline-check">
+                  <input
+                    checked={acceptedTerms}
+                    onChange={(event) => setAcceptedTerms(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>I accept the terms of service.</span>
+                </label>
+                <label className="inline-check">
+                  <input
+                    checked={acceptedPrivacy}
+                    onChange={(event) => setAcceptedPrivacy(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>I accept the privacy policy.</span>
+                </label>
               </div>
             )}
 

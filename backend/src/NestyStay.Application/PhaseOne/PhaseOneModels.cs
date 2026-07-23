@@ -2,7 +2,15 @@ using NestyStay.Domain;
 
 namespace NestyStay.Application.PhaseOne;
 
-public sealed record RegisterUserRequest(string Email, string Password, string DisplayName, string? Phone);
+public sealed record RegisterUserRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    string? Phone,
+    string? ConfirmPassword = null,
+    bool AcceptedTerms = false,
+    bool AcceptedPrivacy = false,
+    UserRole Role = UserRole.Guest);
 
 public sealed record RegisterUserResponse(Guid UserId, string Email, string DisplayName, bool RequiresTwoFactor);
 

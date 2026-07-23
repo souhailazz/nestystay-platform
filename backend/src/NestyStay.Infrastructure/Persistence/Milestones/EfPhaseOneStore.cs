@@ -40,7 +40,7 @@ public sealed class EfPhaseOneStore(
             DisplayName = request.DisplayName.Trim(),
             Phone = request.Phone?.Trim(),
             TwoFactorSecret = GenerateSecret(),
-            RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([UserRole.Guest])
+            RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([request.Role])
         };
 
         db.MilestoneUsers.Add(user);
@@ -780,6 +780,21 @@ public sealed class EfPhaseOneStore(
             !request.Password.Any(char.IsDigit))
         {
             throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+        }
+
+        if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Password confirmation must match.");
+        }
+
+        if (!request.AcceptedTerms || !request.AcceptedPrivacy)
+        {
+            throw new InvalidOperationException("Terms of service and privacy policy acceptance are required.");
+        }
+
+        if (request.Role is not (UserRole.Guest or UserRole.Host))
+        {
+            throw new InvalidOperationException("Only traveler and host self-service registration is available.");
         }
     }
 

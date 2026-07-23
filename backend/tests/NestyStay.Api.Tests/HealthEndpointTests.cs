@@ -79,7 +79,11 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             email,
             password = "Password123!",
             displayName = "Phase One Guest",
-            phone = "254-248-2435"
+            phone = "254-248-2435",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
         });
         Assert.Equal(HttpStatusCode.OK, register.StatusCode);
         Assert.DoesNotContain("twoFactorCode", await register.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
@@ -92,7 +96,11 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             email,
             password = "Password123!",
             displayName = "Phase One Guest",
-            phone = "254-248-2435"
+            phone = "254-248-2435",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
         });
         Assert.Equal(HttpStatusCode.BadRequest, duplicateRegister.StatusCode);
 
@@ -100,7 +108,11 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         {
             email = $"weak-{Guid.NewGuid():N}@test.local",
             password = "short",
-            displayName = "Weak Guest"
+            displayName = "Weak Guest",
+            confirmPassword = "short",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
         });
         Assert.Equal(HttpStatusCode.BadRequest, weakRegister.StatusCode);
 

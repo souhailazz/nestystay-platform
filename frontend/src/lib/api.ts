@@ -7,6 +7,10 @@ export type RegisterUserRequest = {
   password: string;
   displayName: string;
   phone?: string;
+  confirmPassword: string;
+  acceptedTerms: boolean;
+  acceptedPrivacy: boolean;
+  role: Extract<UserRole, "Guest" | "Host">;
 };
 
 export type RegisterUserResponse = {
