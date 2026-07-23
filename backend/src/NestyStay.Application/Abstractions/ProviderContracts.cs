@@ -79,7 +79,8 @@ public sealed record PaymentAuthorizationRequest(
     Guid BookingId,
     decimal Amount,
     string Currency,
-    string Description);
+    string Description,
+    string IdempotencyKey = "");
 
 public sealed record PaymentAuthorizationResult(
     string ProviderName,
@@ -91,7 +92,8 @@ public sealed record PaymentAuthorizationResult(
 public sealed record PaymentCaptureRequest(
     string AuthorizationReference,
     decimal Amount,
-    string Currency);
+    string Currency,
+    string IdempotencyKey = "");
 
 public sealed record PaymentCaptureResult(
     string ProviderName,

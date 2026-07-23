@@ -49,6 +49,8 @@ public sealed class PhaseOneStore(
     private const int TotpStepSeconds = 30;
     private const int MaximumLoginAttempts = 5;
     private const int MaximumChallengeAttempts = 5;
+    private const string PaymentOperationAuthorize = "Authorize";
+    private const string PaymentOperationCapture = "Capture";
     private const string PasswordResetStatusPending = "Pending";
     private const string PasswordResetStatusCompleted = "Completed";
     private const string PasswordResetStatusExpired = "Expired";
@@ -864,7 +866,8 @@ public sealed class PhaseOneStore(
             captureRequest = new PaymentCaptureRequest(
                 booking.PaymentAuthorizationReference,
                 booking.TotalAmount,
-                booking.Currency);
+                booking.Currency,
+                BuildPaymentIdempotencyKey(booking.Id, PaymentOperationCapture));
         }
 
         var capture = await paymentGateway.CaptureAsync(captureRequest, cancellationToken);
@@ -940,7 +943,8 @@ public sealed class PhaseOneStore(
                 booking.Id,
                 booking.TotalAmount,
                 booking.Currency,
-                $"NestyStay booking {booking.Id:N}");
+                $"NestyStay booking {booking.Id:N}",
+                BuildPaymentIdempotencyKey(booking.Id, PaymentOperationAuthorize));
         }
 
         var authorization = await paymentGateway.AuthorizeAsync(authorizationRequest, cancellationToken);
@@ -1196,6 +1200,9 @@ public sealed class PhaseOneStore(
             throw new InvalidOperationException("Only traveler and host self-service registration is available.");
         }
     }
+
+    private static string BuildPaymentIdempotencyKey(Guid bookingId, string operation) =>
+        $"booking:{bookingId:N}:{operation.ToLowerInvariant()}";
 
     private static string NormalizePasswordResetEmail(string email)
     {

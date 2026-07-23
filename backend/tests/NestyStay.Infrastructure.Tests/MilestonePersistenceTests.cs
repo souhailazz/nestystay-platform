@@ -60,6 +60,18 @@ public sealed class MilestonePersistenceTests
             Assert.NotNull(approved);
             Assert.Equal("APPROVED", approved.Status);
             Assert.Equal("AUTHORIZED", approved.PaymentStatus);
+
+            var authorizationAttempt = await db.MilestonePaymentAttempts.SingleAsync(item => item.BookingId == bookingId && item.Operation == "Authorize");
+            Assert.Equal(PaymentStatus.Authorized, authorizationAttempt.Status);
+            Assert.StartsWith($"booking:{bookingId:N}:authorize", authorizationAttempt.IdempotencyKey, StringComparison.Ordinal);
+
+            var captured = await store.CapturePaymentAsync(bookingId, CancellationToken.None);
+            Assert.NotNull(captured);
+            Assert.Equal("CAPTURED", captured.PaymentStatus);
+
+            var captureAttempt = await db.MilestonePaymentAttempts.SingleAsync(item => item.BookingId == bookingId && item.Operation == "Capture");
+            Assert.Equal(PaymentStatus.Captured, captureAttempt.Status);
+            Assert.StartsWith($"booking:{bookingId:N}:capture", captureAttempt.IdempotencyKey, StringComparison.Ordinal);
         }
 
         await using (var db = CreateContext(databaseName, root))
@@ -69,9 +81,10 @@ public sealed class MilestonePersistenceTests
 
             Assert.NotNull(booking);
             Assert.Equal("APPROVED", booking.Status);
-            Assert.Equal("AUTHORIZED", booking.PaymentStatus);
+            Assert.Equal("CAPTURED", booking.PaymentStatus);
             Assert.Contains(booking.Notifications, item => item.RecipientType == "guest");
             Assert.Contains(booking.Timeline, item => item.Contains("Stripe manual-capture", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(2, await db.MilestonePaymentAttempts.CountAsync(item => item.BookingId == bookingId));
         }
     }
 

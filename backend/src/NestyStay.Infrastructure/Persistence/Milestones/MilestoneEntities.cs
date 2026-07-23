@@ -82,6 +82,20 @@ public sealed class MilestoneBooking : BaseEntity
     public string TimelineJson { get; set; } = "[]";
 }
 
+public sealed class MilestonePaymentAttempt : BaseEntity
+{
+    public Guid BookingId { get; set; }
+    public string Operation { get; set; } = string.Empty;
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public string Provider { get; set; } = string.Empty;
+    public string ProviderReference { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
+    public string FailureReason { get; set; } = string.Empty;
+    public DateTimeOffset? CompletedAt { get; set; }
+}
+
 public sealed class MilestonePricebookEntry : BaseEntity
 {
     public string Key { get; set; } = string.Empty;

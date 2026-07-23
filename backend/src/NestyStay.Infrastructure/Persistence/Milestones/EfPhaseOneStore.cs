@@ -25,6 +25,8 @@ public sealed class EfPhaseOneStore(
     private const int TotpStepSeconds = 30;
     private const int MaximumLoginAttempts = 5;
     private const int MaximumChallengeAttempts = 5;
+    private const string PaymentOperationAuthorize = "Authorize";
+    private const string PaymentOperationCapture = "Capture";
     private const string PasswordResetStatusPending = "Pending";
     private const string PasswordResetStatusCompleted = "Completed";
     private const string PasswordResetStatusExpired = "Expired";
@@ -799,16 +801,29 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("Stripe payment must have an authorization reference before it can be captured.");
         }
 
-        var capture = await paymentGateway.CaptureAsync(
-            new PaymentCaptureRequest(
-                booking.PaymentAuthorizationReference,
-                booking.TotalAmount,
-                booking.Currency),
-            cancellationToken);
+        var idempotencyKey = BuildPaymentIdempotencyKey(booking.Id, PaymentOperationCapture);
+        var attempt = await BeginPaymentAttemptAsync(booking.Id, PaymentOperationCapture, idempotencyKey, booking.TotalAmount, booking.Currency, cancellationToken);
+        PaymentCaptureResult capture;
+        try
+        {
+            capture = await paymentGateway.CaptureAsync(
+                new PaymentCaptureRequest(
+                    booking.PaymentAuthorizationReference,
+                    booking.TotalAmount,
+                    booking.Currency,
+                    idempotencyKey),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            await FailPaymentAttemptAsync(attempt, exception, cancellationToken);
+            throw;
+        }
 
         booking.PaymentProvider = capture.ProviderName;
         booking.PaymentCaptureReference = capture.CaptureReference;
         booking.PaymentStatus = capture.Status;
+        CompletePaymentAttempt(attempt, capture.ProviderName, capture.CaptureReference, capture.Status);
         AddTimeline(booking, "Stripe payment captured after approval");
         await QueueNotificationsAsync(booking, BuildPaymentCapturedNotifications(booking), cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -858,21 +873,83 @@ public sealed class EfPhaseOneStore(
             return;
         }
 
-        var authorization = await paymentGateway.AuthorizeAsync(
-            new PaymentAuthorizationRequest(
-                booking.Id,
-                booking.TotalAmount,
-                booking.Currency,
-                $"NestyStay booking {booking.Id:N}"),
-            cancellationToken);
+        var idempotencyKey = BuildPaymentIdempotencyKey(booking.Id, PaymentOperationAuthorize);
+        var attempt = await BeginPaymentAttemptAsync(booking.Id, PaymentOperationAuthorize, idempotencyKey, booking.TotalAmount, booking.Currency, cancellationToken);
+        PaymentAuthorizationResult authorization;
+        try
+        {
+            authorization = await paymentGateway.AuthorizeAsync(
+                new PaymentAuthorizationRequest(
+                    booking.Id,
+                    booking.TotalAmount,
+                    booking.Currency,
+                    $"NestyStay booking {booking.Id:N}",
+                    idempotencyKey),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            await FailPaymentAttemptAsync(attempt, exception, cancellationToken);
+            throw;
+        }
 
         booking.PaymentProvider = authorization.ProviderName;
         booking.PaymentAuthorizationReference = authorization.AuthorizationReference;
         booking.PaymentClientSecret = authorization.ClientSecret;
         booking.PaymentStatus = authorization.Status;
+        CompletePaymentAttempt(attempt, authorization.ProviderName, authorization.AuthorizationReference, authorization.Status);
         AddTimeline(booking, "Stripe manual-capture payment authorized after approval");
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    private async Task<MilestonePaymentAttempt> BeginPaymentAttemptAsync(
+        Guid bookingId,
+        string operation,
+        string idempotencyKey,
+        decimal amount,
+        string currency,
+        CancellationToken cancellationToken)
+    {
+        var attempt = await db.MilestonePaymentAttempts.SingleOrDefaultAsync(item => item.IdempotencyKey == idempotencyKey, cancellationToken);
+        if (attempt is null)
+        {
+            attempt = new MilestonePaymentAttempt
+            {
+                BookingId = bookingId,
+                Operation = operation,
+                IdempotencyKey = idempotencyKey,
+                Amount = amount,
+                Currency = currency,
+                Status = PaymentStatus.Pending
+            };
+            db.MilestonePaymentAttempts.Add(attempt);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return attempt;
+    }
+
+    private void CompletePaymentAttempt(MilestonePaymentAttempt attempt, string provider, string providerReference, PaymentStatus status)
+    {
+        attempt.Provider = provider;
+        attempt.ProviderReference = providerReference;
+        attempt.Status = status;
+        attempt.FailureReason = string.Empty;
+        attempt.CompletedAt = timeProvider.GetUtcNow();
+        attempt.UpdatedAt = attempt.CompletedAt.Value;
+    }
+
+    private async Task FailPaymentAttemptAsync(MilestonePaymentAttempt attempt, Exception exception, CancellationToken cancellationToken)
+    {
+        attempt.Status = PaymentStatus.Failed;
+        attempt.FailureReason = exception.Message;
+        attempt.CompletedAt = timeProvider.GetUtcNow();
+        attempt.UpdatedAt = attempt.CompletedAt.Value;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string BuildPaymentIdempotencyKey(Guid bookingId, string operation) =>
+        $"booking:{bookingId:N}:{operation.ToLowerInvariant()}";
 
     private async Task QueueNotificationsAsync(
         MilestoneBooking booking,

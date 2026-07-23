@@ -121,6 +121,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             HttpMethod.Post,
             "/v1/payment_intents",
             payload,
+            request.IdempotencyKey,
             cancellationToken);
         var root = document.RootElement;
         var status = root.GetProperty("status").GetString() ?? string.Empty;
@@ -138,9 +139,12 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
         var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
         if (string.IsNullOrWhiteSpace(secretKey) || request.AuthorizationReference.StartsWith("stripe_local_auth_", StringComparison.Ordinal))
         {
+            var captureReference = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? $"stripe_local_capture_{Guid.NewGuid():N}"
+                : $"stripe_local_capture_{request.IdempotencyKey.Replace(":", "_", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal)}";
             return new PaymentCaptureResult(
                 ProviderName,
-                $"stripe_local_capture_{Guid.NewGuid():N}",
+                captureReference,
                 PaymentStatus.Captured,
                 request.Amount,
                 request.Currency);
@@ -151,6 +155,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             HttpMethod.Post,
             $"/v1/payment_intents/{Uri.EscapeDataString(request.AuthorizationReference)}/capture",
             new Dictionary<string, string>(),
+            request.IdempotencyKey,
             cancellationToken);
         var root = document.RootElement;
         var status = root.GetProperty("status").GetString() ?? string.Empty;
@@ -168,6 +173,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
         HttpMethod method,
         string path,
         IReadOnlyDictionary<string, string> payload,
+        string? idempotencyKey,
         CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(method, path)
@@ -177,6 +183,10 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Basic",
             Convert.ToBase64String(Encoding.ASCII.GetBytes($"{secretKey}:")));
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
+        }
 
         using var response = await HttpClient.SendAsync(request, cancellationToken);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
