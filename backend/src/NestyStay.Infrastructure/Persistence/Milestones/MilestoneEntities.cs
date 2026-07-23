@@ -413,6 +413,7 @@ public sealed class MilestoneMessage : BaseEntity
 
 public sealed class MilestoneDirectoryProvider : BaseEntity
 {
+    public Guid? OwnerUserId { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;

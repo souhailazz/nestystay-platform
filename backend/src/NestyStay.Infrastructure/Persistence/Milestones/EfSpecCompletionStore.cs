@@ -185,6 +185,12 @@ public sealed class EfSpecCompletionStore(
             profile = new MilestoneHostProfile { Slug = normalized, HostUserId = request.HostUserId, CreatedByUserId = actorUserId };
             db.MilestoneHostProfiles.Add(profile);
         }
+        else if (profile.HostUserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("This host profile slug is already owned by another host.");
+        }
+
+        await EnsureHostListingIdsBelongToHostAsync(actorUserId, request.ListingIds, cancellationToken);
 
         profile.DisplayName = RequireText(request.DisplayName, "Display name");
         profile.Parish = RequireText(request.Parish, "Parish");
@@ -428,8 +434,23 @@ public sealed class EfSpecCompletionStore(
         var entity = await db.MilestoneDirectoryProviders.SingleOrDefaultAsync(item => item.Slug == slug, cancellationToken);
         if (entity is null)
         {
-            entity = new MilestoneDirectoryProvider { Slug = slug, CreatedByUserId = actorUserId };
+            entity = new MilestoneDirectoryProvider { Slug = slug, OwnerUserId = actorUserId, CreatedByUserId = actorUserId };
             db.MilestoneDirectoryProviders.Add(entity);
+        }
+        else
+        {
+            var ownerUserId = entity.OwnerUserId ?? entity.CreatedByUserId;
+            if (ownerUserId is null)
+            {
+                throw new UnauthorizedAccessException("System provider profiles cannot be changed through provider onboarding.");
+            }
+
+            if (ownerUserId != actorUserId)
+            {
+                throw new UnauthorizedAccessException("This provider slug is already owned by another user.");
+            }
+
+            entity.OwnerUserId ??= actorUserId;
         }
 
         entity.Kind = RequireText(request.Kind, "Provider kind");
@@ -1120,6 +1141,21 @@ public sealed class EfSpecCompletionStore(
         await db.MilestoneTravelerPaymentMethods.SingleOrDefaultAsync(item => item.Id == id && item.UserId == userId && !item.IsDeleted, cancellationToken)
         ?? throw new UnauthorizedAccessException("Payment method was not found for this traveler.");
 
+    private async Task EnsureHostListingIdsBelongToHostAsync(Guid hostUserId, IReadOnlyList<Guid>? listingIds, CancellationToken cancellationToken)
+    {
+        if (listingIds is null || listingIds.Count == 0)
+        {
+            return;
+        }
+
+        var distinctIds = listingIds.Distinct().ToArray();
+        var ownedCount = await db.MilestoneProperties.CountAsync(item => distinctIds.Contains(item.Id) && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (ownedCount != distinctIds.Length)
+        {
+            throw new UnauthorizedAccessException("Host profile listings must belong to the signed-in host.");
+        }
+    }
+
     private async Task ClearDefaultPaymentMethodsAsync(Guid userId, CancellationToken cancellationToken)
     {
         foreach (var method in await db.MilestoneTravelerPaymentMethods.Where(item => item.UserId == userId && item.IsDefault).ToListAsync(cancellationToken))
@@ -1375,7 +1411,7 @@ public sealed class EfSpecCompletionStore(
     private static PaymentMethodDto ToDto(MilestoneTravelerPaymentMethod item) => new(item.Id, item.UserId, item.Brand, item.Last4, item.ExpMonth, item.ExpYear, item.IsDefault, item.CreatedAt);
     private static ReviewDto ToDto(MilestoneReview item) => new(item.Id, item.UserId, item.PropertyId, item.BookingId, item.SubjectTitle, item.Rating, item.Text, item.Status, item.HostReply, item.CreatedAt, item.EditableUntil);
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
-    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);
+    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);
     private static ConversationParticipantDto ToDto(MilestoneConversationParticipant item) => new(item.UserId, item.DisplayName, item.Role, item.LastReadAt, item.OnlineStatus);
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);

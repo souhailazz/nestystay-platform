@@ -209,6 +209,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => new { participant.ConversationId, participant.UserId }).IsUnique();
         modelBuilder.Entity<MilestoneMessage>().HasIndex(message => new { message.ConversationId, message.SentAt });
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.Slug).IsUnique();
+        modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.OwnerUserId);
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Kind, provider.Category, provider.Parish });
         modelBuilder.Entity<MilestoneHostPricingRule>().HasIndex(rule => new { rule.HostUserId, rule.PropertyId, rule.StartsOn, rule.EndsOn });
         modelBuilder.Entity<MilestoneHostPromotion>().HasIndex(promotion => new { promotion.HostUserId, promotion.PropertyId, promotion.IsActive });

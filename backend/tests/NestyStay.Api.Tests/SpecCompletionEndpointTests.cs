@@ -251,6 +251,51 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.NotNull(refreshedWorkspace);
         Assert.All(refreshedWorkspace.Notifications, item => Assert.True(item.IsRead));
 
+        var otherHostPropertyId = await CreateHostPropertyAsync(client, otherHostId);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        var hostProfileResponse = await client.PutAsJsonAsync("/api/spec/host-profiles/profile-ownership-test", new
+        {
+            hostUserId = hostId,
+            displayName = "Profile Ownership Host",
+            parish = "Kingston",
+            bio = "A host profile with owned listing references.",
+            responseTime = "Replies in 15 minutes",
+            badges = new[] { "Verified" },
+            listingIds = new[] { propertyId },
+            isPublic = true,
+            highlights = new[] { "Owned listing only" }
+        });
+        Assert.Equal(HttpStatusCode.OK, hostProfileResponse.StatusCode);
+
+        var foreignListingProfileResponse = await client.PutAsJsonAsync("/api/spec/host-profiles/profile-ownership-test", new
+        {
+            hostUserId = hostId,
+            displayName = "Foreign Listing Host",
+            parish = "Kingston",
+            bio = "This profile attempts to claim another host property.",
+            responseTime = "Replies in 5 minutes",
+            badges = new[] { "Verified" },
+            listingIds = new[] { otherHostPropertyId },
+            isPublic = true,
+            highlights = new[] { "Foreign listing" }
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, foreignListingProfileResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        var crossHostProfileResponse = await client.PutAsJsonAsync("/api/spec/host-profiles/profile-ownership-test", new
+        {
+            hostUserId = otherHostId,
+            displayName = "Takeover Host",
+            parish = "St. Ann",
+            bio = "This host should not overwrite an existing profile slug.",
+            responseTime = "Replies instantly",
+            badges = new[] { "Trusted" },
+            listingIds = new[] { otherHostPropertyId },
+            isPublic = true,
+            highlights = new[] { "Slug takeover" }
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostProfileResponse.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = null;
         var directoryCreateNoToken = await client.PostAsJsonAsync("/api/spec/directories/providers", new
         {
@@ -266,6 +311,21 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.Equal(HttpStatusCode.Unauthorized, directoryCreateNoToken.StatusCode);
 
         client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
+        var seedProviderEditResponse = await client.PostAsJsonAsync("/api/spec/directories/providers", new
+        {
+            slug = "spark-cleaning-team",
+            kind = "Custodian",
+            category = "Cleaning",
+            name = "Seed Provider Takeover",
+            parish = "St. James",
+            badgeLevel = "Trusted",
+            description = "Seed providers should not be mutable through onboarding.",
+            availabilitySummary = "Always",
+            contactMode = "Direct",
+            isActive = true
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, seedProviderEditResponse.StatusCode);
+
         var directoryProviderResponse = await client.PostAsJsonAsync("/api/spec/directories/providers", new
         {
             slug = "kingston-turnover-team",
@@ -282,11 +342,28 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         Assert.Equal(HttpStatusCode.OK, directoryProviderResponse.StatusCode);
         var provider = await directoryProviderResponse.Content.ReadFromJsonAsync<DirectoryProviderResponse>();
         Assert.NotNull(provider);
+        Assert.Equal(hostId, provider.OwnerUserId);
         Assert.Equal("kingston-turnover-team", provider.Slug);
 
         var providerLookup = await client.GetFromJsonAsync<DirectoryProviderResponse>("/api/spec/directories/providers/kingston-turnover-team");
         Assert.NotNull(providerLookup);
         Assert.Equal("Kingston Turnover Team", providerLookup.Name);
+
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        var providerTakeoverResponse = await client.PostAsJsonAsync("/api/spec/directories/providers", new
+        {
+            slug = "kingston-turnover-team",
+            kind = "Custodian",
+            category = "Cleaning",
+            name = "Taken Over Provider",
+            parish = "Kingston",
+            badgeLevel = "Trusted",
+            description = "This should not overwrite another provider owner.",
+            availabilitySummary = "Always",
+            contactMode = "Direct",
+            isActive = true
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, providerTakeoverResponse.StatusCode);
 
         client.DefaultRequestHeaders.Authorization = LocalUser(travelerId);
         var createConversation = await client.PostAsJsonAsync($"/api/spec/messages/conversations?userId={travelerId}", new
@@ -499,7 +576,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record TravelerNotificationResponse(bool IsRead);
 
-    private sealed record DirectoryProviderResponse(string Slug, string Name);
+    private sealed record DirectoryProviderResponse(Guid? OwnerUserId, string Slug, string Name);
 
     private sealed record ConversationResponse(
         Guid Id,
