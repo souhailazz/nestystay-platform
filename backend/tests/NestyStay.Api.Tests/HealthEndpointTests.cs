@@ -173,6 +173,38 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(properties);
         var property = properties.First(item => item.GuestVerificationEnabled);
 
+        client.DefaultRequestHeaders.Authorization = null;
+        var unauthenticatedPropertyCreate = await client.PostAsJsonAsync("/api/properties", new
+        {
+            hostUserId = Guid.NewGuid(),
+            hostName = "No Auth Host",
+            hostEmail = "no-auth-host@test.local",
+            title = "No Auth Villa",
+            location = "Runaway Bay, St. Ann",
+            country = "Jamaica",
+            nightlyRate = 175,
+            currency = "USD"
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedPropertyCreate.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var guestPropertyCreate = await client.PostAsJsonAsync("/api/properties", new
+        {
+            hostUserId = Guid.NewGuid(),
+            hostName = "Guest Host",
+            hostEmail = "guest-host@test.local",
+            title = "Guest Attempt Villa",
+            location = "Runaway Bay, St. Ann",
+            country = "Jamaica",
+            nightlyRate = 175,
+            currency = "USD"
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, guestPropertyCreate.StatusCode);
+
+        var hostUserId = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
         var createdPropertyResponse = await client.PostAsJsonAsync("/api/properties", new
         {
             hostUserId = Guid.NewGuid(),
@@ -190,6 +222,9 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             highlights = new[] { "API created", "Alibaba eKYC" }
         });
         Assert.Equal(HttpStatusCode.OK, createdPropertyResponse.StatusCode);
+        var createdProperty = await createdPropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
+        Assert.NotNull(createdProperty);
+        Assert.Equal(hostUserId, createdProperty.HostUserId);
 
         var freeUpsellResponse = await client.PostAsJsonAsync("/api/properties", new
         {
@@ -206,6 +241,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             cancellationPolicy = "Flexible"
         });
         Assert.Equal(HttpStatusCode.BadRequest, freeUpsellResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
 
         var quoteResponse = await client.PostAsJsonAsync("/api/bookings/quote", new
         {

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
 
@@ -271,6 +272,9 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private static async Task<PropertyResponse> CreatePropertyAsync(HttpClient client, Guid hostUserId, string badgeLevel)
     {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
         var response = await client.PostAsJsonAsync("/api/properties", new
         {
             hostUserId,
@@ -288,6 +292,7 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
             highlights = new[] { "Emergency 119 displayed", "Wellness-ready host" }
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        client.DefaultRequestHeaders.Authorization = null;
         return (await response.Content.ReadFromJsonAsync<PropertyResponse>())!;
     }
 
