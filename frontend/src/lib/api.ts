@@ -564,12 +564,23 @@ export type WishlistItem = {
 export type TravelerPaymentMethod = {
   id: string;
   userId: string;
+  providerName: string;
+  providerPaymentMethodReference: string;
   brand: string;
   last4: string;
   expMonth: number;
   expYear: number;
   isDefault: boolean;
   createdAt: string;
+};
+
+export type PaymentMethodSetupIntent = {
+  providerName: string;
+  setupIntentReference: string;
+  clientSecret: string;
+  status: string;
+  expiresAt: string;
+  publishableKey?: string | null;
 };
 
 export type TravelerReview = {
@@ -1101,7 +1112,9 @@ export const api = {
     request<WishlistItem>(`/spec/traveler/${userId}/wishlist/collections/${collectionId}/items`, { method: "POST", token, body }),
   removeWishlistItem: (userId: string, itemId: string, token: string) =>
     request<void>(`/spec/traveler/${userId}/wishlist/items/${itemId}`, { method: "DELETE", token }),
-  addPaymentMethod: (userId: string, token: string, body: { brand: string; last4: string; expMonth: number; expYear: number; isDefault?: boolean }) =>
+  createPaymentMethodSetupIntent: (userId: string, token: string) =>
+    request<PaymentMethodSetupIntent>(`/spec/traveler/${userId}/payment-methods/setup-intents`, { method: "POST", token }),
+  addPaymentMethod: (userId: string, token: string, body: { setupIntentReference: string; isDefault?: boolean }) =>
     request<TravelerPaymentMethod>(`/spec/traveler/${userId}/payment-methods`, { method: "POST", token, body }),
   setDefaultPaymentMethod: (userId: string, methodId: string, token: string) =>
     request<void>(`/spec/traveler/${userId}/payment-methods/${methodId}/default`, { method: "POST", token }),

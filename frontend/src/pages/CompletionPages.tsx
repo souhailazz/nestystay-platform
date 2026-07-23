@@ -880,13 +880,26 @@ function WishlistPanel({ data, userId, token, reload }: { data: TravelerWorkspac
 }
 
 function PaymentMethodsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   async function addCard() {
-    await api.addPaymentMethod(userId, token, { brand: "Visa", last4: String(Math.floor(1000 + Math.random() * 8999)), expMonth: 12, expYear: 2029, isDefault: data.paymentMethods.length === 0 });
-    reload();
+    setIsAdding(true);
+    setError(null);
+    try {
+      const setupIntent = await api.createPaymentMethodSetupIntent(userId, token);
+      await api.addPaymentMethod(userId, token, { setupIntentReference: setupIntent.setupIntentReference, isDefault: data.paymentMethods.length === 0 });
+      reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Payment method could not be saved.");
+    } finally {
+      setIsAdding(false);
+    }
   }
   return (
     <>
-      <Button onClick={addCard}><CreditCard size={17} /> Add tokenized card</Button>
+      {error && <ErrorState message={error} />}
+      <Button disabled={isAdding} onClick={addCard}><CreditCard size={17} /> {isAdding ? "Preparing secure setup" : "Add secure card"}</Button>
       <div className="compact-list">{data.paymentMethods.map((method) => <Card className="compact-list__item" key={method.id}><CreditCard size={20} /><div><strong>{method.brand} ending {method.last4}</strong><span>{method.expMonth}/{method.expYear}</span></div><Badge tone={method.isDefault ? "green" : "slate"}>{method.isDefault ? "Default" : "Saved"}</Badge></Card>)}</div>
     </>
   );

@@ -122,6 +122,13 @@ public sealed class SpecCompletionController(
         return Ok(await store.AddPaymentMethodAsync(userId, request, cancellationToken));
     }
 
+    [HttpPost("traveler/{userId:guid}/payment-methods/setup-intents")]
+    public async Task<ActionResult<PaymentMethodSetupIntentDto>> CreatePaymentMethodSetupIntent(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.CreatePaymentMethodSetupIntentAsync(userId, cancellationToken));
+    }
+
     [HttpPost("traveler/{userId:guid}/payment-methods/{paymentMethodId:guid}/default")]
     public async Task<IActionResult> SetDefaultPaymentMethod(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken)
     {

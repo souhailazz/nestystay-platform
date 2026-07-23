@@ -11,6 +11,8 @@ public interface IEkycProvider
 public interface IPaymentGateway
 {
     string ProviderName { get; }
+    Task<PaymentSetupIntentResult> CreateSetupIntentAsync(PaymentSetupIntentRequest request, CancellationToken cancellationToken);
+    Task<PaymentMethodTokenizationResult> GetPaymentMethodAsync(PaymentMethodTokenizationRequest request, CancellationToken cancellationToken);
     Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken);
     Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken);
     Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken);
@@ -96,6 +98,30 @@ public sealed record PaymentAuthorizationResult(
     string? ClientSecret,
     PaymentStatus Status,
     DateTimeOffset? ExpiresAt);
+
+public sealed record PaymentSetupIntentRequest(
+    Guid UserId,
+    string CustomerReference,
+    string IdempotencyKey = "");
+
+public sealed record PaymentSetupIntentResult(
+    string ProviderName,
+    string SetupIntentReference,
+    string ClientSecret,
+    string Status,
+    DateTimeOffset ExpiresAt,
+    string? PublishableKey);
+
+public sealed record PaymentMethodTokenizationRequest(
+    string SetupIntentReference);
+
+public sealed record PaymentMethodTokenizationResult(
+    string ProviderName,
+    string PaymentMethodReference,
+    string Brand,
+    string Last4,
+    int ExpMonth,
+    int ExpYear);
 
 public sealed record PaymentCaptureRequest(
     string AuthorizationReference,

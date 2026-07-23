@@ -440,6 +440,24 @@ public sealed class PhaseOneWorkflowTests
         public int CaptureCount { get; private set; }
         public int RefundCount { get; private set; }
 
+        public Task<PaymentSetupIntentResult> CreateSetupIntentAsync(PaymentSetupIntentRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new PaymentSetupIntentResult(
+                ProviderName,
+                $"seti_test_{request.UserId:N}",
+                "seti_client_secret_test",
+                "requires_payment_method",
+                DateTimeOffset.UtcNow.AddMinutes(30),
+                "pk_test_local"));
+
+        public Task<PaymentMethodTokenizationResult> GetPaymentMethodAsync(PaymentMethodTokenizationRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new PaymentMethodTokenizationResult(
+                ProviderName,
+                $"pm_{request.SetupIntentReference}",
+                "Visa",
+                "4242",
+                12,
+                DateTimeOffset.UtcNow.Year + 3));
+
         public Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken)
         {
             AuthorizationCount++;

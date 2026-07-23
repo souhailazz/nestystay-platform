@@ -95,6 +95,108 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
 
     public string ProviderName => "Stripe";
 
+    public async Task<PaymentSetupIntentResult> CreateSetupIntentAsync(PaymentSetupIntentRequest request, CancellationToken cancellationToken)
+    {
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        var publishableKey = ResolveSetting("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            var reference = $"stripe_local_seti_{request.UserId:N}_{Guid.NewGuid():N}";
+            return new PaymentSetupIntentResult(
+                ProviderName,
+                reference,
+                $"{reference}_secret_local",
+                "requires_payment_method",
+                DateTimeOffset.UtcNow.AddMinutes(30),
+                publishableKey ?? "pk_test_local");
+        }
+
+        var payload = new Dictionary<string, string>
+        {
+            ["usage"] = "off_session",
+            ["payment_method_types[]"] = "card",
+            ["metadata[user_id]"] = request.UserId.ToString("N"),
+            ["metadata[customer_reference]"] = request.CustomerReference
+        };
+
+        using var document = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Post,
+            "/v1/setup_intents",
+            payload,
+            request.IdempotencyKey,
+            cancellationToken);
+        var root = document.RootElement;
+
+        return new PaymentSetupIntentResult(
+            ProviderName,
+            root.GetProperty("id").GetString() ?? string.Empty,
+            root.GetProperty("client_secret").GetString() ?? string.Empty,
+            root.GetProperty("status").GetString() ?? string.Empty,
+            DateTimeOffset.UtcNow.AddMinutes(30),
+            publishableKey);
+    }
+
+    public async Task<PaymentMethodTokenizationResult> GetPaymentMethodAsync(PaymentMethodTokenizationRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.SetupIntentReference))
+        {
+            throw new InvalidOperationException("Stripe setup intent reference is required.");
+        }
+
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey) ||
+            request.SetupIntentReference.StartsWith("stripe_local_seti_", StringComparison.Ordinal))
+        {
+            var referenceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.SetupIntentReference))).ToLowerInvariant()[..16];
+            return new PaymentMethodTokenizationResult(
+                ProviderName,
+                $"stripe_local_pm_{referenceHash}",
+                "Visa",
+                "4242",
+                12,
+                DateTimeOffset.UtcNow.Year + 3);
+        }
+
+        using var setupIntentDocument = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Get,
+            $"/v1/setup_intents/{Uri.EscapeDataString(request.SetupIntentReference)}",
+            new Dictionary<string, string>(),
+            null,
+            cancellationToken);
+        var setupIntent = setupIntentDocument.RootElement;
+        var status = setupIntent.GetProperty("status").GetString();
+        if (!string.Equals(status, "succeeded", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Stripe setup intent must be confirmed before saving the payment method.");
+        }
+
+        var paymentMethodReference = setupIntent.GetProperty("payment_method").GetString();
+        if (string.IsNullOrWhiteSpace(paymentMethodReference))
+        {
+            throw new InvalidOperationException("Stripe setup intent did not include a payment method.");
+        }
+
+        using var paymentMethodDocument = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Get,
+            $"/v1/payment_methods/{Uri.EscapeDataString(paymentMethodReference)}",
+            new Dictionary<string, string>(),
+            null,
+            cancellationToken);
+        var paymentMethod = paymentMethodDocument.RootElement;
+        var card = paymentMethod.GetProperty("card");
+
+        return new PaymentMethodTokenizationResult(
+            ProviderName,
+            paymentMethodReference,
+            NormalizeCardBrand(card.GetProperty("brand").GetString()),
+            card.GetProperty("last4").GetString() ?? string.Empty,
+            card.GetProperty("exp_month").GetInt32(),
+            card.GetProperty("exp_year").GetInt32());
+    }
+
     public async Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken)
     {
         var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
@@ -224,7 +326,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
     {
         using var request = new HttpRequestMessage(method, path)
         {
-            Content = new FormUrlEncodedContent(payload)
+            Content = method == HttpMethod.Get ? null : new FormUrlEncodedContent(payload)
         };
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Basic",
@@ -246,6 +348,12 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
 
     private static long ToMinorUnits(decimal amount) =>
         decimal.ToInt64(decimal.Round(amount * 100m, 0, MidpointRounding.AwayFromZero));
+
+    private static string NormalizeCardBrand(string? brand) =>
+        string.IsNullOrWhiteSpace(brand)
+            ? "Card"
+            : string.Join(' ', brand.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(word => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(word.ToLowerInvariant())));
 
     private static PaymentStatus MapStripeStatus(string status) =>
         status switch

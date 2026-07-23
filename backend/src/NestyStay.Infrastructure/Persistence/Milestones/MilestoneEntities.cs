@@ -372,6 +372,9 @@ public sealed class MilestoneWishlistItem : BaseEntity
 public sealed class MilestoneTravelerPaymentMethod : BaseEntity
 {
     public Guid UserId { get; set; }
+    public string ProviderName { get; set; } = "Stripe";
+    public string ProviderPaymentMethodReference { get; set; } = string.Empty;
+    public string SetupIntentReference { get; set; } = string.Empty;
     public string Brand { get; set; } = string.Empty;
     public string Last4 { get; set; } = string.Empty;
     public int ExpMonth { get; set; }

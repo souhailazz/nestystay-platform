@@ -221,26 +221,28 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         client.DefaultRequestHeaders.Authorization = LocalUser(travelerId);
         var invalidPayment = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/payment-methods", new
         {
-            brand = "Visa",
-            last4 = "12",
-            expMonth = 1,
-            expYear = 2026,
+            setupIntentReference = "",
             isDefault = true
         });
         Assert.Equal(HttpStatusCode.BadRequest, invalidPayment.StatusCode);
 
+        var setupIntentResponse = await client.PostAsync($"/api/spec/traveler/{travelerId}/payment-methods/setup-intents", null);
+        Assert.Equal(HttpStatusCode.OK, setupIntentResponse.StatusCode);
+        var setupIntent = await setupIntentResponse.Content.ReadFromJsonAsync<PaymentSetupIntentResponse>();
+        Assert.NotNull(setupIntent);
+        Assert.StartsWith("stripe_local_seti_", setupIntent.SetupIntentReference, StringComparison.Ordinal);
+        Assert.NotEmpty(setupIntent.ClientSecret);
+
         var paymentResponse = await client.PostAsJsonAsync($"/api/spec/traveler/{travelerId}/payment-methods", new
         {
-            brand = "Visa",
-            last4 = "4242",
-            expMonth = 12,
-            expYear = 2028,
+            setupIntentReference = setupIntent.SetupIntentReference,
             isDefault = true
         });
         Assert.Equal(HttpStatusCode.OK, paymentResponse.StatusCode);
         var payment = await paymentResponse.Content.ReadFromJsonAsync<PaymentMethodResponse>();
         Assert.NotNull(payment);
         Assert.True(payment.IsDefault);
+        Assert.StartsWith("stripe_local_pm_", payment.ProviderPaymentMethodReference, StringComparison.Ordinal);
 
         client.DefaultRequestHeaders.Authorization = LocalUser(otherTravelerId);
         var crossTravelerDefaultPayment = await client.PostAsync($"/api/spec/traveler/{otherTravelerId}/payment-methods/{payment.Id}/default", null);
@@ -670,7 +672,9 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record WishlistItemResponse(Guid Id, Guid PropertyId);
 
-    private sealed record PaymentMethodResponse(Guid Id, bool IsDefault);
+    private sealed record PaymentSetupIntentResponse(string SetupIntentReference, string ClientSecret);
+
+    private sealed record PaymentMethodResponse(Guid Id, string ProviderPaymentMethodReference, bool IsDefault);
 
     private sealed record ReviewResponse(Guid Id, string? HostReply);
 

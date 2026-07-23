@@ -209,6 +209,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneWishlistCollection>().HasIndex(collection => new { collection.UserId, collection.Name }).IsUnique();
         modelBuilder.Entity<MilestoneWishlistItem>().HasIndex(item => new { item.UserId, item.PropertyId, item.CollectionId }).IsUnique();
         modelBuilder.Entity<MilestoneTravelerPaymentMethod>().HasIndex(method => new { method.UserId, method.IsDefault });
+        modelBuilder.Entity<MilestoneTravelerPaymentMethod>().HasIndex(method => method.ProviderPaymentMethodReference);
         modelBuilder.Entity<MilestoneReview>().HasIndex(review => new { review.UserId, review.PropertyId, review.BookingId });
         modelBuilder.Entity<MilestoneTravelerNotification>().HasIndex(notification => new { notification.UserId, notification.IsRead });
         modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => new { participant.ConversationId, participant.UserId }).IsUnique();

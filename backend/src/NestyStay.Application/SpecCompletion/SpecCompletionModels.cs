@@ -21,6 +21,7 @@ public interface ISpecCompletionStore
     Task DeleteWishlistCollectionAsync(Guid userId, Guid collectionId, CancellationToken cancellationToken);
     Task<WishlistItemDto> AddWishlistItemAsync(Guid userId, Guid collectionId, SaveWishlistItemRequest request, CancellationToken cancellationToken);
     Task RemoveWishlistItemAsync(Guid userId, Guid itemId, CancellationToken cancellationToken);
+    Task<PaymentMethodSetupIntentDto> CreatePaymentMethodSetupIntentAsync(Guid userId, CancellationToken cancellationToken);
     Task<PaymentMethodDto> AddPaymentMethodAsync(Guid userId, SavePaymentMethodRequest request, CancellationToken cancellationToken);
     Task SetDefaultPaymentMethodAsync(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken);
     Task RemovePaymentMethodAsync(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken);
@@ -66,8 +67,9 @@ public sealed record WishlistCollectionDto(Guid Id, Guid UserId, string Name, in
 public sealed record WishlistItemDto(Guid Id, Guid CollectionId, Guid UserId, Guid PropertyId, string PropertyTitle, string Status, int SortOrder, DateTimeOffset CreatedAt);
 public sealed record SaveWishlistCollectionRequest(string Name, int SortOrder = 0);
 public sealed record SaveWishlistItemRequest(Guid PropertyId, string PropertyTitle, string Status = "Available", int SortOrder = 0);
-public sealed record PaymentMethodDto(Guid Id, Guid UserId, string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault, DateTimeOffset CreatedAt);
-public sealed record SavePaymentMethodRequest(string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault = false);
+public sealed record PaymentMethodSetupIntentDto(string ProviderName, string SetupIntentReference, string ClientSecret, string Status, DateTimeOffset ExpiresAt, string? PublishableKey);
+public sealed record PaymentMethodDto(Guid Id, Guid UserId, string ProviderName, string ProviderPaymentMethodReference, string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault, DateTimeOffset CreatedAt);
+public sealed record SavePaymentMethodRequest(string SetupIntentReference, bool IsDefault = false);
 public sealed record ReviewDto(Guid Id, Guid UserId, Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text, string Status, string? HostReply, DateTimeOffset CreatedAt, DateTimeOffset EditableUntil);
 public sealed record SaveReviewRequest(Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text);
 public sealed record SaveReviewReplyRequest(string Reply);

@@ -104,4 +104,46 @@ describe("api client", () => {
     expect(JSON.parse(init.body as string)).toEqual({ code: "ABCD1234-EFGH5678" });
     expect(response.disabled).toBe(true);
   });
+
+  it("creates and saves payment methods through setup-intent references", async () => {
+    const setupResponse = jsonResponse({
+      setupIntentReference: "stripe_local_seti_user_reference",
+      clientSecret: "stripe_local_seti_secret",
+      status: "requires_payment_method",
+      expiresAt: "2026-08-01T00:00:00Z",
+      publishableKey: "pk_test_local",
+    });
+    const paymentResponse = jsonResponse({
+      id: "payment-method-1",
+      providerPaymentMethodReference: "stripe_local_pm_reference",
+      isDefault: true,
+    });
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(setupResponse)
+      .mockResolvedValueOnce(paymentResponse);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setupIntent = await api.createPaymentMethodSetupIntent("traveler-1", "signed-session-token");
+    const saved = await api.addPaymentMethod("traveler-1", "signed-session-token", {
+      setupIntentReference: setupIntent.setupIntentReference,
+      isDefault: true,
+    });
+
+    const [setupUrl, setupInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [saveUrl, saveInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const setupHeaders = setupInit.headers as Headers;
+    const saveHeaders = saveInit.headers as Headers;
+
+    expect(setupUrl).toBe("/api/spec/traveler/traveler-1/payment-methods/setup-intents");
+    expect(setupInit.method).toBe("POST");
+    expect(setupHeaders.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(saveUrl).toBe("/api/spec/traveler/traveler-1/payment-methods");
+    expect(saveInit.method).toBe("POST");
+    expect(saveHeaders.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(JSON.parse(saveInit.body as string)).toEqual({
+      setupIntentReference: "stripe_local_seti_user_reference",
+      isDefault: true,
+    });
+    expect(saved.providerPaymentMethodReference).toBe("stripe_local_pm_reference");
+  });
 });

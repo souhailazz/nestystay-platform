@@ -15,7 +15,8 @@ public sealed class EfSpecCompletionStore(
     ISmsSender smsSender,
     IDevelopmentAuthSecretStore developmentAuthSecrets,
     IGoogleIdentityValidator googleIdentityValidator,
-    IStorageProvider storageProvider) : ISpecCompletionStore
+    IStorageProvider storageProvider,
+    IPaymentGateway paymentGateway) : ISpecCompletionStore
 {
     private const int MaximumAuthFlowAttempts = 5;
     private const int MaximumAccountAuthFlowsPerWindow = 5;
@@ -303,14 +304,66 @@ public sealed class EfSpecCompletionStore(
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<PaymentMethodSetupIntentDto> CreatePaymentMethodSetupIntentAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var setupIntent = await paymentGateway.CreateSetupIntentAsync(
+            new PaymentSetupIntentRequest(
+                userId,
+                $"traveler:{userId:N}",
+                $"traveler:{userId:N}:setup-payment-method:{Guid.NewGuid():N}"),
+            cancellationToken);
+
+        return new PaymentMethodSetupIntentDto(
+            setupIntent.ProviderName,
+            setupIntent.SetupIntentReference,
+            setupIntent.ClientSecret,
+            setupIntent.Status,
+            setupIntent.ExpiresAt,
+            setupIntent.PublishableKey);
+    }
+
     public async Task<PaymentMethodDto> AddPaymentMethodAsync(Guid userId, SavePaymentMethodRequest request, CancellationToken cancellationToken)
     {
-        if (request.Last4.Trim().Length != 4 || request.ExpMonth is < 1 or > 12 || request.ExpYear < 2026)
+        if (string.IsNullOrWhiteSpace(request.SetupIntentReference))
         {
-            throw new InvalidOperationException("A valid tokenized payment method is required.");
+            throw new InvalidOperationException("A confirmed Stripe setup intent is required.");
         }
 
-        if (request.IsDefault || !await db.MilestoneTravelerPaymentMethods.AnyAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken))
+        var tokenized = await paymentGateway.GetPaymentMethodAsync(
+            new PaymentMethodTokenizationRequest(request.SetupIntentReference.Trim()),
+            cancellationToken);
+
+        if (tokenized.Last4.Trim().Length != 4 || tokenized.ExpMonth is < 1 or > 12 || tokenized.ExpYear < 2026)
+        {
+            throw new InvalidOperationException("Stripe returned incomplete card metadata.");
+        }
+
+        var existingForAnotherUser = await db.MilestoneTravelerPaymentMethods.AnyAsync(
+            item => item.ProviderPaymentMethodReference == tokenized.PaymentMethodReference && item.UserId != userId && !item.IsDeleted,
+            cancellationToken);
+        if (existingForAnotherUser)
+        {
+            throw new UnauthorizedAccessException("Payment method is already linked to another traveler.");
+        }
+
+        if (await db.MilestoneTravelerPaymentMethods.SingleOrDefaultAsync(
+                item => item.UserId == userId && item.ProviderPaymentMethodReference == tokenized.PaymentMethodReference && !item.IsDeleted,
+                cancellationToken) is { } existing)
+        {
+            if (request.IsDefault)
+            {
+                await ClearDefaultPaymentMethodsAsync(userId, cancellationToken);
+                existing.IsDefault = true;
+                existing.UpdatedAt = timeProvider.GetUtcNow();
+                existing.UpdatedByUserId = userId;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            return ToDto(existing);
+        }
+
+        var shouldBeDefault = request.IsDefault || !await db.MilestoneTravelerPaymentMethods.AnyAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken);
+        if (shouldBeDefault)
         {
             await ClearDefaultPaymentMethodsAsync(userId, cancellationToken);
         }
@@ -318,11 +371,14 @@ public sealed class EfSpecCompletionStore(
         var entity = new MilestoneTravelerPaymentMethod
         {
             UserId = userId,
-            Brand = RequireText(request.Brand, "Card brand"),
-            Last4 = request.Last4.Trim(),
-            ExpMonth = request.ExpMonth,
-            ExpYear = request.ExpYear,
-            IsDefault = request.IsDefault,
+            ProviderName = RequireText(tokenized.ProviderName, "Payment provider"),
+            ProviderPaymentMethodReference = RequireText(tokenized.PaymentMethodReference, "Provider payment method"),
+            SetupIntentReference = request.SetupIntentReference.Trim(),
+            Brand = RequireText(tokenized.Brand, "Card brand"),
+            Last4 = tokenized.Last4.Trim(),
+            ExpMonth = tokenized.ExpMonth,
+            ExpYear = tokenized.ExpYear,
+            IsDefault = shouldBeDefault,
             CreatedByUserId = userId,
             UpdatedByUserId = userId
         };
@@ -1582,7 +1638,7 @@ public sealed class EfSpecCompletionStore(
     private static JournalArticleDto ToDto(MilestoneJournalArticle item) => new(item.Id, item.Slug, item.Title, item.Category, item.Author, item.PublishedAt, item.Summary, item.Body, MilestoneJson.DeserializeList<string>(item.TagsJson), MilestoneJson.DeserializeList<string>(item.RelatedSlugsJson));
     private static HostProfileDto ToDto(MilestoneHostProfile item) => new(item.Id, item.HostUserId, item.Slug, item.DisplayName, item.Parish, item.Bio, item.ResponseTime, MilestoneJson.DeserializeList<BadgeLevel>(item.BadgesJson), MilestoneJson.DeserializeList<Guid>(item.ListingIdsJson), item.Rating, item.ReviewCount, item.IsPublic, MilestoneJson.DeserializeList<string>(item.HighlightsJson));
     private static WishlistItemDto ToDto(MilestoneWishlistItem item) => new(item.Id, item.CollectionId, item.UserId, item.PropertyId, item.PropertyTitle, item.Status, item.SortOrder, item.CreatedAt);
-    private static PaymentMethodDto ToDto(MilestoneTravelerPaymentMethod item) => new(item.Id, item.UserId, item.Brand, item.Last4, item.ExpMonth, item.ExpYear, item.IsDefault, item.CreatedAt);
+    private static PaymentMethodDto ToDto(MilestoneTravelerPaymentMethod item) => new(item.Id, item.UserId, item.ProviderName, item.ProviderPaymentMethodReference, item.Brand, item.Last4, item.ExpMonth, item.ExpYear, item.IsDefault, item.CreatedAt);
     private static ReviewDto ToDto(MilestoneReview item) => new(item.Id, item.UserId, item.PropertyId, item.BookingId, item.SubjectTitle, item.Rating, item.Text, item.Status, item.HostReply, item.CreatedAt, item.EditableUntil);
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
     private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);

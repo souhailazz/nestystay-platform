@@ -13,6 +13,7 @@ public static class ProductionIntegrationValidator
         new("Webhooks:SharedSecret", "NESTYSTAY_WEBHOOK_SHARED_SECRET", "webhook shared secret"),
         new("Webhooks:StripeSigningSecret", "STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"),
         new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
+        new("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"),
         new("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE", "Alibaba eKYC URL base"),
         new("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE", "Cloudflare R2 upload URL base"),
         new("Integrations:InsuraGuestApiBaseUrl", "INSURAGUEST_API_BASE_URL", "InsuraGuest API base URL")
