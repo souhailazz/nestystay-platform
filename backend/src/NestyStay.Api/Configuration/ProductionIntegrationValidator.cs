@@ -2,7 +2,7 @@ namespace NestyStay.Api.Configuration;
 
 public static class ProductionIntegrationValidator
 {
-    private const int MinimumSessionTokenSecretLength = 32;
+    private const int MinimumSessionTokenSecretBytes = 32;
 
     private static readonly RequiredSetting[] RequiredSettings =
     [
@@ -34,9 +34,9 @@ public static class ProductionIntegrationValidator
         }
 
         var sessionSecret = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:SessionTokenSecret"));
-        if (sessionSecret is not null && sessionSecret.Length < MinimumSessionTokenSecretLength)
+        if (sessionSecret is not null && System.Text.Encoding.UTF8.GetByteCount(sessionSecret) < MinimumSessionTokenSecretBytes)
         {
-            throw new InvalidOperationException("Production session token signing secret must be at least 32 characters.");
+            throw new InvalidOperationException("Production session token signing secret must be at least 32 bytes.");
         }
     }
 

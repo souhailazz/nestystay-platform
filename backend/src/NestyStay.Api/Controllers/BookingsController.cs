@@ -38,8 +38,7 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
             return NotFound();
         }
 
-        AuthorizeBookingAccess(booking);
-        return Ok(booking);
+        return CanAccessBooking(booking) ? Ok(booking) : NotFound();
     }
 
     [HttpPost("quote")]
@@ -85,20 +84,15 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
     private Guid RequireAuthenticatedUserId() =>
         currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated user id is required.");
 
-    private void AuthorizeBookingAccess(BookingDto booking)
+    private bool CanAccessBooking(BookingDto booking)
     {
         if (User.IsInRole(UserRole.Admin.ToString()))
         {
-            return;
+            return true;
         }
 
         var userId = RequireAuthenticatedUserId();
-        if (booking.GuestUserId == userId ||
-            (User.IsInRole(UserRole.Host.ToString()) && booking.HostUserId == userId))
-        {
-            return;
-        }
-
-        throw new UnauthorizedAccessException("Booking is not available to this user.");
+        return booking.GuestUserId == userId ||
+            (User.IsInRole(UserRole.Host.ToString()) && booking.HostUserId == userId);
     }
 }

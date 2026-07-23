@@ -450,10 +450,10 @@ async function run() {
     colorScheme: "light",
   });
 
-  await context.addInitScript((session) => {
+  await context.addInitScript(({ session, token }) => {
     window.localStorage.setItem("nestyStay.session", JSON.stringify(session));
-    window.localStorage.setItem("nestyStay.adminToken", adminToken);
-  }, demo.session);
+    window.localStorage.setItem("nestyStay.adminToken", token);
+  }, { session: demo.session, token: adminToken });
 
   const page = await context.newPage();
   await page.goto(baseUrl);

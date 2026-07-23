@@ -12,4 +12,6 @@ public sealed record AccessTokenValidationResult(
     Guid UserId,
     IReadOnlyList<UserRole> Roles,
     DateTimeOffset IssuedAt,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    string TokenId,
+    string KeyId);

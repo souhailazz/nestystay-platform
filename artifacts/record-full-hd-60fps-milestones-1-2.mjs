@@ -334,9 +334,9 @@ async function run() {
   }, demo.session);
 
   const page = await context.newPage();
-  await page.addInitScript(() => {
-    window.localStorage.setItem("nestyStay.adminToken", adminToken);
-  });
+  await page.addInitScript((token) => {
+    window.localStorage.setItem("nestyStay.adminToken", token);
+  }, adminToken);
 
   const scenes = [
     {

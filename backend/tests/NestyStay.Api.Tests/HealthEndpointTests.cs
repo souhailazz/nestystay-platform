@@ -223,7 +223,16 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             "Bearer",
             NestyStayApiFactory.UserToken(Guid.NewGuid()));
         var crossUserBooking = await client.GetAsync($"/api/bookings/{booking.Id}");
-        Assert.Equal(HttpStatusCode.Unauthorized, crossUserBooking.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, crossUserBooking.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "not-a-valid-token");
+        var invalidTokenBooking = await client.GetAsync($"/api/bookings/{booking.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, invalidTokenBooking.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var missingTokenBooking = await client.GetAsync($"/api/bookings/{booking.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, missingTokenBooking.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
 
         var overlappingQuote = await client.PostAsJsonAsync("/api/bookings/quote", new
