@@ -11,6 +11,7 @@ public sealed class MilestoneUser : BaseEntity
     public string DisplayName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public byte[] TwoFactorSecret { get; set; } = [];
+    public bool IsTwoFactorEnabled { get; set; } = true;
     public string RolesJson { get; set; } = "[]";
     public int FailedLoginAttempts { get; set; }
     public DateTimeOffset? LockoutEndsAt { get; set; }

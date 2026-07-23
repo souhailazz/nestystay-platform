@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type GoogleSignInRequest, type LoginResponse, type RegisterUserRequest } from "../lib/api";
-import { clearSession, createGoogleSession, createSession, loadSession, saveSession, type AuthSession } from "../lib/auth";
+import { clearSession, createGoogleSession, createLoginSession, createSession, loadSession, saveSession, type AuthSession } from "../lib/auth";
 
 type PendingChallenge = {
   challengeId: string;
@@ -25,7 +25,14 @@ export function useAuth() {
     try {
       const registered = await api.register(body);
       const login = await api.login({ email: body.email, password: body.password });
-      setPendingChallenge(toChallenge(login, registered.displayName));
+      if (login.requiresTwoFactor) {
+        setPendingChallenge(toChallenge(login, registered.displayName));
+      } else {
+        const nextSession = createLoginSession(login, registered.displayName);
+        saveSession(nextSession);
+        setSession(nextSession);
+        setPendingChallenge(null);
+      }
       return registered;
     } finally {
       setIsAuthBusy(false);
@@ -36,9 +43,17 @@ export function useAuth() {
     setIsAuthBusy(true);
     try {
       const response = await api.login({ email, password });
-      const challenge = toChallenge(response);
-      setPendingChallenge(challenge);
-      return challenge;
+      if (response.requiresTwoFactor) {
+        const challenge = toChallenge(response);
+        setPendingChallenge(challenge);
+        return challenge;
+      }
+
+      const nextSession = createLoginSession(response);
+      saveSession(nextSession);
+      setSession(nextSession);
+      setPendingChallenge(null);
+      return nextSession;
     } finally {
       setIsAuthBusy(false);
     }
@@ -108,6 +123,10 @@ export function useAuth() {
 export type AuthController = ReturnType<typeof useAuth>;
 
 function toChallenge(login: LoginResponse, displayName?: string): PendingChallenge {
+  if (!login.challengeId || !login.challengeExpiresAt) {
+    throw new Error("Password login did not include a 2FA challenge.");
+  }
+
   return {
     challengeId: login.challengeId,
     email: login.email,

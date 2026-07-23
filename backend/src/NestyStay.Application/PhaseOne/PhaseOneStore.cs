@@ -15,6 +15,7 @@ public interface IPhaseOneStore
     Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken);
     Task<BeginTwoFactorEnrollmentResponse> BeginTwoFactorEnrollmentAsync(Guid userId, CancellationToken cancellationToken);
     Task<ConfirmTwoFactorEnrollmentResponse> ConfirmTwoFactorEnrollmentAsync(Guid userId, ConfirmTwoFactorEnrollmentRequest request, CancellationToken cancellationToken);
+    Task<DisableTwoFactorResponse> DisableTwoFactorAsync(Guid userId, DisableTwoFactorRequest request, CancellationToken cancellationToken);
     Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken);
     Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken);
     Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken);
@@ -144,6 +145,7 @@ public sealed class PhaseOneStore(
                 request.DisplayName.Trim(),
                 request.Phone?.Trim(),
                 GenerateSecret(),
+                true,
                 [request.Role]);
 
             _users.Add(user);
@@ -184,6 +186,20 @@ public sealed class PhaseOneStore(
             user.LockoutEndsAt = null;
             _challenges.RemoveAll(item => item.UserId == user.Id);
 
+            if (!user.IsTwoFactorEnabled)
+            {
+                var directTokenExpiresAt = now.AddHours(8);
+                return Task.FromResult(new LoginResponse(
+                    user.Id,
+                    user.Email,
+                    false,
+                    null,
+                    null,
+                    _accessTokenService.Issue(user.Id, user.Roles, directTokenExpiresAt),
+                    directTokenExpiresAt,
+                    user.Roles));
+            }
+
             var expiresAt = now.AddMinutes(10);
             var challenge = new PhaseOneChallenge(Guid.NewGuid().ToString("N"), user.Id, expiresAt);
             _challenges.Add(challenge);
@@ -208,6 +224,11 @@ public sealed class PhaseOneStore(
             }
 
             var user = _users.Single(item => item.Id == challenge.UserId);
+            if (!user.IsTwoFactorEnabled)
+            {
+                return Task.FromResult<DevelopmentAuthCodeResponse?>(null);
+            }
+
             return Task.FromResult<DevelopmentAuthCodeResponse?>(new DevelopmentAuthCodeResponse(
                 challenge.Id,
                 GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()),
@@ -266,6 +287,7 @@ public sealed class PhaseOneStore(
             }
 
             user.TwoFactorSecret = user.PendingTwoFactorSecret;
+            user.IsTwoFactorEnabled = true;
             user.LastAcceptedTotpCounter = acceptedCounter;
             ClearPendingTwoFactorEnrollment(user);
             _recoveryCodes.RemoveAll(item => item.UserId == user.Id);
@@ -280,6 +302,40 @@ public sealed class PhaseOneStore(
             }
 
             return Task.FromResult(new ConfirmTwoFactorEnrollmentResponse(true, codes));
+        }
+    }
+
+    public Task<DisableTwoFactorResponse> DisableTwoFactorAsync(
+        Guid userId,
+        DisableTwoFactorRequest request,
+        CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new InvalidOperationException("User was not found.");
+            if (!user.IsTwoFactorEnabled)
+            {
+                return Task.FromResult(new DisableTwoFactorResponse(true));
+            }
+
+            var now = timeProvider.GetUtcNow();
+            var code = request.Code?.Trim() ?? string.Empty;
+            var verified = TryConsumeRecoveryCode(user.Id, code, now) ||
+                TryVerifyTotp(user.TwoFactorSecret, code, now, out var acceptedCounter) &&
+                (user.LastAcceptedTotpCounter is null || acceptedCounter > user.LastAcceptedTotpCounter.Value);
+            if (!verified)
+            {
+                throw new InvalidOperationException("A valid authenticator or recovery code is required to disable 2FA.");
+            }
+
+            user.IsTwoFactorEnabled = false;
+            user.TwoFactorSecret = GenerateSecret();
+            user.LastAcceptedTotpCounter = null;
+            ClearPendingTwoFactorEnrollment(user);
+            _challenges.RemoveAll(item => item.UserId == user.Id);
+            _recoveryCodes.RemoveAll(item => item.UserId == user.Id);
+            return Task.FromResult(new DisableTwoFactorResponse(true));
         }
     }
 
@@ -312,6 +368,7 @@ public sealed class PhaseOneStore(
                     displayName,
                     null,
                     GenerateSecret(),
+                    true,
                     [role]);
                 _users.Add(user);
             }
@@ -340,6 +397,12 @@ public sealed class PhaseOneStore(
 
             var user = _users.Single(item => item.Id == challenge.UserId);
             var now = timeProvider.GetUtcNow();
+            if (!user.IsTwoFactorEnabled)
+            {
+                _challenges.Remove(challenge);
+                throw new InvalidOperationException("2FA is not enabled for this account.");
+            }
+
             if (!string.IsNullOrWhiteSpace(request.Code) && TryConsumeRecoveryCode(user.Id, request.Code, now))
             {
                 _challenges.Remove(challenge);
@@ -1660,6 +1723,7 @@ public sealed class PhaseOneStore(
         string displayName,
         string? phone,
         byte[] twoFactorSecret,
+        bool isTwoFactorEnabled,
         IReadOnlyList<UserRole> roles)
     {
         public Guid Id { get; } = id;
@@ -1668,6 +1732,7 @@ public sealed class PhaseOneStore(
         public string DisplayName { get; } = displayName;
         public string? Phone { get; } = phone;
         public byte[] TwoFactorSecret { get; set; } = twoFactorSecret;
+        public bool IsTwoFactorEnabled { get; set; } = isTwoFactorEnabled;
         public IReadOnlyList<UserRole> Roles { get; } = roles;
         public int FailedLoginAttempts { get; set; }
         public DateTimeOffset? LockoutEndsAt { get; set; }

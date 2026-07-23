@@ -173,6 +173,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<Officer>().HasIndex(officer => officer.CurrentNestyStayId).IsUnique();
         modelBuilder.Entity<OfficerIdHistory>().HasIndex(item => new { item.OfficerId, item.Year }).IsUnique();
         modelBuilder.Entity<MilestoneUser>().HasIndex(user => user.NormalizedEmail).IsUnique();
+        modelBuilder.Entity<MilestoneUser>().Property(user => user.IsTwoFactorEnabled).HasDefaultValue(true);
         modelBuilder.Entity<MilestoneTwoFactorChallenge>().HasIndex(challenge => challenge.ChallengeId).IsUnique();
         modelBuilder.Entity<MilestoneProperty>().HasIndex(property => property.HostUserId);
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => new { booking.PropertyId, booking.CheckIn, booking.CheckOut });

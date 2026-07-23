@@ -89,4 +89,19 @@ describe("api client", () => {
     expect(file.contentType).toBe("application/pdf");
     expect(await file.blob.text()).toBe("%PDF-1.4");
   });
+
+  it("sends bearer tokens when disabling two-factor authentication", async () => {
+    const fetchMock = stubFetch(jsonResponse({ disabled: true }));
+
+    const response = await api.disableTwoFactor("signed-session-token", { code: "ABCD1234-EFGH5678" });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/auth/2fa");
+    expect(init.method).toBe("DELETE");
+    expect(headers.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(init.body as string)).toEqual({ code: "ABCD1234-EFGH5678" });
+    expect(response.disabled).toBe(true);
+  });
 });

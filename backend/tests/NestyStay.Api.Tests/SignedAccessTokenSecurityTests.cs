@@ -110,6 +110,11 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             Assert.Throws<InvalidOperationException>(() =>
                 ProductionIntegrationValidator.Validate(BuildProductionConfig("short-secret"), production));
 
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig("strong-production-session-token-secret-32-plus", totpProtectionKey: "short"),
+                    production));
+
             ProductionIntegrationValidator.Validate(
                 BuildProductionConfig("strong-production-session-token-secret-32-plus"),
                 production);
@@ -205,11 +210,14 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
         return $"{TokenPrefix}{keyId}.{payloadSegment}.{signature}";
     }
 
-    private static IConfiguration BuildProductionConfig(string? sessionTokenSecret)
+    private static IConfiguration BuildProductionConfig(
+        string? sessionTokenSecret,
+        string totpProtectionKey = "strong-production-totp-protection-key-32-plus")
     {
         var settings = new Dictionary<string, string?>
         {
             ["Security:AdminTokenSha256"] = new('a', 64),
+            ["Security:TotpSecretProtectionKey"] = totpProtectionKey,
             ["Webhooks:SharedSecret"] = "webhook-shared-secret",
             ["Webhooks:StripeSigningSecret"] = "whsec_test",
             ["Integrations:StripeSecretKey"] = "sk_test_local",
@@ -232,6 +240,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
         [
             "NESTYSTAY_ADMIN_TOKEN_SHA256",
             "NESTYSTAY_SESSION_TOKEN_SECRET",
+            "NESTYSTAY_TOTP_SECRET_PROTECTION_KEY",
             "NESTYSTAY_WEBHOOK_SHARED_SECRET",
             "STRIPE_WEBHOOK_SECRET",
             "STRIPE_SECRET_KEY",

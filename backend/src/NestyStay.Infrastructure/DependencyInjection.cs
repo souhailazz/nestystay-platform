@@ -12,6 +12,7 @@ using NestyStay.Infrastructure.Persistence.Milestones;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddSingleton<INotificationGateway, CompositeNotificationGateway>();
         services.AddSingleton<IEmailSender, LocalDevelopmentEmailSender>();
         services.AddSingleton<ISmsSender, LocalDevelopmentSmsSender>();
+        services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
         services.AddSingleton<IDevelopmentAuthSecretStore, InMemoryDevelopmentAuthSecretStore>();
         services.AddSingleton<IGoogleIdentityValidator, GoogleTokenInfoValidator>();
         services.AddSingleton<IInsuranceProvider, InsuraGuestProvider>();
@@ -325,6 +327,84 @@ internal sealed class LocalDevelopmentSmsSender : ISmsSender
 
     public Task SendAsync(SmsMessage message, CancellationToken cancellationToken) =>
         Task.CompletedTask;
+}
+
+public sealed class AesGcmSecretProtector(IConfiguration configuration) : ISecretProtector
+{
+    private const int NonceSizeBytes = 12;
+    private const int TagSizeBytes = 16;
+    private static readonly byte[] Prefix = Encoding.ASCII.GetBytes("NSTY.AESGCM.V1.");
+    private readonly byte[] _key = SHA256.HashData(Encoding.UTF8.GetBytes(ResolveKey(configuration)));
+
+    public byte[] Protect(string purpose, byte[] secret)
+    {
+        ArgumentNullException.ThrowIfNull(secret);
+        if (secret.Length == 0)
+        {
+            throw new InvalidOperationException("Cannot protect an empty secret.");
+        }
+
+        var nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
+        var ciphertext = new byte[secret.Length];
+        var tag = new byte[TagSizeBytes];
+        using var aes = new AesGcm(_key, TagSizeBytes);
+        aes.Encrypt(nonce, secret, ciphertext, tag, Encoding.UTF8.GetBytes(purpose));
+
+        var protectedSecret = new byte[Prefix.Length + nonce.Length + tag.Length + ciphertext.Length];
+        Prefix.CopyTo(protectedSecret, 0);
+        nonce.CopyTo(protectedSecret, Prefix.Length);
+        tag.CopyTo(protectedSecret, Prefix.Length + nonce.Length);
+        ciphertext.CopyTo(protectedSecret, Prefix.Length + nonce.Length + tag.Length);
+        return protectedSecret;
+    }
+
+    public byte[] Unprotect(string purpose, byte[] protectedSecret)
+    {
+        ArgumentNullException.ThrowIfNull(protectedSecret);
+        if (!IsProtected(protectedSecret))
+        {
+            return protectedSecret.ToArray();
+        }
+
+        var minimumLength = Prefix.Length + NonceSizeBytes + TagSizeBytes + 1;
+        if (protectedSecret.Length < minimumLength)
+        {
+            throw new InvalidOperationException("Protected secret payload is invalid.");
+        }
+
+        var nonce = protectedSecret.AsSpan(Prefix.Length, NonceSizeBytes);
+        var tag = protectedSecret.AsSpan(Prefix.Length + NonceSizeBytes, TagSizeBytes);
+        var ciphertext = protectedSecret.AsSpan(Prefix.Length + NonceSizeBytes + TagSizeBytes);
+        var secret = new byte[ciphertext.Length];
+        using var aes = new AesGcm(_key, TagSizeBytes);
+        aes.Decrypt(nonce, ciphertext, tag, secret, Encoding.UTF8.GetBytes(purpose));
+        return secret;
+    }
+
+    public bool IsProtected(byte[] protectedSecret) =>
+        protectedSecret.Length > Prefix.Length &&
+        protectedSecret.AsSpan(0, Prefix.Length).SequenceEqual(Prefix);
+
+    private static string ResolveKey(IConfiguration configuration)
+    {
+        var configured = configuration["Security:TotpSecretProtectionKey"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        var environmentKey = Environment.GetEnvironmentVariable("NESTYSTAY_TOTP_SECRET_PROTECTION_KEY");
+        if (!string.IsNullOrWhiteSpace(environmentKey))
+        {
+            return environmentKey;
+        }
+
+        var sessionSecret = configuration["Security:SessionTokenSecret"] ??
+            Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_TOKEN_SECRET");
+        return string.IsNullOrWhiteSpace(sessionSecret)
+            ? "development-only-nestystay-totp-secret-protection-key"
+            : sessionSecret;
+    }
 }
 
 internal sealed class InMemoryDevelopmentAuthSecretStore(TimeProvider timeProvider) : IDevelopmentAuthSecretStore

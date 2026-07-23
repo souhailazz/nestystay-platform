@@ -19,7 +19,8 @@ public sealed class EfPhaseOneStore(
     IAccessTokenService? accessTokenService = null,
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
-    IDevelopmentAuthSecretStore? developmentAuthSecrets = null) : IPhaseOneStore
+    IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
+    ISecretProtector? secretProtector = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -33,6 +34,7 @@ public sealed class EfPhaseOneStore(
     private const string PasswordResetStatusExpired = "Expired";
     private const string PasswordResetStatusFailed = "Failed";
     private const string PasswordResetStatusInvalidated = "Invalidated";
+    private const string TotpSecretPurpose = "MilestoneUser.TotpSecret";
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
@@ -56,7 +58,8 @@ public sealed class EfPhaseOneStore(
             PasswordHash = HashPassword(request.Password),
             DisplayName = request.DisplayName.Trim(),
             Phone = request.Phone?.Trim(),
-            TwoFactorSecret = GenerateSecret(),
+            TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
+            IsTwoFactorEnabled = true,
             RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([request.Role])
         };
 
@@ -112,6 +115,22 @@ public sealed class EfPhaseOneStore(
         var previousChallenges = db.MilestoneTwoFactorChallenges.Where(item => item.UserId == user.Id);
         db.MilestoneTwoFactorChallenges.RemoveRange(previousChallenges);
 
+        if (!user.IsTwoFactorEnabled)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            var directRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+            var directTokenExpiresAt = now.AddHours(8);
+            return new LoginResponse(
+                user.Id,
+                user.Email,
+                false,
+                null,
+                null,
+                _accessTokenService.Issue(user.Id, directRoles, directTokenExpiresAt),
+                directTokenExpiresAt,
+                directRoles);
+        }
+
         var expiresAt = now.AddMinutes(10);
         var challenge = new MilestoneTwoFactorChallenge
         {
@@ -143,9 +162,14 @@ public sealed class EfPhaseOneStore(
         }
 
         var user = await db.MilestoneUsers.SingleAsync(item => item.Id == challenge.UserId, cancellationToken);
+        if (!user.IsTwoFactorEnabled)
+        {
+            return null;
+        }
+
         return new DevelopmentAuthCodeResponse(
             challenge.ChallengeId,
-            GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()),
+            GenerateTotp(UnprotectTotpSecret(user.TwoFactorSecret), timeProvider.GetUtcNow()),
             challenge.ExpiresAt);
     }
 
@@ -157,7 +181,7 @@ public sealed class EfPhaseOneStore(
         var secret = GenerateSecret();
         var manualKey = ToBase32(secret);
         user.PendingTwoFactorEnrollmentId = Guid.NewGuid().ToString("N");
-        user.PendingTwoFactorSecret = secret;
+        user.PendingTwoFactorSecret = ProtectTotpSecret(secret);
         user.PendingTwoFactorExpiresAt = now.Add(TwoFactorEnrollmentLifetime);
         await db.SaveChangesAsync(cancellationToken);
 
@@ -191,12 +215,14 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("Authenticator enrollment has expired.");
         }
 
-        if (!TryVerifyTotp(user.PendingTwoFactorSecret, request.Code, now, out var acceptedCounter))
+        var pendingSecret = UnprotectTotpSecret(user.PendingTwoFactorSecret);
+        if (!TryVerifyTotp(pendingSecret, request.Code, now, out var acceptedCounter))
         {
             throw new InvalidOperationException("Authenticator code is invalid.");
         }
 
-        user.TwoFactorSecret = user.PendingTwoFactorSecret;
+        user.TwoFactorSecret = ProtectTotpSecret(pendingSecret);
+        user.IsTwoFactorEnabled = true;
         user.LastAcceptedTotpCounter = acceptedCounter;
         ClearPendingTwoFactorEnrollment(user);
 
@@ -249,7 +275,8 @@ public sealed class EfPhaseOneStore(
                 PasswordHash = HashPassword(CreateExternalPasswordSeed(identity.Subject, email)),
                 DisplayName = displayName,
                 Phone = null,
-                TwoFactorSecret = GenerateSecret(),
+                TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
+                IsTwoFactorEnabled = true,
                 RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([role])
             };
             db.MilestoneUsers.Add(user);
@@ -279,6 +306,13 @@ public sealed class EfPhaseOneStore(
 
         var user = await db.MilestoneUsers.SingleAsync(item => item.Id == challenge.UserId, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        if (!user.IsTwoFactorEnabled)
+        {
+            db.MilestoneTwoFactorChallenges.Remove(challenge);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("2FA is not enabled for this account.");
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Code) &&
             await TryConsumeRecoveryCodeAsync(user.Id, request.Code, now, cancellationToken))
         {
@@ -294,8 +328,9 @@ public sealed class EfPhaseOneStore(
                 recoveryRoles);
         }
 
+        var twoFactorSecret = UnprotectTotpSecret(user.TwoFactorSecret);
         if (string.IsNullOrWhiteSpace(request.Code) ||
-            !TryVerifyTotp(user.TwoFactorSecret, request.Code, now, out var acceptedCounter) ||
+            !TryVerifyTotp(twoFactorSecret, request.Code, now, out var acceptedCounter) ||
             user.LastAcceptedTotpCounter is not null && acceptedCounter <= user.LastAcceptedTotpCounter.Value)
         {
             challenge.FailedAttempts++;
@@ -319,6 +354,39 @@ public sealed class EfPhaseOneStore(
             _accessTokenService.Issue(user.Id, roles, tokenExpiresAt),
             tokenExpiresAt,
             roles);
+    }
+
+    public async Task<DisableTwoFactorResponse> DisableTwoFactorAsync(
+        Guid userId,
+        DisableTwoFactorRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User was not found.");
+        if (!user.IsTwoFactorEnabled)
+        {
+            return new DisableTwoFactorResponse(true);
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var code = request.Code?.Trim() ?? string.Empty;
+        var twoFactorSecret = UnprotectTotpSecret(user.TwoFactorSecret);
+        var verified = await TryConsumeRecoveryCodeAsync(user.Id, code, now, cancellationToken) ||
+            TryVerifyTotp(twoFactorSecret, code, now, out var acceptedCounter) &&
+            (user.LastAcceptedTotpCounter is null || acceptedCounter > user.LastAcceptedTotpCounter.Value);
+        if (!verified)
+        {
+            throw new InvalidOperationException("A valid authenticator or recovery code is required to disable 2FA.");
+        }
+
+        user.IsTwoFactorEnabled = false;
+        user.TwoFactorSecret = ProtectTotpSecret(GenerateSecret());
+        user.LastAcceptedTotpCounter = null;
+        ClearPendingTwoFactorEnrollment(user);
+        db.MilestoneTwoFactorChallenges.RemoveRange(db.MilestoneTwoFactorChallenges.Where(item => item.UserId == user.Id));
+        db.MilestoneRecoveryCodes.RemoveRange(db.MilestoneRecoveryCodes.Where(item => item.UserId == user.Id));
+        await db.SaveChangesAsync(cancellationToken);
+        return new DisableTwoFactorResponse(true);
     }
 
     public async Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken)
@@ -1656,6 +1724,12 @@ public sealed class EfPhaseOneStore(
     }
 
     private static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(20);
+
+    private byte[] ProtectTotpSecret(byte[] secret) =>
+        secretProtector?.Protect(TotpSecretPurpose, secret) ?? secret;
+
+    private byte[] UnprotectTotpSecret(byte[] secret) =>
+        secretProtector?.Unprotect(TotpSecretPurpose, secret) ?? secret;
 
     private static string GenerateRecoveryCode()
     {

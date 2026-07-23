@@ -29,8 +29,11 @@ export type LoginResponse = {
   userId: string;
   email: string;
   requiresTwoFactor: boolean;
-  challengeId: string;
-  challengeExpiresAt: string;
+  challengeId?: string | null;
+  challengeExpiresAt?: string | null;
+  accessToken?: string | null;
+  expiresAt?: string | null;
+  roles?: UserRole[] | null;
 };
 
 export type VerifyTwoFactorResponse = {
@@ -50,6 +53,10 @@ export type TwoFactorEnrollment = {
 export type ConfirmTwoFactorEnrollmentResponse = {
   enabled: boolean;
   recoveryCodes: string[];
+};
+
+export type DisableTwoFactorResponse = {
+  disabled: boolean;
 };
 
 export type GoogleSignInRequest = {
@@ -900,6 +907,8 @@ export const api = {
     request<TwoFactorEnrollment>("/auth/2fa/enrollments", { method: "POST", token }),
   confirmTwoFactorEnrollment: (token: string, body: { enrollmentId: string; code: string }) =>
     request<ConfirmTwoFactorEnrollmentResponse>("/auth/2fa/enrollments/confirm", { method: "POST", token, body }),
+  disableTwoFactor: (token: string, body: { code: string }) =>
+    request<DisableTwoFactorResponse>("/auth/2fa", { method: "DELETE", token, body }),
   requestPasswordReset: (email: string) =>
     request<PasswordResetRequestResponse>("/auth/password-reset/request", {
       method: "POST",

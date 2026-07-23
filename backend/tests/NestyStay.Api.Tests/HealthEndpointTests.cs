@@ -337,6 +337,85 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task TwoFactorCanBeDisabledWithRecoveryCodeAndReturnsDirectLoginSession()
+    {
+        using var client = _factory.CreateClient();
+        var email = $"disable-{Guid.NewGuid():N}@test.local";
+
+        var register = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password123!",
+            displayName = "Disable Guest",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
+        });
+        Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(challenge);
+        Assert.True(challenge.RequiresTwoFactor);
+        Assert.NotNull(challenge.ChallengeId);
+
+        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{challenge.ChallengeId}");
+        Assert.NotNull(developmentCode);
+        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = challenge.ChallengeId,
+            code = developmentCode.Code
+        });
+        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
+        var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        Assert.NotNull(session);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var recoveryResponse = await client.PostAsync($"/api/spec/auth/{session.UserId}/recovery-codes", null);
+        Assert.Equal(HttpStatusCode.OK, recoveryResponse.StatusCode);
+        var codes = await recoveryResponse.Content.ReadFromJsonAsync<List<RecoveryCodeResponse>>();
+        Assert.NotNull(codes);
+        Assert.NotEmpty(codes);
+
+        using var invalidDisableRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/2fa")
+        {
+            Content = JsonContent.Create(new { code = "000000" })
+        };
+        var invalidDisable = await client.SendAsync(invalidDisableRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidDisable.StatusCode);
+
+        using var disableRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/2fa")
+        {
+            Content = JsonContent.Create(new { code = codes[0].Code })
+        };
+        var disabled = await client.SendAsync(disableRequest);
+        Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
+        var disabledBody = await disabled.Content.ReadFromJsonAsync<DisableTwoFactorResponse>();
+        Assert.NotNull(disabledBody);
+        Assert.True(disabledBody.Disabled);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var directLoginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, directLoginResponse.StatusCode);
+        var directLogin = await directLoginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(directLogin);
+        Assert.False(directLogin.RequiresTwoFactor);
+        Assert.Null(directLogin.ChallengeId);
+        Assert.NotEmpty(directLogin.AccessToken);
+    }
+
+    [Fact]
     public async Task PhaseOneEndpointsSupportRegistrationListingAndPendingBooking()
     {
         using var client = _factory.CreateClient();
@@ -780,7 +859,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record RegisterResponse(Guid UserId, bool RequiresTwoFactor);
 
-    private sealed record LoginResponse(string ChallengeId);
+    private sealed record LoginResponse(string? ChallengeId, bool RequiresTwoFactor = true, string? AccessToken = null);
 
     private sealed record DevelopmentAuthCodeResponse(string Code);
 
@@ -801,6 +880,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         DateTimeOffset ExpiresAt);
 
     private sealed record TwoFactorEnrollmentConfirmResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
+
+    private sealed record DisableTwoFactorResponse(bool Disabled);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled, string Title = "", bool IsArchived = false);
 

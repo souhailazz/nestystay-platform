@@ -54,6 +54,7 @@ public sealed class PhaseOneWorkflowTests
             harness.Store.LoginAsync(new LoginRequest("unknown@test.local", "Password123!"), CancellationToken.None));
 
         var challenge = await harness.Store.LoginAsync(new LoginRequest("secure@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(challenge.ChallengeId);
         var challengeCode = await GetDevelopmentCodeAsync(harness.Store, challenge.ChallengeId);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -74,6 +75,7 @@ public sealed class PhaseOneWorkflowTests
             harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, challengeCode), CancellationToken.None));
 
         var expiringChallenge = await harness.Store.LoginAsync(new LoginRequest("secure@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(expiringChallenge.ChallengeId);
         var expiringCode = await GetDevelopmentCodeAsync(harness.Store, expiringChallenge.ChallengeId);
         clock.Advance(TimeSpan.FromMinutes(11));
 
@@ -109,6 +111,7 @@ public sealed class PhaseOneWorkflowTests
         var harness = CreateHarness();
         await harness.Store.RegisterAsync(Registration("attempts@test.local", "Attempts Guest"), CancellationToken.None);
         var challenge = await harness.Store.LoginAsync(new LoginRequest("attempts@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(challenge.ChallengeId);
         var code = await GetDevelopmentCodeAsync(harness.Store, challenge.ChallengeId);
 
         for (var attempt = 0; attempt < 5; attempt++)
@@ -130,6 +133,7 @@ public sealed class PhaseOneWorkflowTests
         await harness.Store.RegisterAsync(Registration("replay@test.local", "Replay Guest"), CancellationToken.None);
 
         var firstChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(firstChallenge.ChallengeId);
         var firstCode = await GetDevelopmentCodeAsync(harness.Store, firstChallenge.ChallengeId);
         var firstSession = await harness.Store.VerifyTwoFactorAsync(
             new VerifyTwoFactorRequest(firstChallenge.ChallengeId, firstCode),
@@ -137,6 +141,7 @@ public sealed class PhaseOneWorkflowTests
         Assert.NotEmpty(firstSession.AccessToken);
 
         var replayChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(replayChallenge.ChallengeId);
         var replayCode = await GetDevelopmentCodeAsync(harness.Store, replayChallenge.ChallengeId);
         Assert.Equal(firstCode, replayCode);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -144,11 +149,51 @@ public sealed class PhaseOneWorkflowTests
 
         clock.Advance(TimeSpan.FromSeconds(30));
         var nextChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(nextChallenge.ChallengeId);
         var nextCode = await GetDevelopmentCodeAsync(harness.Store, nextChallenge.ChallengeId);
         var nextSession = await harness.Store.VerifyTwoFactorAsync(
             new VerifyTwoFactorRequest(nextChallenge.ChallengeId, nextCode),
             CancellationToken.None);
         Assert.NotEmpty(nextSession.AccessToken);
+    }
+
+    [Fact]
+    public async Task TwoFactorCanBeDisabledWithValidCurrentCode()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
+        var harness = CreateHarness(clock);
+        var registered = await harness.Store.RegisterAsync(Registration("disable@test.local", "Disable Guest"), CancellationToken.None);
+
+        var firstChallenge = await harness.Store.LoginAsync(new LoginRequest("disable@test.local", "Password123!"), CancellationToken.None);
+        Assert.True(firstChallenge.RequiresTwoFactor);
+        Assert.NotNull(firstChallenge.ChallengeId);
+        var firstCode = await GetDevelopmentCodeAsync(harness.Store, firstChallenge.ChallengeId);
+        var firstSession = await harness.Store.VerifyTwoFactorAsync(
+            new VerifyTwoFactorRequest(firstChallenge.ChallengeId, firstCode),
+            CancellationToken.None);
+        Assert.Equal(registered.UserId, firstSession.UserId);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.DisableTwoFactorAsync(registered.UserId, new DisableTwoFactorRequest("000000"), CancellationToken.None));
+
+        clock.Advance(TimeSpan.FromSeconds(30));
+        var disableChallenge = await harness.Store.LoginAsync(new LoginRequest("disable@test.local", "Password123!"), CancellationToken.None);
+        Assert.NotNull(disableChallenge.ChallengeId);
+        var disableCode = await GetDevelopmentCodeAsync(harness.Store, disableChallenge.ChallengeId);
+        var disabled = await harness.Store.DisableTwoFactorAsync(
+            registered.UserId,
+            new DisableTwoFactorRequest(disableCode),
+            CancellationToken.None);
+
+        Assert.True(disabled.Disabled);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(disableChallenge.ChallengeId, disableCode), CancellationToken.None));
+
+        var directLogin = await harness.Store.LoginAsync(new LoginRequest("disable@test.local", "Password123!"), CancellationToken.None);
+        Assert.False(directLogin.RequiresTwoFactor);
+        Assert.Null(directLogin.ChallengeId);
+        Assert.NotEmpty(directLogin.AccessToken);
+        Assert.Contains(UserRole.Guest, directLogin.Roles ?? []);
     }
 
     [Fact]

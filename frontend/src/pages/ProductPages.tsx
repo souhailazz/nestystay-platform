@@ -402,7 +402,13 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
         setCode("");
         setNotice("Registration saved. Enter the verification code from your authenticator app.");
       } else {
-        await auth.login(email, password);
+        const result = await auth.login(email, password);
+        if ("accessToken" in result) {
+          window.sessionStorage.setItem("nesty-login-toast", "1");
+          navigate("/guest-dashboard");
+          return;
+        }
+
         setCode("");
         setNotice("Login challenge opened. Enter the verification code from your authenticator app.");
       }

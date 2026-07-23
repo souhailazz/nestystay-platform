@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Text;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
@@ -28,6 +29,10 @@ public sealed class MilestonePersistenceTests
             var registered = await store.RegisterAsync(
                 new RegisterUserRequest("persisted@test.local", "Password123!", "Persisted Guest", null, "Password123!", true, true),
                 CancellationToken.None);
+            var storedUser = await db.MilestoneUsers.SingleAsync(user => user.Id == registered.UserId);
+            Assert.True(providers.SecretProtector.IsProtected(storedUser.TwoFactorSecret));
+            Assert.NotEqual(20, storedUser.TwoFactorSecret.Length);
+
             var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
             var booking = await store.CreateBookingAsync(
                 new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 4)),
@@ -42,6 +47,7 @@ public sealed class MilestonePersistenceTests
         {
             var store = CreatePhaseOneStore(db, providers);
             var login = await store.LoginAsync(new LoginRequest("persisted@test.local", "Password123!"), CancellationToken.None);
+            Assert.NotNull(login.ChallengeId);
             var code = await store.GetDevelopmentTwoFactorCodeAsync(login.ChallengeId, CancellationToken.None);
             Assert.NotNull(code);
             var session = await store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(login.ChallengeId, code.Code), CancellationToken.None);
@@ -164,7 +170,13 @@ public sealed class MilestonePersistenceTests
     }
 
     private static EfPhaseOneStore CreatePhaseOneStore(NestyStayDbContext db, ProviderHarness providers) =>
-        new(db, providers.EkycProvider, providers.PaymentGateway, providers.NotificationGateway, TimeProvider.System);
+        new(
+            db,
+            providers.EkycProvider,
+            providers.PaymentGateway,
+            providers.NotificationGateway,
+            TimeProvider.System,
+            secretProtector: providers.SecretProtector);
 
     private static EfPhaseTwoStore CreatePhaseTwoStore(NestyStayDbContext db) =>
         new(db, new PricebookService(), TimeProvider.System);
@@ -174,6 +186,24 @@ public sealed class MilestonePersistenceTests
         public TestEkycProvider EkycProvider { get; } = new();
         public TestPaymentGateway PaymentGateway { get; } = new();
         public TestNotificationGateway NotificationGateway { get; } = new();
+        public ISecretProtector SecretProtector { get; } = new TestSecretProtector();
+    }
+
+    private sealed class TestSecretProtector : ISecretProtector
+    {
+        private static readonly byte[] Prefix = Encoding.ASCII.GetBytes("protected:");
+
+        public byte[] Protect(string purpose, byte[] secret) =>
+            [.. Prefix, .. secret.Reverse()];
+
+        public byte[] Unprotect(string purpose, byte[] protectedSecret) =>
+            IsProtected(protectedSecret)
+                ? protectedSecret[Prefix.Length..].Reverse().ToArray()
+                : protectedSecret.ToArray();
+
+        public bool IsProtected(byte[] protectedSecret) =>
+            protectedSecret.Length > Prefix.Length &&
+            protectedSecret.AsSpan(0, Prefix.Length).SequenceEqual(Prefix);
     }
 
     private sealed class TestEkycProvider : IEkycProvider

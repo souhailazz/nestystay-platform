@@ -3,11 +3,13 @@ namespace NestyStay.Api.Configuration;
 public static class ProductionIntegrationValidator
 {
     private const int MinimumSessionTokenSecretBytes = 32;
+    private const int MinimumTotpProtectionKeyBytes = 32;
 
     private static readonly RequiredSetting[] RequiredSettings =
     [
         new("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"),
         new("Security:SessionTokenSecret", "NESTYSTAY_SESSION_TOKEN_SECRET", "session token signing secret"),
+        new("Security:TotpSecretProtectionKey", "NESTYSTAY_TOTP_SECRET_PROTECTION_KEY", "TOTP secret protection key"),
         new("Webhooks:SharedSecret", "NESTYSTAY_WEBHOOK_SHARED_SECRET", "webhook shared secret"),
         new("Webhooks:StripeSigningSecret", "STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"),
         new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
@@ -38,6 +40,12 @@ public static class ProductionIntegrationValidator
         if (sessionSecret is not null && System.Text.Encoding.UTF8.GetByteCount(sessionSecret) < MinimumSessionTokenSecretBytes)
         {
             throw new InvalidOperationException("Production session token signing secret must be at least 32 bytes.");
+        }
+
+        var totpProtectionKey = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:TotpSecretProtectionKey"));
+        if (totpProtectionKey is not null && System.Text.Encoding.UTF8.GetByteCount(totpProtectionKey) < MinimumTotpProtectionKeyBytes)
+        {
+            throw new InvalidOperationException("Production TOTP secret protection key must be at least 32 bytes.");
         }
     }
 

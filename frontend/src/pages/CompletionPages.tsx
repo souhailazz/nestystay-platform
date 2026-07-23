@@ -380,6 +380,7 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
   const [enrollment, setEnrollment] = useState<{ enrollmentId: string; manualKey: string; otpAuthUri: string; expiresAt: string } | null>(null);
   const [qrDataUri, setQrDataUri] = useState("");
   const [setupCode, setSetupCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -434,6 +435,23 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
     });
   }
 
+  async function disableTwoFactor() {
+    await run(async () => {
+      if (!disableCode.trim()) {
+        throw new Error("Enter an authenticator or recovery code before disabling 2FA.");
+      }
+
+      const disabled = await api.disableTwoFactor(token, { code: disableCode });
+      if (disabled.disabled) {
+        setCodes([]);
+        setEnrollment(null);
+        setDisableCode("");
+        setSetupCode("");
+        setNotice("Authenticator disabled. Restart setup to require 2FA again.");
+      }
+    });
+  }
+
   async function run(action: () => Promise<void>) {
     setError(null);
     setNotice(null);
@@ -471,6 +489,12 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
         </div>
       )}
       <Button onClick={generate} variant="outline"><Lock size={17} /> Regenerate recovery codes</Button>
+      <div className="notice-panel">
+        <Field label="Authenticator or recovery code">
+          <Input value={disableCode} onChange={(event) => setDisableCode(event.target.value)} />
+        </Field>
+        <Button onClick={disableTwoFactor} variant="ghost"><Lock size={17} /> Disable 2FA</Button>
+      </div>
       {notice && <div className="notice-panel">{notice}</div>}
       {error && <ErrorState message={error} />}
       {codes.length > 0 && (

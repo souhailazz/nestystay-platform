@@ -55,6 +55,13 @@ public interface IDevelopmentAuthSecretStore
     void Remove(Guid correlationId);
 }
 
+public interface ISecretProtector
+{
+    byte[] Protect(string purpose, byte[] secret);
+    byte[] Unprotect(string purpose, byte[] protectedSecret);
+    bool IsProtected(byte[] protectedSecret);
+}
+
 public interface IInsuranceProvider
 {
     string ProviderName { get; }

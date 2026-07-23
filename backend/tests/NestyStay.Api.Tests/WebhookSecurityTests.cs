@@ -119,6 +119,9 @@ public sealed class WebhookSecurityTests
         public Task<ConfirmTwoFactorEnrollmentResponse> ConfirmTwoFactorEnrollmentAsync(Guid userId, ConfirmTwoFactorEnrollmentRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<DisableTwoFactorResponse> DisableTwoFactorAsync(Guid userId, DisableTwoFactorRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

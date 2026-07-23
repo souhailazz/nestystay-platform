@@ -16,7 +16,15 @@ public sealed record RegisterUserResponse(Guid UserId, string Email, string Disp
 
 public sealed record LoginRequest(string Email, string Password);
 
-public sealed record LoginResponse(Guid UserId, string Email, bool RequiresTwoFactor, string ChallengeId, DateTimeOffset ChallengeExpiresAt);
+public sealed record LoginResponse(
+    Guid UserId,
+    string Email,
+    bool RequiresTwoFactor,
+    string? ChallengeId,
+    DateTimeOffset? ChallengeExpiresAt,
+    string? AccessToken = null,
+    DateTimeOffset? ExpiresAt = null,
+    IReadOnlyList<UserRole>? Roles = null);
 
 public sealed record DevelopmentAuthCodeResponse(string ChallengeId, string Code, DateTimeOffset ExpiresAt);
 
@@ -33,6 +41,10 @@ public sealed record BeginTwoFactorEnrollmentResponse(
 public sealed record ConfirmTwoFactorEnrollmentRequest(string EnrollmentId, string Code);
 
 public sealed record ConfirmTwoFactorEnrollmentResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
+
+public sealed record DisableTwoFactorRequest(string Code);
+
+public sealed record DisableTwoFactorResponse(bool Disabled);
 
 public sealed record GoogleSignInRequest(string Credential, UserRole? Role = null);
 

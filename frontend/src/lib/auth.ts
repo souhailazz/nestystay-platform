@@ -1,4 +1,4 @@
-import type { GoogleSignInResponse, UserRole, VerifyTwoFactorResponse } from "./api";
+import type { GoogleSignInResponse, LoginResponse, UserRole, VerifyTwoFactorResponse } from "./api";
 
 const STORAGE_KEY = "nestyStay.session";
 
@@ -34,6 +34,21 @@ export function createGoogleSession(verification: GoogleSignInResponse): AuthSes
     accessToken: verification.accessToken,
     expiresAt: verification.expiresAt,
     roles: verification.roles,
+  };
+}
+
+export function createLoginSession(login: LoginResponse, displayName?: string): AuthSession {
+  if (!login.accessToken || !login.expiresAt || !login.roles) {
+    throw new Error("Password login did not include a session.");
+  }
+
+  return {
+    userId: login.userId,
+    email: login.email,
+    displayName: displayName?.trim() || login.email.split("@")[0] || "Nesty guest",
+    accessToken: login.accessToken,
+    expiresAt: login.expiresAt,
+    roles: login.roles,
   };
 }
 

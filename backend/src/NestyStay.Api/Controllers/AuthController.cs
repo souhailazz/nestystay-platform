@@ -39,6 +39,11 @@ public sealed class AuthController(
     public async Task<IActionResult> ConfirmTwoFactorEnrollment(ConfirmTwoFactorEnrollmentRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.ConfirmTwoFactorEnrollmentAsync(RequireUserId(), request, cancellationToken));
 
+    [Authorize]
+    [HttpDelete("2fa")]
+    public async Task<IActionResult> DisableTwoFactor(DisableTwoFactorRequest request, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.DisableTwoFactorAsync(RequireUserId(), request, cancellationToken));
+
     [HttpPost("password-reset/request")]
     public async Task<IActionResult> RequestPasswordReset(PasswordResetRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.RequestPasswordResetAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));
