@@ -82,6 +82,47 @@ public sealed class PhaseOneWorkflowTests
     }
 
     [Fact]
+    public async Task LoginLocksAccountAfterRepeatedInvalidPasswordAttemptsAndRecoversAfterWindow()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
+        var harness = CreateHarness(clock);
+        await harness.Store.RegisterAsync(Registration("lockout@test.local", "Lockout Guest"), CancellationToken.None);
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "wrong-password"), CancellationToken.None));
+        }
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None));
+
+        clock.Advance(TimeSpan.FromMinutes(16));
+        var challenge = await harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None);
+
+        Assert.NotEmpty(challenge.ChallengeId);
+    }
+
+    [Fact]
+    public async Task TwoFactorChallengeIsInvalidatedAfterRepeatedBadCodes()
+    {
+        var harness = CreateHarness();
+        await harness.Store.RegisterAsync(Registration("attempts@test.local", "Attempts Guest"), CancellationToken.None);
+        var challenge = await harness.Store.LoginAsync(new LoginRequest("attempts@test.local", "Password123!"), CancellationToken.None);
+        var code = await GetDevelopmentCodeAsync(harness.Store, challenge.ChallengeId);
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, "000000"), CancellationToken.None));
+        }
+
+        Assert.Null(await harness.Store.GetDevelopmentTwoFactorCodeAsync(challenge.ChallengeId, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, code), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task PropertyCreationListingAndValidationRespectGuestVerificationUpsellRules()
     {
         var harness = CreateHarness();

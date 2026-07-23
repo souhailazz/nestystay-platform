@@ -19,6 +19,9 @@ public sealed class EfPhaseOneStore(
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
+    private const int MaximumLoginAttempts = 5;
+    private const int MaximumChallengeAttempts = 5;
+    private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
 
     public async Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
@@ -68,12 +71,34 @@ public sealed class EfPhaseOneStore(
             item => item.NormalizedEmail == email,
             cancellationToken);
 
+        var now = timeProvider.GetUtcNow();
         if (user is null || !VerifyPassword(request.Password, user.PasswordHash))
         {
+            if (user is not null)
+            {
+                user.FailedLoginAttempts++;
+                if (user.FailedLoginAttempts >= MaximumLoginAttempts)
+                {
+                    user.LockoutEndsAt = now.Add(LoginLockoutDuration);
+                }
+
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             throw new InvalidOperationException("Invalid email or password.");
         }
 
-        var expiresAt = timeProvider.GetUtcNow().AddMinutes(10);
+        if (user.LockoutEndsAt is not null && user.LockoutEndsAt > now)
+        {
+            throw new InvalidOperationException("Account is temporarily locked. Try again later.");
+        }
+
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndsAt = null;
+        var previousChallenges = db.MilestoneTwoFactorChallenges.Where(item => item.UserId == user.Id);
+        db.MilestoneTwoFactorChallenges.RemoveRange(previousChallenges);
+
+        var expiresAt = now.AddMinutes(10);
         var challenge = new MilestoneTwoFactorChallenge
         {
             Id = Guid.NewGuid(),
@@ -160,6 +185,13 @@ public sealed class EfPhaseOneStore(
         if (string.IsNullOrWhiteSpace(request.Code) ||
             !VerifyTotp(user.TwoFactorSecret, request.Code, timeProvider.GetUtcNow()))
         {
+            challenge.FailedAttempts++;
+            if (challenge.FailedAttempts >= MaximumChallengeAttempts)
+            {
+                db.MilestoneTwoFactorChallenges.Remove(challenge);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Invalid 2FA code.");
         }
 

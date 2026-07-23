@@ -35,6 +35,9 @@ public sealed class PhaseOneStore(
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
+    private const int MaximumLoginAttempts = 5;
+    private const int MaximumChallengeAttempts = 5;
+    private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
     private readonly object _gate = new();
     private readonly List<PhaseOneUser> _users = [];
@@ -124,13 +127,32 @@ public sealed class PhaseOneStore(
     {
         lock (_gate)
         {
+            var now = timeProvider.GetUtcNow();
             var user = _users.SingleOrDefault(item => item.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase));
             if (user is null || !VerifyPassword(request.Password, user.PasswordHash))
             {
+                if (user is not null)
+                {
+                    user.FailedLoginAttempts++;
+                    if (user.FailedLoginAttempts >= MaximumLoginAttempts)
+                    {
+                        user.LockoutEndsAt = now.Add(LoginLockoutDuration);
+                    }
+                }
+
                 throw new InvalidOperationException("Invalid email or password.");
             }
 
-            var expiresAt = timeProvider.GetUtcNow().AddMinutes(10);
+            if (user.LockoutEndsAt is not null && user.LockoutEndsAt > now)
+            {
+                throw new InvalidOperationException("Account is temporarily locked. Try again later.");
+            }
+
+            user.FailedLoginAttempts = 0;
+            user.LockoutEndsAt = null;
+            _challenges.RemoveAll(item => item.UserId == user.Id);
+
+            var expiresAt = now.AddMinutes(10);
             var challenge = new PhaseOneChallenge(Guid.NewGuid().ToString("N"), user.Id, expiresAt);
             _challenges.Add(challenge);
 
@@ -207,6 +229,12 @@ public sealed class PhaseOneStore(
             var user = _users.Single(item => item.Id == challenge.UserId);
             if (string.IsNullOrWhiteSpace(request.Code) || !VerifyTotp(user.TwoFactorSecret, request.Code, timeProvider.GetUtcNow()))
             {
+                challenge.FailedAttempts++;
+                if (challenge.FailedAttempts >= MaximumChallengeAttempts)
+                {
+                    _challenges.Remove(challenge);
+                }
+
                 throw new InvalidOperationException("Invalid 2FA code.");
             }
 
@@ -958,16 +986,33 @@ public sealed class PhaseOneStore(
         return (binaryCode % 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
     }
 
-    private sealed record PhaseOneUser(
-        Guid Id,
-        string Email,
-        string PasswordHash,
-        string DisplayName,
-        string? Phone,
-        byte[] TwoFactorSecret,
-        IReadOnlyList<UserRole> Roles);
+    private sealed class PhaseOneUser(
+        Guid id,
+        string email,
+        string passwordHash,
+        string displayName,
+        string? phone,
+        byte[] twoFactorSecret,
+        IReadOnlyList<UserRole> roles)
+    {
+        public Guid Id { get; } = id;
+        public string Email { get; } = email;
+        public string PasswordHash { get; } = passwordHash;
+        public string DisplayName { get; } = displayName;
+        public string? Phone { get; } = phone;
+        public byte[] TwoFactorSecret { get; } = twoFactorSecret;
+        public IReadOnlyList<UserRole> Roles { get; } = roles;
+        public int FailedLoginAttempts { get; set; }
+        public DateTimeOffset? LockoutEndsAt { get; set; }
+    }
 
-    private sealed record PhaseOneChallenge(string Id, Guid UserId, DateTimeOffset ExpiresAt);
+    private sealed class PhaseOneChallenge(string id, Guid userId, DateTimeOffset expiresAt)
+    {
+        public string Id { get; } = id;
+        public Guid UserId { get; } = userId;
+        public DateTimeOffset ExpiresAt { get; } = expiresAt;
+        public int FailedAttempts { get; set; }
+    }
 
     private sealed record PhaseOneProperty(
         Guid Id,

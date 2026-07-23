@@ -12,6 +12,8 @@ public sealed class MilestoneUser : BaseEntity
     public string? Phone { get; set; }
     public byte[] TwoFactorSecret { get; set; } = [];
     public string RolesJson { get; set; } = "[]";
+    public int FailedLoginAttempts { get; set; }
+    public DateTimeOffset? LockoutEndsAt { get; set; }
 }
 
 public sealed class MilestoneTwoFactorChallenge : BaseEntity
@@ -19,6 +21,7 @@ public sealed class MilestoneTwoFactorChallenge : BaseEntity
     public string ChallengeId { get; set; } = string.Empty;
     public Guid UserId { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
+    public int FailedAttempts { get; set; }
 }
 
 public sealed class MilestoneProperty : BaseEntity
