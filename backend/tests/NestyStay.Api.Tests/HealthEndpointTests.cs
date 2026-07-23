@@ -173,6 +173,85 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task RecoveryCodeCanCompleteTwoFactorOnce()
+    {
+        using var client = _factory.CreateClient();
+        var email = $"recovery-{Guid.NewGuid():N}@test.local";
+
+        var register = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password123!",
+            displayName = "Recovery Guest",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
+        });
+        Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+        var registered = await register.Content.ReadFromJsonAsync<RegisterResponse>();
+        Assert.NotNull(registered);
+
+        var firstLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, firstLogin.StatusCode);
+        var firstChallenge = await firstLogin.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(firstChallenge);
+        var firstDevelopmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{firstChallenge.ChallengeId}");
+        Assert.NotNull(firstDevelopmentCode);
+        var firstTwoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = firstChallenge.ChallengeId,
+            code = firstDevelopmentCode.Code
+        });
+        Assert.Equal(HttpStatusCode.OK, firstTwoFactor.StatusCode);
+        var session = await firstTwoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        Assert.NotNull(session);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var recoveryResponse = await client.PostAsync($"/api/spec/auth/{registered.UserId}/recovery-codes", null);
+        Assert.Equal(HttpStatusCode.OK, recoveryResponse.StatusCode);
+        var codes = await recoveryResponse.Content.ReadFromJsonAsync<List<RecoveryCodeResponse>>();
+        Assert.NotNull(codes);
+        var recoveryCode = Assert.Single(codes.Take(1)).Code;
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var recoveryLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, recoveryLogin.StatusCode);
+        var recoveryChallenge = await recoveryLogin.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(recoveryChallenge);
+        var recoverySessionResponse = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = recoveryChallenge.ChallengeId,
+            code = recoveryCode
+        });
+        Assert.Equal(HttpStatusCode.OK, recoverySessionResponse.StatusCode);
+
+        var replayLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, replayLogin.StatusCode);
+        var replayChallenge = await replayLogin.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(replayChallenge);
+        var replay = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = replayChallenge.ChallengeId,
+            code = recoveryCode
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, replay.StatusCode);
+    }
+
+    [Fact]
     public async Task PhaseOneEndpointsSupportRegistrationListingAndPendingBooking()
     {
         using var client = _factory.CreateClient();
@@ -485,6 +564,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record PasswordResetResponse(string RequestId, string Message, DateTimeOffset ExpiresAt);
 
     private sealed record DevelopmentPasswordResetResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
+
+    private sealed record RecoveryCodeResponse(string Code, bool Used);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled);
 

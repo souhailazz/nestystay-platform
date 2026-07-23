@@ -252,7 +252,10 @@ public sealed class PhaseOneStore(
             }
 
             var user = _users.Single(item => item.Id == challenge.UserId);
-            if (string.IsNullOrWhiteSpace(request.Code) || !VerifyTotp(user.TwoFactorSecret, request.Code, timeProvider.GetUtcNow()))
+            var now = timeProvider.GetUtcNow();
+            if (string.IsNullOrWhiteSpace(request.Code) ||
+                !TryVerifyTotp(user.TwoFactorSecret, request.Code, now, out var acceptedCounter) ||
+                user.LastAcceptedTotpCounter is not null && acceptedCounter <= user.LastAcceptedTotpCounter.Value)
             {
                 challenge.FailedAttempts++;
                 if (challenge.FailedAttempts >= MaximumChallengeAttempts)
@@ -264,7 +267,8 @@ public sealed class PhaseOneStore(
             }
 
             _challenges.Remove(challenge);
-            var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+            user.LastAcceptedTotpCounter = acceptedCounter;
+            var tokenExpiresAt = now.AddHours(8);
 
             return Task.FromResult(new VerifyTwoFactorResponse(
                 user.Id,
@@ -1182,17 +1186,34 @@ public sealed class PhaseOneStore(
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static bool VerifyTotp(byte[] secret, string code, DateTimeOffset now)
+    private static bool TryVerifyTotp(byte[] secret, string code, DateTimeOffset now, out long acceptedCounter)
     {
         var normalizedCode = code.Trim();
-        return GenerateTotp(secret, now.AddSeconds(-TotpStepSeconds)) == normalizedCode ||
-               GenerateTotp(secret, now) == normalizedCode ||
-               GenerateTotp(secret, now.AddSeconds(TotpStepSeconds)) == normalizedCode;
+        var currentCounter = GetTotpCounter(now);
+        foreach (var counter in new[] { currentCounter - 1, currentCounter, currentCounter + 1 })
+        {
+            if (GenerateTotp(secret, counter) == normalizedCode)
+            {
+                acceptedCounter = counter;
+                return true;
+            }
+        }
+
+        acceptedCounter = 0;
+        return false;
     }
 
     private static string GenerateTotp(byte[] secret, DateTimeOffset timestamp)
     {
-        var counter = timestamp.ToUnixTimeSeconds() / TotpStepSeconds;
+        var counter = GetTotpCounter(timestamp);
+        return GenerateTotp(secret, counter);
+    }
+
+    private static long GetTotpCounter(DateTimeOffset timestamp) =>
+        timestamp.ToUnixTimeSeconds() / TotpStepSeconds;
+
+    private static string GenerateTotp(byte[] secret, long counter)
+    {
         var counterBytes = BitConverter.GetBytes(counter);
         if (BitConverter.IsLittleEndian)
         {
@@ -1230,6 +1251,7 @@ public sealed class PhaseOneStore(
         public int FailedLoginAttempts { get; set; }
         public DateTimeOffset? LockoutEndsAt { get; set; }
         public DateTimeOffset? SessionInvalidatedAt { get; set; }
+        public long? LastAcceptedTotpCounter { get; set; }
     }
 
     private sealed class PhaseOneChallenge(string id, Guid userId, DateTimeOffset expiresAt)

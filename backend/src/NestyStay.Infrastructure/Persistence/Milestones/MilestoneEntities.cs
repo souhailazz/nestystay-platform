@@ -15,6 +15,7 @@ public sealed class MilestoneUser : BaseEntity
     public int FailedLoginAttempts { get; set; }
     public DateTimeOffset? LockoutEndsAt { get; set; }
     public DateTimeOffset? SessionInvalidatedAt { get; set; }
+    public long? LastAcceptedTotpCounter { get; set; }
 }
 
 public sealed class MilestoneTwoFactorChallenge : BaseEntity

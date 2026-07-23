@@ -204,8 +204,25 @@ public sealed class EfPhaseOneStore(
         }
 
         var user = await db.MilestoneUsers.SingleAsync(item => item.Id == challenge.UserId, cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        if (!string.IsNullOrWhiteSpace(request.Code) &&
+            await TryConsumeRecoveryCodeAsync(user.Id, request.Code, now, cancellationToken))
+        {
+            db.MilestoneTwoFactorChallenges.Remove(challenge);
+            await db.SaveChangesAsync(cancellationToken);
+
+            var recoveryTokenExpiresAt = now.AddHours(8);
+            var recoveryRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+            return new VerifyTwoFactorResponse(
+                user.Id,
+                _accessTokenService.Issue(user.Id, recoveryRoles, recoveryTokenExpiresAt),
+                recoveryTokenExpiresAt,
+                recoveryRoles);
+        }
+
         if (string.IsNullOrWhiteSpace(request.Code) ||
-            !VerifyTotp(user.TwoFactorSecret, request.Code, timeProvider.GetUtcNow()))
+            !TryVerifyTotp(user.TwoFactorSecret, request.Code, now, out var acceptedCounter) ||
+            user.LastAcceptedTotpCounter is not null && acceptedCounter <= user.LastAcceptedTotpCounter.Value)
         {
             challenge.FailedAttempts++;
             if (challenge.FailedAttempts >= MaximumChallengeAttempts)
@@ -218,9 +235,10 @@ public sealed class EfPhaseOneStore(
         }
 
         db.MilestoneTwoFactorChallenges.Remove(challenge);
+        user.LastAcceptedTotpCounter = acceptedCounter;
         await db.SaveChangesAsync(cancellationToken);
 
-        var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+        var tokenExpiresAt = now.AddHours(8);
         var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
         return new VerifyTwoFactorResponse(
             user.Id,
@@ -1251,6 +1269,33 @@ public sealed class EfPhaseOneStore(
 
     private static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(20);
 
+    private async Task<bool> TryConsumeRecoveryCodeAsync(
+        Guid userId,
+        string code,
+        DateTimeOffset usedAt,
+        CancellationToken cancellationToken)
+    {
+        var candidates = await db.MilestoneRecoveryCodes
+            .Where(item => item.UserId == userId && item.UsedAt == null && !item.IsDeleted)
+            .ToListAsync(cancellationToken);
+        var normalizedCode = code.Trim();
+        foreach (var candidate in candidates)
+        {
+            var salt = Convert.FromBase64String(candidate.SecretSalt);
+            var actualHash = HashBoundSecret("RecoveryCode", userId, userId.ToString("N"), normalizedCode, salt);
+            if (!FixedTimeEquals(actualHash, candidate.CodeHash))
+            {
+                continue;
+            }
+
+            candidate.UsedAt = usedAt;
+            candidate.UpdatedAt = usedAt;
+            return true;
+        }
+
+        return false;
+    }
+
     private static string GenerateSecureToken() =>
         Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 
@@ -1274,17 +1319,34 @@ public sealed class EfPhaseOneStore(
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static bool VerifyTotp(byte[] secret, string code, DateTimeOffset now)
+    private static bool TryVerifyTotp(byte[] secret, string code, DateTimeOffset now, out long acceptedCounter)
     {
         var normalizedCode = code.Trim();
-        return GenerateTotp(secret, now.AddSeconds(-TotpStepSeconds)) == normalizedCode ||
-               GenerateTotp(secret, now) == normalizedCode ||
-               GenerateTotp(secret, now.AddSeconds(TotpStepSeconds)) == normalizedCode;
+        var currentCounter = GetTotpCounter(now);
+        foreach (var counter in new[] { currentCounter - 1, currentCounter, currentCounter + 1 })
+        {
+            if (GenerateTotp(secret, counter) == normalizedCode)
+            {
+                acceptedCounter = counter;
+                return true;
+            }
+        }
+
+        acceptedCounter = 0;
+        return false;
     }
 
     private static string GenerateTotp(byte[] secret, DateTimeOffset timestamp)
     {
-        var counter = timestamp.ToUnixTimeSeconds() / TotpStepSeconds;
+        var counter = GetTotpCounter(timestamp);
+        return GenerateTotp(secret, counter);
+    }
+
+    private static long GetTotpCounter(DateTimeOffset timestamp) =>
+        timestamp.ToUnixTimeSeconds() / TotpStepSeconds;
+
+    private static string GenerateTotp(byte[] secret, long counter)
+    {
         var counterBytes = BitConverter.GetBytes(counter);
         if (BitConverter.IsLittleEndian)
         {

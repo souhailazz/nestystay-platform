@@ -123,6 +123,35 @@ public sealed class PhaseOneWorkflowTests
     }
 
     [Fact]
+    public async Task TwoFactorRejectsReplayedTotpCounterAcrossChallenges()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
+        var harness = CreateHarness(clock);
+        await harness.Store.RegisterAsync(Registration("replay@test.local", "Replay Guest"), CancellationToken.None);
+
+        var firstChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        var firstCode = await GetDevelopmentCodeAsync(harness.Store, firstChallenge.ChallengeId);
+        var firstSession = await harness.Store.VerifyTwoFactorAsync(
+            new VerifyTwoFactorRequest(firstChallenge.ChallengeId, firstCode),
+            CancellationToken.None);
+        Assert.NotEmpty(firstSession.AccessToken);
+
+        var replayChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        var replayCode = await GetDevelopmentCodeAsync(harness.Store, replayChallenge.ChallengeId);
+        Assert.Equal(firstCode, replayCode);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(replayChallenge.ChallengeId, replayCode), CancellationToken.None));
+
+        clock.Advance(TimeSpan.FromSeconds(30));
+        var nextChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
+        var nextCode = await GetDevelopmentCodeAsync(harness.Store, nextChallenge.ChallengeId);
+        var nextSession = await harness.Store.VerifyTwoFactorAsync(
+            new VerifyTwoFactorRequest(nextChallenge.ChallengeId, nextCode),
+            CancellationToken.None);
+        Assert.NotEmpty(nextSession.AccessToken);
+    }
+
+    [Fact]
     public async Task PropertyCreationListingAndValidationRespectGuestVerificationUpsellRules()
     {
         var harness = CreateHarness();
