@@ -178,6 +178,18 @@ public sealed class WebhookSecurityTests
         public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
             Task.FromResult(true);
 
+        public Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public IReadOnlyList<PropertyListingDto> GetProperties() =>
             throw new NotSupportedException();
 

@@ -81,6 +81,48 @@ export type CompletePasswordResetResponse = {
   passwordChanged: boolean;
 };
 
+export type UserProfile = {
+  userId: string;
+  email: string;
+  displayName: string;
+  roles: UserRole[];
+  photo?: UserProfilePhoto | null;
+};
+
+export type UserProfilePhoto = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  scanStatus: string;
+  uploadedAt: string;
+  sha256Hash?: string | null;
+};
+
+export type ProfilePhotoUpload = {
+  id: string;
+  userId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  scanStatus: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+};
+
+export type ProfilePhotoDownload = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  url: string;
+  expiresAt: string;
+};
+
 export type PropertyListing = {
   id: string;
   hostUserId: string;
@@ -1074,6 +1116,13 @@ export const api = {
     request<ConfirmTwoFactorEnrollmentResponse>("/auth/2fa/enrollments/confirm", { method: "POST", token, body }),
   disableTwoFactor: (token: string, body: { code: string }) =>
     request<DisableTwoFactorResponse>("/auth/2fa", { method: "DELETE", token, body }),
+  getProfile: (token: string) => request<UserProfile>("/auth/profile", { token }),
+  prepareProfilePhotoUpload: (token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
+    request<ProfilePhotoUpload>("/auth/profile/photo/uploads", { method: "POST", token, body }),
+  uploadProfilePhotoContent: (token: string, photoId: string, file: File, options?: UploadOptions) =>
+    requestUpload<ProfilePhotoUpload>(`/auth/profile/photo/uploads/${photoId}/content`, token, file, options),
+  getProfilePhotoDownload: (token: string, photoId: string) =>
+    request<ProfilePhotoDownload>(`/auth/profile/photo/${photoId}/download`, { token }),
   requestPasswordReset: (email: string) =>
     request<PasswordResetRequestResponse>("/auth/password-reset/request", {
       method: "POST",

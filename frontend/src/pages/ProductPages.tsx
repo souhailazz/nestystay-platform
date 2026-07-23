@@ -64,9 +64,11 @@ import {
   type FoundingTransferEvaluation,
   type GoogleSignInRequest,
   type PhaseTwoPricebookItem,
+  type ProfilePhotoUpload,
   type PropertyPhotoUpload,
   type PropertyListing,
   type SocialAuthConfig,
+  type UserProfile,
   type WellnessAdminDashboard,
   type WellnessOfficer,
   type WellnessQuote,
@@ -1899,9 +1901,158 @@ export function PaymentConfirmationPage({ auth, bookingId }: { auth: AuthControl
   );
 }
 
+type ProfilePhotoUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type ProfilePhotoUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: ProfilePhotoUploadStatus;
+  upload?: ProfilePhotoUpload;
+  error?: string;
+};
+
+const maximumProfilePhotoBytes = 10 * 1024 * 1024;
+
 export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   const [patoisEnabled, setPatoisEnabled] = useState(true);
-  if (!auth.session) return <RequireAuth auth={auth} title="Profile settings need an active session." />;
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [profileUploads, setProfileUploads] = useState<ProfilePhotoUploadItem[]>([]);
+  const [profileNotice, setProfileNotice] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const profileUploadControllers = useRef<Record<string, AbortController>>({});
+  const session = auth.session;
+
+  useEffect(() => () => {
+    Object.values(profileUploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!session) {
+      setProfile(null);
+      setProfilePhotoUrl("");
+      return;
+    }
+
+    setIsProfileLoading(true);
+    setProfileError(null);
+    api.getProfile(session.accessToken)
+      .then((result) => {
+        if (!cancelled) setProfile(result);
+      })
+      .catch((caught) => {
+        if (!cancelled) setProfileError(caught instanceof Error ? caught.message : "Profile could not be loaded.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsProfileLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setProfilePhotoUrl("");
+    if (!session || !profile?.photo) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    api.getProfilePhotoDownload(session.accessToken, profile.photo.id)
+      .then((download) => {
+        if (!cancelled) setProfilePhotoUrl(download.url);
+      })
+      .catch(() => {
+        if (!cancelled) setProfilePhotoUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, profile?.photo?.id]);
+
+  if (!session) return <RequireAuth auth={auth} title="Profile settings need an active session." />;
+
+  function updateProfileUpload(id: string, patch: Partial<ProfilePhotoUploadItem>) {
+    setProfileUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function refreshProfile() {
+    if (!session) return;
+    setProfile(await api.getProfile(session.accessToken));
+  }
+
+  async function uploadProfilePhoto(id: string, file: File) {
+    if (!session) return;
+    setProfileNotice(null);
+    setProfileError(null);
+    if (file.size > maximumProfilePhotoBytes) {
+      updateProfileUpload(id, { status: "failed", error: "Profile photos must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    profileUploadControllers.current[id] = controller;
+
+    try {
+      const prepared = await api.prepareProfilePhotoUpload(session.accessToken, {
+        fileName: file.name,
+        contentType: resolvePropertyPhotoContentType(file),
+        sizeBytes: file.size,
+      });
+      updateProfileUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadProfilePhotoContent(session.accessToken, prepared.id, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateProfileUpload(id, { progress, status: "uploading" }),
+      });
+      updateProfileUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+      setProfileNotice(`${uploaded.fileName} uploaded and verified.`);
+      await refreshProfile();
+    } catch (caught) {
+      updateProfileUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Profile photo upload failed.",
+      });
+    } finally {
+      delete profileUploadControllers.current[id];
+    }
+  }
+
+  function addProfilePhoto(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    const id = createLocalUploadId();
+    const isTooLarge = file.size > maximumProfilePhotoBytes;
+    setProfileUploads((items) => [...items, {
+      id,
+      file,
+      progress: 0,
+      status: isTooLarge ? "failed" : "queued",
+      error: isTooLarge ? "Profile photos must be 10 MB or smaller." : undefined,
+    }]);
+    if (!isTooLarge) {
+      void uploadProfilePhoto(id, file);
+    }
+  }
+
+  function cancelProfilePhotoUpload(id: string) {
+    profileUploadControllers.current[id]?.abort();
+    updateProfileUpload(id, { status: "cancelled", error: "Profile photo upload cancelled." });
+  }
+
+  function retryProfilePhotoUpload(item: ProfilePhotoUploadItem) {
+    updateProfileUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadProfilePhoto(item.id, item.file);
+  }
+
+  function removeProfilePhotoUpload(id: string) {
+    profileUploadControllers.current[id]?.abort();
+    setProfileUploads((items) => items.filter((item) => item.id !== id));
+  }
 
   return (
     <div className="product-page">
@@ -1912,14 +2063,44 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
       />
       <section className="product-section settings-grid">
         <Card className="settings-card">
-          <UserRound size={24} />
-          <h2>{auth.session.displayName}</h2>
-          <p>{auth.session.email}</p>
+          <div className="profile-photo-panel">
+            <div className="profile-photo-preview">
+              {profilePhotoUrl ? (
+                <img alt="" src={profilePhotoUrl} onError={() => setProfilePhotoUrl("")} />
+              ) : (
+                <UserRound size={34} />
+              )}
+            </div>
+            <label className={buttonClassName("outline", "property-photo-picker profile-photo-picker")}>
+              <Paperclip size={16} /> Profile photo
+              <input accept="image/jpeg,image/png,image/webp" onChange={(event) => { addProfilePhoto(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+            </label>
+          </div>
+          <h2>{profile?.displayName ?? session.displayName}</h2>
+          <p>{profile?.email ?? session.email}</p>
           <div className="highlight-list">
-            {auth.session.roles.map((role) => (
+            {(profile?.roles ?? session.roles).map((role) => (
               <span key={role}>{role}</span>
             ))}
           </div>
+          {isProfileLoading && <LoadingState label="Loading profile" />}
+          {profile?.photo && <div className="notice-panel">{profile.photo.fileName} · {profile.photo.scanStatus}</div>}
+          {profileUploads.length > 0 && (
+            <div className="property-upload-list profile-upload-list">
+              {profileUploads.map((upload) => (
+                <div className="property-upload-item" key={upload.id}>
+                  <span>{upload.file.name}</span>
+                  <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                  <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+                  {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelProfilePhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+                  {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryProfilePhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+                  {upload.status !== "uploading" && <Button onClick={() => removeProfilePhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+                </div>
+              ))}
+            </div>
+          )}
+          {profileNotice && <div className="notice-panel">{profileNotice}</div>}
+          {profileError && <ErrorState message={profileError} />}
           <Button
             onClick={() => {
               auth.logout();
@@ -1943,11 +2124,11 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
         <Card className="settings-card">
           <ShieldCheck size={24} />
           <h2>Session security</h2>
-          <p>{auth.session.userId}</p>
+          <p>{session.userId}</p>
           <div className="status-grid">
             <span>2FA <StatusBadge value="Verified" /></span>
             <span>Access <StatusBadge value="Active" /></span>
-            <span>Expires <strong>{new Date(auth.session.expiresAt).toLocaleString()}</strong></span>
+            <span>Expires <strong>{new Date(session.expiresAt).toLocaleString()}</strong></span>
           </div>
         </Card>
       </section>

@@ -117,6 +117,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<IntegrationFailover> IntegrationFailovers => Set<IntegrationFailover>();
 
     public DbSet<MilestoneUser> MilestoneUsers => Set<MilestoneUser>();
+    public DbSet<MilestoneUserProfilePhoto> MilestoneUserProfilePhotos => Set<MilestoneUserProfilePhoto>();
     public DbSet<MilestoneTwoFactorChallenge> MilestoneTwoFactorChallenges => Set<MilestoneTwoFactorChallenge>();
     public DbSet<MilestoneProperty> MilestoneProperties => Set<MilestoneProperty>();
     public DbSet<MilestonePropertyPhoto> MilestonePropertyPhotos => Set<MilestonePropertyPhoto>();
@@ -178,6 +179,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<OfficerIdHistory>().HasIndex(item => new { item.OfficerId, item.Year }).IsUnique();
         modelBuilder.Entity<MilestoneUser>().HasIndex(user => user.NormalizedEmail).IsUnique();
         modelBuilder.Entity<MilestoneUser>().Property(user => user.IsTwoFactorEnabled).HasDefaultValue(true);
+        modelBuilder.Entity<MilestoneUserProfilePhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestoneUserProfilePhoto>().HasIndex(photo => new { photo.UserId, photo.Status, photo.IsCurrent });
         modelBuilder.Entity<MilestoneTwoFactorChallenge>().HasIndex(challenge => challenge.ChallengeId).IsUnique();
         modelBuilder.Entity<MilestoneProperty>().HasIndex(property => property.HostUserId);
         modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();

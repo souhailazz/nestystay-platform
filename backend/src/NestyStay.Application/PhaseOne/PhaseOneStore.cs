@@ -22,6 +22,10 @@ public interface IPhaseOneStore
     Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken);
     Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken);
     Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
+    Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken);
+    Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken);
+    Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken);
+    Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken);
     IReadOnlyList<PropertyListingDto> GetProperties();
     PropertyListingDto? GetProperty(Guid id);
     Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken);
@@ -62,9 +66,12 @@ public sealed class PhaseOneStore(
     private const string PasswordResetStatusCompleted = "Completed";
     private const string PasswordResetStatusExpired = "Expired";
     private const string PasswordResetStatusFailed = "Failed";
+    private const long MaximumProfilePhotoBytes = 10 * 1024 * 1024;
     private const long MaximumPropertyPhotoBytes = 10 * 1024 * 1024;
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan ProfilePhotoUploadLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan ProfilePhotoDownloadLifetime = TimeSpan.FromHours(24);
     private static readonly TimeSpan PropertyPhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
@@ -74,6 +81,7 @@ public sealed class PhaseOneStore(
     private readonly List<PhaseOnePasswordReset> _passwordResets = [];
     private readonly List<PhaseOneRecoveryCode> _recoveryCodes = [];
     private readonly List<PhaseOneBooking> _bookings = [];
+    private readonly List<PhaseOneProfilePhoto> _profilePhotos = [];
     private readonly List<PhaseOnePropertyPhoto> _propertyPhotos = [];
     private readonly HashSet<string> _completedRefundIdempotencyKeys = [];
     private readonly List<PhaseOneProperty> _properties =
@@ -589,6 +597,108 @@ public sealed class PhaseOneStore(
         {
             var user = _users.SingleOrDefault(item => item.Id == userId);
             return Task.FromResult(user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value);
+        }
+    }
+
+    public Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+            var photo = _profilePhotos
+                .Where(item => item.UserId == userId && item.IsCurrent && item.Status == "Uploaded" && item.ScanStatus == "Clean")
+                .OrderByDescending(item => item.UploadedAt)
+                .FirstOrDefault();
+            return Task.FromResult(ToProfileDto(user, photo));
+        }
+    }
+
+    public Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken)
+    {
+        var safeFileName = ValidateProfilePhoto(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var now = timeProvider.GetUtcNow();
+
+        lock (_gate)
+        {
+            _ = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+            var photo = new PhaseOneProfilePhoto
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                SafeFileName = safeFileName,
+                ContentType = request.ContentType.Trim().ToLowerInvariant(),
+                SizeBytes = request.SizeBytes,
+                Status = "PendingUpload",
+                ScanStatus = "PendingScan",
+                UploadExpiresAt = now.Add(ProfilePhotoUploadLifetime)
+            };
+            photo.ObjectKey = $"profiles/{userId:N}/photos/{photo.Id:N}{extension}";
+            photo.UploadUrl = $"/api/auth/profile/photo/uploads/{photo.Id}/content";
+            _profilePhotos.Add(photo);
+            return Task.FromResult(ToDto(photo));
+        }
+    }
+
+    public async Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken)
+    {
+        PhaseOneProfilePhoto photo;
+        lock (_gate)
+        {
+            _ = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+            photo = _profilePhotos.SingleOrDefault(item => item.Id == photoId && item.UserId == userId)
+                ?? throw new UnauthorizedAccessException("Profile photo is not available to this user.");
+            if (photo.Status != "PendingUpload")
+            {
+                throw new InvalidOperationException("Profile photo upload is not pending.");
+            }
+
+            if (photo.UploadExpiresAt <= timeProvider.GetUtcNow())
+            {
+                photo.Status = "Expired";
+                throw new InvalidOperationException("Profile photo upload URL has expired.");
+            }
+
+            ValidateProfilePhotoUploadMetadata(photo.ContentType, photo.SizeBytes, contentType, sizeBytes);
+        }
+
+        var upload = await ReadUploadAsync(content, MaximumProfilePhotoBytes, cancellationToken);
+        ValidateProfilePhotoUploadMetadata(photo.ContentType, photo.SizeBytes, contentType, upload.SizeBytes);
+
+        lock (_gate)
+        {
+            if (!PropertyPhotoMagicBytesMatch(photo.ContentType, upload.HeaderBytes))
+            {
+                photo.Status = "Quarantined";
+                photo.ScanStatus = "Rejected";
+                throw new InvalidOperationException("Attachment bytes do not match the declared content type.");
+            }
+
+            foreach (var currentPhoto in _profilePhotos.Where(item => item.UserId == userId && item.IsCurrent))
+            {
+                currentPhoto.IsCurrent = false;
+            }
+
+            photo.Status = "Uploaded";
+            photo.ScanStatus = "Clean";
+            photo.Sha256Hash = upload.Sha256Hash;
+            photo.UploadedAt = timeProvider.GetUtcNow();
+            photo.IsCurrent = true;
+            return ToDto(photo);
+        }
+    }
+
+    public Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var photo = _profilePhotos.SingleOrDefault(item => item.Id == photoId && item.UserId == userId && item.Status == "Uploaded" && item.ScanStatus == "Clean")
+                ?? throw new UnauthorizedAccessException("Profile photo is not available to this user.");
+            var expiresAt = timeProvider.GetUtcNow().Add(ProfilePhotoDownloadLifetime);
+            return Task.FromResult(new ProfilePhotoDownloadDto(photo.Id, photo.SafeFileName, photo.ContentType, photo.SizeBytes, $"https://storage.nestystay.local/download/{Uri.EscapeDataString(photo.ObjectKey)}?expires={expiresAt.ToUnixTimeSeconds()}", expiresAt));
         }
     }
 
@@ -1398,6 +1508,38 @@ public sealed class PhaseOneStore(
             property.Highlights,
             property.IsArchived);
 
+    private static UserProfileDto ToProfileDto(PhaseOneUser user, PhaseOneProfilePhoto? photo) =>
+        new(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.Roles,
+            photo is null
+                ? null
+                : new UserProfilePhotoDto(
+                    photo.Id,
+                    photo.SafeFileName,
+                    photo.ContentType,
+                    photo.SizeBytes,
+                    photo.Status,
+                    photo.ScanStatus,
+                    photo.UploadedAt ?? DateTimeOffset.MinValue,
+                    photo.Sha256Hash));
+
+    private static ProfilePhotoUploadDto ToDto(PhaseOneProfilePhoto photo) =>
+        new(
+            photo.Id,
+            photo.UserId,
+            photo.SafeFileName,
+            photo.ContentType,
+            photo.SizeBytes,
+            photo.ObjectKey,
+            photo.UploadUrl,
+            photo.Status,
+            photo.ScanStatus,
+            photo.UploadExpiresAt,
+            photo.Sha256Hash);
+
     private static PropertyPhotoUploadDto ToDto(PhaseOnePropertyPhoto photo) =>
         new(
             photo.Id,
@@ -1604,6 +1746,40 @@ public sealed class PhaseOneStore(
             request.BadgeLevel);
     }
 
+    private static string ValidateProfilePhoto(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProfilePhotoBytes)
+        {
+            throw new InvalidOperationException("Profile photos must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeUploadContentType(contentType);
+        string[] allowedExtensions = normalizedContentType switch
+        {
+            "image/jpeg" => [".jpg", ".jpeg"],
+            "image/png" => [".png"],
+            "image/webp" => [".webp"],
+            _ => throw new InvalidOperationException("Profile photo type is not allowed.")
+        };
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Profile photo extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeUploadFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "profile-photo";
+        }
+
+        return $"{(safeStem.Length > 80 ? safeStem[..80] : safeStem)}{extension}";
+    }
+
     private static string ValidatePropertyPhoto(string fileName, string contentType, long sizeBytes)
     {
         if (sizeBytes <= 0 || sizeBytes > MaximumPropertyPhotoBytes)
@@ -1636,6 +1812,24 @@ public sealed class PhaseOneStore(
         }
 
         return $"{(safeStem.Length > 80 ? safeStem[..80] : safeStem)}{extension}";
+    }
+
+    private static void ValidateProfilePhotoUploadMetadata(string expectedContentType, long expectedSizeBytes, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProfilePhotoBytes)
+        {
+            throw new InvalidOperationException("Profile photos must be 10 MB or smaller.");
+        }
+
+        if (!NormalizeUploadContentType(contentType).Equals(expectedContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded profile photo content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != expectedSizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded profile photo size does not match the prepared upload.");
+        }
     }
 
     private static void ValidatePropertyPhotoUploadMetadata(string expectedContentType, long expectedSizeBytes, string? contentType, long sizeBytes)
@@ -1690,7 +1884,7 @@ public sealed class PhaseOneStore(
 
         if (totalBytes == 0)
         {
-            throw new InvalidOperationException("Property photo upload cannot be empty.");
+            throw new InvalidOperationException("Upload cannot be empty.");
         }
 
         return new UploadReadResult(totalBytes, Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(), headerBytes.ToArray());
@@ -2070,6 +2264,23 @@ public sealed class PhaseOneStore(
     }
 
     private sealed record UploadReadResult(long SizeBytes, string Sha256Hash, byte[] HeaderBytes);
+
+    private sealed class PhaseOneProfilePhoto
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public string SafeFileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public long SizeBytes { get; set; }
+        public string ObjectKey { get; set; } = string.Empty;
+        public string UploadUrl { get; set; } = string.Empty;
+        public string Status { get; set; } = "PendingUpload";
+        public string ScanStatus { get; set; } = "PendingScan";
+        public DateTimeOffset UploadExpiresAt { get; set; }
+        public DateTimeOffset? UploadedAt { get; set; }
+        public string? Sha256Hash { get; set; }
+        public bool IsCurrent { get; set; }
+    }
 
     private sealed class PhaseOnePropertyPhoto
     {

@@ -44,6 +44,33 @@ public sealed class AuthController(
     public async Task<IActionResult> DisableTwoFactor(DisableTwoFactorRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.DisableTwoFactorAsync(RequireUserId(), request, cancellationToken));
 
+    [Authorize]
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.GetUserProfileAsync(RequireUserId(), cancellationToken));
+
+    [Authorize]
+    [HttpPost("profile/photo/uploads")]
+    public async Task<IActionResult> PrepareProfilePhotoUpload(PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.PrepareProfilePhotoUploadAsync(RequireUserId(), request, cancellationToken));
+
+    [Authorize]
+    [HttpPut("profile/photo/uploads/{photoId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadProfilePhotoContent(Guid photoId, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.UploadProfilePhotoContentAsync(
+            RequireUserId(),
+            photoId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            cancellationToken));
+
+    [Authorize]
+    [HttpGet("profile/photo/{photoId:guid}/download")]
+    public async Task<IActionResult> GetProfilePhotoDownload(Guid photoId, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.GetProfilePhotoDownloadAsync(RequireUserId(), photoId, cancellationToken));
+
     [HttpPost("password-reset/request")]
     public async Task<IActionResult> RequestPasswordReset(PasswordResetRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.RequestPasswordResetAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));

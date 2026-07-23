@@ -67,6 +67,16 @@ public sealed record CompletePasswordResetResponse(string Status, bool PasswordC
 
 public sealed record DevelopmentPasswordResetTokenResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
 
+public sealed record UserProfileDto(Guid UserId, string Email, string DisplayName, IReadOnlyList<UserRole> Roles, UserProfilePhotoDto? Photo);
+
+public sealed record UserProfilePhotoDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash = null);
+
+public sealed record PrepareProfilePhotoUploadRequest(string FileName, string ContentType, long SizeBytes);
+
+public sealed record ProfilePhotoUploadDto(Guid Id, Guid UserId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null);
+
+public sealed record ProfilePhotoDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
+
 public sealed record PropertyListingDto(
     Guid Id,
     Guid HostUserId,

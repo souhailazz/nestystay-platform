@@ -504,7 +504,73 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
         Assert.NotNull(session);
         Assert.Equal(registered.UserId, session.UserId);
+
+        var unauthenticatedProfile = await client.GetAsync("/api/auth/profile");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedProfile.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var profile = await client.GetFromJsonAsync<UserProfileResponse>("/api/auth/profile");
+        Assert.NotNull(profile);
+        Assert.Equal(registered.UserId, profile.UserId);
+        Assert.Null(profile.Photo);
+
+        var invalidProfilePhotoPrepare = await client.PostAsJsonAsync("/api/auth/profile/photo/uploads", new
+        {
+            fileName = "guest.gif",
+            contentType = "image/gif",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidProfilePhotoPrepare.StatusCode);
+
+        var spoofedProfilePhotoBytes = Encoding.ASCII.GetBytes("not a png");
+        var spoofedProfilePhotoPrepare = await client.PostAsJsonAsync("/api/auth/profile/photo/uploads", new
+        {
+            fileName = "spoofed.png",
+            contentType = "image/png",
+            sizeBytes = spoofedProfilePhotoBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, spoofedProfilePhotoPrepare.StatusCode);
+        var spoofedProfilePhoto = await spoofedProfilePhotoPrepare.Content.ReadFromJsonAsync<ProfilePhotoUploadResponse>();
+        Assert.NotNull(spoofedProfilePhoto);
+        using var spoofedProfilePhotoContent = new ByteArrayContent(spoofedProfilePhotoBytes);
+        spoofedProfilePhotoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var rejectedProfilePhotoUpload = await client.PutAsync($"/api/auth/profile/photo/uploads/{spoofedProfilePhoto.Id}/content", spoofedProfilePhotoContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedProfilePhotoUpload.StatusCode);
+
+        var profilePngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D };
+        var profilePhotoPrepare = await client.PostAsJsonAsync("/api/auth/profile/photo/uploads", new
+        {
+            fileName = "../Guest Headshot.png",
+            contentType = "image/png",
+            sizeBytes = profilePngBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, profilePhotoPrepare.StatusCode);
+        var preparedProfilePhoto = await profilePhotoPrepare.Content.ReadFromJsonAsync<ProfilePhotoUploadResponse>();
+        Assert.NotNull(preparedProfilePhoto);
+        Assert.Equal("guest-headshot.png", preparedProfilePhoto.FileName);
+        Assert.Equal("PendingUpload", preparedProfilePhoto.Status);
+        Assert.Equal("PendingScan", preparedProfilePhoto.ScanStatus);
+
+        using var profilePhotoContent = new ByteArrayContent(profilePngBytes);
+        profilePhotoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var uploadedProfilePhotoResponse = await client.PutAsync($"/api/auth/profile/photo/uploads/{preparedProfilePhoto.Id}/content", profilePhotoContent);
+        Assert.Equal(HttpStatusCode.OK, uploadedProfilePhotoResponse.StatusCode);
+        var uploadedProfilePhoto = await uploadedProfilePhotoResponse.Content.ReadFromJsonAsync<ProfilePhotoUploadResponse>();
+        Assert.NotNull(uploadedProfilePhoto);
+        Assert.Equal("Uploaded", uploadedProfilePhoto.Status);
+        Assert.Equal("Clean", uploadedProfilePhoto.ScanStatus);
+        Assert.NotEmpty(uploadedProfilePhoto.Sha256Hash ?? string.Empty);
+
+        var profileWithPhoto = await client.GetFromJsonAsync<UserProfileResponse>("/api/auth/profile");
+        Assert.NotNull(profileWithPhoto);
+        Assert.NotNull(profileWithPhoto.Photo);
+        Assert.Equal(uploadedProfilePhoto.Id, profileWithPhoto.Photo.Id);
+
+        var profilePhotoDownload = await client.GetFromJsonAsync<ProfilePhotoDownloadResponse>($"/api/auth/profile/photo/{uploadedProfilePhoto.Id}/download");
+        Assert.NotNull(profilePhotoDownload);
+        Assert.Equal("guest-headshot.png", profilePhotoDownload.FileName);
+        Assert.NotEmpty(profilePhotoDownload.Url);
 
         var google = await client.PostAsJsonAsync("/api/auth/google", new
         {
@@ -936,6 +1002,14 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record TwoFactorEnrollmentConfirmResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
 
     private sealed record DisableTwoFactorResponse(bool Disabled);
+
+    private sealed record UserProfileResponse(Guid UserId, UserProfilePhotoResponse? Photo);
+
+    private sealed record UserProfilePhotoResponse(Guid Id, string FileName, string Status, string ScanStatus);
+
+    private sealed record ProfilePhotoUploadResponse(Guid Id, string FileName, string Status, string ScanStatus, string? Sha256Hash);
+
+    private sealed record ProfilePhotoDownloadResponse(string FileName, string Url);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled, string Title = "", bool IsArchived = false);
 

@@ -259,6 +259,27 @@ describe("api client", () => {
     });
   });
 
+  it("prepares profile photo uploads with bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "profile-photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.prepareProfilePhotoUpload("signed-session-token", {
+      fileName: "guest.png",
+      contentType: "image/png",
+      sizeBytes: 32,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/auth/profile/photo/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(JSON.parse(init.body as string)).toEqual({
+      fileName: "guest.png",
+      contentType: "image/png",
+      sizeBytes: 32,
+    });
+  });
+
   it("prepares admin case evidence uploads with bearer tokens", async () => {
     const fetchMock = stubFetch(jsonResponse({ id: "case-evidence-1", status: "PendingUpload", scanStatus: "PendingScan" }));
 

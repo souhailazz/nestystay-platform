@@ -44,9 +44,12 @@ public sealed class EfPhaseOneStore(
     private const string ScanStatusPending = "PendingScan";
     private const string ScanStatusClean = "Clean";
     private const string TotpSecretPurpose = "MilestoneUser.TotpSecret";
+    private const long MaximumProfilePhotoBytes = 10 * 1024 * 1024;
     private const long MaximumPropertyPhotoBytes = 10 * 1024 * 1024;
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan ProfilePhotoUploadLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan ProfilePhotoDownloadLifetime = TimeSpan.FromHours(24);
     private static readonly TimeSpan PropertyPhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
     private static readonly IReadOnlyDictionary<string, string[]> AllowedPropertyPhotoExtensions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -596,6 +599,106 @@ public sealed class EfPhaseOneStore(
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
         return user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value;
+    }
+
+    public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+        var photo = await db.MilestoneUserProfilePhotos
+            .AsNoTracking()
+            .Where(item =>
+                item.UserId == userId &&
+                item.IsCurrent &&
+                item.Status == UploadStatusUploaded &&
+                item.ScanStatus == ScanStatusClean &&
+                !item.IsDeleted)
+            .OrderByDescending(item => item.UploadedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        return ToProfileDto(user, photo);
+    }
+
+    public async Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken)
+    {
+        _ = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+        var storage = RequireStorageProvider();
+        var safeFileName = ValidateProfilePhoto(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var photoId = Guid.NewGuid();
+        var now = timeProvider.GetUtcNow();
+        var photo = new MilestoneUserProfilePhoto
+        {
+            Id = photoId,
+            UserId = userId,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = $"profiles/{userId:N}/photos/{photoId:N}{extension}",
+            UploadUrl = $"/api/auth/profile/photo/uploads/{photoId}/content",
+            Status = UploadStatusPending,
+            StorageProviderName = storage.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(ProfilePhotoUploadLifetime),
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        };
+
+        db.MilestoneUserProfilePhotos.Add(photo);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
+    public async Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken)
+    {
+        _ = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+        var photo = await db.MilestoneUserProfilePhotos
+            .SingleOrDefaultAsync(item => item.Id == photoId && item.UserId == userId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile photo is not available to this user.");
+
+        var now = await RequirePendingProfilePhotoUploadAsync(photo, userId, cancellationToken);
+        ValidateProfilePhotoUploadMetadata(photo, contentType, sizeBytes);
+
+        var upload = await RequireStorageProvider().SaveObjectAsync(
+            new StorageObjectWriteRequest(photo.ObjectKey, photo.ContentType, MaximumProfilePhotoBytes),
+            content,
+            cancellationToken);
+        ValidateProfilePhotoUploadMetadata(photo, upload.ContentType, upload.SizeBytes);
+
+        return await FinalizeProfilePhotoUploadAsync(
+            photo,
+            userId,
+            now,
+            upload.ProviderName,
+            upload.ContentType,
+            upload.SizeBytes,
+            upload.Sha256Hash,
+            upload.HeaderBytes,
+            cancellationToken);
+    }
+
+    public async Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken)
+    {
+        var photo = await db.MilestoneUserProfilePhotos
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item =>
+                item.Id == photoId &&
+                item.UserId == userId &&
+                item.Status == UploadStatusUploaded &&
+                item.ScanStatus == ScanStatusClean &&
+                !item.IsDeleted,
+                cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile photo is not available to this user.");
+
+        var expiresAt = timeProvider.GetUtcNow().Add(ProfilePhotoDownloadLifetime);
+        var url = await RequireStorageProvider().CreateDownloadUrlAsync(photo.ObjectKey, expiresAt, cancellationToken);
+        return new ProfilePhotoDownloadDto(photo.Id, photo.SafeFileName, photo.ContentType, photo.SizeBytes, url, expiresAt);
     }
 
     public IReadOnlyList<PropertyListingDto> GetProperties()
@@ -1317,6 +1420,74 @@ public sealed class EfPhaseOneStore(
         return property;
     }
 
+    private async Task<DateTimeOffset> RequirePendingProfilePhotoUploadAsync(MilestoneUserProfilePhoto photo, Guid userId, CancellationToken cancellationToken)
+    {
+        if (photo.Status != UploadStatusPending)
+        {
+            throw new InvalidOperationException("Profile photo upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (photo.UploadExpiresAt <= now)
+        {
+            photo.Status = UploadStatusExpired;
+            photo.UpdatedAt = now;
+            photo.UpdatedByUserId = userId;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Profile photo upload URL has expired.");
+        }
+
+        return now;
+    }
+
+    private async Task<ProfilePhotoUploadDto> FinalizeProfilePhotoUploadAsync(
+        MilestoneUserProfilePhoto photo,
+        Guid userId,
+        DateTimeOffset verifiedAt,
+        string providerName,
+        string contentType,
+        long sizeBytes,
+        string sha256Hash,
+        byte[] headerBytes,
+        CancellationToken cancellationToken)
+    {
+        var scanner = RequireFileSafetyScanner();
+        var scan = await scanner.ScanAsync(
+            new FileSafetyScanRequest(photo.ObjectKey, photo.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
+            cancellationToken);
+
+        photo.StorageProviderName = providerName;
+        photo.VerifiedContentType = contentType;
+        photo.UploadedSizeBytes = sizeBytes;
+        photo.Sha256Hash = sha256Hash;
+        photo.ScanStatus = scan.Status;
+        photo.ScanProviderName = scanner.ProviderName;
+        photo.ScanCheckedAt = verifiedAt;
+        photo.UpdatedAt = verifiedAt;
+        photo.UpdatedByUserId = userId;
+
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            photo.Status = UploadStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Profile photo failed safety scanning.");
+        }
+
+        var currentPhotos = await db.MilestoneUserProfilePhotos
+            .Where(item => item.UserId == userId && item.IsCurrent)
+            .ToListAsync(cancellationToken);
+        foreach (var currentPhoto in currentPhotos)
+        {
+            currentPhoto.IsCurrent = false;
+        }
+
+        photo.Status = UploadStatusUploaded;
+        photo.UploadedAt = verifiedAt;
+        photo.IsCurrent = true;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
     private async Task<DateTimeOffset> RequirePendingPropertyPhotoUploadAsync(MilestonePropertyPhoto photo, Guid hostUserId, CancellationToken cancellationToken)
     {
         if (photo.Status != UploadStatusPending)
@@ -1533,6 +1704,38 @@ public sealed class EfPhaseOneStore(
             MilestoneJson.DeserializeList<string>(property.HighlightsJson),
             property.IsArchived);
 
+    private static UserProfileDto ToProfileDto(MilestoneUser user, MilestoneUserProfilePhoto? photo) =>
+        new(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
+            photo is null
+                ? null
+                : new UserProfilePhotoDto(
+                    photo.Id,
+                    photo.SafeFileName,
+                    photo.ContentType,
+                    photo.SizeBytes,
+                    photo.Status,
+                    photo.ScanStatus,
+                    photo.UploadedAt ?? photo.UpdatedAt,
+                    photo.Sha256Hash));
+
+    private static ProfilePhotoUploadDto ToDto(MilestoneUserProfilePhoto photo) =>
+        new(
+            photo.Id,
+            photo.UserId,
+            photo.SafeFileName,
+            photo.ContentType,
+            photo.SizeBytes,
+            photo.ObjectKey,
+            photo.UploadUrl,
+            photo.Status,
+            photo.ScanStatus,
+            photo.UploadExpiresAt,
+            photo.Sha256Hash);
+
     private static PropertyPhotoUploadDto ToDto(MilestonePropertyPhoto photo) =>
         new(
             photo.Id,
@@ -1736,6 +1939,42 @@ public sealed class EfPhaseOneStore(
             request.BadgeLevel);
     }
 
+    private static string ValidateProfilePhoto(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProfilePhotoBytes)
+        {
+            throw new InvalidOperationException("Profile photos must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeUploadContentType(contentType);
+        if (!AllowedPropertyPhotoExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Profile photo type is not allowed.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Profile photo extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeUploadFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "profile-photo";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
     private static string ValidatePropertyPhoto(string fileName, string contentType, long sizeBytes)
     {
         if (sizeBytes <= 0 || sizeBytes > MaximumPropertyPhotoBytes)
@@ -1770,6 +2009,24 @@ public sealed class EfPhaseOneStore(
         }
 
         return $"{safeStem}{extension}";
+    }
+
+    private static void ValidateProfilePhotoUploadMetadata(MilestoneUserProfilePhoto photo, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProfilePhotoBytes)
+        {
+            throw new InvalidOperationException("Profile photos must be 10 MB or smaller.");
+        }
+
+        if (!NormalizeUploadContentType(contentType).Equals(photo.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded profile photo content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != photo.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded profile photo size does not match the prepared upload.");
+        }
     }
 
     private static void ValidatePropertyPhotoUploadMetadata(MilestonePropertyPhoto photo, string? contentType, long sizeBytes)
