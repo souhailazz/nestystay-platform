@@ -359,9 +359,13 @@ public sealed class EfSpecCompletionStore(
     {
         var review = await db.MilestoneReviews.SingleOrDefaultAsync(item => item.Id == reviewId && !item.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Review not found.");
+
+        await EnsureReviewBelongsToHostAsync(hostUserId, review, cancellationToken);
+
         review.HostReply = RequireText(request.Reply, "Reply");
         review.UpdatedAt = timeProvider.GetUtcNow();
         review.UpdatedByUserId = hostUserId;
+        await AddAuditAsync("ReviewReplyUpdated", "Review", review.Id, "Host replied to a verified review.", hostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(review);
     }
@@ -1127,6 +1131,23 @@ public sealed class EfSpecCompletionStore(
     private async Task<MilestoneConversationParticipant> RequireParticipantAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken) =>
         await db.MilestoneConversationParticipants.SingleOrDefaultAsync(item => item.ConversationId == conversationId && item.UserId == userId && !item.IsDeleted, cancellationToken)
         ?? throw new UnauthorizedAccessException("Conversation is not available to this user.");
+
+    private async Task EnsureReviewBelongsToHostAsync(Guid hostUserId, MilestoneReview review, CancellationToken cancellationToken)
+    {
+        if (review.PropertyId is { } propertyId &&
+            await db.MilestoneProperties.AnyAsync(item => item.Id == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken))
+        {
+            return;
+        }
+
+        if (review.BookingId is { } bookingId &&
+            await db.MilestoneBookings.AnyAsync(item => item.Id == bookingId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken))
+        {
+            return;
+        }
+
+        throw new UnauthorizedAccessException("Review is not available to this host.");
+    }
 
     private HostAnalyticsDto BuildAnalytics(Guid hostUserId) => new(
         24850m,

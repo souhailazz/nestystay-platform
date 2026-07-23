@@ -226,6 +226,14 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var review = await reviewResponse.Content.ReadFromJsonAsync<ReviewResponse>();
         Assert.NotNull(review);
 
+        var otherHostId = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = LocalUser(otherHostId);
+        var crossHostReplyResponse = await client.PostAsJsonAsync($"/api/spec/host/{otherHostId}/reviews/{review.Id}/reply", new
+        {
+            reply = "This host should not be able to reply."
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, crossHostReplyResponse.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = LocalUser(hostId);
         var replyResponse = await client.PostAsJsonAsync($"/api/spec/host/{hostId}/reviews/{review.Id}/reply", new
         {
