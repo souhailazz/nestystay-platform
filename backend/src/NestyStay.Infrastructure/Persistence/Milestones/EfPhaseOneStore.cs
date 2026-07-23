@@ -650,6 +650,28 @@ public sealed class EfPhaseOneStore(
             : null;
     }
 
+    public async Task<BookingDocumentDto?> GetBookingInvoiceAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        await ExpirePendingHoldsAsync(now, cancellationToken);
+        var booking = await db.MilestoneBookings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
+
+        return booking is null ? null : BookingDocumentRenderer.RenderInvoice(ToDto(booking), now);
+    }
+
+    public async Task<BookingDocumentDto?> GetBookingReceiptAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        await ExpirePendingHoldsAsync(now, cancellationToken);
+        var booking = await db.MilestoneBookings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
+
+        return booking is null ? null : BookingDocumentRenderer.RenderReceipt(ToDto(booking), now);
+    }
+
     public async Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);

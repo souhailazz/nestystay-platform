@@ -30,6 +30,8 @@ public interface IPhaseOneStore
     Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken);
     IReadOnlyList<BookingDto> GetBookings(Guid? guestUserId = null);
     BookingDto? GetBooking(Guid id);
+    Task<BookingDocumentDto?> GetBookingInvoiceAsync(Guid bookingId, CancellationToken cancellationToken);
+    Task<BookingDocumentDto?> GetBookingReceiptAsync(Guid bookingId, CancellationToken cancellationToken);
     Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken);
     Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken);
     Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken);
@@ -680,6 +682,28 @@ public sealed class PhaseOneStore(
         {
             ExpirePendingHoldsNoLock(timeProvider.GetUtcNow());
             return _bookings.SingleOrDefault(item => item.Id == id) is { } booking ? ToDto(booking) : null;
+        }
+    }
+
+    public Task<BookingDocumentDto?> GetBookingInvoiceAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        lock (_gate)
+        {
+            ExpirePendingHoldsNoLock(now);
+            var booking = _bookings.SingleOrDefault(item => item.Id == bookingId);
+            return Task.FromResult(booking is null ? null : BookingDocumentRenderer.RenderInvoice(ToDto(booking), now));
+        }
+    }
+
+    public Task<BookingDocumentDto?> GetBookingReceiptAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        lock (_gate)
+        {
+            ExpirePendingHoldsNoLock(now);
+            var booking = _bookings.SingleOrDefault(item => item.Id == bookingId);
+            return Task.FromResult(booking is null ? null : BookingDocumentRenderer.RenderReceipt(ToDto(booking), now));
         }
     }
 

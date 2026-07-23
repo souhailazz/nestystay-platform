@@ -182,4 +182,10 @@ public sealed record BookingDto(
     IReadOnlyList<BookingNotificationDto> Notifications,
     IReadOnlyList<string> Timeline);
 
+public sealed record BookingDocumentDto(
+    string FileName,
+    string ContentType,
+    byte[] Content,
+    DateTimeOffset GeneratedAt);
+
 public sealed record ResolveVerificationRequest(bool Passed, string? ProviderReference = null);

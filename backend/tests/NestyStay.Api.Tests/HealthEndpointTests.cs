@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -683,6 +684,14 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Contains(approved.Notifications, item => item.RecipientType == "guest");
         Assert.Contains(approved.Notifications, item => item.RecipientType == "host");
 
+        var invoiceBeforeCaptureResponse = await client.GetAsync($"/api/bookings/{booking.Id}/invoice");
+        Assert.Equal(HttpStatusCode.OK, invoiceBeforeCaptureResponse.StatusCode);
+        Assert.Equal("application/pdf", invoiceBeforeCaptureResponse.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(await invoiceBeforeCaptureResponse.Content.ReadAsByteArrayAsync()));
+
+        var receiptBeforeCaptureResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
+        Assert.Equal(HttpStatusCode.BadRequest, receiptBeforeCaptureResponse.StatusCode);
+
         var duplicateWebhookResponse = await client.PostAsJsonAsync("/api/webhooks/alibaba-ekyc", new
         {
             bookingId = booking.Id,
@@ -714,6 +723,28 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
         var duplicateCaptureResponse = await client.PostAsync($"/api/bookings/{booking.Id}/capture-payment", null);
         Assert.Equal(HttpStatusCode.OK, duplicateCaptureResponse.StatusCode);
+
+        var hostReceiptResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
+        Assert.Equal(HttpStatusCode.OK, hostReceiptResponse.StatusCode);
+        Assert.Equal("application/pdf", hostReceiptResponse.Content.Headers.ContentType?.MediaType);
+        Assert.Contains($"nestystay-receipt-{booking.Id:N}.pdf", hostReceiptResponse.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var guestReceiptResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
+        Assert.Equal(HttpStatusCode.OK, guestReceiptResponse.StatusCode);
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(await guestReceiptResponse.Content.ReadAsByteArrayAsync()));
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(Guid.NewGuid()));
+        var crossGuestInvoiceResponse = await client.GetAsync($"/api/bookings/{booking.Id}/invoice");
+        Assert.Equal(HttpStatusCode.NotFound, crossGuestInvoiceResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(Guid.NewGuid(), UserRole.Host));
+        var crossHostReceiptResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
+        Assert.Equal(HttpStatusCode.NotFound, crossHostReceiptResponse.StatusCode);
     }
 
     private sealed record RegisterResponse(Guid UserId, bool RequiresTwoFactor);

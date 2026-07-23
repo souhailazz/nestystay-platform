@@ -41,6 +41,16 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
         return CanAccessBooking(booking) ? Ok(booking) : NotFound();
     }
 
+    [Authorize]
+    [HttpGet("{id:guid}/invoice")]
+    public Task<IActionResult> DownloadInvoice(Guid id, CancellationToken cancellationToken) =>
+        DownloadBookingDocumentAsync(id, phaseOneStore.GetBookingInvoiceAsync, cancellationToken);
+
+    [Authorize]
+    [HttpGet("{id:guid}/receipt")]
+    public Task<IActionResult> DownloadReceipt(Guid id, CancellationToken cancellationToken) =>
+        DownloadBookingDocumentAsync(id, phaseOneStore.GetBookingReceiptAsync, cancellationToken);
+
     [HttpPost("quote")]
     public async Task<IActionResult> Quote(BookingQuoteRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.QuoteBookingAsync(request, cancellationToken));
@@ -79,6 +89,23 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, CurrentUser
 
         var booking = await phaseOneStore.CapturePaymentAsync(id, cancellationToken);
         return booking is null ? NotFound() : Ok(booking);
+    }
+
+    private async Task<IActionResult> DownloadBookingDocumentAsync(
+        Guid id,
+        Func<Guid, CancellationToken, Task<BookingDocumentDto?>> loadDocument,
+        CancellationToken cancellationToken)
+    {
+        var booking = phaseOneStore.GetBooking(id);
+        if (booking is null || !CanAccessBooking(booking))
+        {
+            return NotFound();
+        }
+
+        var document = await loadDocument(id, cancellationToken);
+        return document is null
+            ? NotFound()
+            : File(document.Content, document.ContentType, document.FileName);
     }
 
     private Guid RequireAuthenticatedUserId() =>

@@ -618,6 +618,23 @@ export function BookingSpecStatePage({ state, auth, bookingId }: { state: string
     bookings.reload();
   }
 
+  async function downloadDocument(kind: "invoice" | "receipt") {
+    if (!booking) return;
+    if (!auth.session) throw new Error("A signed session is required.");
+    const file = kind === "invoice"
+      ? await api.downloadBookingInvoice(booking.id, auth.session.accessToken)
+      : await api.downloadBookingReceipt(booking.id, auth.session.accessToken);
+    const url = URL.createObjectURL(file.blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice(`${kind === "invoice" ? "Invoice" : "Receipt"} ready: ${file.fileName}`);
+  }
+
   return (
     <CompletionShell id={ids[state] ?? "BOOK-01"} eyebrow="Booking flow" title={`Booking ${state}`} copy="Connected booking/payment state page using persisted booking data.">
       <DataGate state={bookings}>
@@ -632,7 +649,8 @@ export function BookingSpecStatePage({ state, auth, bookingId }: { state: string
                 <table className="spec-table"><tbody>{booking.priceBreakdown.map((line) => <tr key={line.code}><td>{line.description}</td><td>{formatMoney(line.amount, line.currency)}</td></tr>)}</tbody></table>
               </div>
               {state === "checkout" && <Button onClick={capture}><CreditCard size={17} /> Confirm and capture</Button>}
-              {(state === "invoice" || state === "receipt") && <Button onClick={() => window.print()}><Download size={17} /> Print / save PDF</Button>}
+              {state === "invoice" && <Button onClick={() => downloadDocument("invoice")}><Download size={17} /> Download invoice</Button>}
+              {state === "receipt" && <Button onClick={() => downloadDocument("receipt")}><Download size={17} /> Download receipt</Button>}
               {notice && <div className="notice-panel">{notice}</div>}
             </Card>
             <Card className="settings-card">

@@ -164,6 +164,12 @@ public sealed class WebhookSecurityTests
         public BookingDto? GetBooking(Guid id) =>
             throw new NotSupportedException();
 
+        public Task<BookingDocumentDto?> GetBookingInvoiceAsync(Guid bookingId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<BookingDocumentDto?> GetBookingReceiptAsync(Guid bookingId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

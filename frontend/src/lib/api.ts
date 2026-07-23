@@ -791,6 +791,12 @@ export class ApiError extends Error {
   }
 }
 
+export type DownloadedFile = {
+  blob: Blob;
+  fileName: string;
+  contentType: string;
+};
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
 
@@ -824,6 +830,36 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return (await response.json()) as T;
+}
+
+async function requestFile(path: string, token: string): Promise<DownloadedFile> {
+  const headers = new Headers({ Authorization: `Bearer ${token}` });
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const problem = (await response.json()) as { title?: string; detail?: string; message?: string };
+      message = problem.title ?? problem.detail ?? problem.message ?? message;
+    } catch {
+      message = response.statusText || message;
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return {
+    blob: await response.blob(),
+    fileName: parseContentDispositionFileName(response.headers.get("Content-Disposition")) ?? "nestystay-booking-document.pdf",
+    contentType: response.headers.get("Content-Type") ?? "application/octet-stream",
+  };
+}
+
+function parseContentDispositionFileName(value: string | null): string | null {
+  if (!value) return null;
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(value);
+  if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ""));
+  const asciiMatch = /filename=([^;]+)/i.exec(value);
+  return asciiMatch?.[1]?.trim().replace(/^"|"$/g, "") ?? null;
 }
 
 function withQuery(path: string, params: Record<string, string | undefined>) {
@@ -896,6 +932,10 @@ export const api = {
     }),
   capturePayment: (bookingId: string, token: string) =>
     request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST", token }),
+  downloadBookingInvoice: (bookingId: string, token: string) =>
+    requestFile(`/bookings/${bookingId}/invoice`, token),
+  downloadBookingReceipt: (bookingId: string, token: string) =>
+    requestFile(`/bookings/${bookingId}/receipt`, token),
   getPlatformModules: () => request<unknown[]>("/platform/modules"),
   getPlatformPortals: () => request<unknown[]>("/platform/portals"),
   getPlatformVendors: () => request<unknown[]>("/platform/vendors"),
