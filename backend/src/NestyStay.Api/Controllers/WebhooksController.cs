@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Api.Webhooks;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Controllers;
 
@@ -36,7 +37,7 @@ public sealed class WebhooksController(
     }
 
     [HttpPost("{provider}")]
-    public IActionResult Receive(string provider, WebhookEventRequest request)
+    public async Task<IActionResult> Receive(string provider, WebhookEventRequest request, CancellationToken cancellationToken)
     {
         if (IsStripeProvider(provider) && environment.IsProduction())
         {
@@ -55,12 +56,27 @@ public sealed class WebhooksController(
             return replayResult;
         }
 
+        var booking = IsStripeProvider(provider)
+            ? await ApplyStripeWebhookAsync(request, cancellationToken)
+            : null;
+
         return Accepted(new
         {
             provider,
             request.EventType,
-            accepted = true
+            accepted = true,
+            bookingId = booking?.Id
         });
+    }
+
+    private async Task<BookingDto?> ApplyStripeWebhookAsync(WebhookEventRequest request, CancellationToken cancellationToken)
+    {
+        if (TryCreateStripePaymentUpdate(request) is not { } update)
+        {
+            return null;
+        }
+
+        return await phaseOneStore.ApplyPaymentWebhookAsync(update, cancellationToken);
     }
 
     private IActionResult? TryRejectReplay(string provider, WebhookEventRequest request)
@@ -131,6 +147,101 @@ public sealed class WebhooksController(
 
     private static bool IsStripeProvider(string provider) =>
         provider.Equals("stripe", StringComparison.OrdinalIgnoreCase);
+
+    private static PaymentWebhookUpdateRequest? TryCreateStripePaymentUpdate(WebhookEventRequest request)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(request.PayloadJson);
+            var root = document.RootElement;
+            var eventType = root.TryGetProperty("type", out var typeElement) && !string.IsNullOrWhiteSpace(typeElement.GetString())
+                ? typeElement.GetString()!
+                : request.EventType;
+            var eventId = ResolveWebhookEventId(request);
+            var payload = root.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("object", out var dataObject)
+                    ? dataObject
+                    : root;
+
+            return eventType switch
+            {
+                "payment_intent.succeeded" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Captured),
+                "payment_intent.payment_failed" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Failed),
+                "payment_intent.canceled" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Cancelled),
+                "charge.refunded" => CreateRefundUpdate(eventId, eventType, payload, "amount_refunded"),
+                "refund.succeeded" => CreateRefundUpdate(eventId, eventType, payload, "amount"),
+                _ => null
+            };
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static PaymentWebhookUpdateRequest? CreatePaymentIntentUpdate(string eventId, string eventType, JsonElement payload, PaymentStatus status)
+    {
+        var paymentIntentReference = payload.TryGetProperty("id", out var id) ? id.GetString() : null;
+        if (string.IsNullOrWhiteSpace(paymentIntentReference))
+        {
+            return null;
+        }
+
+        return new PaymentWebhookUpdateRequest(
+            "Stripe",
+            eventId,
+            eventType,
+            paymentIntentReference,
+            status,
+            ResolveMinorUnitAmount(payload, "amount_received") ?? ResolveMinorUnitAmount(payload, "amount"),
+            ResolveCurrency(payload),
+            ResolveString(payload, "latest_charge"),
+            ResolveString(payload, "cancellation_reason"),
+            ResolveCreatedAt(payload));
+    }
+
+    private static PaymentWebhookUpdateRequest? CreateRefundUpdate(string eventId, string eventType, JsonElement payload, string amountPropertyName)
+    {
+        var paymentIntentReference = ResolveString(payload, "payment_intent");
+        if (string.IsNullOrWhiteSpace(paymentIntentReference))
+        {
+            return null;
+        }
+
+        return new PaymentWebhookUpdateRequest(
+            "Stripe",
+            eventId,
+            eventType,
+            paymentIntentReference,
+            PaymentStatus.Refunded,
+            ResolveMinorUnitAmount(payload, amountPropertyName),
+            ResolveCurrency(payload),
+            ResolveString(payload, "id"),
+            ResolveString(payload, "reason"),
+            ResolveCreatedAt(payload));
+    }
+
+    private static string? ResolveString(JsonElement payload, string propertyName) =>
+        payload.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+
+    private static string? ResolveCurrency(JsonElement payload) =>
+        ResolveString(payload, "currency")?.ToUpperInvariant();
+
+    private static decimal? ResolveMinorUnitAmount(JsonElement payload, string propertyName) =>
+        payload.TryGetProperty(propertyName, out var property) && property.TryGetInt64(out var minorUnits)
+            ? decimal.Round(minorUnits / 100m, 2, MidpointRounding.AwayFromZero)
+            : null;
+
+    private static DateTimeOffset? ResolveCreatedAt(JsonElement payload) =>
+        payload.TryGetProperty("created", out var created) && created.TryGetInt64(out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
+            : null;
 
     private static string ResolveWebhookEventId(WebhookEventRequest request)
     {

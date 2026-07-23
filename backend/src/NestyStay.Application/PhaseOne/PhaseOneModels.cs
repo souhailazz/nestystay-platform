@@ -161,6 +161,18 @@ public sealed record RefundBookingRequest(
     string? Reason = null,
     string? IdempotencyKey = null);
 
+public sealed record PaymentWebhookUpdateRequest(
+    string ProviderName,
+    string ProviderEventId,
+    string EventType,
+    string PaymentIntentReference,
+    PaymentStatus Status,
+    decimal? Amount = null,
+    string? Currency = null,
+    string? ProviderReference = null,
+    string? Reason = null,
+    DateTimeOffset? OccurredAt = null);
+
 public sealed record BookingNotificationDto(
     string RecipientType,
     string Recipient,

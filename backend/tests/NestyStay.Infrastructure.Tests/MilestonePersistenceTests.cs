@@ -112,6 +112,67 @@ public sealed class MilestonePersistenceTests
     }
 
     [Fact]
+    public async Task PhaseOneStorePersistsStripeWebhookPaymentUpdatesIdempotently()
+    {
+        var databaseName = $"phase-one-webhook-{Guid.NewGuid():N}";
+        var root = new InMemoryDatabaseRoot();
+        var providers = new ProviderHarness();
+        Guid bookingId;
+        string paymentIntentReference;
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var registered = await store.RegisterAsync(
+                new RegisterUserRequest("webhook-payment@test.local", "Password123!", "Webhook Guest", null, "Password123!", true, true),
+                CancellationToken.None);
+            var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
+            var booking = await store.CreateBookingAsync(
+                new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 4)),
+                CancellationToken.None);
+            var approved = await store.ResolveVerificationAsync(
+                booking.Id,
+                new ResolveVerificationRequest(true, booking.EkycTransactionId),
+                CancellationToken.None);
+
+            Assert.NotNull(approved);
+            bookingId = approved.Id;
+            paymentIntentReference = approved.PaymentAuthorizationReference!;
+        }
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var update = new PaymentWebhookUpdateRequest(
+                "Stripe",
+                "evt_capture_webhook",
+                "payment_intent.succeeded",
+                paymentIntentReference,
+                PaymentStatus.Captured,
+                610.50m,
+                "USD",
+                "ch_capture_webhook",
+                OccurredAt: DateTimeOffset.UtcNow);
+
+            var captured = await store.ApplyPaymentWebhookAsync(update, CancellationToken.None);
+            var duplicate = await store.ApplyPaymentWebhookAsync(update, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            Assert.NotNull(duplicate);
+            Assert.Equal("CAPTURED", captured.PaymentStatus);
+            Assert.Equal("ch_capture_webhook", captured.PaymentCaptureReference);
+            Assert.Equal(captured.PaymentCaptureReference, duplicate.PaymentCaptureReference);
+
+            var webhookAttempt = await db.MilestonePaymentAttempts.SingleAsync(item =>
+                item.BookingId == bookingId &&
+                item.Operation == "Webhook:payment_intent.succeeded");
+            Assert.Equal("stripe:webhook:evt_capture_webhook", webhookAttempt.IdempotencyKey);
+            Assert.Equal(PaymentStatus.Captured, webhookAttempt.Status);
+            Assert.Equal("ch_capture_webhook", webhookAttempt.ProviderReference);
+        }
+    }
+
+    [Fact]
     public void PhaseTwoStorePersistsPricebookAssignmentsRenewalsCampaignsAndFoundingBenefits()
     {
         var databaseName = $"phase-two-persistence-{Guid.NewGuid():N}";

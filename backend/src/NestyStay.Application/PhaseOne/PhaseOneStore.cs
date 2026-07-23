@@ -37,6 +37,7 @@ public interface IPhaseOneStore
     Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken);
     Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken);
     Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken);
+    Task<BookingDto?> ApplyPaymentWebhookAsync(PaymentWebhookUpdateRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class PhaseOneStore(
@@ -1058,6 +1059,23 @@ public sealed class PhaseOneStore(
         }
     }
 
+    public Task<BookingDto?> ApplyPaymentWebhookAsync(PaymentWebhookUpdateRequest request, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var booking = _bookings.SingleOrDefault(item =>
+                string.Equals(item.PaymentAuthorizationReference, request.PaymentIntentReference, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(item.PaymentCaptureReference, request.PaymentIntentReference, StringComparison.OrdinalIgnoreCase));
+            if (booking is null)
+            {
+                return Task.FromResult<BookingDto?>(null);
+            }
+
+            ApplyPaymentWebhookToBooking(booking, request);
+            return Task.FromResult<BookingDto?>(ToDto(booking));
+        }
+    }
+
     private async Task StartEkycAsync(PhaseOneBooking booking, CreateBookingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1549,6 +1567,46 @@ public sealed class PhaseOneStore(
 
     private static string ToApiStatus<TStatus>(TStatus status) where TStatus : struct, Enum =>
         status.ToString().ToUpperInvariant();
+
+    private static void ApplyPaymentWebhookToBooking(PhaseOneBooking booking, PaymentWebhookUpdateRequest request)
+    {
+        booking.PaymentProvider = request.ProviderName;
+        switch (request.Status)
+        {
+            case PaymentStatus.Captured:
+                booking.PaymentCaptureReference = request.ProviderReference ?? request.PaymentIntentReference;
+                booking.PaymentStatus = PaymentStatus.Captured;
+                booking.Timeline.Add($"Stripe webhook confirmed capture: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Refunded:
+                booking.PaymentRefundReference = request.ProviderReference;
+                if (request.Amount is > 0m)
+                {
+                    var refundAmount = request.EventType.Equals("charge.refunded", StringComparison.OrdinalIgnoreCase)
+                        ? request.Amount.Value
+                        : booking.RefundedAmount + request.Amount.Value;
+                    booking.RefundedAmount = decimal.Round(Math.Min(booking.TotalAmount, refundAmount), 2, MidpointRounding.AwayFromZero);
+                    booking.RefundReason = string.IsNullOrWhiteSpace(request.Reason) ? booking.RefundReason : request.Reason.Trim();
+                    booking.RefundedAt = request.OccurredAt ?? DateTimeOffset.UtcNow;
+                }
+
+                if (BookingRefundPolicy.IsFullyRefunded(booking.TotalAmount, booking.RefundedAmount))
+                {
+                    booking.PaymentStatus = PaymentStatus.Refunded;
+                }
+
+                booking.Timeline.Add($"Stripe webhook confirmed refund: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Failed:
+                booking.PaymentStatus = PaymentStatus.Failed;
+                booking.Timeline.Add($"Stripe webhook marked payment failed: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Cancelled:
+                booking.PaymentStatus = PaymentStatus.Cancelled;
+                booking.Timeline.Add($"Stripe webhook marked payment cancelled: {request.ProviderEventId}");
+                break;
+        }
+    }
 
     private static string HashPassword(string password)
     {

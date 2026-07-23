@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using NestyStay.Api.Controllers;
 using NestyStay.Api.Webhooks;
 using NestyStay.Application.PhaseOne;
+using NestyStay.Domain;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -14,58 +15,95 @@ namespace NestyStay.Api.Tests;
 public sealed class WebhookSecurityTests
 {
     [Fact]
-    public void GenericWebhookRejectsMissingSecretInProduction()
+    public async Task GenericWebhookRejectsMissingSecretInProduction()
     {
         var controller = CreateController();
 
-        var result = controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}"));
+        var result = await controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}"), CancellationToken.None);
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
-    public void GenericWebhookAcceptsMatchingSecretInProduction()
+    public async Task GenericWebhookAcceptsMatchingSecretInProduction()
     {
         var controller = CreateController();
         controller.Request.Headers["X-NestyStay-Webhook-Secret"] = "test-webhook-secret";
 
-        var result = controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}", Guid.NewGuid().ToString("N")));
+        var result = await controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}", Guid.NewGuid().ToString("N")), CancellationToken.None);
 
         var accepted = Assert.IsType<AcceptedResult>(result);
         Assert.NotNull(accepted.Value);
     }
 
     [Fact]
-    public void StripeWebhookRejectsInvalidSignatureInProduction()
+    public async Task StripeWebhookRejectsInvalidSignatureInProduction()
     {
         var controller = CreateController();
         controller.Request.Headers["Stripe-Signature"] = "t=1,v1=bad";
 
-        var result = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{\"id\":\"evt_bad\"}", "evt_bad"));
+        var result = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{\"id\":\"evt_bad\"}", "evt_bad"), CancellationToken.None);
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
-    public void StripeWebhookAcceptsValidSignatureAndRejectsReplayInProduction()
+    public async Task StripeWebhookAcceptsValidSignatureAndRejectsReplayInProduction()
     {
         var eventId = $"evt_{Guid.NewGuid():N}";
         var payload = $"{{\"id\":\"{eventId}\"}}";
         var controller = CreateController();
         controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
 
-        var acceptedResult = controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId));
+        var acceptedResult = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(acceptedResult);
 
         var replayController = CreateController();
         replayController.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
-        var replayResult = replayController.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId));
+        var replayResult = await replayController.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
 
         Assert.IsType<ConflictObjectResult>(replayResult);
     }
 
-    private static WebhooksController CreateController()
+    [Fact]
+    public async Task StripeWebhookAppliesPaymentIntentUpdatesToBookingStore()
+    {
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var payload = $$"""
+            {
+              "id": "{{eventId}}",
+              "type": "payment_intent.succeeded",
+              "data": {
+                "object": {
+                  "id": "pi_test_capture",
+                  "amount_received": 61050,
+                  "currency": "usd",
+                  "latest_charge": "ch_test_capture",
+                  "created": 1784768400
+                }
+              }
+            }
+            """;
+        var store = new StubPhaseOneStore();
+        var controller = CreateController(store);
+        controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+
+        var result = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
+
+        Assert.IsType<AcceptedResult>(result);
+        var update = Assert.Single(store.PaymentWebhookUpdates);
+        Assert.Equal("Stripe", update.ProviderName);
+        Assert.Equal(eventId, update.ProviderEventId);
+        Assert.Equal("payment_intent.succeeded", update.EventType);
+        Assert.Equal("pi_test_capture", update.PaymentIntentReference);
+        Assert.Equal("ch_test_capture", update.ProviderReference);
+        Assert.Equal("USD", update.Currency);
+        Assert.Equal(610.50m, update.Amount);
+        Assert.Equal(PaymentStatus.Captured, update.Status);
+    }
+
+    private static WebhooksController CreateController(StubPhaseOneStore? store = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -75,7 +113,7 @@ public sealed class WebhookSecurityTests
             })
             .Build();
 
-        var controller = new WebhooksController(new StubPhaseOneStore(), configuration, new ProductionEnvironment())
+        var controller = new WebhooksController(store ?? new StubPhaseOneStore(), configuration, new ProductionEnvironment())
         {
             ControllerContext = new ControllerContext
             {
@@ -184,5 +222,13 @@ public sealed class WebhookSecurityTests
 
         public Task<BookingDto?> RefundPaymentAsync(Guid bookingId, RefundBookingRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public List<PaymentWebhookUpdateRequest> PaymentWebhookUpdates { get; } = [];
+
+        public Task<BookingDto?> ApplyPaymentWebhookAsync(PaymentWebhookUpdateRequest request, CancellationToken cancellationToken)
+        {
+            PaymentWebhookUpdates.Add(request);
+            return Task.FromResult<BookingDto?>(null);
+        }
     }
 }

@@ -29,6 +29,7 @@ public sealed class EfPhaseOneStore(
     private const string PaymentOperationAuthorize = "Authorize";
     private const string PaymentOperationCapture = "Capture";
     private const string PaymentOperationRefund = "Refund";
+    private const string PaymentOperationWebhook = "Webhook";
     private const string PasswordResetStatusPending = "Pending";
     private const string PasswordResetStatusCompleted = "Completed";
     private const string PasswordResetStatusExpired = "Expired";
@@ -1000,6 +1001,32 @@ public sealed class EfPhaseOneStore(
         return ToDto(booking);
     }
 
+    public async Task<BookingDto?> ApplyPaymentWebhookAsync(PaymentWebhookUpdateRequest request, CancellationToken cancellationToken)
+    {
+        var booking = await db.MilestoneBookings.SingleOrDefaultAsync(item =>
+                item.PaymentAuthorizationReference == request.PaymentIntentReference ||
+                item.PaymentCaptureReference == request.PaymentIntentReference,
+            cancellationToken);
+        if (booking is null)
+        {
+            return null;
+        }
+
+        var idempotencyKey = $"{request.ProviderName.ToLowerInvariant()}:webhook:{request.ProviderEventId}";
+        var amount = request.Amount ?? 0m;
+        var currency = request.Currency ?? booking.Currency;
+        var attempt = await BeginPaymentAttemptAsync(booking.Id, $"{PaymentOperationWebhook}:{request.EventType}", idempotencyKey, amount, currency, cancellationToken);
+        if (attempt.CompletedAt is not null)
+        {
+            return ToDto(booking);
+        }
+
+        ApplyPaymentWebhookToBooking(booking, request);
+        CompletePaymentAttempt(attempt, request.ProviderName, request.ProviderReference ?? request.PaymentIntentReference, request.Status);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(booking);
+    }
+
     private async Task StartEkycAsync(MilestoneBooking booking, CreateBookingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1626,6 +1653,46 @@ public sealed class EfPhaseOneStore(
 
     private static string ToApiStatus<TStatus>(TStatus status) where TStatus : struct, Enum =>
         status.ToString().ToUpperInvariant();
+
+    private void ApplyPaymentWebhookToBooking(MilestoneBooking booking, PaymentWebhookUpdateRequest request)
+    {
+        booking.PaymentProvider = request.ProviderName;
+        switch (request.Status)
+        {
+            case PaymentStatus.Captured:
+                booking.PaymentCaptureReference = request.ProviderReference ?? request.PaymentIntentReference;
+                booking.PaymentStatus = PaymentStatus.Captured;
+                AddTimeline(booking, $"Stripe webhook confirmed capture: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Refunded:
+                booking.PaymentRefundReference = request.ProviderReference;
+                if (request.Amount is > 0m)
+                {
+                    var refundAmount = request.EventType.Equals("charge.refunded", StringComparison.OrdinalIgnoreCase)
+                        ? request.Amount.Value
+                        : booking.RefundedAmount + request.Amount.Value;
+                    booking.RefundedAmount = decimal.Round(Math.Min(booking.TotalAmount, refundAmount), 2, MidpointRounding.AwayFromZero);
+                    booking.RefundReason = string.IsNullOrWhiteSpace(request.Reason) ? booking.RefundReason : request.Reason.Trim();
+                    booking.RefundedAt = request.OccurredAt ?? timeProvider.GetUtcNow();
+                }
+
+                if (BookingRefundPolicy.IsFullyRefunded(booking.TotalAmount, booking.RefundedAmount))
+                {
+                    booking.PaymentStatus = PaymentStatus.Refunded;
+                }
+
+                AddTimeline(booking, $"Stripe webhook confirmed refund: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Failed:
+                booking.PaymentStatus = PaymentStatus.Failed;
+                AddTimeline(booking, $"Stripe webhook marked payment failed: {request.ProviderEventId}");
+                break;
+            case PaymentStatus.Cancelled:
+                booking.PaymentStatus = PaymentStatus.Cancelled;
+                AddTimeline(booking, $"Stripe webhook marked payment cancelled: {request.ProviderEventId}");
+                break;
+        }
+    }
 
     private static void AddTimeline(MilestoneBooking booking, params string[] entries)
     {
