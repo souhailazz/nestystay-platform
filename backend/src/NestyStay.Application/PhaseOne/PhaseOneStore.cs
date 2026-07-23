@@ -12,6 +12,7 @@ public interface IPhaseOneStore
 {
     Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken);
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+    Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken);
     Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken);
     Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken);
     IReadOnlyList<PropertyListingDto> GetProperties();
@@ -115,8 +116,7 @@ public sealed class PhaseOneStore(
                 user.Id,
                 user.Email,
                 user.DisplayName,
-                true,
-                GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow())));
+                true));
         }
     }
 
@@ -139,8 +139,25 @@ public sealed class PhaseOneStore(
                 user.Email,
                 true,
                 challenge.Id,
-                expiresAt,
-                GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow())));
+                expiresAt));
+        }
+    }
+
+    public Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var challenge = _challenges.SingleOrDefault(item => item.Id == challengeId);
+            if (challenge is null || challenge.ExpiresAt < timeProvider.GetUtcNow())
+            {
+                return Task.FromResult<DevelopmentAuthCodeResponse?>(null);
+            }
+
+            var user = _users.Single(item => item.Id == challenge.UserId);
+            return Task.FromResult<DevelopmentAuthCodeResponse?>(new DevelopmentAuthCodeResponse(
+                challenge.Id,
+                GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()),
+                challenge.ExpiresAt));
         }
     }
 

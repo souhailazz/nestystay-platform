@@ -42,7 +42,9 @@ public sealed class MilestonePersistenceTests
         {
             var store = CreatePhaseOneStore(db, providers);
             var login = await store.LoginAsync(new LoginRequest("persisted@test.local", "Password123!"), CancellationToken.None);
-            var session = await store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(login.ChallengeId, login.TwoFactorCode), CancellationToken.None);
+            var code = await store.GetDevelopmentTwoFactorCodeAsync(login.ChallengeId, CancellationToken.None);
+            Assert.NotNull(code);
+            var session = await store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(login.ChallengeId, code.Code), CancellationToken.None);
             var booking = store.GetBooking(bookingId);
 
             Assert.Equal(userId, session.UserId);

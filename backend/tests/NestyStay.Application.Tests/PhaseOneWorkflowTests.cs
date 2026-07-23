@@ -48,14 +48,15 @@ public sealed class PhaseOneWorkflowTests
             harness.Store.LoginAsync(new LoginRequest("unknown@test.local", "Password123!"), CancellationToken.None));
 
         var challenge = await harness.Store.LoginAsync(new LoginRequest("secure@test.local", "Password123!"), CancellationToken.None);
+        var challengeCode = await GetDevelopmentCodeAsync(harness.Store, challenge.ChallengeId);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest("missing", challenge.TwoFactorCode), CancellationToken.None));
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest("missing", challengeCode), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, "000000"), CancellationToken.None));
 
         var session = await harness.Store.VerifyTwoFactorAsync(
-            new VerifyTwoFactorRequest(challenge.ChallengeId, challenge.TwoFactorCode),
+            new VerifyTwoFactorRequest(challenge.ChallengeId, challengeCode),
             CancellationToken.None);
 
         Assert.Equal(registered.UserId, session.UserId);
@@ -64,13 +65,14 @@ public sealed class PhaseOneWorkflowTests
         Assert.False(session.AccessToken.StartsWith("local-google-token-", StringComparison.Ordinal));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, challenge.TwoFactorCode), CancellationToken.None));
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, challengeCode), CancellationToken.None));
 
         var expiringChallenge = await harness.Store.LoginAsync(new LoginRequest("secure@test.local", "Password123!"), CancellationToken.None);
+        var expiringCode = await GetDevelopmentCodeAsync(harness.Store, expiringChallenge.ChallengeId);
         clock.Advance(TimeSpan.FromMinutes(11));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(expiringChallenge.ChallengeId, expiringChallenge.TwoFactorCode), CancellationToken.None));
+            harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(expiringChallenge.ChallengeId, expiringCode), CancellationToken.None));
     }
 
     [Fact]
@@ -261,6 +263,13 @@ public sealed class PhaseOneWorkflowTests
         }
 
         throw new InvalidOperationException("Registered user not found.");
+    }
+
+    private static async Task<string> GetDevelopmentCodeAsync(PhaseOneStore store, string challengeId)
+    {
+        var code = await store.GetDevelopmentTwoFactorCodeAsync(challengeId, CancellationToken.None);
+        Assert.NotNull(code);
+        return code.Code;
     }
 
     private sealed record PhaseOneHarness(

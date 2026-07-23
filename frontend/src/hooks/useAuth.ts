@@ -7,7 +7,6 @@ type PendingChallenge = {
   email: string;
   displayName?: string;
   expiresAt: string;
-  demoCode: string;
 };
 
 export function useAuth() {
@@ -114,6 +113,5 @@ function toChallenge(login: LoginResponse, displayName?: string): PendingChallen
     email: login.email,
     displayName,
     expiresAt: login.challengeExpiresAt,
-    demoCode: login.twoFactorCode,
   };
 }

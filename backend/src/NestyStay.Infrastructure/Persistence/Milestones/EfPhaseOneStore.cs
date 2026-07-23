@@ -58,8 +58,7 @@ public sealed class EfPhaseOneStore(
             user.Id,
             user.Email,
             user.DisplayName,
-            true,
-            GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()));
+            true);
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -91,8 +90,24 @@ public sealed class EfPhaseOneStore(
             user.Email,
             true,
             challenge.ChallengeId,
-            expiresAt,
-            GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()));
+            expiresAt);
+    }
+
+    public async Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken)
+    {
+        var challenge = await db.MilestoneTwoFactorChallenges.SingleOrDefaultAsync(
+            item => item.ChallengeId == challengeId,
+            cancellationToken);
+        if (challenge is null || challenge.ExpiresAt < timeProvider.GetUtcNow())
+        {
+            return null;
+        }
+
+        var user = await db.MilestoneUsers.SingleAsync(item => item.Id == challenge.UserId, cancellationToken);
+        return new DevelopmentAuthCodeResponse(
+            challenge.ChallengeId,
+            GenerateTotp(user.TwoFactorSecret, timeProvider.GetUtcNow()),
+            challenge.ExpiresAt);
     }
 
     public async Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken)

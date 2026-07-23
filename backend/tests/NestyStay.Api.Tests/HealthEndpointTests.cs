@@ -82,6 +82,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             phone = "254-248-2435"
         });
         Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+        Assert.DoesNotContain("twoFactorCode", await register.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         var registered = await register.Content.ReadFromJsonAsync<RegisterResponse>();
         Assert.NotNull(registered);
         Assert.True(registered.RequiresTwoFactor);
@@ -116,8 +117,12 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             password = "Password123!"
         });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.DoesNotContain("twoFactorCode", await login.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(challenge);
+        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{challenge.ChallengeId}");
+        Assert.NotNull(developmentCode);
 
         var badTwoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
         {
@@ -129,7 +134,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
         {
             challengeId = challenge.ChallengeId,
-            code = challenge.TwoFactorCode
+            code = developmentCode.Code
         });
         Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
         var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
@@ -303,7 +308,9 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record RegisterResponse(Guid UserId, bool RequiresTwoFactor);
 
-    private sealed record LoginResponse(string ChallengeId, string TwoFactorCode);
+    private sealed record LoginResponse(string ChallengeId);
+
+    private sealed record DevelopmentAuthCodeResponse(string Code);
 
     private sealed record TwoFactorResponse(Guid UserId, string AccessToken);
 

@@ -14,7 +14,6 @@ export type RegisterUserResponse = {
   email: string;
   displayName: string;
   requiresTwoFactor: boolean;
-  twoFactorCode: string;
 };
 
 export type LoginRequest = {
@@ -28,7 +27,6 @@ export type LoginResponse = {
   requiresTwoFactor: boolean;
   challengeId: string;
   challengeExpiresAt: string;
-  twoFactorCode: string;
 };
 
 export type VerifyTwoFactorResponse = {

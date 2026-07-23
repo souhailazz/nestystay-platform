@@ -4,11 +4,13 @@ namespace NestyStay.Application.PhaseOne;
 
 public sealed record RegisterUserRequest(string Email, string Password, string DisplayName, string? Phone);
 
-public sealed record RegisterUserResponse(Guid UserId, string Email, string DisplayName, bool RequiresTwoFactor, string TwoFactorCode);
+public sealed record RegisterUserResponse(Guid UserId, string Email, string DisplayName, bool RequiresTwoFactor);
 
 public sealed record LoginRequest(string Email, string Password);
 
-public sealed record LoginResponse(Guid UserId, string Email, bool RequiresTwoFactor, string ChallengeId, DateTimeOffset ChallengeExpiresAt, string TwoFactorCode);
+public sealed record LoginResponse(Guid UserId, string Email, bool RequiresTwoFactor, string ChallengeId, DateTimeOffset ChallengeExpiresAt);
+
+public sealed record DevelopmentAuthCodeResponse(string ChallengeId, string Code, DateTimeOffset ExpiresAt);
 
 public sealed record VerifyTwoFactorRequest(string ChallengeId, string Code);
 

@@ -384,13 +384,13 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
     setNotice(null);
     try {
       if (activeMode === "register") {
-        const registered = await auth.register({ email, password, displayName, phone });
-        setCode(registered.twoFactorCode);
-        setNotice("Registration saved. A login challenge was opened for 2FA.");
+        await auth.register({ email, password, displayName, phone });
+        setCode("");
+        setNotice("Registration saved. Enter the verification code from your authenticator app.");
       } else {
-        const challenge = await auth.login(email, password);
-        setCode(challenge.demoCode);
-        setNotice("Login challenge opened. Use the demo 2FA code returned by the API.");
+        await auth.login(email, password);
+        setCode("");
+        setNotice("Login challenge opened. Enter the verification code from your authenticator app.");
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Authentication failed.");
@@ -516,7 +516,7 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
               <>
                 <h3>Check your verification code</h3>
                 <p>{auth.pendingChallenge.email} expires at {new Date(auth.pendingChallenge.expiresAt).toLocaleTimeString()}.</p>
-                <Field label="Verification code" hint={`Local milestone code: ${auth.pendingChallenge.demoCode}`}>
+                <Field label="Verification code" hint="Use the code delivered to your configured verification method.">
                   <Input value={code} onChange={(event) => setCode(event.target.value)} />
                 </Field>
                 <Button disabled={auth.isAuthBusy} onClick={handleVerify}>
