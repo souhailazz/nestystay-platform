@@ -52,7 +52,6 @@ import {
   HostPropertyEditPage,
   HostReportsPage,
   InsuraGuestPage,
-  InvoicesPage,
   LogoutScreenPage,
   MapSearchPage,
   NoFavoritesPage,
@@ -105,7 +104,6 @@ type Route =
   | { name: "logout" }
   | { name: "guest-dashboard" }
   | { name: "trav-favorites" }
-  | { name: "trav-invoices" }
   | { name: "trav-reviews" }
   | { name: "trav-notifications" }
   | { name: "trav-suggestions" }
@@ -208,7 +206,7 @@ function parseRoute(): Route {
   if (path === "/logout") return { name: "logout" };
   if (path === "/guest-dashboard") return { name: "guest-dashboard" };
   if (path === "/traveler/favorites" || path === "/wishlist") return { name: "trav-favorites" };
-  if (path === "/traveler/invoices") return { name: "trav-invoices" };
+  if (path === "/traveler/invoices") return { name: "traveler-spec", view: "invoices" };
   if (path === "/traveler/reviews") return { name: "trav-reviews" };
   if (path === "/traveler/notifications" || path === "/notifications") return { name: "trav-notifications" };
   if (path === "/traveler/suggestions") return { name: "trav-suggestions" };
@@ -376,7 +374,6 @@ function isWorkspaceRoute(route: Route) {
   return [
     "guest-dashboard",
     "trav-favorites",
-    "trav-invoices",
     "trav-reviews",
     "trav-notifications",
     "trav-suggestions",
@@ -486,8 +483,6 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <GuestDashboardPage auth={auth} />;
     case "trav-favorites":
       return <FavoritesCollectionsPage />;
-    case "trav-invoices":
-      return <InvoicesPage />;
     case "trav-reviews":
       return <PendingReviewsPage />;
     case "trav-notifications":

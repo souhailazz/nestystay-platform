@@ -684,7 +684,9 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
           <section className="product-section">
             {view.includes("reservation") || view === "qr" ? <ReservationPanel bookings={bookings.data ?? []} view={view} /> : null}
             {view === "wishlist" || view === "collections" ? <WishlistPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
-            {view === "payment-methods" || view === "payment-history" ? <PaymentMethodsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "payment-methods" ? <PaymentMethodsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "payment-history" ? <PaymentHistoryPanel bookings={bookings} token={token} /> : null}
+            {view === "invoices" ? <InvoiceListPanel bookings={bookings} token={token} /> : null}
             {view === "preferences" || view === "profile" ? <PreferencesPanel /> : null}
             {view === "identity" ? <IdentityPanel /> : null}
             {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
@@ -695,6 +697,23 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
     </CompletionShell>
   );
 }
+
+type BookingDocumentDownload = {
+  blob: Blob;
+  fileName: string;
+};
+
+type PaymentHistoryRow = {
+  id: string;
+  bookingId: string;
+  label: string;
+  propertyTitle: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  status: "AUTHORIZED" | "CAPTURED" | "REFUNDED";
+  canDownloadReceipt: boolean;
+};
 
 function ReservationPanel({ bookings, view }: { bookings: Booking[]; view: string }) {
   const filtered = bookings.filter((booking) =>
@@ -711,6 +730,113 @@ function ReservationPanel({ bookings, view }: { bookings: Booking[]; view: strin
         <AppLink className={buttonClassName("outline")} href={`/booking/${booking.id}/invoice`}>Invoice</AppLink>
       </Card>
     ))}</div>
+  );
+}
+
+function PaymentHistoryPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {
+  const [status, setStatus] = useState("all");
+  const rows = useMemo(() => {
+    const transactions = (bookings.data ?? []).flatMap((booking) => buildPaymentRows(booking));
+    return status === "all" ? transactions : transactions.filter((item) => item.status === status);
+  }, [bookings.data, status]);
+
+  return (
+    <DataGate state={bookings}>
+      {() => (
+        <>
+          <div className="search-panel spec-filter-bar">
+            <Field label="Status">
+              <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="all">All</option>
+                <option value="AUTHORIZED">Authorized</option>
+                <option value="CAPTURED">Captured</option>
+                <option value="REFUNDED">Refunded</option>
+              </Select>
+            </Field>
+          </div>
+          {rows.length === 0 ? (
+            <EmptyState title="No payment activity yet." />
+          ) : (
+            <div className="compact-list">
+              {rows.map((row) => (
+                <Card className="compact-list__item" key={row.id}>
+                  <CreditCard size={20} />
+                  <div>
+                    <strong>{row.label}</strong>
+                    <span>{row.propertyTitle} - {row.reference}</span>
+                  </div>
+                  <Badge tone={row.status === "REFUNDED" ? "coral" : row.status === "CAPTURED" ? "green" : "sun"}>{row.status}</Badge>
+                  <strong>{row.amount < 0 ? "-" : ""}{formatMoney(Math.abs(row.amount), row.currency)}</strong>
+                  {row.canDownloadReceipt && (
+                    <Button variant="outline" onClick={() => downloadBookingDocument(() => api.downloadBookingReceipt(row.bookingId, token))}>
+                      <Download size={16} /> Receipt
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </DataGate>
+  );
+}
+
+function InvoiceListPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {
+  const [year, setYear] = useState("all");
+  const years = useMemo(() => {
+    const values = new Set((bookings.data ?? []).map((booking) => booking.checkIn.slice(0, 4)));
+    return Array.from(values).sort().reverse();
+  }, [bookings.data]);
+  const invoices = useMemo(() => {
+    const all = bookings.data ?? [];
+    return year === "all" ? all : all.filter((booking) => booking.checkIn.startsWith(year));
+  }, [bookings.data, year]);
+
+  async function downloadVisible() {
+    for (const booking of invoices) {
+      await downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token));
+    }
+  }
+
+  return (
+    <DataGate state={bookings}>
+      {() => (
+        <>
+          <div className="search-panel spec-filter-bar">
+            <Field label="Year">
+              <Select value={year} onChange={(event) => setYear(event.target.value)}>
+                <option value="all">All</option>
+                {years.map((item) => <option key={item} value={item}>{item}</option>)}
+              </Select>
+            </Field>
+            <Button variant="dark" disabled={invoices.length === 0} onClick={downloadVisible}>
+              <Download size={17} /> Download visible
+            </Button>
+          </div>
+          {invoices.length === 0 ? (
+            <EmptyState title="No invoices for this filter." />
+          ) : (
+            <div className="compact-list">
+              {invoices.map((booking) => (
+                <Card className="compact-list__item" key={booking.id}>
+                  <FileText size={20} />
+                  <div>
+                    <strong>NST-{booking.checkIn.slice(0, 4)}-{booking.id.slice(0, 8).toUpperCase()}</strong>
+                    <span>{booking.propertyTitle ?? booking.propertyId} - {booking.checkIn} to {booking.checkOut}</span>
+                  </div>
+                  <Badge tone={booking.paymentStatus === "REFUNDED" ? "coral" : booking.paymentStatus === "CAPTURED" ? "green" : "sun"}>{booking.paymentStatus}</Badge>
+                  <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong>
+                  <Button variant="outline" onClick={() => downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token))}>
+                    <Download size={16} /> Invoice
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </DataGate>
   );
 }
 
@@ -773,6 +899,65 @@ function travelerScreenId(view: string) {
 
 function travelerTitle(view: string) {
   return view.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildPaymentRows(booking: Booking): PaymentHistoryRow[] {
+  const rows: PaymentHistoryRow[] = [];
+  if (booking.paymentAuthorizationReference) {
+    rows.push({
+      id: `${booking.id}-authorization`,
+      bookingId: booking.id,
+      label: "Authorization",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentAuthorizationReference,
+      amount: booking.totalAmount,
+      currency: booking.currency,
+      status: "AUTHORIZED",
+      canDownloadReceipt: false,
+    });
+  }
+
+  if (booking.paymentCaptureReference) {
+    rows.push({
+      id: `${booking.id}-capture`,
+      bookingId: booking.id,
+      label: "Payment received",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentCaptureReference,
+      amount: booking.totalAmount,
+      currency: booking.currency,
+      status: "CAPTURED",
+      canDownloadReceipt: booking.paymentStatus === "CAPTURED" || booking.paymentStatus === "REFUNDED",
+    });
+  }
+
+  if (booking.paymentRefundReference && (booking.refundedAmount ?? 0) > 0) {
+    rows.push({
+      id: `${booking.id}-refund`,
+      bookingId: booking.id,
+      label: "Refund issued",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentRefundReference,
+      amount: -booking.refundedAmount,
+      currency: booking.currency,
+      status: "REFUNDED",
+      canDownloadReceipt: false,
+    });
+  }
+
+  return rows;
+}
+
+async function downloadBookingDocument(load: () => Promise<BookingDocumentDownload>) {
+  const file = await load();
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function MessagesPage({ auth, conversationId }: { auth: AuthController; conversationId?: string }) {

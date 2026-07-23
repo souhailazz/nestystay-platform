@@ -69,4 +69,24 @@ describe("api client", () => {
       status: 403,
     });
   });
+
+  it("downloads booking documents with bearer tokens and filenames", async () => {
+    const fetchMock = stubFetch(new Response(new Blob(["%PDF-1.4"]), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="nestystay-invoice.pdf"',
+      },
+    }));
+
+    const file = await api.downloadBookingInvoice("booking-1", "signed-session-token");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/bookings/booking-1/invoice");
+    expect(headers.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(file.fileName).toBe("nestystay-invoice.pdf");
+    expect(file.contentType).toBe("application/pdf");
+    expect(await file.blob.text()).toBe("%PDF-1.4");
+  });
 });
