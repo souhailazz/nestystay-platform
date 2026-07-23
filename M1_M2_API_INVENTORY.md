@@ -140,5 +140,5 @@ Base path: `/api`. Frontend proxy: Vite forwards `/api` to `http://localhost:501
 
 - Admin mutation endpoints use `NESTYSTAY_ADMIN_TOKEN_SHA256` in real environments. Local development uses the configured dev token.
 - Operator tokens authenticate but are forbidden on admin-only endpoints.
-- Local user protected endpoints require `local-phase1-token-{userId:N}` or `local-google-token-{userId:N}` and enforce owner id matching.
-- Production startup guards still require real Stripe, Alibaba Cloud eKYC, R2, InsuraGuest, webhook, and admin secrets before launch.
+- User protected endpoints require signed `nsty.v1.*` session tokens and enforce owner id matching.
+- Production startup guards still require real Stripe, Alibaba Cloud eKYC, R2, InsuraGuest, webhook, admin, and session-token secrets before launch.
