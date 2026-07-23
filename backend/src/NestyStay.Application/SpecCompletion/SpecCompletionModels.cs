@@ -36,7 +36,8 @@ public interface ISpecCompletionStore
     Task<ConversationDto?> GetConversationAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken);
     Task<ConversationDto> CreateConversationAsync(Guid userId, CreateConversationRequest request, CancellationToken cancellationToken);
     Task<AttachmentUploadDto> PrepareMessageAttachmentUploadAsync(Guid userId, Guid conversationId, PrepareMessageAttachmentUploadRequest request, CancellationToken cancellationToken);
-    Task<AttachmentUploadDto> CompleteMessageAttachmentUploadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken);
+    Task<AttachmentUploadDto> UploadMessageAttachmentContentAsync(Guid userId, Guid conversationId, Guid attachmentId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken);
+    Task<AttachmentUploadDto> CompleteMessageAttachmentUploadAsync(Guid userId, Guid conversationId, Guid attachmentId, CompleteMessageAttachmentUploadRequest request, CancellationToken cancellationToken);
     Task<AttachmentDownloadDto> GetMessageAttachmentDownloadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken);
     Task<MessageDto> SendMessageAsync(Guid userId, Guid conversationId, SendMessageRequest request, CancellationToken cancellationToken);
     Task MarkConversationReadAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken);
@@ -83,11 +84,12 @@ public sealed record ConversationParticipantDto(Guid UserId, string DisplayName,
 public sealed record CreateConversationRequest(string Subject, Guid? BookingId, bool IsSupportThread, IReadOnlyList<ConversationParticipantInput> Participants, string InitialMessage);
 public sealed record ConversationParticipantInput(Guid UserId, string DisplayName, string Role);
 public sealed record PrepareMessageAttachmentUploadRequest(string FileName, string ContentType, long SizeBytes);
-public sealed record AttachmentUploadDto(Guid Id, Guid ConversationId, Guid OwnerUserId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, DateTimeOffset ExpiresAt);
+public sealed record CompleteMessageAttachmentUploadRequest(string ContentType, long SizeBytes, string HeaderBytesBase64, string Sha256Hash);
+public sealed record AttachmentUploadDto(Guid Id, Guid ConversationId, Guid OwnerUserId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, DateTimeOffset ExpiresAt, string StorageProviderName = "", string ScanStatus = "PendingScan", string? Sha256Hash = null, string? ThumbnailUrl = null);
 public sealed record AttachmentDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
 public sealed record SendMessageRequest(string Body, IReadOnlyList<MessageAttachmentDto>? Attachments);
 public sealed record MessageDto(Guid Id, Guid ConversationId, Guid SenderUserId, string Body, string Status, DateTimeOffset SentAt, DateTimeOffset? ReadAt, IReadOnlyList<MessageAttachmentDto> Attachments);
-public sealed record MessageAttachmentDto(Guid? AttachmentId, string FileName, string ContentType, long SizeBytes, string? Url, string Status, string? ObjectKey = null, DateTimeOffset? ExpiresAt = null);
+public sealed record MessageAttachmentDto(Guid? AttachmentId, string FileName, string ContentType, long SizeBytes, string? Url, string Status, string? ObjectKey = null, DateTimeOffset? ExpiresAt = null, string ScanStatus = "Clean", string? ThumbnailUrl = null);
 public sealed record HostOperationsDto(Guid HostUserId, HostAnalyticsDto Analytics, IReadOnlyList<HostPricingRuleDto> PricingRules, IReadOnlyList<HostPromotionDto> Promotions, IReadOnlyList<ReviewDto> Reviews);
 public sealed record HostAnalyticsDto(decimal Revenue, decimal OccupancyPercent, decimal AverageNightlyRate, int BookingCount, decimal ConversionPercent, IReadOnlyList<ChartPointDto> RevenueSeries, IReadOnlyList<ChartPointDto> OccupancySeries);
 public sealed record ChartPointDto(string Label, decimal Value);

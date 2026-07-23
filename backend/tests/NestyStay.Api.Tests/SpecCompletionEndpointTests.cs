@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -451,23 +452,43 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         });
         Assert.Equal(HttpStatusCode.BadRequest, invalidAttachmentUpload.StatusCode);
 
+        var rejectedPdfBytes = Encoding.ASCII.GetBytes("not a pdf");
+        var rejectedUploadResponse = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/uploads?userId={travelerId}", new
+        {
+            fileName = "spoofed.pdf",
+            contentType = "application/pdf",
+            sizeBytes = rejectedPdfBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, rejectedUploadResponse.StatusCode);
+        var rejectedUpload = await rejectedUploadResponse.Content.ReadFromJsonAsync<AttachmentUploadResponse>();
+        Assert.NotNull(rejectedUpload);
+        using var rejectedContent = new ByteArrayContent(rejectedPdfBytes);
+        rejectedContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var rejectedUploadComplete = await client.PutAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{rejectedUpload.Id}/content?userId={travelerId}", rejectedContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedUploadComplete.StatusCode);
+
+        var pdfBytes = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
         var uploadResponse = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/uploads?userId={travelerId}", new
         {
             fileName = "../Arrival Note.pdf",
             contentType = "application/pdf",
-            sizeBytes = 2048
+            sizeBytes = pdfBytes.Length
         });
         Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
         var upload = await uploadResponse.Content.ReadFromJsonAsync<AttachmentUploadResponse>();
         Assert.NotNull(upload);
         Assert.Equal("arrival-note.pdf", upload.FileName);
         Assert.Equal("PendingUpload", upload.Status);
+        Assert.Equal("PendingScan", upload.ScanStatus);
 
-        var completedUploadResponse = await client.PostAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{upload.Id}/complete?userId={travelerId}", null);
+        using var pdfContent = new ByteArrayContent(pdfBytes);
+        pdfContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var completedUploadResponse = await client.PutAsync($"/api/spec/messages/conversations/{conversation.Id}/attachments/{upload.Id}/content?userId={travelerId}", pdfContent);
         Assert.Equal(HttpStatusCode.OK, completedUploadResponse.StatusCode);
         var completedUpload = await completedUploadResponse.Content.ReadFromJsonAsync<AttachmentUploadResponse>();
         Assert.NotNull(completedUpload);
         Assert.Equal("Uploaded", completedUpload.Status);
+        Assert.Equal("Clean", completedUpload.ScanStatus);
 
         var sendMessage = await client.PostAsJsonAsync($"/api/spec/messages/conversations/{conversation.Id}/messages?userId={travelerId}", new
         {
@@ -691,7 +712,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record MessageResponse(IReadOnlyList<MessageAttachmentResponse> Attachments);
 
-    private sealed record AttachmentUploadResponse(Guid Id, string FileName, string Status);
+    private sealed record AttachmentUploadResponse(Guid Id, string FileName, string Status, string ScanStatus);
 
     private sealed record AttachmentDownloadResponse(string FileName, string Url);
 

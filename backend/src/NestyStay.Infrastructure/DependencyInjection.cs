@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<IEkycProvider, AlibabaEkycProvider>();
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
         services.AddSingleton<IStorageProvider, CloudflareR2StorageProvider>();
+        services.AddSingleton<IFileSafetyScanner, MagicByteFileSafetyScanner>();
         services.AddSingleton<INotificationGateway, CompositeNotificationGateway>();
         services.AddSingleton<IEmailSender, LocalDevelopmentEmailSender>();
         services.AddSingleton<ISmsSender, LocalDevelopmentSmsSender>();
@@ -384,6 +385,9 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
 
 internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) : IStorageProvider
 {
+    private const int BufferSize = 81920;
+    private const int HeaderByteLimit = 512;
+
     public string ProviderName => "Cloudflare R2";
 
     public Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken)
@@ -392,6 +396,78 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
                       "https://storage.nestystay.local/upload";
 
         return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}");
+    }
+
+    public async Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken)
+    {
+        if (request.MaximumBytes <= 0)
+        {
+            throw new InvalidOperationException("Upload size limit is invalid.");
+        }
+
+        var root = ResolveLocalStorageRoot();
+        var targetPath = ResolveObjectPath(root, request.ObjectKey);
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+
+        var temporaryPath = $"{targetPath}.{Guid.NewGuid():N}.tmp";
+        var success = false;
+        long totalBytes = 0;
+        var headerBytes = new List<byte>(HeaderByteLimit);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[BufferSize];
+
+        try
+        {
+            await using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, true))
+            {
+                while (true)
+                {
+                    var bytesRead = await content.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+
+                    totalBytes += bytesRead;
+                    if (totalBytes > request.MaximumBytes)
+                    {
+                        throw new InvalidOperationException("Attachment exceeds the allowed size.");
+                    }
+
+                    var headerRemaining = HeaderByteLimit - headerBytes.Count;
+                    if (headerRemaining > 0)
+                    {
+                        headerBytes.AddRange(buffer.AsSpan(0, Math.Min(bytesRead, headerRemaining)).ToArray());
+                    }
+
+                    hash.AppendData(buffer.AsSpan(0, bytesRead));
+                    await output.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                }
+
+                if (totalBytes == 0)
+                {
+                    throw new InvalidOperationException("Attachment upload cannot be empty.");
+                }
+            }
+
+            File.Move(temporaryPath, targetPath, true);
+            success = true;
+        }
+        finally
+        {
+            if (!success && File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+
+        return new StorageObjectWriteResult(
+            ProviderName,
+            request.ObjectKey,
+            request.ContentType.Trim().ToLowerInvariant(),
+            totalBytes,
+            Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(),
+            headerBytes.ToArray());
     }
 
     public Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken)
@@ -411,6 +487,108 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
             ? Environment.GetEnvironmentVariable(environmentKey)
             : configured;
     }
+
+    private string ResolveLocalStorageRoot()
+    {
+        var configured = ResolveSetting("Integrations:LocalStorageRoot", "NESTYSTAY_STORAGE_LOCAL_ROOT");
+        return Path.GetFullPath(string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(Path.GetTempPath(), "nestystay-platform-storage")
+            : configured);
+    }
+
+    private static string ResolveObjectPath(string root, string objectKey)
+    {
+        var segments = objectKey.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+        {
+            throw new InvalidOperationException("Storage object key is required.");
+        }
+
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var path = root;
+        foreach (var segment in segments)
+        {
+            if (segment is "." or ".." || segment.IndexOfAny(invalidCharacters) >= 0)
+            {
+                throw new InvalidOperationException("Storage object key is invalid.");
+            }
+
+            path = Path.Combine(path, segment);
+        }
+
+        var rootWithSeparator = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var fullPath = Path.GetFullPath(path);
+        if (!fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Storage object key is outside the configured storage root.");
+        }
+
+        return fullPath;
+    }
+}
+
+internal sealed class MagicByteFileSafetyScanner : IFileSafetyScanner
+{
+    public string ProviderName => "Local magic-byte scanner";
+
+    public Task<FileSafetyScanResult> ScanAsync(FileSafetyScanRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SizeBytes <= 0)
+        {
+            return Task.FromResult(new FileSafetyScanResult("Rejected", "Attachment upload cannot be empty."));
+        }
+
+        if (!IsSha256Hash(request.Sha256Hash))
+        {
+            return Task.FromResult(new FileSafetyScanResult("Rejected", "Attachment checksum is invalid."));
+        }
+
+        var allowed = request.ContentType.Trim().ToLowerInvariant() switch
+        {
+            "image/jpeg" => StartsWith(request.HeaderBytes, [0xFF, 0xD8, 0xFF]),
+            "image/png" => StartsWith(request.HeaderBytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+            "image/webp" => HasWebpHeader(request.HeaderBytes),
+            "application/pdf" => StartsWith(request.HeaderBytes, Encoding.ASCII.GetBytes("%PDF-")),
+            _ => false
+        };
+
+        var result = allowed
+            ? new FileSafetyScanResult("Clean", null)
+            : new FileSafetyScanResult("Rejected", "Attachment bytes do not match the declared content type.");
+        return Task.FromResult(result);
+    }
+
+    private static bool StartsWith(byte[] value, byte[] prefix)
+    {
+        if (value.Length < prefix.Length)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < prefix.Length; index++)
+        {
+            if (value[index] != prefix[index])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasWebpHeader(byte[] value) =>
+        value.Length >= 12 &&
+        StartsWith(value, Encoding.ASCII.GetBytes("RIFF")) &&
+        value[8] == (byte)'W' &&
+        value[9] == (byte)'E' &&
+        value[10] == (byte)'B' &&
+        value[11] == (byte)'P';
+
+    private static bool IsSha256Hash(string value) =>
+        value.Length == 64 && value.All(character =>
+            (character >= '0' && character <= '9') ||
+            (character >= 'a' && character <= 'f') ||
+            (character >= 'A' && character <= 'F'));
 }
 
 internal sealed class CompositeNotificationGateway : INotificationGateway

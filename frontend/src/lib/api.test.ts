@@ -146,4 +146,28 @@ describe("api client", () => {
     });
     expect(saved.providerPaymentMethodReference).toBe("stripe_local_pm_reference");
   });
+
+  it("sends verified attachment completion evidence", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "attachment-1", status: "Uploaded", scanStatus: "Clean" }));
+
+    await api.completeMessageAttachmentUpload("conversation-1", "attachment-1", "traveler-1", "signed-session-token", {
+      contentType: "application/pdf",
+      sizeBytes: 32,
+      headerBytesBase64: "JVBERi0xLjcK",
+      sha256Hash: "a".repeat(64),
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/spec/messages/conversations/conversation-1/attachments/attachment-1/complete?userId=traveler-1");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer signed-session-token");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(init.body as string)).toEqual({
+      contentType: "application/pdf",
+      sizeBytes: 32,
+      headerBytesBase64: "JVBERi0xLjcK",
+      sha256Hash: "a".repeat(64),
+    });
+  });
 });

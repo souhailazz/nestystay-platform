@@ -667,6 +667,8 @@ export type MessageAttachment = {
   status: string;
   objectKey?: string | null;
   expiresAt?: string | null;
+  scanStatus?: string | null;
+  thumbnailUrl?: string | null;
 };
 
 export type AttachmentUpload = {
@@ -680,6 +682,10 @@ export type AttachmentUpload = {
   uploadUrl: string;
   status: string;
   expiresAt: string;
+  storageProviderName: string;
+  scanStatus: string;
+  sha256Hash?: string | null;
+  thumbnailUrl?: string | null;
 };
 
 export type AttachmentDownload = {
@@ -803,6 +809,11 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   token?: string;
 };
 
+type UploadOptions = {
+  signal?: AbortSignal;
+  onProgress?: (progress: number) => void;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -874,6 +885,50 @@ async function requestFile(path: string, token: string): Promise<DownloadedFile>
     fileName: parseContentDispositionFileName(response.headers.get("Content-Disposition")) ?? "nestystay-booking-document.pdf",
     contentType: response.headers.get("Content-Type") ?? "application/octet-stream",
   };
+}
+
+function requestUpload<T>(path: string, token: string, file: File, options: UploadOptions = {}): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const abort = () => xhr.abort();
+    const cleanup = () => options.signal?.removeEventListener("abort", abort);
+
+    xhr.open("PUT", `${API_BASE_URL}${path}`);
+    xhr.responseType = "json";
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        options.onProgress?.(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        options.onProgress?.(100);
+        resolve(xhr.response as T);
+        return;
+      }
+
+      const problem = xhr.response as { title?: string; detail?: string; message?: string } | null;
+      reject(new ApiError(problem?.title ?? problem?.detail ?? problem?.message ?? xhr.statusText ?? `Request failed with status ${xhr.status}`, xhr.status));
+    };
+
+    xhr.onerror = () => {
+      cleanup();
+      reject(new ApiError("Attachment upload failed.", xhr.status || 0));
+    };
+
+    xhr.onabort = () => {
+      cleanup();
+      reject(new ApiError("Attachment upload cancelled.", 0));
+    };
+
+    options.signal?.addEventListener("abort", abort, { once: true });
+    xhr.send(file);
+  });
 }
 
 function parseContentDispositionFileName(value: string | null): string | null {
@@ -1141,8 +1196,10 @@ export const api = {
     request<Conversation>(withQuery("/spec/messages/conversations", { userId }), { method: "POST", token, body }),
   prepareMessageAttachmentUpload: (conversationId: string, userId: string, token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
     request<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/uploads`, { userId }), { method: "POST", token, body }),
-  completeMessageAttachmentUpload: (conversationId: string, attachmentId: string, userId: string, token: string) =>
-    request<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/complete`, { userId }), { method: "POST", token }),
+  uploadMessageAttachmentContent: (conversationId: string, attachmentId: string, userId: string, token: string, file: File, options?: UploadOptions) =>
+    requestUpload<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/content`, { userId }), token, file, options),
+  completeMessageAttachmentUpload: (conversationId: string, attachmentId: string, userId: string, token: string, body: { contentType: string; sizeBytes: number; headerBytesBase64: string; sha256Hash: string }) =>
+    request<AttachmentUpload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/complete`, { userId }), { method: "POST", token, body }),
   getMessageAttachmentDownload: (conversationId: string, attachmentId: string, userId: string, token: string) =>
     request<AttachmentDownload>(withQuery(`/spec/messages/conversations/${conversationId}/attachments/${attachmentId}/download`, { userId }), { token }),
   sendMessage: (conversationId: string, userId: string, token: string, body: { body: string; attachments?: MessageAttachment[] }) =>

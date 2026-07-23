@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import QRCode from "qrcode";
 import {
   BadgeCheck,
@@ -13,10 +13,13 @@ import {
   Lock,
   Mail,
   MessageSquare,
+  Paperclip,
+  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   Star,
+  X,
   UserRound,
 } from "lucide-react";
 import { AppLink } from "../components/AppLink";
@@ -30,7 +33,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
-import { api, formatMoney, type AdminCase, type AdminOperations, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type JournalArticle, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { api, formatMoney, type AdminCase, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 
@@ -1019,21 +1022,186 @@ function MessagesWorkspace({ userId, token, conversationId }: { userId: string; 
   );
 }
 
+type MessageUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type MessageUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: MessageUploadStatus;
+  attachment?: AttachmentUpload;
+  error?: string;
+};
+
+const maximumMessageAttachmentBytes = 10 * 1024 * 1024;
+
 function ConversationPanel({ conversation, userId, token, reload }: { conversation: Conversation; userId: string; token: string; reload: () => void }) {
   const [body, setBody] = useState("");
-  async function send() {
-    await api.sendMessage(conversation.id, userId, token, { body, attachments: [] });
-    setBody("");
-    reload();
+  const [uploads, setUploads] = useState<MessageUploadItem[]>([]);
+  const [notice, setNotice] = useState("");
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  function updateUpload(id: string, patch: Partial<MessageUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
   }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice("");
+
+    if (file.size > maximumMessageAttachmentBytes) {
+      updateUpload(id, { status: "failed", error: "Attachments must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareMessageAttachmentUpload(conversation.id, userId, token, {
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateUpload(id, { attachment: prepared, progress: 5, status: "uploading" });
+      const uploaded = await api.uploadMessageAttachmentContent(conversation.id, prepared.id, userId, token, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { attachment: uploaded, progress: 100, status: "uploaded", error: undefined });
+    } catch (error) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: error instanceof Error ? error.message : "Attachment upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumMessageAttachmentBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Attachments must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Attachment upload cancelled." });
+  }
+
+  function retryUpload(item: MessageUploadItem) {
+    updateUpload(item.id, { attachment: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  async function downloadAttachment(file: MessageAttachment) {
+    if (!file.attachmentId) return;
+    try {
+      const download = await api.getMessageAttachmentDownload(conversation.id, file.attachmentId, userId, token);
+      window.open(download.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Attachment download failed.");
+    }
+  }
+
+  async function send() {
+    const attachments = uploads
+      .filter((upload): upload is MessageUploadItem & { attachment: AttachmentUpload } => upload.status === "uploaded" && Boolean(upload.attachment))
+      .map((upload) => ({
+        attachmentId: upload.attachment.id,
+        fileName: upload.attachment.fileName,
+        contentType: upload.attachment.contentType,
+        sizeBytes: upload.attachment.sizeBytes,
+        url: null,
+        status: upload.attachment.status,
+        objectKey: upload.attachment.objectKey,
+        expiresAt: upload.attachment.expiresAt,
+        scanStatus: upload.attachment.scanStatus,
+        thumbnailUrl: upload.attachment.thumbnailUrl,
+      }));
+
+    try {
+      await api.sendMessage(conversation.id, userId, token, { body, attachments });
+      setBody("");
+      setUploads([]);
+      setNotice("");
+      reload();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Message could not be sent.");
+    }
+  }
+
+  const hasActiveUploads = uploads.some((upload) => upload.status === "queued" || upload.status === "uploading");
+  const canSend = body.trim().length > 0 && !hasActiveUploads;
+
   return (
     <Card className="message-thread">
       <h3>{conversation.subject}</h3>
-      {conversation.messages.map((message) => <div className={message.senderUserId === userId ? "message-bubble message-bubble--reply" : "message-bubble"} key={message.id}><p>{message.body}</p><small>{message.status} - {new Date(message.sentAt).toLocaleTimeString()}</small>{message.attachments.map((file) => <span key={file.fileName}><FileText size={14} /> {file.fileName}</span>)}</div>)}
+      {conversation.messages.map((message) => <div className={message.senderUserId === userId ? "message-bubble message-bubble--reply" : "message-bubble"} key={message.id}><p>{message.body}</p><small>{message.status} - {new Date(message.sentAt).toLocaleTimeString()}</small>{message.attachments.map((file) => <button className="message-attachment-link" disabled={!file.attachmentId} key={file.attachmentId ?? file.fileName} onClick={() => void downloadAttachment(file)} type="button"><FileText size={14} /> <span>{file.fileName}</span><small>{file.scanStatus ?? file.status}</small></button>)}</div>)}
       <Field label="Message"><Textarea value={body} onChange={(event) => setBody(event.target.value)} /></Field>
-      <Button onClick={send}><MessageSquare size={17} /> Send</Button>
+      <div className="message-upload-bar">
+        <label className={buttonClassName("outline", "message-file-picker")}>
+          <Paperclip size={17} /> Attach
+          <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+        </label>
+        <Button disabled={!canSend} onClick={send}><MessageSquare size={17} /> Send</Button>
+      </div>
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item" key={upload.id}>
+              <FileText size={16} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={16} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={16} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove attachment" variant="ghost"><X size={16} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <div className="notice-panel">{notice}</div>}
     </Card>
   );
+}
+
+function createUploadId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function resolveMessageAttachmentContentType(file: File) {
+  if (file.type) return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  return "application/octet-stream";
 }
 
 export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: string; auth: AuthController }) {

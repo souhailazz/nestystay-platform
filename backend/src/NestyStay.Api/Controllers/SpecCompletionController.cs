@@ -227,15 +227,40 @@ public sealed class SpecCompletionController(
         return Ok(await store.PrepareMessageAttachmentUploadAsync(userId, conversationId, request, cancellationToken));
     }
 
-    [HttpPost("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/complete")]
-    public async Task<ActionResult<AttachmentUploadDto>> CompleteMessageAttachmentUpload(
+    [HttpPut("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<AttachmentUploadDto>> UploadMessageAttachmentContent(
         Guid conversationId,
         Guid attachmentId,
         [FromQuery] Guid userId,
         CancellationToken cancellationToken)
     {
         authorization.RequireResourceOwner(userId);
-        return Ok(await store.CompleteMessageAttachmentUploadAsync(userId, conversationId, attachmentId, cancellationToken));
+        return Ok(await store.UploadMessageAttachmentContentAsync(
+            userId,
+            conversationId,
+            attachmentId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/complete")]
+    public async Task<ActionResult<AttachmentUploadDto>> CompleteMessageAttachmentUpload(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CompleteMessageAttachmentUploadRequest? request,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        if (request is null)
+        {
+            throw new InvalidOperationException("Upload verification evidence is required.");
+        }
+
+        return Ok(await store.CompleteMessageAttachmentUploadAsync(userId, conversationId, attachmentId, request, cancellationToken));
     }
 
     [HttpGet("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/download")]

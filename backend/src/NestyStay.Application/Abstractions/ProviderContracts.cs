@@ -22,7 +22,14 @@ public interface IStorageProvider
 {
     string ProviderName { get; }
     Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken);
+    Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken);
     Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken);
+}
+
+public interface IFileSafetyScanner
+{
+    string ProviderName { get; }
+    Task<FileSafetyScanResult> ScanAsync(FileSafetyScanRequest request, CancellationToken cancellationToken);
 }
 
 public interface INotificationGateway
@@ -84,6 +91,31 @@ public sealed record EkycStartResult(
     string TransactionId,
     string? TransactionUrl,
     string? ClientPayload);
+
+public sealed record StorageObjectWriteRequest(
+    string ObjectKey,
+    string ContentType,
+    long MaximumBytes);
+
+public sealed record StorageObjectWriteResult(
+    string ProviderName,
+    string ObjectKey,
+    string ContentType,
+    long SizeBytes,
+    string Sha256Hash,
+    byte[] HeaderBytes);
+
+public sealed record FileSafetyScanRequest(
+    string ObjectKey,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    string Sha256Hash,
+    byte[] HeaderBytes);
+
+public sealed record FileSafetyScanResult(
+    string Status,
+    string? Reason);
 
 public sealed record PaymentAuthorizationRequest(
     Guid BookingId,
