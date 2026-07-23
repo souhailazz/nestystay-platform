@@ -78,6 +78,18 @@ public sealed class WebhookSecurityTests
         public Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
+
         public IReadOnlyList<PropertyListingDto> GetProperties() =>
             throw new NotSupportedException();
 

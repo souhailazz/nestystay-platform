@@ -35,6 +35,16 @@ public sealed record GoogleSignInResponse(
     IReadOnlyList<UserRole> Roles,
     string Provider);
 
+public sealed record PasswordResetRequest(string Email, string? RequestIp = null);
+
+public sealed record PasswordResetRequestResponse(string RequestId, string Message, DateTimeOffset ExpiresAt);
+
+public sealed record CompletePasswordResetRequest(string RequestId, string Token, string NewPassword, string ConfirmPassword);
+
+public sealed record CompletePasswordResetResponse(string Status, bool PasswordChanged);
+
+public sealed record DevelopmentPasswordResetTokenResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
+
 public sealed record PropertyListingDto(
     Guid Id,
     Guid HostUserId,

@@ -193,9 +193,15 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
   const [destination, setDestination] = useState(auth.session?.email ?? "guest@nestystay.local");
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [resetRequestId, setResetRequestId] = useState(() => new URLSearchParams(window.location.search).get("requestId") ?? "");
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const canUseDevelopmentDelivery = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   async function start(flowType = kind) {
+    setError(null);
     const started = await api.startAuthFlow({ userId: auth.session?.userId, flowType, destination });
     setFlow({
       id: started.id,
@@ -210,6 +216,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
 
   async function complete() {
     if (!flow) return;
+    setError(null);
     const completed = await api.completeAuthFlow({ flowId: flow.id, code });
     setFlow({
       id: completed.id,
@@ -223,9 +230,44 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
 
   async function useDevelopmentDelivery() {
     if (!flow) return;
+    setError(null);
     const secret = await api.getDevelopmentAuthFlowSecret(flow.id);
     setCode(secret.code);
     setNotice(`Development delivery loaded. Expires at ${new Date(secret.expiresAt).toLocaleTimeString()}.`);
+  }
+
+  async function requestReset() {
+    setError(null);
+    const response = await api.requestPasswordReset(destination);
+    setResetRequestId(response.requestId);
+    setNotice(response.message);
+  }
+
+  async function useDevelopmentResetToken() {
+    setError(null);
+    const secret = await api.getDevelopmentPasswordResetToken(resetRequestId);
+    setResetToken(secret.token);
+    setNotice(`Development reset token loaded. Expires at ${new Date(secret.expiresAt).toLocaleTimeString()}.`);
+  }
+
+  async function completeReset() {
+    setError(null);
+    const response = await api.completePasswordReset({
+      requestId: resetRequestId,
+      token: resetToken,
+      newPassword,
+      confirmPassword,
+    });
+    setNotice(response.passwordChanged ? "Password reset completed." : response.status);
+    setResetToken("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  function run(action: () => Promise<void>) {
+    void action().catch((caught) => {
+      setError(caught instanceof Error ? caught.message : "Authentication flow failed.");
+    });
   }
 
   const titleMap: Record<string, [string, string, string]> = {
@@ -263,8 +305,36 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
             <RequireSession auth={auth}>
               {(session) => <RecoveryCodesPanel userId={session.userId} token={session.accessToken} />}
             </RequireSession>
+          ) : kind === "forgot" ? (
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(requestReset); }}>
+              <PatoisPhrase phrase="Nuh Worry Yuhself" translation="Don't worry about it - we'll sort this out." />
+              <Field label="Email">
+                <Input type="email" value={destination} onChange={(event) => setDestination(event.target.value)} />
+              </Field>
+              <Button type="submit"><ShieldCheck size={17} /> Send reset link</Button>
+            </form>
+          ) : kind === "reset" ? (
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(completeReset); }}>
+              <PatoisPhrase phrase="Yuh Back Inna Di Mix!" translation="You're back in the mix! Welcome back!" />
+              <Field label="Request ID">
+                <Input value={resetRequestId} onChange={(event) => setResetRequestId(event.target.value)} />
+              </Field>
+              <Field label="Reset token">
+                <Input value={resetToken} onChange={(event) => setResetToken(event.target.value)} />
+              </Field>
+              {canUseDevelopmentDelivery && resetRequestId && (
+                <Button type="button" onClick={() => run(useDevelopmentResetToken)} variant="ghost">Use development token</Button>
+              )}
+              <Field label="New password">
+                <Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+              </Field>
+              <Field label="Confirm password">
+                <Input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+              </Field>
+              <Button type="submit"><Lock size={17} /> Reset password</Button>
+            </form>
           ) : (
-            <form className="management-form" onSubmit={(event) => { event.preventDefault(); void start(); }}>
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(() => start()); }}>
               <PatoisPhrase phrase={kind === "forgot" ? "Nuh Worry Yuhself" : kind === "otp" ? "Easy Nuh" : "Respek!"} translation="English translation is shown directly below the patois phrase." />
               <Field label={kind === "phone" ? "Phone number" : "Email"}>
                 <Input value={destination} onChange={(event) => setDestination(event.target.value)} />
@@ -277,12 +347,13 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
               <span>{flow.deliveryChannel} delivery pending until {new Date(flow.expiresAt).toLocaleTimeString()}.</span>
               <Field label="Enter code"><Input value={code} onChange={(event) => setCode(event.target.value)} /></Field>
               {canUseDevelopmentDelivery && (
-                <Button onClick={useDevelopmentDelivery} variant="ghost">Use development delivery</Button>
+                <Button onClick={() => run(useDevelopmentDelivery)} variant="ghost">Use development delivery</Button>
               )}
-              <Button onClick={complete}>Verify code</Button>
+                <Button onClick={() => run(complete)}>Verify code</Button>
             </div>
           )}
           {notice && <div className="notice-panel">{notice}</div>}
+          {error && <ErrorState message={error} />}
         </Card>
         <DataGate state={social}>
           {(config) => (

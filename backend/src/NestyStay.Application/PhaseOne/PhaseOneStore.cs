@@ -15,6 +15,10 @@ public interface IPhaseOneStore
     Task<DevelopmentAuthCodeResponse?> GetDevelopmentTwoFactorCodeAsync(string challengeId, CancellationToken cancellationToken);
     Task<GoogleSignInResponse> GoogleSignInAsync(GoogleSignInRequest request, CancellationToken cancellationToken);
     Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken);
+    Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken);
+    Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken);
+    Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken);
+    Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
     IReadOnlyList<PropertyListingDto> GetProperties();
     PropertyListingDto? GetProperty(Guid id);
     Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken);
@@ -32,17 +36,25 @@ public sealed class PhaseOneStore(
     INotificationGateway notificationGateway,
     TimeProvider timeProvider,
     IAccessTokenService? accessTokenService = null,
-    IGoogleIdentityValidator? googleIdentityValidator = null) : IPhaseOneStore
+    IGoogleIdentityValidator? googleIdentityValidator = null,
+    IEmailSender? emailSender = null,
+    IDevelopmentAuthSecretStore? developmentAuthSecrets = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
     private const int MaximumLoginAttempts = 5;
     private const int MaximumChallengeAttempts = 5;
+    private const string PasswordResetStatusPending = "Pending";
+    private const string PasswordResetStatusCompleted = "Completed";
+    private const string PasswordResetStatusExpired = "Expired";
+    private const string PasswordResetStatusFailed = "Failed";
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
     private readonly object _gate = new();
     private readonly List<PhaseOneUser> _users = [];
     private readonly List<PhaseOneChallenge> _challenges = [];
+    private readonly List<PhaseOnePasswordReset> _passwordResets = [];
     private readonly List<PhaseOneBooking> _bookings = [];
     private readonly List<PhaseOneProperty> _properties =
     [
@@ -259,6 +271,153 @@ public sealed class PhaseOneStore(
                 _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
                 user.Roles));
+        }
+    }
+
+    public async Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizePasswordResetEmail(request.Email);
+        var now = timeProvider.GetUtcNow();
+        var expiresAt = now.Add(PasswordResetLifetime);
+        var requestId = Guid.NewGuid();
+        string? token = null;
+        PhaseOneUser? user;
+
+        lock (_gate)
+        {
+            user = _users.SingleOrDefault(item => item.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (user is not null)
+            {
+                foreach (var pending in _passwordResets.Where(item => item.UserId == user.Id && item.Status == PasswordResetStatusPending))
+                {
+                    pending.Status = "Invalidated";
+                    pending.InvalidatedAt = now;
+                }
+
+                token = GenerateSecureToken();
+                var salt = RandomNumberGenerator.GetBytes(16);
+                _passwordResets.Add(new PhaseOnePasswordReset(
+                    requestId.ToString("N"),
+                    user.Id,
+                    email,
+                    Convert.ToBase64String(salt),
+                    HashBoundSecret("PasswordReset", user.Id, email, token, salt),
+                    PasswordResetStatusPending,
+                    expiresAt));
+            }
+        }
+
+        if (user is not null && token is not null)
+        {
+            developmentAuthSecrets?.Store(new DevelopmentAuthSecret(
+                requestId,
+                email,
+                "Email",
+                string.Empty,
+                token,
+                expiresAt,
+                now));
+            if (emailSender is not null)
+            {
+                await emailSender.SendAsync(
+                    new EmailMessage(
+                        email,
+                        "NestyStay password reset",
+                        $"Use this NestyStay password reset token: {token}. It expires at {expiresAt:O}.",
+                        requestId),
+                    cancellationToken);
+            }
+        }
+
+        return new PasswordResetRequestResponse(
+            requestId.ToString("N"),
+            "If an account exists for that email, password reset instructions have been sent.",
+            expiresAt);
+    }
+
+    public Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(requestId, out var correlationId))
+        {
+            return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(null);
+        }
+
+        var secret = developmentAuthSecrets?.Get(correlationId);
+        if (secret is null || secret.ExpiresAt < timeProvider.GetUtcNow())
+        {
+            return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(null);
+        }
+
+        return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(new DevelopmentPasswordResetTokenResponse(
+            requestId,
+            secret.Token,
+            secret.ExpiresAt));
+    }
+
+    public Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        ValidatePasswordPolicy(request.NewPassword);
+        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Password confirmation must match.");
+        }
+
+        lock (_gate)
+        {
+            var reset = _passwordResets.SingleOrDefault(item => item.RequestId.Equals(request.RequestId, StringComparison.OrdinalIgnoreCase));
+            if (reset is null || reset.Status == PasswordResetStatusFailed)
+            {
+                throw new InvalidOperationException("Password reset token is invalid.");
+            }
+
+            if (reset.Status == PasswordResetStatusCompleted)
+            {
+                throw new InvalidOperationException("Password reset token was already used.");
+            }
+
+            var now = timeProvider.GetUtcNow();
+            if (reset.ExpiresAt < now)
+            {
+                reset.Status = PasswordResetStatusExpired;
+                developmentAuthSecrets?.Remove(Guid.Parse(reset.RequestId));
+                throw new InvalidOperationException("Password reset token has expired.");
+            }
+
+            var user = _users.SingleOrDefault(item => item.Id == reset.UserId)
+                ?? throw new InvalidOperationException("Password reset token is invalid.");
+            var salt = Convert.FromBase64String(reset.SecretSalt);
+            var tokenHash = HashBoundSecret("PasswordReset", user.Id, reset.Email, request.Token.Trim(), salt);
+            if (!FixedTimeEquals(tokenHash, reset.TokenHash))
+            {
+                reset.Status = PasswordResetStatusFailed;
+                developmentAuthSecrets?.Remove(Guid.Parse(reset.RequestId));
+                throw new InvalidOperationException("Password reset token is invalid.");
+            }
+
+            user.PasswordHash = HashPassword(request.NewPassword);
+            user.FailedLoginAttempts = 0;
+            user.LockoutEndsAt = null;
+            user.SessionInvalidatedAt = now;
+            reset.Status = PasswordResetStatusCompleted;
+            reset.UsedAt = now;
+            _challenges.RemoveAll(item => item.UserId == user.Id);
+            foreach (var pending in _passwordResets.Where(item => item.UserId == user.Id && item.Status == PasswordResetStatusPending))
+            {
+                pending.Status = "Invalidated";
+                pending.InvalidatedAt = now;
+            }
+
+            developmentAuthSecrets?.Remove(Guid.Parse(reset.RequestId));
+            return Task.FromResult(new CompletePasswordResetResponse("Completed", true));
+        }
+    }
+
+    public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId);
+            return Task.FromResult(user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value);
         }
     }
 
@@ -834,13 +993,7 @@ public sealed class PhaseOneStore(
             throw new InvalidOperationException("A valid email address is required.");
         }
 
-        if (request.Password.Length < 8 ||
-            !request.Password.Any(char.IsUpper) ||
-            !request.Password.Any(char.IsLower) ||
-            !request.Password.Any(char.IsDigit))
-        {
-            throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
-        }
+        ValidatePasswordPolicy(request.Password);
 
         if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
         {
@@ -855,6 +1008,35 @@ public sealed class PhaseOneStore(
         if (request.Role is not (UserRole.Guest or UserRole.Host))
         {
             throw new InvalidOperationException("Only traveler and host self-service registration is available.");
+        }
+    }
+
+    private static string NormalizePasswordResetEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("A valid email address is required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(email.Trim());
+            return address.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("A valid email address is required.");
+        }
+    }
+
+    private static void ValidatePasswordPolicy(string password)
+    {
+        if (password.Length < 8 ||
+            !password.Any(char.IsUpper) ||
+            !password.Any(char.IsLower) ||
+            !password.Any(char.IsDigit))
+        {
+            throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
         }
     }
 
@@ -980,6 +1162,26 @@ public sealed class PhaseOneStore(
 
     private static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(20);
 
+    private static string GenerateSecureToken() =>
+        Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+
+    private static string HashBoundSecret(string purpose, Guid? userId, string destination, string secret, byte[] salt)
+    {
+        var binding = $"{purpose}|{userId?.ToString("N") ?? "anonymous"}|{destination}|{secret}";
+        using var hmac = new HMACSHA256(salt);
+        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(binding)));
+    }
+
+    private static bool FixedTimeEquals(string firstBase64, string secondBase64)
+    {
+        var first = Convert.FromBase64String(firstBase64);
+        var second = Convert.FromBase64String(secondBase64);
+        return first.Length == second.Length && CryptographicOperations.FixedTimeEquals(first, second);
+    }
+
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
     private static bool VerifyTotp(byte[] secret, string code, DateTimeOffset now)
     {
         var normalizedCode = code.Trim();
@@ -1020,13 +1222,14 @@ public sealed class PhaseOneStore(
     {
         public Guid Id { get; } = id;
         public string Email { get; } = email;
-        public string PasswordHash { get; } = passwordHash;
+        public string PasswordHash { get; set; } = passwordHash;
         public string DisplayName { get; } = displayName;
         public string? Phone { get; } = phone;
         public byte[] TwoFactorSecret { get; } = twoFactorSecret;
         public IReadOnlyList<UserRole> Roles { get; } = roles;
         public int FailedLoginAttempts { get; set; }
         public DateTimeOffset? LockoutEndsAt { get; set; }
+        public DateTimeOffset? SessionInvalidatedAt { get; set; }
     }
 
     private sealed class PhaseOneChallenge(string id, Guid userId, DateTimeOffset expiresAt)
@@ -1035,6 +1238,26 @@ public sealed class PhaseOneStore(
         public Guid UserId { get; } = userId;
         public DateTimeOffset ExpiresAt { get; } = expiresAt;
         public int FailedAttempts { get; set; }
+    }
+
+    private sealed class PhaseOnePasswordReset(
+        string requestId,
+        Guid userId,
+        string email,
+        string secretSalt,
+        string tokenHash,
+        string status,
+        DateTimeOffset expiresAt)
+    {
+        public string RequestId { get; } = requestId;
+        public Guid UserId { get; } = userId;
+        public string Email { get; } = email;
+        public string SecretSalt { get; } = secretSalt;
+        public string TokenHash { get; } = tokenHash;
+        public string Status { get; set; } = status;
+        public DateTimeOffset ExpiresAt { get; } = expiresAt;
+        public DateTimeOffset? UsedAt { get; set; }
+        public DateTimeOffset? InvalidatedAt { get; set; }
     }
 
     private sealed record PhaseOneProperty(

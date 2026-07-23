@@ -6,6 +6,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NestyStay.Application.Abstractions;
+using NestyStay.Application.PhaseOne;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Auth;
@@ -15,35 +16,41 @@ public sealed class AdminTokenAuthenticationHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     IConfiguration configuration,
-    IAccessTokenService accessTokenService) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    IAccessTokenService accessTokenService,
+    IPhaseOneStore phaseOneStore) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "NestyStayAdminToken";
     public const string AdminPolicyName = "AdminOnly";
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var token = ReadBearerToken();
         if (string.IsNullOrWhiteSpace(token))
         {
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return AuthenticateResult.NoResult();
         }
 
         if (MatchesConfiguredHash(token, ResolveSecretHash("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256")))
         {
-            return Task.FromResult(Success(UserRole.Admin));
+            return Success(UserRole.Admin);
         }
 
         if (MatchesConfiguredHash(token, ResolveSecretHash("Security:OperatorTokenSha256", "NESTYSTAY_OPERATOR_TOKEN_SHA256")))
         {
-            return Task.FromResult(Success(UserRole.PropertyManager));
+            return Success(UserRole.PropertyManager);
         }
 
         if (accessTokenService.Validate(token) is { } session)
         {
-            return Task.FromResult(Success(session.UserId, session.Roles));
+            if (!await phaseOneStore.IsSessionActiveAsync(session.UserId, session.IssuedAt, Context.RequestAborted))
+            {
+                return AuthenticateResult.Fail("NestyStay session has been invalidated.");
+            }
+
+            return Success(session.UserId, session.Roles);
         }
 
-        return Task.FromResult(AuthenticateResult.Fail("Invalid NestyStay bearer token."));
+        return AuthenticateResult.Fail("Invalid NestyStay bearer token.");
     }
 
     public static string ComputeSha256Hex(string token) =>

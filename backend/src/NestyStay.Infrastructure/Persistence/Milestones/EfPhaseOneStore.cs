@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Mail;
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
@@ -16,13 +17,21 @@ public sealed class EfPhaseOneStore(
     INotificationGateway notificationGateway,
     TimeProvider timeProvider,
     IAccessTokenService? accessTokenService = null,
-    IGoogleIdentityValidator? googleIdentityValidator = null) : IPhaseOneStore
+    IGoogleIdentityValidator? googleIdentityValidator = null,
+    IEmailSender? emailSender = null,
+    IDevelopmentAuthSecretStore? developmentAuthSecrets = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
     private const int MaximumLoginAttempts = 5;
     private const int MaximumChallengeAttempts = 5;
+    private const string PasswordResetStatusPending = "Pending";
+    private const string PasswordResetStatusCompleted = "Completed";
+    private const string PasswordResetStatusExpired = "Expired";
+    private const string PasswordResetStatusFailed = "Failed";
+    private const string PasswordResetStatusInvalidated = "Invalidated";
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
 
     public async Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
@@ -218,6 +227,198 @@ public sealed class EfPhaseOneStore(
             _accessTokenService.Issue(user.Id, roles, tokenExpiresAt),
             tokenExpiresAt,
             roles);
+    }
+
+    public async Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizePasswordResetEmail(request.Email);
+        var now = timeProvider.GetUtcNow();
+        var expiresAt = now.Add(PasswordResetLifetime);
+        var requestId = Guid.NewGuid();
+        var requestIpHash = HashOpaque(string.IsNullOrWhiteSpace(request.RequestIp) ? "unknown" : request.RequestIp.Trim());
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(
+            item => item.NormalizedEmail == email,
+            cancellationToken);
+        string? token = null;
+
+        if (user is not null)
+        {
+            var pendingResets = await db.MilestoneAuthFlows
+                .Where(item =>
+                    item.UserId == user.Id &&
+                    item.FlowType == "PasswordReset" &&
+                    item.Status == PasswordResetStatusPending &&
+                    !item.IsDeleted)
+                .ToListAsync(cancellationToken);
+            foreach (var pending in pendingResets)
+            {
+                pending.Status = PasswordResetStatusInvalidated;
+                pending.InvalidatedAt = now;
+                pending.UpdatedAt = now;
+            }
+        }
+
+        token = GenerateSecureToken();
+        var salt = RandomNumberGenerator.GetBytes(16);
+        var flow = new MilestoneAuthFlow
+        {
+            Id = requestId,
+            UserId = user?.Id,
+            FlowType = "PasswordReset",
+            Destination = email,
+            NormalizedDestination = email,
+            DestinationHash = HashOpaque(email),
+            CodeHash = HashBoundSecret("PasswordResetCode", user?.Id, email, GenerateTotp(salt, now), salt),
+            TokenHash = HashBoundSecret("PasswordReset", user?.Id, email, token, salt),
+            SecretSalt = Convert.ToBase64String(salt),
+            Status = PasswordResetStatusPending,
+            DeliveryChannel = "Email",
+            RequestIpHash = requestIpHash,
+            ExpiresAt = expiresAt,
+            LastSentAt = now
+        };
+        db.MilestoneAuthFlows.Add(flow);
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (user is not null)
+        {
+            developmentAuthSecrets?.Store(new DevelopmentAuthSecret(
+                flow.Id,
+                email,
+                "Email",
+                string.Empty,
+                token,
+                expiresAt,
+                now));
+            if (emailSender is not null)
+            {
+                await emailSender.SendAsync(
+                    new EmailMessage(
+                        email,
+                        "NestyStay password reset",
+                        $"Use this NestyStay password reset token: {token}. It expires at {expiresAt:O}.",
+                        flow.Id),
+                    cancellationToken);
+            }
+        }
+
+        return new PasswordResetRequestResponse(
+            requestId.ToString("N"),
+            "If an account exists for that email, password reset instructions have been sent.",
+            expiresAt);
+    }
+
+    public Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(requestId, out var correlationId))
+        {
+            return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(null);
+        }
+
+        var secret = developmentAuthSecrets?.Get(correlationId);
+        if (secret is null || secret.ExpiresAt < timeProvider.GetUtcNow())
+        {
+            return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(null);
+        }
+
+        return Task.FromResult<DevelopmentPasswordResetTokenResponse?>(new DevelopmentPasswordResetTokenResponse(
+            requestId,
+            secret.Token,
+            secret.ExpiresAt));
+    }
+
+    public async Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        ValidatePasswordPolicy(request.NewPassword);
+        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Password confirmation must match.");
+        }
+
+        if (!Guid.TryParse(request.RequestId, out var requestId))
+        {
+            throw new InvalidOperationException("Password reset token is invalid.");
+        }
+
+        var reset = await db.MilestoneAuthFlows.SingleOrDefaultAsync(
+            item => item.Id == requestId && item.FlowType == "PasswordReset" && !item.IsDeleted,
+            cancellationToken);
+        if (reset is null || reset.Status == PasswordResetStatusFailed || reset.Status == PasswordResetStatusInvalidated)
+        {
+            throw new InvalidOperationException("Password reset token is invalid.");
+        }
+
+        if (reset.Status == PasswordResetStatusCompleted)
+        {
+            throw new InvalidOperationException("Password reset token was already used.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (reset.ExpiresAt < now)
+        {
+            reset.Status = PasswordResetStatusExpired;
+            reset.UpdatedAt = now;
+            developmentAuthSecrets?.Remove(reset.Id);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Password reset token has expired.");
+        }
+
+        var user = reset.UserId is null
+            ? null
+            : await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == reset.UserId, cancellationToken);
+        if (user is null)
+        {
+            reset.Status = PasswordResetStatusFailed;
+            reset.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Password reset token is invalid.");
+        }
+
+        var salt = Convert.FromBase64String(reset.SecretSalt);
+        var actualHash = HashBoundSecret("PasswordReset", user.Id, reset.NormalizedDestination, request.Token.Trim(), salt);
+        if (!FixedTimeEquals(actualHash, reset.TokenHash))
+        {
+            reset.Status = PasswordResetStatusFailed;
+            reset.UpdatedAt = now;
+            developmentAuthSecrets?.Remove(reset.Id);
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Password reset token is invalid.");
+        }
+
+        user.PasswordHash = HashPassword(request.NewPassword);
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndsAt = null;
+        user.SessionInvalidatedAt = now;
+        reset.Status = PasswordResetStatusCompleted;
+        reset.CompletedAt = now;
+        reset.UpdatedAt = now;
+        db.MilestoneTwoFactorChallenges.RemoveRange(db.MilestoneTwoFactorChallenges.Where(item => item.UserId == user.Id));
+        var pendingUserResets = await db.MilestoneAuthFlows
+            .Where(item =>
+                item.UserId == user.Id &&
+                item.FlowType == "PasswordReset" &&
+                item.Status == PasswordResetStatusPending &&
+                item.Id != reset.Id &&
+                !item.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var pending in pendingUserResets)
+        {
+            pending.Status = PasswordResetStatusInvalidated;
+            pending.InvalidatedAt = now;
+            pending.UpdatedAt = now;
+        }
+
+        developmentAuthSecrets?.Remove(reset.Id);
+        await db.SaveChangesAsync(cancellationToken);
+        return new CompletePasswordResetResponse(PasswordResetStatusCompleted, true);
+    }
+
+    public async Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        return user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value;
     }
 
     public IReadOnlyList<PropertyListingDto> GetProperties()
@@ -819,13 +1020,7 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("A valid email address is required.");
         }
 
-        if (request.Password.Length < 8 ||
-            !request.Password.Any(char.IsUpper) ||
-            !request.Password.Any(char.IsLower) ||
-            !request.Password.Any(char.IsDigit))
-        {
-            throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
-        }
+        ValidatePasswordPolicy(request.Password);
 
         if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
         {
@@ -840,6 +1035,35 @@ public sealed class EfPhaseOneStore(
         if (request.Role is not (UserRole.Guest or UserRole.Host))
         {
             throw new InvalidOperationException("Only traveler and host self-service registration is available.");
+        }
+    }
+
+    private static string NormalizePasswordResetEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("A valid email address is required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(email.Trim());
+            return address.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("A valid email address is required.");
+        }
+    }
+
+    private static void ValidatePasswordPolicy(string password)
+    {
+        if (password.Length < 8 ||
+            !password.Any(char.IsUpper) ||
+            !password.Any(char.IsLower) ||
+            !password.Any(char.IsDigit))
+        {
+            throw new InvalidOperationException("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
         }
     }
 
@@ -1026,6 +1250,29 @@ public sealed class EfPhaseOneStore(
     }
 
     private static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(20);
+
+    private static string GenerateSecureToken() =>
+        Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+
+    private static string HashBoundSecret(string purpose, Guid? userId, string destination, string secret, byte[] salt)
+    {
+        var binding = $"{purpose}|{userId?.ToString("N") ?? "anonymous"}|{destination}|{secret}";
+        using var hmac = new HMACSHA256(salt);
+        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(binding)));
+    }
+
+    private static bool FixedTimeEquals(string firstBase64, string secondBase64)
+    {
+        var first = Convert.FromBase64String(firstBase64);
+        var second = Convert.FromBase64String(secondBase64);
+        return first.Length == second.Length && CryptographicOperations.FixedTimeEquals(first, second);
+    }
+
+    private static string HashOpaque(string value) =>
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant())));
+
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     private static bool VerifyTotp(byte[] secret, string code, DateTimeOffset now)
     {

@@ -64,6 +64,115 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task PasswordResetIsGenericOneTimeAndInvalidatesIssuedSessions()
+    {
+        using var client = _factory.CreateClient();
+        var email = $"reset-{Guid.NewGuid():N}@test.local";
+
+        var register = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password123!",
+            displayName = "Reset Guest",
+            confirmPassword = "Password123!",
+            acceptedTerms = true,
+            acceptedPrivacy = true,
+            role = "Guest"
+        });
+        Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(challenge);
+        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{challenge.ChallengeId}");
+        Assert.NotNull(developmentCode);
+        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = challenge.ChallengeId,
+            code = developmentCode.Code
+        });
+        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
+        var oldSession = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        Assert.NotNull(oldSession);
+
+        var unknownReset = await client.PostAsJsonAsync("/api/auth/password-reset/request", new
+        {
+            email = $"unknown-{Guid.NewGuid():N}@test.local"
+        });
+        Assert.Equal(HttpStatusCode.OK, unknownReset.StatusCode);
+        var unknownResetBody = await unknownReset.Content.ReadFromJsonAsync<PasswordResetResponse>();
+        Assert.NotNull(unknownResetBody);
+
+        var resetRequest = await client.PostAsJsonAsync("/api/auth/password-reset/request", new
+        {
+            email
+        });
+        Assert.Equal(HttpStatusCode.OK, resetRequest.StatusCode);
+        var resetBodyText = await resetRequest.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("token", resetBodyText, StringComparison.OrdinalIgnoreCase);
+        var reset = await resetRequest.Content.ReadFromJsonAsync<PasswordResetResponse>();
+        Assert.NotNull(reset);
+        Assert.Equal(unknownResetBody.Message, reset.Message);
+
+        var resetSecret = await client.GetFromJsonAsync<DevelopmentPasswordResetResponse>(
+            $"/api/auth/development/password-resets/{reset.RequestId}");
+        Assert.NotNull(resetSecret);
+
+        var weakReset = await client.PostAsJsonAsync("/api/auth/password-reset/complete", new
+        {
+            requestId = reset.RequestId,
+            token = resetSecret.Token,
+            newPassword = "short",
+            confirmPassword = "short"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, weakReset.StatusCode);
+
+        var completed = await client.PostAsJsonAsync("/api/auth/password-reset/complete", new
+        {
+            requestId = reset.RequestId,
+            token = resetSecret.Token,
+            newPassword = "ResetPass123!",
+            confirmPassword = "ResetPass123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+
+        var reused = await client.PostAsJsonAsync("/api/auth/password-reset/complete", new
+        {
+            requestId = reset.RequestId,
+            token = resetSecret.Token,
+            newPassword = "AnotherPass123!",
+            confirmPassword = "AnotherPass123!"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reused.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", oldSession.AccessToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/bookings")).StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var oldPasswordLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, oldPasswordLogin.StatusCode);
+
+        var newPasswordLogin = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "ResetPass123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, newPasswordLogin.StatusCode);
+        var newChallenge = await newPasswordLogin.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(newChallenge);
+    }
+
+    [Fact]
     public async Task PhaseOneEndpointsSupportRegistrationListingAndPendingBooking()
     {
         using var client = _factory.CreateClient();
@@ -372,6 +481,10 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record TwoFactorResponse(Guid UserId, string AccessToken);
 
     private sealed record GoogleSignInResponse(Guid UserId, string DisplayName, string AccessToken, string Provider);
+
+    private sealed record PasswordResetResponse(string RequestId, string Message, DateTimeOffset ExpiresAt);
+
+    private sealed record DevelopmentPasswordResetResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
 
     private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled);
 

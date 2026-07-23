@@ -51,6 +51,17 @@ export type GoogleSignInResponse = VerifyTwoFactorResponse & {
   provider: "Google" | string;
 };
 
+export type PasswordResetRequestResponse = {
+  requestId: string;
+  message: string;
+  expiresAt: string;
+};
+
+export type CompletePasswordResetResponse = {
+  status: string;
+  passwordChanged: boolean;
+};
+
 export type PropertyListing = {
   id: string;
   hostUserId: string;
@@ -805,6 +816,15 @@ export const api = {
       method: "POST",
       body: { challengeId, code },
     }),
+  requestPasswordReset: (email: string) =>
+    request<PasswordResetRequestResponse>("/auth/password-reset/request", {
+      method: "POST",
+      body: { email },
+    }),
+  completePasswordReset: (body: { requestId: string; token: string; newPassword: string; confirmPassword: string }) =>
+    request<CompletePasswordResetResponse>("/auth/password-reset/complete", { method: "POST", body }),
+  getDevelopmentPasswordResetToken: (requestId: string) =>
+    request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
   getProperties: () => request<PropertyListing[]>("/properties"),
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
   createProperty: (body: CreatePropertyRequest) =>
