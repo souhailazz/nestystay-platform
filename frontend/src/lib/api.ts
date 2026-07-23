@@ -464,6 +464,21 @@ export type WellnessVisit = {
   updatedAt: string;
 };
 
+export type WellnessReportPhotoUpload = {
+  id: string;
+  visitId: string;
+  officerId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  scanStatus: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+};
+
 export type WellnessPayout = {
   id: string;
   visitId: string;
@@ -902,7 +917,7 @@ async function requestFile(path: string, token: string): Promise<DownloadedFile>
   };
 }
 
-function requestUpload<T>(path: string, token: string, file: File, options: UploadOptions = {}): Promise<T> {
+function requestUpload<T>(path: string, token: string | undefined, file: File, options: UploadOptions = {}): Promise<T> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const abort = () => xhr.abort();
@@ -910,7 +925,9 @@ function requestUpload<T>(path: string, token: string, file: File, options: Uplo
 
     xhr.open("PUT", `${API_BASE_URL}${path}`);
     xhr.responseType = "json";
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
 
     xhr.upload.onprogress = (event) => {
@@ -1142,6 +1159,19 @@ export const api = {
       token,
       body: { reason },
     }),
+  prepareWellnessReportPhotoUpload: (visitId: string, body: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) =>
+    request<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/report/photos/uploads`, { method: "POST", body }),
+  uploadWellnessReportPhotoContent: (visitId: string, photoId: string, officerBadgeNumber: string, file: File, options?: UploadOptions) =>
+    requestUpload<WellnessReportPhotoUpload>(
+      withQuery(`/wellness/visits/${visitId}/report/photos/${photoId}/content`, { officerBadgeNumber }),
+      undefined,
+      file,
+      options,
+    ),
+  prepareAdminWellnessReportPhotoUpload: (visitId: string, token: string, body: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) =>
+    request<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/complete/photos/uploads`, { method: "POST", token, body }),
+  uploadAdminWellnessReportPhotoContent: (visitId: string, photoId: string, token: string, file: File, options?: UploadOptions) =>
+    requestUpload<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/complete/photos/${photoId}/content`, token, file, options),
   submitWellnessReport: (visitId: string, body: { officerBadgeNumber: string; notes: string; photos?: string[] }) =>
     request<WellnessVisit>(`/wellness/visits/${visitId}/report`, { method: "POST", body }),
   completeWellnessVisit: (

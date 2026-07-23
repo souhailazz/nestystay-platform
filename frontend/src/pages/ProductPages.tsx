@@ -70,6 +70,7 @@ import {
   type WellnessAdminDashboard,
   type WellnessOfficer,
   type WellnessQuote,
+  type WellnessReportPhotoUpload,
   type WellnessVisit,
 } from "../lib/api";
 
@@ -1041,6 +1042,20 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
   );
 }
 
+type WellnessReportPhotoUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type WellnessReportPhotoUploadItem = {
+  id: string;
+  visitId: string;
+  file: File;
+  progress: number;
+  status: WellnessReportPhotoUploadStatus;
+  upload?: WellnessReportPhotoUpload;
+  error?: string;
+};
+
+const maximumWellnessReportPhotoBytes = 10 * 1024 * 1024;
+
 export function OfficerWellnessPage() {
   const [badgeNumber, setBadgeNumber] = useState("NST-OFC-2026");
   const [parish, setParish] = useState("St. Ann");
@@ -1048,15 +1063,24 @@ export function OfficerWellnessPage() {
   const [isActiveOffDuty, setIsActiveOffDuty] = useState(true);
   const [isRetired, setIsRetired] = useState(false);
   const [visitId, setVisitId] = useState("");
-  const [notes, setNotes] = useState("Completed wellness visit. Photo evidence attached in local milestone mode.");
+  const [notes, setNotes] = useState("Completed wellness visit. Verified photo evidence attached.");
   const [visits, setVisits] = useState<WellnessVisit[]>([]);
   const [officer, setOfficer] = useState<WellnessOfficer | null>(null);
+  const [reportUploads, setReportUploads] = useState<WellnessReportPhotoUploadItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const reportUploadControllers = useRef<Record<string, AbortController>>({});
   const assignedVisits = visits.filter((visit) => visit.officerBadgeNumber === badgeNumber.trim().toUpperCase());
+  const uploadedReportPhotoIds = reportUploads
+    .filter((upload) => upload.visitId === visitId.trim() && upload.status === "uploaded" && upload.upload?.scanStatus === "Clean")
+    .map((upload) => upload.upload!.id);
 
   useEffect(() => {
     void api.getWellnessVisits().then(setVisits).catch(() => undefined);
+  }, []);
+
+  useEffect(() => () => {
+    Object.values(reportUploadControllers.current).forEach((controller) => controller.abort());
   }, []);
 
   async function runOfficerAction(action: () => Promise<string>) {
@@ -1070,6 +1094,84 @@ export function OfficerWellnessPage() {
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "Officer wellness action failed.");
     }
+  }
+
+  function updateReportUpload(id: string, patch: Partial<WellnessReportPhotoUploadItem>) {
+    setReportUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadOfficerReportPhoto(id: string, targetVisitId: string, file: File) {
+    if (file.size > maximumWellnessReportPhotoBytes) {
+      updateReportUpload(id, { status: "failed", error: "Wellness report photos must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    reportUploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveWellnessReportPhotoContentType(file);
+      const prepared = await api.prepareWellnessReportPhotoUpload(targetVisitId, {
+        officerBadgeNumber: badgeNumber,
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateReportUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadWellnessReportPhotoContent(targetVisitId, prepared.id, badgeNumber, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateReportUpload(id, { progress, status: "uploading" }),
+      });
+      updateReportUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+    } catch (caught) {
+      updateReportUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Wellness report photo upload failed.",
+      });
+    } finally {
+      delete reportUploadControllers.current[id];
+    }
+  }
+
+  function addOfficerReportPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    const targetVisitId = visitId.trim();
+    if (!targetVisitId) {
+      setActionError("Enter a visit ID before attaching report photos.");
+      return;
+    }
+
+    setActionError(null);
+    Array.from(files).forEach((file) => {
+      const id = createLocalUploadId();
+      const isTooLarge = file.size > maximumWellnessReportPhotoBytes;
+      setReportUploads((items) => [...items, {
+        id,
+        visitId: targetVisitId,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Wellness report photos must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadOfficerReportPhoto(id, targetVisitId, file);
+      }
+    });
+  }
+
+  function cancelReportPhotoUpload(id: string) {
+    reportUploadControllers.current[id]?.abort();
+    updateReportUpload(id, { status: "cancelled", error: "Wellness report photo upload cancelled." });
+  }
+
+  function retryReportPhotoUpload(item: WellnessReportPhotoUploadItem) {
+    updateReportUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadOfficerReportPhoto(item.id, item.visitId, item.file);
+  }
+
+  function removeReportPhotoUpload(id: string) {
+    reportUploadControllers.current[id]?.abort();
+    setReportUploads((items) => items.filter((item) => item.id !== id));
   }
 
   return (
@@ -1149,14 +1251,27 @@ export function OfficerWellnessPage() {
               <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
             </Field>
           </div>
+          <div className="wellness-upload-panel">
+            <label className={buttonClassName("outline", "property-photo-picker")}>
+              <Paperclip size={16} /> Report photos
+              <input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { addOfficerReportPhotos(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+            </label>
+            <WellnessReportUploadList
+              uploads={reportUploads.filter((upload) => upload.visitId === visitId.trim())}
+              onCancel={cancelReportPhotoUpload}
+              onRemove={removeReportPhotoUpload}
+              onRetry={retryReportPhotoUpload}
+            />
+          </div>
           <Button
             type="button"
+            disabled={uploadedReportPhotoIds.length === 0}
             onClick={() =>
               void runOfficerAction(async () => {
                 const result = await api.submitWellnessReport(visitId, {
                   officerBadgeNumber: badgeNumber,
                   notes,
-                  photos: ["local://officer-report-photo.jpg"],
+                  photos: uploadedReportPhotoIds,
                 });
                 return `Report submitted. Visit is ${result.visitStatus}; payout is ${result.paymentStatus}.`;
               })
@@ -1173,6 +1288,37 @@ export function OfficerWellnessPage() {
         <h2 className="section-subtitle">Assigned visits</h2>
         <WellnessVisitList visits={assignedVisits} />
       </section>
+    </div>
+  );
+}
+
+function WellnessReportUploadList({
+  uploads,
+  onCancel,
+  onRemove,
+  onRetry,
+}: {
+  uploads: WellnessReportPhotoUploadItem[];
+  onCancel: (id: string) => void;
+  onRemove: (id: string) => void;
+  onRetry: (item: WellnessReportPhotoUploadItem) => void;
+}) {
+  if (uploads.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="property-upload-list wellness-upload-list">
+      {uploads.map((upload) => (
+        <div className="property-upload-item" key={upload.id}>
+          <span>{upload.file.name}</span>
+          <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+          <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+          {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => onCancel(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+          {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => onRetry(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+          {upload.status !== "uploading" && <Button onClick={() => onRemove(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1479,6 +1625,10 @@ function resolvePropertyPhotoContentType(file: File) {
   if (name.endsWith(".webp")) return "image/webp";
   if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
   return "application/octet-stream";
+}
+
+function resolveWellnessReportPhotoContentType(file: File) {
+  return resolvePropertyPhotoContentType(file);
 }
 
 export function CalendarPage({ auth }: { auth: AuthController }) {
@@ -1866,9 +2016,11 @@ export function AdminPage() {
   const [commissionQuote, setCommissionQuote] = useState<CommissionQuote | null>(null);
   const [selectedWellnessOfficerId, setSelectedWellnessOfficerId] = useState("");
   const [selectedWellnessVisitId, setSelectedWellnessVisitId] = useState("");
-  const [wellnessReportNotes, setWellnessReportNotes] = useState("Admin local completion with photo metadata.");
+  const [wellnessReportNotes, setWellnessReportNotes] = useState("Admin completion with verified wellness report photo evidence.");
+  const [adminReportUploads, setAdminReportUploads] = useState<WellnessReportPhotoUploadItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const adminReportUploadControllers = useRef<Record<string, AbortController>>({});
 
   async function loadAdminData(cancelled?: () => boolean) {
     setIsLoading(true);
@@ -1947,9 +2099,19 @@ export function AdminPage() {
     };
   }, []);
 
+  useEffect(() => () => {
+    Object.values(adminReportUploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
   const selectedPricebookItem = data.pricebook?.find((item) => item.key === selectedPricebookKey);
   const selectedAssignment = data.assignments?.find((assignment) => assignment.subjectId === subjectId) ?? data.assignments?.[0];
   const selectedCampaignKey = campaignKey || data.campaigns?.[0]?.key || campaignForm.key;
+  const selectedWellnessVisit = data.wellness?.recentVisits.find((item) => item.id === selectedWellnessVisitId);
+  const selectedWellnessOfficer = data.wellnessOfficers?.find((item) => item.id === selectedWellnessOfficerId);
+  const adminReportUploadsForVisit = adminReportUploads.filter((upload) => upload.visitId === selectedWellnessVisitId);
+  const uploadedAdminReportPhotoIds = adminReportUploadsForVisit
+    .filter((upload) => upload.status === "uploaded" && upload.upload?.scanStatus === "Clean")
+    .map((upload) => upload.upload!.id);
 
   function buildBadgeRequest() {
     return {
@@ -1979,6 +2141,85 @@ export function AdminPage() {
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "Admin action failed.");
     }
+  }
+
+  function updateAdminReportUpload(id: string, patch: Partial<WellnessReportPhotoUploadItem>) {
+    setAdminReportUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadAdminReportPhoto(id: string, targetVisitId: string, file: File) {
+    if (file.size > maximumWellnessReportPhotoBytes) {
+      updateAdminReportUpload(id, { status: "failed", error: "Wellness report photos must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    adminReportUploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveWellnessReportPhotoContentType(file);
+      const officerBadgeNumber = selectedWellnessVisit?.officerBadgeNumber ?? selectedWellnessOfficer?.badgeNumber ?? "ADMIN";
+      const prepared = await api.prepareAdminWellnessReportPhotoUpload(targetVisitId, adminToken, {
+        officerBadgeNumber,
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateAdminReportUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadAdminWellnessReportPhotoContent(targetVisitId, prepared.id, adminToken, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateAdminReportUpload(id, { progress, status: "uploading" }),
+      });
+      updateAdminReportUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+    } catch (caught) {
+      updateAdminReportUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Wellness report photo upload failed.",
+      });
+    } finally {
+      delete adminReportUploadControllers.current[id];
+    }
+  }
+
+  function addAdminReportPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    const targetVisitId = selectedWellnessVisitId.trim();
+    if (!targetVisitId) {
+      setActionError("Select a wellness visit before attaching report photos.");
+      return;
+    }
+
+    setActionError(null);
+    Array.from(files).forEach((file) => {
+      const id = createLocalUploadId();
+      const isTooLarge = file.size > maximumWellnessReportPhotoBytes;
+      setAdminReportUploads((items) => [...items, {
+        id,
+        visitId: targetVisitId,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Wellness report photos must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadAdminReportPhoto(id, targetVisitId, file);
+      }
+    });
+  }
+
+  function cancelAdminReportPhotoUpload(id: string) {
+    adminReportUploadControllers.current[id]?.abort();
+    updateAdminReportUpload(id, { status: "cancelled", error: "Wellness report photo upload cancelled." });
+  }
+
+  function retryAdminReportPhotoUpload(item: WellnessReportPhotoUploadItem) {
+    updateAdminReportUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadAdminReportPhoto(item.id, item.visitId, item.file);
+  }
+
+  function removeAdminReportPhotoUpload(id: string) {
+    adminReportUploadControllers.current[id]?.abort();
+    setAdminReportUploads((items) => items.filter((item) => item.id !== id));
   }
 
   function onPricebookKeyChange(key: string) {
@@ -2059,6 +2300,18 @@ export function AdminPage() {
               <Textarea value={wellnessReportNotes} onChange={(event) => setWellnessReportNotes(event.target.value)} />
             </Field>
           </div>
+          <div className="wellness-upload-panel">
+            <label className={buttonClassName("outline", "property-photo-picker")}>
+              <Paperclip size={16} /> Report photos
+              <input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { addAdminReportPhotos(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+            </label>
+            <WellnessReportUploadList
+              uploads={adminReportUploadsForVisit}
+              onCancel={cancelAdminReportPhotoUpload}
+              onRemove={removeAdminReportPhotoUpload}
+              onRetry={retryAdminReportPhotoUpload}
+            />
+          </div>
           <div className="button-row">
             <Button
               type="button"
@@ -2101,16 +2354,15 @@ export function AdminPage() {
             </Button>
             <Button
               type="button"
-              disabled={!selectedWellnessVisitId}
+              disabled={!selectedWellnessVisitId || uploadedAdminReportPhotoIds.length === 0}
               onClick={() =>
                 void runAction(async () => {
-                  const visit = data.wellness?.recentVisits.find((item) => item.id === selectedWellnessVisitId);
                   await api.completeWellnessVisit(selectedWellnessVisitId, adminToken, {
-                    officerBadgeNumber: visit?.officerBadgeNumber ?? "ADMIN",
+                    officerBadgeNumber: selectedWellnessVisit?.officerBadgeNumber ?? selectedWellnessOfficer?.badgeNumber ?? "ADMIN",
                     notes: wellnessReportNotes,
-                    photos: ["local://admin-wellness-report.jpg"],
+                    photos: uploadedAdminReportPhotoIds,
                   });
-                  return "Visit completed with local report.";
+                  return "Visit completed with verified report photo.";
                 })
               }
             >

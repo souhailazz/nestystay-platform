@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -187,6 +188,15 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal("Scheduled", scheduled.VisitStatus);
         Assert.Equal(officer.BadgeNumber, scheduled.OfficerBadgeNumber);
 
+        var wrongOfficerPhotoPrepare = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report/photos/uploads", new
+        {
+            officerBadgeNumber = "JCF-WRONG",
+            fileName = "wrong-officer.png",
+            contentType = "image/png",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, wrongOfficerPhotoPrepare.StatusCode);
+
         var overlapVisitResponse = await client.PostAsJsonAsync("/api/wellness/visits", new
         {
             hostUserId,
@@ -229,11 +239,73 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
 
         await Task.Delay(TimeSpan.FromSeconds(2));
 
+        var placeholderReport = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report", new
+        {
+            officerBadgeNumber = officer.BadgeNumber,
+            notes = "Fake photo reference should not submit.",
+            photos = new[] { "local://wellness-report.jpg" },
+            locationMetadata = "{\"source\":\"api-test\"}"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, placeholderReport.StatusCode);
+
+        var invalidPhotoPrepare = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report/photos/uploads", new
+        {
+            officerBadgeNumber = officer.BadgeNumber,
+            fileName = "wellness-report.gif",
+            contentType = "image/gif",
+            sizeBytes = 12
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidPhotoPrepare.StatusCode);
+
+        var spoofedPhotoBytes = Encoding.ASCII.GetBytes("not a png");
+        var spoofedPhotoPrepare = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report/photos/uploads", new
+        {
+            officerBadgeNumber = officer.BadgeNumber,
+            fileName = "spoofed-report.png",
+            contentType = "image/png",
+            sizeBytes = spoofedPhotoBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, spoofedPhotoPrepare.StatusCode);
+        var spoofedPhoto = await spoofedPhotoPrepare.Content.ReadFromJsonAsync<WellnessReportPhotoUploadResponse>();
+        Assert.NotNull(spoofedPhoto);
+        using var spoofedPhotoContent = new ByteArrayContent(spoofedPhotoBytes);
+        spoofedPhotoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var rejectedPhotoUpload = await client.PutAsync(
+            $"/api/wellness/visits/{visit.Id}/report/photos/{spoofedPhoto.Id}/content?officerBadgeNumber={Uri.EscapeDataString(officer.BadgeNumber)}",
+            spoofedPhotoContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedPhotoUpload.StatusCode);
+
+        var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D };
+        var photoPrepare = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report/photos/uploads", new
+        {
+            officerBadgeNumber = officer.BadgeNumber,
+            fileName = "../Wellness Report.png",
+            contentType = "image/png",
+            sizeBytes = pngBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, photoPrepare.StatusCode);
+        var preparedPhoto = await photoPrepare.Content.ReadFromJsonAsync<WellnessReportPhotoUploadResponse>();
+        Assert.NotNull(preparedPhoto);
+        Assert.Equal("wellness-report.png", preparedPhoto.FileName);
+        Assert.Equal("PendingUpload", preparedPhoto.Status);
+        Assert.Equal("PendingScan", preparedPhoto.ScanStatus);
+        using var photoContent = new ByteArrayContent(pngBytes);
+        photoContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        var uploadedPhotoResponse = await client.PutAsync(
+            $"/api/wellness/visits/{visit.Id}/report/photos/{preparedPhoto.Id}/content?officerBadgeNumber={Uri.EscapeDataString(officer.BadgeNumber)}",
+            photoContent);
+        Assert.Equal(HttpStatusCode.OK, uploadedPhotoResponse.StatusCode);
+        var uploadedPhoto = await uploadedPhotoResponse.Content.ReadFromJsonAsync<WellnessReportPhotoUploadResponse>();
+        Assert.NotNull(uploadedPhoto);
+        Assert.Equal("Uploaded", uploadedPhoto.Status);
+        Assert.Equal("Clean", uploadedPhoto.ScanStatus);
+        Assert.NotEmpty(uploadedPhoto.Sha256Hash ?? string.Empty);
+
         var reportResponse = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report", new
         {
             officerBadgeNumber = officer.BadgeNumber,
             notes = "Photo report submitted after the wellness check.",
-            photos = new[] { "local://wellness-report.jpg" },
+            photos = new[] { uploadedPhoto.Id.ToString() },
             locationMetadata = "{\"source\":\"api-test\"}"
         });
         Assert.Equal(HttpStatusCode.OK, reportResponse.StatusCode);
@@ -321,6 +393,8 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record PropertyResponse(Guid Id);
 
     private sealed record QuoteResponse(bool Eligible, string EmergencyNumber);
+
+    private sealed record WellnessReportPhotoUploadResponse(Guid Id, string FileName, string Status, string ScanStatus, string? Sha256Hash);
 
     private sealed record VisitResponse(
         Guid Id,

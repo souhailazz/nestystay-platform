@@ -105,6 +105,46 @@ public sealed class WellnessController(IWellnessStore wellnessStore) : Controlle
         return visit is null ? NotFound() : Ok(visit);
     }
 
+    [HttpPost("visits/{visitId:guid}/report/photos/uploads")]
+    public async Task<IActionResult> PrepareReportPhotoUpload(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, CancellationToken cancellationToken) =>
+        Ok(await wellnessStore.PrepareReportPhotoUploadAsync(visitId, request, adminOverride: false, cancellationToken));
+
+    [HttpPut("visits/{visitId:guid}/report/photos/{photoId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadReportPhotoContent(
+        Guid visitId,
+        Guid photoId,
+        [FromQuery] string officerBadgeNumber,
+        CancellationToken cancellationToken) =>
+        Ok(await wellnessStore.UploadReportPhotoContentAsync(
+            visitId,
+            photoId,
+            officerBadgeNumber,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            adminOverride: false,
+            cancellationToken));
+
+    [HttpPost("visits/{visitId:guid}/complete/photos/uploads")]
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    public async Task<IActionResult> PrepareAdminReportPhotoUpload(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, CancellationToken cancellationToken) =>
+        Ok(await wellnessStore.PrepareReportPhotoUploadAsync(visitId, request, adminOverride: true, cancellationToken));
+
+    [HttpPut("visits/{visitId:guid}/complete/photos/{photoId:guid}/content")]
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadAdminReportPhotoContent(Guid visitId, Guid photoId, CancellationToken cancellationToken) =>
+        Ok(await wellnessStore.UploadReportPhotoContentAsync(
+            visitId,
+            photoId,
+            string.Empty,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            adminOverride: true,
+            cancellationToken));
+
     [HttpPost("visits/{visitId:guid}/report")]
     public async Task<IActionResult> SubmitReport(Guid visitId, SubmitWellnessReportRequest request, CancellationToken cancellationToken)
     {

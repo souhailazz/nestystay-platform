@@ -132,6 +132,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneWellnessOfficer> MilestoneWellnessOfficers => Set<MilestoneWellnessOfficer>();
     public DbSet<MilestoneWellnessVisit> MilestoneWellnessVisits => Set<MilestoneWellnessVisit>();
     public DbSet<MilestoneWellnessReport> MilestoneWellnessReports => Set<MilestoneWellnessReport>();
+    public DbSet<MilestoneWellnessReportPhoto> MilestoneWellnessReportPhotos => Set<MilestoneWellnessReportPhoto>();
     public DbSet<MilestoneWellnessPayout> MilestoneWellnessPayouts => Set<MilestoneWellnessPayout>();
     public DbSet<MilestoneAuthFlow> MilestoneAuthFlows => Set<MilestoneAuthFlow>();
     public DbSet<MilestoneRecoveryCode> MilestoneRecoveryCodes => Set<MilestoneRecoveryCode>();
@@ -197,6 +198,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.VisitStatus);
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.PaymentStatus);
         modelBuilder.Entity<MilestoneWellnessReport>().HasIndex(report => report.VisitId).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessReportPhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestoneWellnessReportPhoto>().HasIndex(photo => new { photo.VisitId, photo.OfficerId, photo.Status });
+        modelBuilder.Entity<MilestoneWellnessReportPhoto>().HasIndex(photo => photo.ReportId);
         modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.VisitId).IsUnique();
         modelBuilder.Entity<MilestoneWellnessPayout>().HasIndex(payout => payout.Status);
         modelBuilder.Entity<MilestoneAuthFlow>().HasIndex(flow => flow.TokenHash).IsUnique();

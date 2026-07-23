@@ -14,6 +14,8 @@ public sealed class EfWellnessStore(
     IPhaseTwoStore phaseTwoStore,
     IPaymentGateway paymentGateway,
     INotificationGateway notificationGateway,
+    IStorageProvider storageProvider,
+    IFileSafetyScanner fileSafetyScanner,
     TimeProvider timeProvider) : IWellnessStore
 {
     private const string OfficerStatusPending = "Pending";
@@ -33,6 +35,12 @@ public sealed class EfWellnessStore(
 
     private const string ReportMissing = "Missing";
     private const string ReportSubmitted = "Submitted";
+    private const string UploadStatusPending = "PendingUpload";
+    private const string UploadStatusUploaded = "Uploaded";
+    private const string UploadStatusExpired = "Expired";
+    private const string UploadStatusQuarantined = "Quarantined";
+    private const string ScanStatusPending = "PendingScan";
+    private const string ScanStatusClean = "Clean";
 
     private const string PaymentPending = "Pending";
     private const string PaymentAuthorized = "Authorized";
@@ -41,6 +49,14 @@ public sealed class EfWellnessStore(
     private const string PaymentRefunded = "Refunded";
     private const string PaymentPayoutPending = "PayoutPending";
     private const string PaymentPaidOut = "PaidOut";
+    private const long MaximumReportPhotoBytes = 10 * 1024 * 1024;
+    private static readonly TimeSpan ReportPhotoUploadLifetime = TimeSpan.FromMinutes(15);
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedReportPhotoExtensions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/jpeg"] = [".jpg", ".jpeg"],
+        ["image/png"] = [".png"],
+        ["image/webp"] = [".webp"]
+    };
 
     public async Task<WellnessOfficerDto> OnboardOfficerAsync(OnboardOfficerRequest request, CancellationToken cancellationToken)
     {
@@ -312,6 +328,89 @@ public sealed class EfWellnessStore(
         return ToVisitDto(visit);
     }
 
+    public async Task<WellnessReportPhotoUploadDto> PrepareReportPhotoUploadAsync(
+        Guid visitId,
+        PrepareWellnessReportPhotoUploadRequest request,
+        bool adminOverride,
+        CancellationToken cancellationToken)
+    {
+        var (_, officer) = await RequireReportPhotoAccessAsync(visitId, request.OfficerBadgeNumber, adminOverride, cancellationToken);
+        await EnsureReportNotSubmittedAsync(visitId, cancellationToken);
+
+        var safeFileName = ValidateWellnessReportPhoto(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var photoId = Guid.NewGuid();
+        var objectKey = $"wellness/{visitId:N}/reports/{photoId:N}{extension}";
+        var uploadUrl = adminOverride
+            ? $"/api/wellness/visits/{visitId}/complete/photos/{photoId}/content"
+            : $"/api/wellness/visits/{visitId}/report/photos/{photoId}/content";
+        var now = timeProvider.GetUtcNow();
+
+        var photo = new MilestoneWellnessReportPhoto
+        {
+            Id = photoId,
+            VisitId = visitId,
+            OfficerId = officer.Id,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = objectKey,
+            UploadUrl = uploadUrl,
+            Status = UploadStatusPending,
+            StorageProviderName = storageProvider.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(ReportPhotoUploadLifetime),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        db.MilestoneWellnessReportPhotos.Add(photo);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
+    public async Task<WellnessReportPhotoUploadDto> UploadReportPhotoContentAsync(
+        Guid visitId,
+        Guid photoId,
+        string officerBadgeNumber,
+        string contentType,
+        long sizeBytes,
+        Stream content,
+        bool adminOverride,
+        CancellationToken cancellationToken)
+    {
+        var (_, officer) = await RequireReportPhotoAccessAsync(visitId, officerBadgeNumber, adminOverride, cancellationToken);
+        await EnsureReportNotSubmittedAsync(visitId, cancellationToken);
+        var photo = await db.MilestoneWellnessReportPhotos
+            .SingleOrDefaultAsync(item => item.Id == photoId && item.VisitId == visitId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Wellness report photo is not available for this visit.");
+
+        if (photo.OfficerId != officer.Id)
+        {
+            throw new UnauthorizedAccessException("Wellness report photo is not available to this officer.");
+        }
+
+        var now = await RequirePendingReportPhotoUploadAsync(photo, cancellationToken);
+        ValidateWellnessReportPhotoUploadMetadata(photo, contentType, sizeBytes);
+
+        var upload = await storageProvider.SaveObjectAsync(
+            new StorageObjectWriteRequest(photo.ObjectKey, photo.ContentType, MaximumReportPhotoBytes),
+            content,
+            cancellationToken);
+        ValidateWellnessReportPhotoUploadMetadata(photo, upload.ContentType, upload.SizeBytes);
+
+        return await FinalizeReportPhotoUploadAsync(
+            photo,
+            now,
+            upload.ProviderName,
+            upload.ContentType,
+            upload.SizeBytes,
+            upload.Sha256Hash,
+            upload.HeaderBytes,
+            cancellationToken);
+    }
+
     public async Task<WellnessVisitDto?> SubmitReportAsync(
         Guid visitId,
         SubmitWellnessReportRequest request,
@@ -351,6 +450,8 @@ public sealed class EfWellnessStore(
             return ToVisitDto(visit);
         }
 
+        var reportPhotos = await ResolveCleanWellnessReportPhotosAsync(visit, officer.Id, request.Photos, cancellationToken);
+
         if (visit.PaymentStatus == PaymentAuthorized)
         {
             var capture = await paymentGateway.CaptureAsync(
@@ -367,19 +468,26 @@ public sealed class EfWellnessStore(
         }
 
         var now = timeProvider.GetUtcNow();
+        var reportId = Guid.NewGuid();
         db.MilestoneWellnessReports.Add(new MilestoneWellnessReport
         {
-            Id = Guid.NewGuid(),
+            Id = reportId,
             VisitId = visit.Id,
             OfficerId = officer.Id,
             SubmittedAt = now,
             Notes = request.Notes.Trim(),
-            PhotosJson = MilestoneJson.Serialize(request.Photos ?? []),
+            PhotosJson = MilestoneJson.Serialize(reportPhotos.Select(photo => photo.Id.ToString("N")).ToList()),
             LocationMetadataJson = string.IsNullOrWhiteSpace(request.LocationMetadata) ? "{}" : request.LocationMetadata,
             ReportStatus = ReportSubmitted,
             CreatedAt = now,
             UpdatedAt = now
         });
+
+        foreach (var photo in reportPhotos)
+        {
+            photo.ReportId = reportId;
+            photo.UpdatedAt = now;
+        }
 
         var payout = new MilestoneWellnessPayout
         {
@@ -577,6 +685,157 @@ public sealed class EfWellnessStore(
         }
     }
 
+    private async Task<(MilestoneWellnessVisit Visit, MilestoneWellnessOfficer Officer)> RequireReportPhotoAccessAsync(
+        Guid visitId,
+        string officerBadgeNumber,
+        bool adminOverride,
+        CancellationToken cancellationToken)
+    {
+        var visit = await db.MilestoneWellnessVisits.SingleOrDefaultAsync(item => item.Id == visitId, cancellationToken)
+            ?? throw new InvalidOperationException("Wellness visit was not found.");
+
+        if (visit.VisitStatus is VisitCancelled or VisitRejected)
+        {
+            throw new InvalidOperationException("Reports cannot be submitted for cancelled or rejected visits.");
+        }
+
+        if (visit.OfficerId is null)
+        {
+            throw new InvalidOperationException("A wellness visit must have an assigned officer before report submission.");
+        }
+
+        var officer = await db.MilestoneWellnessOfficers.SingleAsync(item => item.Id == visit.OfficerId.Value, cancellationToken);
+        if (!adminOverride && !officer.BadgeNumber.Equals(NormalizeBadge(officerBadgeNumber), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Only the assigned officer can upload report photos.");
+        }
+
+        if (!adminOverride && visit.ScheduledAt > timeProvider.GetUtcNow())
+        {
+            throw new InvalidOperationException("Report photos cannot be uploaded before the scheduled visit time.");
+        }
+
+        return (visit, officer);
+    }
+
+    private async Task EnsureReportNotSubmittedAsync(Guid visitId, CancellationToken cancellationToken)
+    {
+        if (await db.MilestoneWellnessReports.AnyAsync(report => report.VisitId == visitId, cancellationToken))
+        {
+            throw new InvalidOperationException("Wellness report has already been submitted.");
+        }
+    }
+
+    private async Task<DateTimeOffset> RequirePendingReportPhotoUploadAsync(MilestoneWellnessReportPhoto photo, CancellationToken cancellationToken)
+    {
+        if (photo.Status != UploadStatusPending)
+        {
+            throw new InvalidOperationException("Wellness report photo upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (photo.UploadExpiresAt <= now)
+        {
+            photo.Status = UploadStatusExpired;
+            photo.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Wellness report photo upload URL has expired.");
+        }
+
+        return now;
+    }
+
+    private async Task<WellnessReportPhotoUploadDto> FinalizeReportPhotoUploadAsync(
+        MilestoneWellnessReportPhoto photo,
+        DateTimeOffset verifiedAt,
+        string providerName,
+        string contentType,
+        long sizeBytes,
+        string sha256Hash,
+        byte[] headerBytes,
+        CancellationToken cancellationToken)
+    {
+        var scan = await fileSafetyScanner.ScanAsync(
+            new FileSafetyScanRequest(photo.ObjectKey, photo.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
+            cancellationToken);
+
+        photo.StorageProviderName = providerName;
+        photo.VerifiedContentType = contentType;
+        photo.UploadedSizeBytes = sizeBytes;
+        photo.Sha256Hash = sha256Hash;
+        photo.ScanStatus = scan.Status;
+        photo.ScanProviderName = fileSafetyScanner.ProviderName;
+        photo.ScanCheckedAt = verifiedAt;
+        photo.UpdatedAt = verifiedAt;
+
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            photo.Status = UploadStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Wellness report photo failed safety scanning.");
+        }
+
+        photo.Status = UploadStatusUploaded;
+        photo.UploadedAt = verifiedAt;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(photo);
+    }
+
+    private async Task<IReadOnlyList<MilestoneWellnessReportPhoto>> ResolveCleanWellnessReportPhotosAsync(
+        MilestoneWellnessVisit visit,
+        Guid officerId,
+        IReadOnlyList<string>? photoReferences,
+        CancellationToken cancellationToken)
+    {
+        if (photoReferences is null || photoReferences.Count == 0)
+        {
+            throw new InvalidOperationException("Wellness reports require at least one uploaded clean photo.");
+        }
+
+        var photoIds = new List<Guid>();
+        foreach (var reference in photoReferences)
+        {
+            if (!Guid.TryParse(reference, out var photoId))
+            {
+                throw new InvalidOperationException("Wellness report photos must reference prepared upload IDs.");
+            }
+
+            photoIds.Add(photoId);
+        }
+
+        photoIds = photoIds.Distinct().ToList();
+        if (photoIds.Count == 0)
+        {
+            throw new InvalidOperationException("Wellness reports require at least one uploaded clean photo.");
+        }
+
+        var photos = await db.MilestoneWellnessReportPhotos
+            .Where(photo => photo.VisitId == visit.Id && photo.OfficerId == officerId && photoIds.Contains(photo.Id) && !photo.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (photos.Count != photoIds.Count)
+        {
+            throw new UnauthorizedAccessException("Wellness report photo is not available for this visit.");
+        }
+
+        foreach (var photo in photos)
+        {
+            if (photo.ReportId is not null)
+            {
+                throw new InvalidOperationException("Wellness report photo is already attached to a report.");
+            }
+
+            if (photo.Status != UploadStatusUploaded || !photo.ScanStatus.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Wellness report photos must be uploaded and pass safety scanning before submission.");
+            }
+        }
+
+        return photoIds
+            .Select(photoId => photos.Single(photo => photo.Id == photoId))
+            .ToList();
+    }
+
     private bool HasOfficerOverlap(Guid officerId, DateTimeOffset scheduledAt, int durationMinutes, Guid? excludingVisitId = null)
     {
         var start = scheduledAt;
@@ -619,7 +878,87 @@ public sealed class EfWellnessStore(
         };
     }
 
-    private static string NormalizeBadge(string badgeNumber) => badgeNumber.Trim().ToUpperInvariant();
+    private static string ValidateWellnessReportPhoto(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumReportPhotoBytes)
+        {
+            throw new InvalidOperationException("Wellness report photos must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeUploadContentType(contentType);
+        if (!AllowedReportPhotoExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Wellness report photo type is not allowed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException("Wellness report photo filename is required.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Wellness report photo extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeUploadFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "wellness-report-photo";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
+    private static void ValidateWellnessReportPhotoUploadMetadata(MilestoneWellnessReportPhoto photo, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumReportPhotoBytes)
+        {
+            throw new InvalidOperationException("Wellness report photos must be 10 MB or smaller.");
+        }
+
+        if (!NormalizeUploadContentType(contentType).Equals(photo.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded wellness report photo content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != photo.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded wellness report photo size does not match the prepared upload.");
+        }
+    }
+
+    private static string NormalizeUploadContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            throw new InvalidOperationException("Uploaded content type is required.");
+        }
+
+        return contentType.Trim().ToLowerInvariant();
+    }
+
+    private static bool IsSafeUploadFileNameCharacter(char character) =>
+        (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == '-';
+
+    private static string NormalizeBadge(string badgeNumber)
+    {
+        if (string.IsNullOrWhiteSpace(badgeNumber))
+        {
+            throw new InvalidOperationException("Officer badge number is required.");
+        }
+
+        return badgeNumber.Trim().ToUpperInvariant();
+    }
 
     private static bool ParishMatches(string officerParish, string requestedParish) =>
         officerParish.Equals(requestedParish, StringComparison.OrdinalIgnoreCase) ||
@@ -669,6 +1008,21 @@ public sealed class EfWellnessStore(
             MilestoneJson.DeserializeList<string>(visit.TimelineJson),
             visit.CreatedAt,
             visit.UpdatedAt);
+
+    private static WellnessReportPhotoUploadDto ToDto(MilestoneWellnessReportPhoto photo) =>
+        new(
+            photo.Id,
+            photo.VisitId,
+            photo.OfficerId,
+            photo.SafeFileName,
+            photo.ContentType,
+            photo.SizeBytes,
+            photo.ObjectKey,
+            photo.UploadUrl,
+            photo.Status,
+            photo.ScanStatus,
+            photo.UploadExpiresAt,
+            photo.Sha256Hash);
 
     private static WellnessPayoutDto ToPayoutDto(MilestoneWellnessPayout payout) =>
         new(

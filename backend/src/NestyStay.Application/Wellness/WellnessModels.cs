@@ -16,6 +16,8 @@ public interface IWellnessStore
     Task<WellnessVisitDto?> GetVisitAsync(Guid visitId, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> AssignOfficerAsync(Guid visitId, AssignOfficerRequest request, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> CancelVisitAsync(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken);
+    Task<WellnessReportPhotoUploadDto> PrepareReportPhotoUploadAsync(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, bool adminOverride, CancellationToken cancellationToken);
+    Task<WellnessReportPhotoUploadDto> UploadReportPhotoContentAsync(Guid visitId, Guid photoId, string officerBadgeNumber, string contentType, long sizeBytes, Stream content, bool adminOverride, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> SubmitReportAsync(Guid visitId, SubmitWellnessReportRequest request, bool adminOverride, CancellationToken cancellationToken);
     Task<WellnessPayoutDto?> MarkPayoutPaidAsync(Guid visitId, MarkPayoutPaidRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<WellnessPayoutDto>> GetPayoutsAsync(string? status, CancellationToken cancellationToken);
@@ -106,6 +108,26 @@ public sealed record WellnessVisitDto(
 public sealed record AssignOfficerRequest(Guid OfficerId);
 
 public sealed record CancelWellnessVisitRequest(string? Reason = null);
+
+public sealed record PrepareWellnessReportPhotoUploadRequest(
+    string OfficerBadgeNumber,
+    string FileName,
+    string ContentType,
+    long SizeBytes);
+
+public sealed record WellnessReportPhotoUploadDto(
+    Guid Id,
+    Guid VisitId,
+    Guid OfficerId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    string ObjectKey,
+    string UploadUrl,
+    string Status,
+    string ScanStatus,
+    DateTimeOffset ExpiresAt,
+    string? Sha256Hash = null);
 
 public sealed record SubmitWellnessReportRequest(
     string OfficerBadgeNumber,

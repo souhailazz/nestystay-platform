@@ -3464,6 +3464,19 @@ svg {
   transition: width 0.18s ease;
 }
 
+.wellness-upload-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.wellness-upload-panel > .property-photo-picker {
+  width: fit-content;
+}
+
+.wellness-upload-list {
+  grid-column: 1 / -1;
+}
+
 .compact-list__item,
 .calendar-booking,
 .booking-row {

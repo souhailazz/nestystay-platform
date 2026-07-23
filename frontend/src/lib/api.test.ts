@@ -193,4 +193,44 @@ describe("api client", () => {
       sortOrder: 2,
     });
   });
+
+  it("prepares officer wellness report photos without bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "wellness-photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.prepareWellnessReportPhotoUpload("visit-1", {
+      officerBadgeNumber: "JCF-2026",
+      fileName: "report.png",
+      contentType: "image/png",
+      sizeBytes: 12,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/wellness/visits/visit-1/report/photos/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.has("Authorization")).toBe(false);
+    expect(JSON.parse(init.body as string)).toEqual({
+      officerBadgeNumber: "JCF-2026",
+      fileName: "report.png",
+      contentType: "image/png",
+      sizeBytes: 12,
+    });
+  });
+
+  it("prepares admin wellness report photos with bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "wellness-photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.prepareAdminWellnessReportPhotoUpload("visit-1", "admin-token", {
+      officerBadgeNumber: "ADMIN",
+      fileName: "report.png",
+      contentType: "image/png",
+      sizeBytes: 12,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/wellness/visits/visit-1/complete/photos/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer admin-token");
+  });
 });
