@@ -276,7 +276,7 @@ function LogoMark({ className = "" }: { className?: string }) {
   );
 }
 
-function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
+function Navbar({ auth }: { auth: AuthController; route: Route }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -525,11 +525,11 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "provider-dashboard":
       return <ProviderDashboardPage />;
     case "calendar":
-      return <CalendarPage />;
+      return <CalendarPage auth={auth} />;
     case "bookings":
-      return <BookingManagementPage />;
+      return <BookingManagementPage auth={auth} />;
     case "payment":
-      return <PaymentConfirmationPage bookingId={route.bookingId} />;
+      return <PaymentConfirmationPage auth={auth} bookingId={route.bookingId} />;
     case "profile":
       return <ProfileSettingsPage auth={auth} />;
     case "document-message":

@@ -679,7 +679,7 @@ export function GuestDashboardPage({ auth }: { auth: AuthController }) {
 }
 
 function GuestDashboardContent({ auth }: { auth: AuthController }) {
-  const { bookings, isLoading, error, reload } = useBookings(auth.session?.userId);
+  const { bookings, isLoading, error, reload } = useBookings(auth.session?.accessToken);
   const [showLoginToast, setShowLoginToast] = useState(false);
   const approved = bookings.filter((booking) => booking.status === "APPROVED").length;
   const pending = bookings.filter((booking) => booking.status === "PENDING").length;
@@ -728,12 +728,11 @@ export function HostDashboardPage({ auth }: { auth: AuthController }) {
 
 function HostDashboardContent({ auth }: { auth: AuthController }) {
   const propertiesState = useProperties();
-  const bookingsState = useBookings();
+  const bookingsState = useBookings(auth.session?.accessToken);
   const hostProperties = propertiesState.properties.filter(
     (property) => property.hostUserId === auth.session?.userId,
   );
-  const hostPropertyIds = new Set(hostProperties.map((property) => property.id));
-  const hostBookings = bookingsState.bookings.filter((booking) => hostPropertyIds.has(booking.propertyId));
+  const hostBookings = bookingsState.bookings.filter((booking) => booking.hostUserId === auth.session?.userId);
   const revenue = hostBookings.reduce((sum, booking) => sum + booking.staySubtotal, 0);
 
   return (
@@ -1296,9 +1295,9 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
   );
 }
 
-export function CalendarPage() {
+export function CalendarPage({ auth }: { auth: AuthController }) {
   const propertiesState = useProperties();
-  const bookingsState = useBookings();
+  const bookingsState = useBookings(auth.session?.accessToken);
   const [propertyId, setPropertyId] = useState("");
   const [checkIn, setCheckIn] = useState(todayPlus(9));
   const [checkOut, setCheckOut] = useState(todayPlus(13));
@@ -1415,8 +1414,8 @@ function BookingList({
   );
 }
 
-export function BookingManagementPage() {
-  const { bookings, isLoading, error, reload } = useBookings();
+export function BookingManagementPage({ auth }: { auth: AuthController }) {
+  const { bookings, isLoading, error, reload } = useBookings(auth.session?.accessToken);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
@@ -1425,7 +1424,8 @@ export function BookingManagementPage() {
     setActionError(null);
     setActionNotice(null);
     try {
-      await api.resolveVerification(booking.id, passed, booking.ekycTransactionId);
+      if (!auth.session) throw new Error("A signed admin session is required.");
+      await api.resolveVerification(booking.id, passed, booking.ekycTransactionId, auth.session.accessToken);
       setActionNotice(`Verification ${passed ? "approved" : "rejected"} for ${booking.propertyTitle}.`);
       await reload();
     } catch (caught) {
@@ -1437,7 +1437,8 @@ export function BookingManagementPage() {
     setActionError(null);
     setActionNotice(null);
     try {
-      await api.capturePayment(booking.id);
+      if (!auth.session) throw new Error("A signed host or admin session is required.");
+      await api.capturePayment(booking.id, auth.session.accessToken);
       setActionNotice(`Payment captured for ${booking.propertyTitle}.`);
       await reload();
     } catch (caught) {
@@ -1509,8 +1510,8 @@ export function BookingManagementPage() {
   );
 }
 
-export function PaymentConfirmationPage({ bookingId }: { bookingId?: string }) {
-  const { bookings, isLoading, error, reload } = useBookings();
+export function PaymentConfirmationPage({ auth, bookingId }: { auth: AuthController; bookingId?: string }) {
+  const { bookings, isLoading, error, reload } = useBookings(auth.session?.accessToken);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const booking = bookingId ? bookings.find((item) => item.id === bookingId) : bookings[0];
@@ -1520,7 +1521,8 @@ export function PaymentConfirmationPage({ bookingId }: { bookingId?: string }) {
     setNotice(null);
     setActionError(null);
     try {
-      await api.capturePayment(booking.id);
+      if (!auth.session) throw new Error("A signed host or admin session is required.");
+      await api.capturePayment(booking.id, auth.session.accessToken);
       setNotice("Payment capture completed through the backend.");
       await reload();
     } catch (caught) {
@@ -1638,7 +1640,7 @@ export function AdminPage() {
     errors: string[];
   }>({ errors: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [adminToken, setAdminToken] = useState("dev-admin-token");
+  const [adminToken, setAdminToken] = useState("");
   const [selectedPricebookKey, setSelectedPricebookKey] = useState("");
   const [pricebookAmount, setPricebookAmount] = useState("0");
   const [pricebookActive, setPricebookActive] = useState(true);

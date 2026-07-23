@@ -29,10 +29,12 @@ public sealed class PhaseOneStore(
     IEkycProvider ekycProvider,
     IPaymentGateway paymentGateway,
     INotificationGateway notificationGateway,
-    TimeProvider timeProvider) : IPhaseOneStore
+    TimeProvider timeProvider,
+    IAccessTokenService? accessTokenService = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
+    private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
     private readonly object _gate = new();
     private readonly List<PhaseOneUser> _users = [];
     private readonly List<PhaseOneChallenge> _challenges = [];
@@ -168,7 +170,7 @@ public sealed class PhaseOneStore(
                 user.Id,
                 user.Email,
                 user.DisplayName,
-                $"local-google-token-{user.Id:N}",
+                _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
                 user.Roles,
                 "Google"));
@@ -196,7 +198,7 @@ public sealed class PhaseOneStore(
 
             return Task.FromResult(new VerifyTwoFactorResponse(
                 user.Id,
-                $"local-phase1-token-{user.Id:N}",
+                _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
                 user.Roles));
         }
@@ -723,6 +725,7 @@ public sealed class PhaseOneStore(
         new(
             booking.Id,
             booking.PropertyId,
+            booking.HostUserId,
             booking.GuestUserId,
             booking.CheckIn,
             booking.CheckOut,

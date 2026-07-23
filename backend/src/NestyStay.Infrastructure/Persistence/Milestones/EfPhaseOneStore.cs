@@ -14,10 +14,12 @@ public sealed class EfPhaseOneStore(
     IEkycProvider ekycProvider,
     IPaymentGateway paymentGateway,
     INotificationGateway notificationGateway,
-    TimeProvider timeProvider) : IPhaseOneStore
+    TimeProvider timeProvider,
+    IAccessTokenService? accessTokenService = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
+    private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
 
     public async Task<RegisterUserResponse> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken)
     {
@@ -123,7 +125,7 @@ public sealed class EfPhaseOneStore(
             user.Id,
             user.Email,
             user.DisplayName,
-            $"local-google-token-{user.Id:N}",
+            _accessTokenService.Issue(user.Id, MilestoneJson.DeserializeList<UserRole>(user.RolesJson), tokenExpiresAt),
             tokenExpiresAt,
             MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
             "Google");
@@ -150,11 +152,12 @@ public sealed class EfPhaseOneStore(
         await db.SaveChangesAsync(cancellationToken);
 
         var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+        var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
         return new VerifyTwoFactorResponse(
             user.Id,
-            $"local-phase1-token-{user.Id:N}",
+            _accessTokenService.Issue(user.Id, roles, tokenExpiresAt),
             tokenExpiresAt,
-            MilestoneJson.DeserializeList<UserRole>(user.RolesJson));
+            roles);
     }
 
     public IReadOnlyList<PropertyListingDto> GetProperties()
@@ -705,6 +708,7 @@ public sealed class EfPhaseOneStore(
         new(
             booking.Id,
             booking.PropertyId,
+            booking.HostUserId,
             booking.GuestUserId,
             booking.CheckIn,
             booking.CheckOut,

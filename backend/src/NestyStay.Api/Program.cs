@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using NestyStay.Api.Configuration;
 using NestyStay.Application;
+using NestyStay.Application.Abstractions;
 using NestyStay.Api.Middleware;
 using NestyStay.Api.Auth;
 using NestyStay.Infrastructure;
@@ -34,6 +35,7 @@ builder.Services.AddControllers()
     });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrentUserContext>();
+builder.Services.AddSingleton<IAccessTokenService, SignedAccessTokenService>();
 builder.Services.AddAuthentication(AdminTokenAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, AdminTokenAuthenticationHandler>(
         AdminTokenAuthenticationHandler.SchemeName,

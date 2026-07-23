@@ -403,7 +403,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
     }
 
     private static AuthenticationHeaderValue LocalUser(Guid userId) =>
-        new("Bearer", $"local-phase1-token-{userId:N}");
+        new("Bearer", NestyStayApiFactory.UserToken(userId));
 
     private sealed record SpecSeedResponse(bool Seeded, int PublicPages, int Experiences, int JournalArticles, int HostProfiles, int DirectoryProviders);
 

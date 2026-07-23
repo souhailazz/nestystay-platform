@@ -8,7 +8,10 @@ const outputPath = path.join(root, "artifacts", "nestystay-real-60fps-milestones
 const baseUrl = "http://127.0.0.1:5173";
 const apiBase = `${baseUrl}/api`;
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const adminToken = "dev-admin-token";
+const adminToken = process.env.NESTYSTAY_ADMIN_TOKEN;
+if (!adminToken) {
+  throw new Error("Set NESTYSTAY_ADMIN_TOKEN before recording admin flows.");
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -449,7 +452,7 @@ async function run() {
 
   await context.addInitScript((session) => {
     window.localStorage.setItem("nestyStay.session", JSON.stringify(session));
-    window.localStorage.setItem("nestyStay.adminToken", "dev-admin-token");
+    window.localStorage.setItem("nestyStay.adminToken", adminToken);
   }, demo.session);
 
   const page = await context.newPage();

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type Booking } from "../lib/api";
 
-export function useBookings(guestUserId?: string) {
+export function useBookings(token?: string) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,13 +10,18 @@ export function useBookings(guestUserId?: string) {
     setIsLoading(true);
     setError(null);
     try {
-      setBookings(await api.getBookings(guestUserId));
+      if (!token) {
+        setBookings([]);
+        return;
+      }
+
+      setBookings(await api.getBookings(token));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Bookings could not be loaded.");
     } finally {
       setIsLoading(false);
     }
-  }, [guestUserId]);
+  }, [token]);
 
   useEffect(() => {
     void reload();

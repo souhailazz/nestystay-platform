@@ -68,7 +68,7 @@ export function BookingModal({
         checkOut,
         documentType,
         ekycMetaInfo: `Nesty Stay web booking for ${property.title}`,
-      });
+      }, session.accessToken);
       setBooking(created);
       onCreated?.(created);
     } catch (caught) {

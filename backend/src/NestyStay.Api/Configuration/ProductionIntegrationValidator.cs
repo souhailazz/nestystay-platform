@@ -2,9 +2,12 @@ namespace NestyStay.Api.Configuration;
 
 public static class ProductionIntegrationValidator
 {
+    private const int MinimumSessionTokenSecretLength = 32;
+
     private static readonly RequiredSetting[] RequiredSettings =
     [
         new("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"),
+        new("Security:SessionTokenSecret", "NESTYSTAY_SESSION_TOKEN_SECRET", "session token signing secret"),
         new("Webhooks:SharedSecret", "NESTYSTAY_WEBHOOK_SHARED_SECRET", "webhook shared secret"),
         new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
         new("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE", "Alibaba eKYC URL base"),
@@ -28,6 +31,12 @@ public static class ProductionIntegrationValidator
         {
             throw new InvalidOperationException(
                 "Production integration configuration is incomplete. Missing: " + string.Join("; ", missing));
+        }
+
+        var sessionSecret = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:SessionTokenSecret"));
+        if (sessionSecret is not null && sessionSecret.Length < MinimumSessionTokenSecretLength)
+        {
+            throw new InvalidOperationException("Production session token signing secret must be at least 32 characters.");
         }
     }
 

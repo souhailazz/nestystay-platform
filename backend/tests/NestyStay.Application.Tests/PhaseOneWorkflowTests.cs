@@ -59,7 +59,9 @@ public sealed class PhaseOneWorkflowTests
             CancellationToken.None);
 
         Assert.Equal(registered.UserId, session.UserId);
-        Assert.StartsWith("local-phase1-token-", session.AccessToken);
+        Assert.NotEmpty(session.AccessToken);
+        Assert.False(session.AccessToken.StartsWith("local-phase1-token-", StringComparison.Ordinal));
+        Assert.False(session.AccessToken.StartsWith("local-google-token-", StringComparison.Ordinal));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.Store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(challenge.ChallengeId, challenge.TwoFactorCode), CancellationToken.None));

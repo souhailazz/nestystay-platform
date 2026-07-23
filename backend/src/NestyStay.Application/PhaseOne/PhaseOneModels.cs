@@ -108,6 +108,7 @@ public sealed record BookingNotificationDto(
 public sealed record BookingDto(
     Guid Id,
     Guid PropertyId,
+    Guid HostUserId,
     Guid GuestUserId,
     DateOnly CheckIn,
     DateOnly CheckOut,

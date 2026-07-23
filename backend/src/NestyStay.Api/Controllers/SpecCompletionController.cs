@@ -7,7 +7,7 @@ namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/spec")]
-public sealed class SpecCompletionController(ISpecCompletionStore store) : ControllerBase
+public sealed class SpecCompletionController(ISpecCompletionStore store, CurrentUserContext currentUser) : ControllerBase
 {
     [HttpPost("seed")]
     public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken) =>
@@ -279,7 +279,7 @@ public sealed class SpecCompletionController(ISpecCompletionStore store) : Contr
     public async Task<ActionResult<SocialAuthConfigDto>> SocialConfig(CancellationToken cancellationToken) =>
         Ok(await store.GetSocialAuthConfigAsync(cancellationToken));
 
-    private Guid RequireAnyUser() => TryGetUserFromBearer() ?? throw new UnauthorizedAccessException("A local session bearer token is required.");
+    private Guid RequireAnyUser() => currentUser.UserId ?? throw new UnauthorizedAccessException("A signed session bearer token is required.");
 
     private Guid RequireUser(Guid expectedUserId)
     {
@@ -292,24 +292,5 @@ public sealed class SpecCompletionController(ISpecCompletionStore store) : Contr
         return actual;
     }
 
-    private Guid? TryGetUserFromBearer()
-    {
-        var header = Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(header) || !header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var token = header["Bearer ".Length..].Trim();
-        foreach (var prefix in new[] { "local-phase1-token-", "local-google-token-" })
-        {
-            if (token.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                Guid.TryParseExact(token[prefix.Length..], "N", out var userId))
-            {
-                return userId;
-            }
-        }
-
-        return null;
-    }
+    private Guid? TryGetUserFromBearer() => currentUser.UserId;
 }

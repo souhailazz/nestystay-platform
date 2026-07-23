@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
-  ArrowRight,
   BadgeCheck,
   Bell,
   BookOpen,
@@ -9,13 +8,10 @@ import {
   CreditCard,
   Download,
   FileText,
-  Heart,
   LayoutDashboard,
   Lock,
   Mail,
-  MapPin,
   MessageSquare,
-  Phone,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -436,14 +432,15 @@ function JournalDetail({ article }: { article: JournalArticle }) {
 }
 
 export function BookingSpecStatePage({ state, auth, bookingId }: { state: string; auth: AuthController; bookingId?: string }) {
-  const bookings = useAsync(() => api.getBookings(auth.session?.userId), [auth.session?.userId, state]);
+  const bookings = useAsync(() => auth.session ? api.getBookings(auth.session.accessToken) : Promise.resolve([]), [auth.session?.accessToken, state]);
   const [notice, setNotice] = useState<string | null>(null);
   const booking = useMemo(() => bookings.data?.find((item) => item.id === bookingId) ?? bookings.data?.[0] ?? null, [bookings.data, bookingId]);
   const ids: Record<string, string> = { review: "BOOK-02", checkout: "BOOK-03", success: "BOOK-04", failure: "BOOK-05", rejected: "BOOK-06", pending: "BOOK-07", cancelled: "BOOK-08", invoice: "BOOK-09", receipt: "BOOK-10" };
 
   async function capture() {
     if (!booking) return;
-    const updated = await api.capturePayment(booking.id);
+    if (!auth.session) throw new Error("A signed host or admin session is required.");
+    const updated = await api.capturePayment(booking.id, auth.session.accessToken);
     setNotice(`Payment status: ${updated.paymentStatus}`);
     bookings.reload();
   }
@@ -487,7 +484,7 @@ export function TravelerSpecPage({ view, auth }: { view: string; auth: AuthContr
 
 function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: string; token: string }) {
   const workspace = useAsync(() => api.getTravelerWorkspace(userId, token), [userId, token]);
-  const bookings = useAsync(() => api.getBookings(userId), [userId]);
+  const bookings = useAsync(() => api.getBookings(token), [token]);
 
   return (
     <CompletionShell id={travelerScreenId(view)} eyebrow="Traveler portal" title={travelerTitle(view)} copy="Dedicated traveler route connected to persisted traveler APIs.">
@@ -830,9 +827,8 @@ function Table({ rows }: { rows: ReactNode[][] }) {
 }
 
 export function AdminOpsSpecPage({ view }: { view: string }) {
-  const [token, setToken] = useState(() => window.localStorage.getItem("nestyStay.adminToken") ?? "dev-admin-token");
+  const [token, setToken] = useState("");
   const ops = useAsync(() => api.getAdminOperations(token), [token, view]);
-  useEffect(() => window.localStorage.setItem("nestyStay.adminToken", token), [token]);
   return (
     <CompletionShell id={adminScreenId(view)} eyebrow="Admin operations" title={travelerTitle(view)} copy="Admin queues, sensitive actions, mandatory reasons, and audit log entries are persisted.">
       <section className="product-section">

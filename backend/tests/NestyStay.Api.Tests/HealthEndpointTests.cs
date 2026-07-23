@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
 
@@ -69,6 +71,9 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var checkIn = new DateOnly(2026, 6, 10).AddDays(Random.Shared.Next(0, 1000));
         var checkOut = checkIn.AddDays(3);
 
+        var unauthenticatedBookings = await client.GetAsync("/api/bookings");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedBookings.StatusCode);
+
         var register = await client.PostAsJsonAsync("/api/auth/register", new
         {
             email,
@@ -130,6 +135,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
         Assert.NotNull(session);
         Assert.Equal(registered.UserId, session.UserId);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
 
         var google = await client.PostAsJsonAsync("/api/auth/google", new
         {
@@ -199,7 +205,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var bookingResponse = await client.PostAsJsonAsync("/api/bookings", new
         {
             propertyId = property.Id,
-            guestUserId = registered.UserId,
+            guestUserId = Guid.NewGuid(),
             checkIn = checkIn.ToString("yyyy-MM-dd"),
             checkOut = checkOut.ToString("yyyy-MM-dd")
         });
@@ -208,9 +214,17 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var booking = await bookingResponse.Content.ReadFromJsonAsync<BookingResponse>();
         Assert.NotNull(booking);
         Assert.Equal("PENDING", booking.Status);
+        Assert.Equal(registered.UserId, booking.GuestUserId);
         Assert.True(booking.DatesHeld);
         Assert.Equal("Alibaba Cloud eKYC", booking.EkycProvider);
         Assert.NotNull(booking.EkycTransactionId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(Guid.NewGuid()));
+        var crossUserBooking = await client.GetAsync($"/api/bookings/{booking.Id}");
+        Assert.Equal(HttpStatusCode.Unauthorized, crossUserBooking.StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
 
         var overlappingQuote = await client.PostAsJsonAsync("/api/bookings/quote", new
         {
@@ -221,7 +235,15 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal(HttpStatusCode.BadRequest, overlappingQuote.StatusCode);
 
         var pendingCapture = await client.PostAsync($"/api/bookings/{booking.Id}/capture-payment", null);
-        Assert.Equal(HttpStatusCode.BadRequest, pendingCapture.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, pendingCapture.StatusCode);
+
+        var travelerVerificationWrite = await client.PostAsJsonAsync($"/api/bookings/{booking.Id}/verification-result", new
+        {
+            passed = true,
+            transactionId = booking.EkycTransactionId,
+            notes = "Traveler attempted to self-approve."
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, travelerVerificationWrite.StatusCode);
 
         var approvedResponse = await client.PostAsJsonAsync("/api/webhooks/alibaba-ekyc", new
         {
@@ -256,6 +278,9 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.BadRequest, conflictingWebhookResponse.StatusCode);
 
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            NestyStayApiFactory.UserToken(property.HostUserId, UserRole.Host));
         var captureResponse = await client.PostAsync($"/api/bookings/{booking.Id}/capture-payment", null);
         Assert.Equal(HttpStatusCode.OK, captureResponse.StatusCode);
         var captured = await captureResponse.Content.ReadFromJsonAsync<BookingResponse>();
@@ -275,12 +300,13 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record GoogleSignInResponse(Guid UserId, string DisplayName, string AccessToken, string Provider);
 
-    private sealed record PropertyResponse(Guid Id, bool GuestVerificationEnabled);
+    private sealed record PropertyResponse(Guid Id, Guid HostUserId, bool GuestVerificationEnabled);
 
     private sealed record QuoteResponse(bool DatesAvailable, int Nights);
 
     private sealed record BookingResponse(
         Guid Id,
+        Guid GuestUserId,
         string Status,
         string PaymentStatus,
         bool DatesHeld,

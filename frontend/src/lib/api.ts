@@ -121,6 +121,7 @@ export type BookingQuote = {
 export type Booking = {
   id: string;
   propertyId: string;
+  hostUserId: string;
   guestUserId: string;
   checkIn: string;
   checkOut: string;
@@ -808,20 +809,21 @@ export const api = {
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
   createProperty: (body: CreatePropertyRequest) =>
     request<PropertyListing>("/properties", { method: "POST", body }),
-  getBookings: (guestUserId?: string) =>
-    request<Booking[]>(guestUserId ? `/bookings?guestUserId=${guestUserId}` : "/bookings"),
-  getBooking: (id: string) => request<Booking>(`/bookings/${id}`),
+  getBookings: (token?: string) =>
+    request<Booking[]>("/bookings", { token }),
+  getBooking: (id: string, token?: string) => request<Booking>(`/bookings/${id}`, { token }),
   quoteBooking: (body: BookingQuoteRequest) =>
     request<BookingQuote>("/bookings/quote", { method: "POST", body }),
-  createBooking: (body: CreateBookingRequest) =>
-    request<Booking>("/bookings", { method: "POST", body }),
-  resolveVerification: (bookingId: string, passed: boolean, providerReference: string) =>
+  createBooking: (body: CreateBookingRequest, token: string) =>
+    request<Booking>("/bookings", { method: "POST", body, token }),
+  resolveVerification: (bookingId: string, passed: boolean, providerReference: string, token: string) =>
     request<Booking>(`/bookings/${bookingId}/verification-result`, {
       method: "POST",
       body: { passed, providerReference },
+      token,
     }),
-  capturePayment: (bookingId: string) =>
-    request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST" }),
+  capturePayment: (bookingId: string, token: string) =>
+    request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST", token }),
   getPlatformModules: () => request<unknown[]>("/platform/modules"),
   getPlatformPortals: () => request<unknown[]>("/platform/portals"),
   getPlatformVendors: () => request<unknown[]>("/platform/vendors"),

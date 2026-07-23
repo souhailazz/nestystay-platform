@@ -12,7 +12,10 @@ const outputPath = path.join(root, "artifacts", "nestystay-full-hd-60fps-milesto
 const baseUrl = "http://127.0.0.1:5173";
 const apiBase = `${baseUrl}/api`;
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const adminToken = "dev-admin-token";
+const adminToken = process.env.NESTYSTAY_ADMIN_TOKEN;
+if (!adminToken) {
+  throw new Error("Set NESTYSTAY_ADMIN_TOKEN before recording admin flows.");
+}
 
 async function request(pathname, options = {}) {
   const response = await fetch(`${apiBase}${pathname}`, {
@@ -332,7 +335,7 @@ async function run() {
 
   const page = await context.newPage();
   await page.addInitScript(() => {
-    window.localStorage.setItem("nestyStay.adminToken", "dev-admin-token");
+    window.localStorage.setItem("nestyStay.adminToken", adminToken);
   });
 
   const scenes = [
