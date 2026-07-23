@@ -7201,6 +7201,61 @@ body {
   transition: width 0.18s ease;
 }
 
+.admin-evidence-cell {
+  display: grid;
+  min-width: 260px;
+  max-width: 360px;
+  gap: 8px;
+}
+
+.admin-evidence-list {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-evidence-row,
+.admin-evidence-upload {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 46px;
+  padding: 8px;
+}
+
+.admin-evidence-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--ref-line);
+  border-radius: 8px;
+  background: #f9fcfa;
+}
+
+.admin-evidence-row div,
+.admin-evidence-upload div {
+  min-width: 0;
+}
+
+.admin-evidence-row strong,
+.admin-evidence-row small,
+.admin-evidence-notice {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ref-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-evidence-row strong {
+  color: var(--ref-deep);
+}
+
+.admin-evidence-picker {
+  justify-self: start;
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
 .completion-page .product-section {
   overflow: visible;
 }

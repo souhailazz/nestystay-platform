@@ -833,6 +833,42 @@ export type AdminCase = {
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string | null;
+  evidence: AdminCaseEvidence[];
+};
+
+export type AdminCaseEvidence = {
+  id: string;
+  caseId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  scanStatus: string;
+  uploadedAt: string;
+  sha256Hash?: string | null;
+};
+
+export type AdminCaseEvidenceUpload = {
+  id: string;
+  caseId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  objectKey: string;
+  uploadUrl: string;
+  status: string;
+  scanStatus: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+};
+
+export type AdminCaseEvidenceDownload = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  url: string;
+  expiresAt: string;
 };
 
 export type AuditEvent = {
@@ -1301,6 +1337,12 @@ export const api = {
     request<AdminCase>("/spec/admin/cases", { method: "POST", token, body }),
   resolveAdminCase: (token: string, caseId: string, body: { resolutionNotes: string; status?: string }) =>
     request<AdminCase>(`/spec/admin/cases/${caseId}/resolve`, { method: "POST", token, body }),
+  prepareAdminCaseEvidenceUpload: (token: string, caseId: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
+    request<AdminCaseEvidenceUpload>(`/spec/admin/cases/${caseId}/evidence/uploads`, { method: "POST", token, body }),
+  uploadAdminCaseEvidenceContent: (token: string, caseId: string, evidenceId: string, file: File, options?: UploadOptions) =>
+    requestUpload<AdminCaseEvidenceUpload>(`/spec/admin/cases/${caseId}/evidence/${evidenceId}/content`, token, file, options),
+  getAdminCaseEvidenceDownload: (token: string, caseId: string, evidenceId: string) =>
+    request<AdminCaseEvidenceDownload>(`/spec/admin/cases/${caseId}/evidence/${evidenceId}/download`, { token }),
   getAuditLog: (token: string) => request<AuditEvent[]>("/spec/admin/audit-log", { token }),
   startAuthFlow: (body: { userId?: string | null; flowType: string; destination: string }) =>
     request<AuthFlowResult>("/spec/auth/flows", { method: "POST", body }),

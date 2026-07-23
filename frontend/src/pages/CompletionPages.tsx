@@ -33,7 +33,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
-import { api, formatMoney, type AdminCase, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 
@@ -1579,6 +1579,155 @@ export function AdminOpsSpecPage({ view }: { view: string }) {
   );
 }
 
+type AdminEvidenceUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: IdentityUploadStatus;
+  upload?: AdminCaseEvidenceUpload;
+  error?: string;
+};
+
+const maximumAdminCaseEvidenceBytes = 10 * 1024 * 1024;
+
+function AdminCaseEvidenceControl({ adminCase, token, reload }: { adminCase: AdminCase; token: string; reload: () => void }) {
+  const [uploads, setUploads] = useState<AdminEvidenceUploadItem[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+  const evidence = adminCase.evidence ?? [];
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  function updateUpload(id: string, patch: Partial<AdminEvidenceUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice(null);
+    if (file.size > maximumAdminCaseEvidenceBytes) {
+      updateUpload(id, { status: "failed", error: "Evidence must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareAdminCaseEvidenceUpload(token, adminCase.id, {
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadAdminCaseEvidenceContent(token, adminCase.id, prepared.id, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+      setNotice(`${uploaded.fileName} verified.`);
+      reload();
+    } catch (caught) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Evidence upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumAdminCaseEvidenceBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Evidence must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Evidence upload cancelled." });
+  }
+
+  function retryUpload(item: AdminEvidenceUploadItem) {
+    updateUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  async function downloadEvidence(evidenceId: string) {
+    try {
+      setNotice(null);
+      const download = await api.getAdminCaseEvidenceDownload(token, adminCase.id, evidenceId);
+      const link = document.createElement("a");
+      link.href = download.url;
+      link.download = download.fileName;
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (caught) {
+      setNotice(caught instanceof Error ? caught.message : "Evidence download failed.");
+    }
+  }
+
+  return (
+    <div className="admin-evidence-cell">
+      {evidence.length > 0 && (
+        <div className="admin-evidence-list">
+          {evidence.map((item) => (
+            <div className="admin-evidence-row" key={item.id}>
+              <FileText size={15} />
+              <div>
+                <strong>{item.fileName}</strong>
+                <small>{item.scanStatus}</small>
+              </div>
+              <Button onClick={() => void downloadEvidence(item.id)} title="Download evidence" variant="ghost"><Download size={15} /></Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label className={buttonClassName("outline", "message-file-picker admin-evidence-picker")}>
+        <Paperclip size={15} /> Evidence
+        <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+      </label>
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item admin-evidence-upload" key={upload.id}>
+              <FileText size={15} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove evidence" variant="ghost"><X size={15} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <small className="admin-evidence-notice">{notice}</small>}
+    </div>
+  );
+}
+
 function AdminOpsPanel({ data, token, reload, view }: { data: AdminOperations; token: string; reload: () => void; view: string }) {
   const [caseToResolve, setCaseToResolve] = useState<AdminCase | null>(null);
   async function create() {
@@ -1595,7 +1744,7 @@ function AdminOpsPanel({ data, token, reload, view }: { data: AdminOperations; t
     <>
       <MetricCards items={data.metrics.map((item) => [item.label, item.value]) as [string, string][]} />
       <Button onClick={create}>Create admin case</Button>
-      <Table rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
+      <Table rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <AdminCaseEvidenceControl adminCase={item} key={`${item.id}-evidence`} reload={reload} token={token} />, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
       <h3 className="section-subtitle">Audit log</h3>
       <Table rows={data.auditEvents.slice(0, 10).map((item) => [item.action, item.subjectType, item.reason, new Date(item.createdAt).toLocaleString()])} />
       <Modal open={Boolean(caseToResolve)} title="Resolve admin case" onClose={() => setCaseToResolve(null)}>

@@ -49,6 +49,9 @@ public interface ISpecCompletionStore
     Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken);
     Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken);
     Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceUploadDto> PrepareAdminCaseEvidenceUploadAsync(Guid caseId, PrepareAdminCaseEvidenceUploadRequest request, Guid? actorUserId, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceUploadDto> UploadAdminCaseEvidenceContentAsync(Guid caseId, Guid evidenceId, string contentType, long sizeBytes, Stream content, Guid? actorUserId, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceDownloadDto> GetAdminCaseEvidenceDownloadAsync(Guid caseId, Guid evidenceId, Guid? actorUserId, CancellationToken cancellationToken);
     Task<IReadOnlyList<AuditEventDto>> GetAuditEventsAsync(CancellationToken cancellationToken);
     Task<AuthFlowResultDto> StartAuthFlowAsync(StartAuthFlowRequest request, CancellationToken cancellationToken);
     Task<AuthFlowResultDto> CompleteAuthFlowAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken);
@@ -104,9 +107,13 @@ public sealed record HostPromotionDto(Guid Id, Guid HostUserId, Guid PropertyId,
 public sealed record SaveHostPromotionRequest(Guid PropertyId, string Name, decimal DiscountPercent, DateOnly StartsOn, DateOnly EndsOn, int MinimumNights, string BadgeLevel, bool IsActive);
 public sealed record AdminOperationsDto(IReadOnlyList<AdminCaseDto> Cases, IReadOnlyList<AuditEventDto> AuditEvents, IReadOnlyList<AdminMetricDto> Metrics);
 public sealed record AdminMetricDto(string Label, string Value);
-public sealed record AdminCaseDto(Guid Id, string CaseType, string SubjectType, Guid? SubjectId, string Status, string Priority, string Reason, string AssignedTo, string ResolutionNotes, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt);
+public sealed record AdminCaseDto(Guid Id, string CaseType, string SubjectType, Guid? SubjectId, string Status, string Priority, string Reason, string AssignedTo, string ResolutionNotes, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, IReadOnlyList<AdminCaseEvidenceDto> Evidence);
 public sealed record CreateAdminCaseRequest(string CaseType, string SubjectType, Guid? SubjectId, string Priority, string Reason, string AssignedTo = "");
 public sealed record ResolveAdminCaseRequest(string ResolutionNotes, string Status = "Resolved");
+public sealed record PrepareAdminCaseEvidenceUploadRequest(string FileName, string ContentType, long SizeBytes);
+public sealed record AdminCaseEvidenceUploadDto(Guid Id, Guid CaseId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null);
+public sealed record AdminCaseEvidenceDto(Guid Id, Guid CaseId, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash);
+public sealed record AdminCaseEvidenceDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
 public sealed record AuditEventDto(Guid Id, Guid? ActorUserId, string ActorRole, string Action, string SubjectType, Guid? SubjectId, string Reason, DateTimeOffset CreatedAt);
 public sealed record AuthFlowResultDto(
     Guid Id,

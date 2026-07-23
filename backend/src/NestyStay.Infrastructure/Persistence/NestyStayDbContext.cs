@@ -155,6 +155,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneHostPricingRule> MilestoneHostPricingRules => Set<MilestoneHostPricingRule>();
     public DbSet<MilestoneHostPromotion> MilestoneHostPromotions => Set<MilestoneHostPromotion>();
     public DbSet<MilestoneAdminCase> MilestoneAdminCases => Set<MilestoneAdminCase>();
+    public DbSet<MilestoneAdminCaseEvidence> MilestoneAdminCaseEvidenceUploads => Set<MilestoneAdminCaseEvidence>();
     public DbSet<MilestoneAuditEvent> MilestoneAuditEvents => Set<MilestoneAuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -234,6 +235,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneHostPricingRule>().HasIndex(rule => new { rule.HostUserId, rule.PropertyId, rule.StartsOn, rule.EndsOn });
         modelBuilder.Entity<MilestoneHostPromotion>().HasIndex(promotion => new { promotion.HostUserId, promotion.PropertyId, promotion.IsActive });
         modelBuilder.Entity<MilestoneAdminCase>().HasIndex(adminCase => new { adminCase.CaseType, adminCase.Status });
+        modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => evidence.ObjectKey).IsUnique();
+        modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => new { evidence.CaseId, evidence.Status });
         modelBuilder.Entity<MilestoneAuditEvent>().HasIndex(audit => new { audit.SubjectType, audit.SubjectId, audit.CreatedAt });
 
         NestyStaySeed.Apply(modelBuilder);

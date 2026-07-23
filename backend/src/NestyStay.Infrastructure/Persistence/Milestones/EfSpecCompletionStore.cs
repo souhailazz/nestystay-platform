@@ -939,6 +939,69 @@ public sealed class EfSpecCompletionStore(
         return ToUploadDto(upload);
     }
 
+    private async Task<MilestoneAdminCase> RequireAdminCaseAsync(Guid caseId, CancellationToken cancellationToken) =>
+        await db.MilestoneAdminCases.SingleOrDefaultAsync(item => item.Id == caseId && !item.IsDeleted, cancellationToken)
+        ?? throw new InvalidOperationException("Admin case not found.");
+
+    private async Task<DateTimeOffset> RequirePendingAdminCaseEvidenceUploadAsync(MilestoneAdminCaseEvidence evidence, Guid? actorUserId, CancellationToken cancellationToken)
+    {
+        if (evidence.Status != AttachmentStatusPendingUpload)
+        {
+            throw new InvalidOperationException("Admin case evidence upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (evidence.UploadExpiresAt <= now)
+        {
+            evidence.Status = AttachmentStatusExpired;
+            evidence.UpdatedAt = now;
+            evidence.UpdatedByUserId = actorUserId;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Admin case evidence upload URL has expired.");
+        }
+
+        return now;
+    }
+
+    private async Task<AdminCaseEvidenceUploadDto> FinalizeAdminCaseEvidenceUploadAsync(
+        MilestoneAdminCaseEvidence evidence,
+        Guid? actorUserId,
+        DateTimeOffset verifiedAt,
+        string providerName,
+        string contentType,
+        long sizeBytes,
+        string sha256Hash,
+        byte[] headerBytes,
+        CancellationToken cancellationToken)
+    {
+        var scan = await fileSafetyScanner.ScanAsync(
+            new FileSafetyScanRequest(evidence.ObjectKey, evidence.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
+            cancellationToken);
+
+        evidence.StorageProviderName = providerName;
+        evidence.VerifiedContentType = contentType;
+        evidence.UploadedSizeBytes = sizeBytes;
+        evidence.Sha256Hash = sha256Hash;
+        evidence.ScanStatus = scan.Status;
+        evidence.ScanProviderName = fileSafetyScanner.ProviderName;
+        evidence.ScanCheckedAt = verifiedAt;
+        evidence.UpdatedAt = verifiedAt;
+        evidence.UpdatedByUserId = actorUserId;
+
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            evidence.Status = AttachmentStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Admin case evidence failed safety scanning.");
+        }
+
+        evidence.Status = AttachmentStatusUploaded;
+        evidence.UploadedAt = verifiedAt;
+        await AddAuditAsync("AdminCaseEvidenceUploaded", "AdminCase", evidence.CaseId, $"Evidence {evidence.SafeFileName} uploaded and scanned clean.", actorUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(evidence);
+    }
+
     public async Task<AttachmentDownloadDto> GetMessageAttachmentDownloadAsync(Guid userId, Guid conversationId, Guid attachmentId, CancellationToken cancellationToken)
     {
         await RequireParticipantAsync(userId, conversationId, cancellationToken);
@@ -1050,7 +1113,30 @@ public sealed class EfSpecCompletionStore(
     public async Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken)
     {
         await SeedAdminAsync(cancellationToken);
-        var cases = await db.MilestoneAdminCases.AsNoTracking().Where(item => !item.IsDeleted).OrderByDescending(item => item.UpdatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken);
+        var caseEntities = await db.MilestoneAdminCases
+            .AsNoTracking()
+            .Where(item => !item.IsDeleted)
+            .OrderByDescending(item => item.UpdatedAt)
+            .ToListAsync(cancellationToken);
+        var caseIds = caseEntities.Select(item => item.Id).ToList();
+        var evidenceByCase = caseIds.Count == 0
+            ? new Dictionary<Guid, IReadOnlyList<AdminCaseEvidenceDto>>()
+            : (await db.MilestoneAdminCaseEvidenceUploads
+                .AsNoTracking()
+                .Where(item =>
+                    caseIds.Contains(item.CaseId) &&
+                    item.Status == AttachmentStatusUploaded &&
+                    item.ScanStatus == ScanStatusClean &&
+                    !item.IsDeleted)
+                .OrderByDescending(item => item.UploadedAt)
+                .ToListAsync(cancellationToken))
+                .GroupBy(item => item.CaseId)
+                .ToDictionary(
+                    item => item.Key,
+                    item => (IReadOnlyList<AdminCaseEvidenceDto>)item.Select(ToDto).ToList());
+        var cases = caseEntities
+            .Select(item => ToDto(item, evidenceByCase.TryGetValue(item.Id, out var evidence) ? evidence : []))
+            .ToList();
         var audits = await GetAuditEventsAsync(cancellationToken);
         var metrics = new List<AdminMetricDto>
         {
@@ -1094,6 +1180,102 @@ public sealed class EfSpecCompletionStore(
         await AddAuditAsync("AdminCaseResolved", entity.SubjectType, entity.SubjectId, entity.ResolutionNotes, actorUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
+    }
+
+    public async Task<AdminCaseEvidenceUploadDto> PrepareAdminCaseEvidenceUploadAsync(
+        Guid caseId,
+        PrepareAdminCaseEvidenceUploadRequest request,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var adminCase = await RequireAdminCaseAsync(caseId, cancellationToken);
+        var safeFileName = ValidateAdminCaseEvidence(request.FileName, request.ContentType, request.SizeBytes);
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var evidenceId = Guid.NewGuid();
+        var now = timeProvider.GetUtcNow();
+        var evidence = new MilestoneAdminCaseEvidence
+        {
+            Id = evidenceId,
+            CaseId = adminCase.Id,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = request.ContentType.Trim().ToLowerInvariant(),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = $"admin/cases/{caseId:N}/evidence/{evidenceId:N}{extension}",
+            UploadUrl = $"/api/spec/admin/cases/{caseId}/evidence/{evidenceId}/content",
+            Status = AttachmentStatusPendingUpload,
+            StorageProviderName = storageProvider.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(AttachmentUploadLifetime),
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = actorUserId,
+            UpdatedByUserId = actorUserId
+        };
+
+        db.MilestoneAdminCaseEvidenceUploads.Add(evidence);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(evidence);
+    }
+
+    public async Task<AdminCaseEvidenceUploadDto> UploadAdminCaseEvidenceContentAsync(
+        Guid caseId,
+        Guid evidenceId,
+        string contentType,
+        long sizeBytes,
+        Stream content,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        await RequireAdminCaseAsync(caseId, cancellationToken);
+        var evidence = await db.MilestoneAdminCaseEvidenceUploads
+            .SingleOrDefaultAsync(item => item.Id == evidenceId && item.CaseId == caseId && !item.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Admin case evidence upload not found.");
+
+        var now = await RequirePendingAdminCaseEvidenceUploadAsync(evidence, actorUserId, cancellationToken);
+        ValidateAdminCaseEvidenceUploadMetadata(evidence, contentType, sizeBytes);
+
+        var stored = await storageProvider.SaveObjectAsync(
+            new StorageObjectWriteRequest(evidence.ObjectKey, evidence.ContentType, MaximumAttachmentBytes),
+            content,
+            cancellationToken);
+        ValidateAdminCaseEvidenceUploadMetadata(evidence, stored.ContentType, stored.SizeBytes);
+
+        return await FinalizeAdminCaseEvidenceUploadAsync(
+            evidence,
+            actorUserId,
+            now,
+            stored.ProviderName,
+            stored.ContentType,
+            stored.SizeBytes,
+            stored.Sha256Hash,
+            stored.HeaderBytes,
+            cancellationToken);
+    }
+
+    public async Task<AdminCaseEvidenceDownloadDto> GetAdminCaseEvidenceDownloadAsync(
+        Guid caseId,
+        Guid evidenceId,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        await RequireAdminCaseAsync(caseId, cancellationToken);
+        var evidence = await db.MilestoneAdminCaseEvidenceUploads
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item =>
+                item.Id == evidenceId &&
+                item.CaseId == caseId &&
+                item.Status == AttachmentStatusUploaded &&
+                item.ScanStatus == ScanStatusClean &&
+                !item.IsDeleted,
+                cancellationToken)
+            ?? throw new InvalidOperationException("Admin case evidence is not available.");
+
+        var expiresAt = timeProvider.GetUtcNow().Add(AttachmentDownloadLifetime);
+        var url = await storageProvider.CreateDownloadUrlAsync(evidence.ObjectKey, expiresAt, cancellationToken);
+        await AddAuditAsync("AdminCaseEvidenceDownloaded", "AdminCase", caseId, $"Evidence {evidence.SafeFileName} download URL issued.", actorUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return new AdminCaseEvidenceDownloadDto(evidence.Id, evidence.SafeFileName, evidence.ContentType, evidence.SizeBytes, url, expiresAt);
     }
 
     public async Task<IReadOnlyList<AuditEventDto>> GetAuditEventsAsync(CancellationToken cancellationToken)
@@ -1713,6 +1895,47 @@ public sealed class EfSpecCompletionStore(
         return $"{safeStem}{extension}";
     }
 
+    private static string ValidateAdminCaseEvidence(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
+        {
+            throw new InvalidOperationException("Admin case evidence must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeContentType(contentType);
+        if (!AllowedAttachmentExtensions.TryGetValue(normalizedContentType, out var allowedExtensions))
+        {
+            throw new InvalidOperationException("Admin case evidence type is not allowed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException("Admin case evidence filename is required.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Admin case evidence extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "admin-case-evidence";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
+        return $"{safeStem}{extension}";
+    }
+
     private static void ValidateAttachmentUploadMetadata(MilestoneMessageAttachment attachment, string? contentType, long sizeBytes)
     {
         if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
@@ -1748,6 +1971,25 @@ public sealed class EfSpecCompletionStore(
         if (sizeBytes != upload.SizeBytes)
         {
             throw new InvalidOperationException("Uploaded identity document size does not match the prepared upload.");
+        }
+    }
+
+    private static void ValidateAdminCaseEvidenceUploadMetadata(MilestoneAdminCaseEvidence evidence, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
+        {
+            throw new InvalidOperationException("Admin case evidence must be 10 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeContentType(contentType);
+        if (!normalizedContentType.Equals(evidence.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded admin case evidence content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != evidence.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded admin case evidence size does not match the prepared upload.");
         }
     }
 
@@ -2080,7 +2322,9 @@ public sealed class EfSpecCompletionStore(
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);
     private static HostPromotionDto ToDto(MilestoneHostPromotion item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.DiscountPercent, item.StartsOn, item.EndsOn, item.MinimumNights, item.BadgeLevel, item.IsActive);
-    private static AdminCaseDto ToDto(MilestoneAdminCase item) => new(item.Id, item.CaseType, item.SubjectType, item.SubjectId, item.Status, item.Priority, item.Reason, item.AssignedTo, item.ResolutionNotes, item.CreatedAt, item.UpdatedAt, item.ResolvedAt);
+    private static AdminCaseDto ToDto(MilestoneAdminCase item, IReadOnlyList<AdminCaseEvidenceDto>? evidence = null) => new(item.Id, item.CaseType, item.SubjectType, item.SubjectId, item.Status, item.Priority, item.Reason, item.AssignedTo, item.ResolutionNotes, item.CreatedAt, item.UpdatedAt, item.ResolvedAt, evidence ?? []);
+    private static AdminCaseEvidenceDto ToDto(MilestoneAdminCaseEvidence item) => new(item.Id, item.CaseId, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt ?? item.UpdatedAt, item.Sha256Hash);
+    private static AdminCaseEvidenceUploadDto ToUploadDto(MilestoneAdminCaseEvidence item) => new(item.Id, item.CaseId, item.SafeFileName, item.ContentType, item.SizeBytes, item.ObjectKey, item.UploadUrl, item.Status, item.ScanStatus, item.UploadExpiresAt, item.Sha256Hash);
     private static AuditEventDto ToDto(MilestoneAuditEvent item) => new(item.Id, item.ActorUserId, item.ActorRole, item.Action, item.SubjectType, item.SubjectId, item.Reason, item.CreatedAt);
     private static AuthFlowResultDto ToDto(MilestoneAuthFlow item) => new(
         item.Id,

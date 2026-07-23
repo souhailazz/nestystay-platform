@@ -687,6 +687,87 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var adminCase = await adminCaseResponse.Content.ReadFromJsonAsync<AdminCaseResponse>();
         Assert.NotNull(adminCase);
         Assert.Equal("Open", adminCase.Status);
+        Assert.Empty(adminCase.Evidence);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var evidenceWithoutToken = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/uploads", new
+        {
+            fileName = "refund-evidence.pdf",
+            contentType = "application/pdf",
+            sizeBytes = 32
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, evidenceWithoutToken.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.OperatorToken);
+        var evidenceAsOperator = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/uploads", new
+        {
+            fileName = "refund-evidence.pdf",
+            contentType = "application/pdf",
+            sizeBytes = 32
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, evidenceAsOperator.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var invalidEvidence = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/uploads", new
+        {
+            fileName = "refund-evidence.gif",
+            contentType = "image/gif",
+            sizeBytes = 32
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidEvidence.StatusCode);
+
+        var spoofedEvidenceBytes = Encoding.ASCII.GetBytes("not a pdf");
+        var spoofedEvidenceResponse = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/uploads", new
+        {
+            fileName = "spoofed.pdf",
+            contentType = "application/pdf",
+            sizeBytes = spoofedEvidenceBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, spoofedEvidenceResponse.StatusCode);
+        var spoofedEvidence = await spoofedEvidenceResponse.Content.ReadFromJsonAsync<AdminCaseEvidenceUploadResponse>();
+        Assert.NotNull(spoofedEvidence);
+        using var spoofedEvidenceContent = new ByteArrayContent(spoofedEvidenceBytes);
+        spoofedEvidenceContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var rejectedEvidenceUpload = await client.PutAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/{spoofedEvidence.Id}/content", spoofedEvidenceContent);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedEvidenceUpload.StatusCode);
+
+        var evidencePdfBytes = Encoding.ASCII.GetBytes("%PDF-1.7\nrefund evidence");
+        var evidencePrepareResponse = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/uploads", new
+        {
+            fileName = "refund evidence FINAL.pdf",
+            contentType = "application/pdf",
+            sizeBytes = evidencePdfBytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, evidencePrepareResponse.StatusCode);
+        var preparedEvidence = await evidencePrepareResponse.Content.ReadFromJsonAsync<AdminCaseEvidenceUploadResponse>();
+        Assert.NotNull(preparedEvidence);
+        Assert.Equal("refund-evidence-final.pdf", preparedEvidence.FileName);
+        Assert.Equal("PendingUpload", preparedEvidence.Status);
+        Assert.Equal("PendingScan", preparedEvidence.ScanStatus);
+
+        using var evidenceContent = new ByteArrayContent(evidencePdfBytes);
+        evidenceContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var uploadedEvidenceResponse = await client.PutAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/{preparedEvidence.Id}/content", evidenceContent);
+        Assert.Equal(HttpStatusCode.OK, uploadedEvidenceResponse.StatusCode);
+        var uploadedEvidence = await uploadedEvidenceResponse.Content.ReadFromJsonAsync<AdminCaseEvidenceUploadResponse>();
+        Assert.NotNull(uploadedEvidence);
+        Assert.Equal("Uploaded", uploadedEvidence.Status);
+        Assert.Equal("Clean", uploadedEvidence.ScanStatus);
+        Assert.NotEmpty(uploadedEvidence.Sha256Hash ?? string.Empty);
+
+        var adminOpsWithEvidence = await client.GetFromJsonAsync<AdminOperationsResponse>("/api/spec/admin/operations");
+        Assert.NotNull(adminOpsWithEvidence);
+        var refreshedCase = Assert.Single(adminOpsWithEvidence.Cases, item => item.Id == adminCase.Id);
+        var evidence = Assert.Single(refreshedCase.Evidence);
+        Assert.Equal(uploadedEvidence.Id, evidence.Id);
+        Assert.Equal("refund-evidence-final.pdf", evidence.FileName);
+
+        var evidenceDownloadResponse = await client.GetAsync($"/api/spec/admin/cases/{adminCase.Id}/evidence/{uploadedEvidence.Id}/download");
+        Assert.Equal(HttpStatusCode.OK, evidenceDownloadResponse.StatusCode);
+        var evidenceDownload = await evidenceDownloadResponse.Content.ReadFromJsonAsync<AdminCaseEvidenceDownloadResponse>();
+        Assert.NotNull(evidenceDownload);
+        Assert.Equal("refund-evidence-final.pdf", evidenceDownload.FileName);
+        Assert.NotEmpty(evidenceDownload.Url);
 
         var resolvedResponse = await client.PostAsJsonAsync($"/api/spec/admin/cases/{adminCase.Id}/resolve", new
         {
@@ -700,6 +781,7 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
         var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
         Assert.NotNull(audit);
+        Assert.Contains(audit, item => item.Action == "AdminCaseEvidenceUploaded");
         Assert.Contains(audit, item => item.Action == "AdminCaseResolved");
     }
 
@@ -802,7 +884,13 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record AdminOperationsResponse(IReadOnlyList<AdminCaseResponse> Cases);
 
-    private sealed record AdminCaseResponse(Guid Id, string Status);
+    private sealed record AdminCaseResponse(Guid Id, string Status, IReadOnlyList<AdminCaseEvidenceResponse> Evidence);
+
+    private sealed record AdminCaseEvidenceUploadResponse(Guid Id, string FileName, string Status, string ScanStatus, string? Sha256Hash);
+
+    private sealed record AdminCaseEvidenceResponse(Guid Id, string FileName);
+
+    private sealed record AdminCaseEvidenceDownloadResponse(string FileName, string Url);
 
     private sealed record AuditEventResponse(string Action);
 }

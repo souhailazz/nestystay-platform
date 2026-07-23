@@ -363,6 +363,38 @@ public sealed class SpecCompletionController(
         Ok(await store.ResolveAdminCaseAsync(caseId, request, authorization.TryGetSignedInUser(), cancellationToken));
 
     [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [HttpPost("admin/cases/{caseId:guid}/evidence/uploads")]
+    public async Task<ActionResult<AdminCaseEvidenceUploadDto>> PrepareAdminCaseEvidenceUpload(
+        Guid caseId,
+        PrepareAdminCaseEvidenceUploadRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await store.PrepareAdminCaseEvidenceUploadAsync(caseId, request, authorization.TryGetSignedInUser(), cancellationToken));
+
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [HttpPut("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<AdminCaseEvidenceUploadDto>> UploadAdminCaseEvidenceContent(
+        Guid caseId,
+        Guid evidenceId,
+        CancellationToken cancellationToken) =>
+        Ok(await store.UploadAdminCaseEvidenceContentAsync(
+            caseId,
+            evidenceId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            authorization.TryGetSignedInUser(),
+            cancellationToken));
+
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [HttpGet("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/download")]
+    public async Task<ActionResult<AdminCaseEvidenceDownloadDto>> GetAdminCaseEvidenceDownload(
+        Guid caseId,
+        Guid evidenceId,
+        CancellationToken cancellationToken) =>
+        Ok(await store.GetAdminCaseEvidenceDownloadAsync(caseId, evidenceId, authorization.TryGetSignedInUser(), cancellationToken));
+
+    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
     [HttpGet("admin/audit-log")]
     public async Task<ActionResult<IReadOnlyList<AuditEventDto>>> GetAuditLog(CancellationToken cancellationToken) =>
         Ok(await store.GetAuditEventsAsync(cancellationToken));

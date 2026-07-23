@@ -258,4 +258,25 @@ describe("api client", () => {
       issuingCountry: "JM",
     });
   });
+
+  it("prepares admin case evidence uploads with bearer tokens", async () => {
+    const fetchMock = stubFetch(jsonResponse({ id: "case-evidence-1", status: "PendingUpload", scanStatus: "PendingScan" }));
+
+    await api.prepareAdminCaseEvidenceUpload("admin-token", "case-1", {
+      fileName: "refund-evidence.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 32,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(url).toBe("/api/spec/admin/cases/case-1/evidence/uploads");
+    expect(init.method).toBe("POST");
+    expect(headers.get("Authorization")).toBe("Bearer admin-token");
+    expect(JSON.parse(init.body as string)).toEqual({
+      fileName: "refund-evidence.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 32,
+    });
+  });
 });
