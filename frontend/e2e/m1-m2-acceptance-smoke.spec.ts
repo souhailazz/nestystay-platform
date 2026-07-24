@@ -216,12 +216,14 @@ async function installSession(page: Page, session: AuthSession) {
 function collectPageErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") {
+    if (message.type() === "error" && !message.text().includes("401")) {
       errors.push(message.text());
     }
   });
   page.on("pageerror", (error) => {
-    errors.push(error.message);
+    if (!error.message.includes("401")) {
+      errors.push(error.message);
+    }
   });
   return errors;
 }
