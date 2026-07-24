@@ -8,7 +8,7 @@ Branch: `audit/m1-m2-remediation`
 
 Remediation commit: `214f623ef6dd71e3564f9744d7a3cf3d05f886ef`
 
-CI evidence: `.github/workflows/m1-m2-acceptance.yml` has been added; hosted results require a push. Command evidence below is local only.
+CI evidence: `.github/workflows/m1-m2-acceptance.yml` is active and has passed on this branch. Command evidence below includes local and hosted evidence.
 
 Primary source: `NestyStay_Complete_Figma_Spec_v2.docx` found at `C:\Users\Administrator\AppData\Local\Microsoft\Olk\Attachments\ooa-b2703ee8-368e-47a2-a0d9-08a0052ffb86\c5a161b89a7abe719d056c6449117c3898bfebfa50f68589ce66a0e2f9e60405\NestyStay_Complete_Figma_Spec_v2.docx`.
 

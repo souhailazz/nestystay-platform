@@ -8,9 +8,9 @@ Baseline commit audited: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
 PR: `https://github.com/souhailazz/nestystay-platform/pull/2`
 
-Mergeability check before this evidence slice: PR #2 was draft, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, base `5465ba77308c17245cfa06b1a29f231104e037b9`, head `936abdd8c39f3597eb679a74995926ab5bd3a990`, and no status checks were reported yet.
+Current mergeability: PR #2 is draft, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, and the latest M1/M2 Acceptance checks are passing on the branch.
 
-CI evidence: `.github/workflows/m1-m2-acceptance.yml` has been added but hosted CI results require a push before they exist. Local evidence is listed in `M1_M2_TEST_EVIDENCE.md`.
+CI evidence: `.github/workflows/m1-m2-acceptance.yml` is active and has passed on this branch. Local evidence is listed in `M1_M2_TEST_EVIDENCE.md`.
 
 Final verdict: NOT ACCEPTED / NOT COMPLETE.
 

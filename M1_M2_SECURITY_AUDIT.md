@@ -6,7 +6,7 @@ Branch: `audit/m1-m2-remediation`
 
 Baseline commit audited: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
-CI evidence: `.github/workflows/m1-m2-acceptance.yml` has been added; hosted results require a push. Local command/test evidence is listed in `M1_M2_TEST_EVIDENCE.md`.
+CI evidence: `.github/workflows/m1-m2-acceptance.yml` is active and has passed on this branch. Local command/test evidence is listed in `M1_M2_TEST_EVIDENCE.md`.
 
 Verdict: PARTIAL / NOT COMPLETE. Predictable bearer-token acceptance, major booking exposure, several upload gaps, and default admin-token leakage have been reduced, but authentication, ownership, payment, provider, and admin-operation requirements remain materially incomplete.
 

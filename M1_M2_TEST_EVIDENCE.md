@@ -8,7 +8,7 @@ Baseline commit audited: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
 Current evidence scope: incremental local verification for the Playwright/CI evidence slice. The exact commit SHA is the branch head containing this report update.
 
-CI evidence: a new GitHub Actions workflow exists at `.github/workflows/m1-m2-acceptance.yml`; it will not produce hosted results until pushed. All command results below are local evidence from `C:\Users\Administrator\Desktop\nestystayPLATFORM`.
+CI evidence: GitHub Actions workflow `.github/workflows/m1-m2-acceptance.yml` is active and has passed on this branch for backend Debug/Release build/test, package scans, migrations, frontend audit/typecheck/lint/test/build, Playwright, and artifact upload. Local command results below are from `C:\Users\Administrator\Desktop\nestystayPLATFORM`.
 
 ## 2026-07-24 Command Output Summary
 
