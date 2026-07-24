@@ -42,6 +42,7 @@ import { HostStateContainer } from "../features/host/HostStateContainer";
 import { AdminStateContainer } from "../features/admin/AdminStateContainer";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
 import { MessagingStateContainer } from "../features/messaging/MessagingStateContainer";
+import { HostProfileStateContainer } from "../features/hostProfile/HostProfileStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -1412,19 +1413,9 @@ function ProviderDetail({ provider }: { provider: DirectoryProvider }) {
 }
 
 export function HostProfileSpecPage({ slug, edit, auth }: { slug?: string; edit?: boolean; auth: AuthController }) {
-  const profiles = useAsync<HostProfile[] | HostProfile>(() => slug ? api.getHostProfile(slug) : api.getHostProfiles(), [slug]);
-  if (edit) {
-    return <RequireSession auth={auth}>{(session) => <HostProfileEditor session={session} />}</RequireSession>;
-  }
-  return (
-    <DataGate state={profiles}>
-      {(data) => Array.isArray(data) ? (
-        <CompletionShell id="HPRO-01" eyebrow="Host profiles" title="Verified host profiles." copy="Public host profile directory with badges, listings, reviews, and Link Mi contact routes.">
-          <section className="product-section spec-card-grid">{data.map((profile) => <HostProfileCard profile={profile} key={profile.id} />)}</section>
-        </CompletionShell>
-      ) : <HostProfileDetail profile={data} />}
-    </DataGate>
-  );
+  if (edit) return <HostProfileStateContainer view="edit" auth={auth} />;
+  if (slug) return <HostProfileStateContainer view="detail" profileId={slug} auth={auth} />;
+  return <HostProfileStateContainer view="directory" auth={auth} />;
 }
 
 function HostProfileCard({ profile }: { profile: HostProfile }) {
