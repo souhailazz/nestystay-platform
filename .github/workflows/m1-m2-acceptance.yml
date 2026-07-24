@@ -1,0 +1,117 @@
+name: M1/M2 Acceptance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - audit/m1-m2-remediation
+
+jobs:
+  acceptance:
+    name: Backend, frontend, Playwright
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nestystay
+          POSTGRES_PASSWORD: nestystay
+          POSTGRES_DB: nestystay_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nestystay -d nestystay_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay;Password=nestystay
+      Security__EnableDevelopmentAuthCodes: "true"
+      Security__SessionTokenSecret: ci-development-session-token-secret-minimum-32-characters
+      Security__TotpSecretProtectionKey: ci-development-totp-secret-protection-key
+      Security__AdminTokenSha256: 1734d503f6aa6a047c36d113cbad769f719c93784b469b771c4c3e7c63adbefd
+      Security__OperatorTokenSha256: 277e6a75a6980887d1bc5c738e59a2504e3e2696d8f9fbf675b7fc49dabd2cf8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore backend
+        run: dotnet restore backend/NestyStay.sln
+
+      - name: Build backend Debug
+        run: dotnet build backend/NestyStay.sln --no-restore
+
+      - name: Test backend Debug
+        run: dotnet test backend/NestyStay.sln --no-build
+
+      - name: Build backend Release
+        run: dotnet build backend/NestyStay.sln -c Release --no-restore
+
+      - name: Test backend Release
+        run: dotnet test backend/NestyStay.sln -c Release --no-build
+
+      - name: Scan backend packages
+        run: dotnet list backend/NestyStay.sln package --vulnerable --include-transitive
+
+      - name: Install EF tooling
+        run: dotnet tool install --global dotnet-ef --version 10.0.9
+
+      - name: Apply migrations
+        run: dotnet ef database update --project backend/src/NestyStay.Infrastructure --startup-project backend/src/NestyStay.Api
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend packages
+        working-directory: frontend
+        run: npm audit
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Upload acceptance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-m2-acceptance-artifacts
+          if-no-files-found: ignore
+          path: |
+            artifacts/m1-m2-visual
+            artifacts/playwright-report
+            artifacts/playwright-results

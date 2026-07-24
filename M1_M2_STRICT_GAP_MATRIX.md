@@ -1,6 +1,6 @@
 # M1/M2 Strict Gap Matrix
 
-Audit date: 2026-07-23
+Audit date: 2026-07-24
 
 Baseline commit: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
@@ -8,7 +8,7 @@ Branch: `audit/m1-m2-remediation`
 
 Remediation commit: `214f623ef6dd71e3564f9744d7a3cf3d05f886ef`
 
-CI evidence: Not run in this session. Command evidence below is local only.
+CI evidence: `.github/workflows/m1-m2-acceptance.yml` has been added; hosted results require a push. Command evidence below is local only.
 
 Primary source: `NestyStay_Complete_Figma_Spec_v2.docx` found at `C:\Users\Administrator\AppData\Local\Microsoft\Olk\Attachments\ooa-b2703ee8-368e-47a2-a0d9-08a0052ffb86\c5a161b89a7abe719d056c6449117c3898bfebfa50f68589ce66a0e2f9e60405\NestyStay_Complete_Figma_Spec_v2.docx`.
 
@@ -37,10 +37,18 @@ No audited screen receives PASS in this phase because the repository does not co
 | Admin token | Baseline frontend defaulted to `dev-admin-token` and stored it in `localStorage`. This pass removed those defaults/persistence and changed tracked recording scripts to require `NESTYSTAY_ADMIN_TOKEN`. |
 | Auth secrets in responses | `frontend/src/lib/api.ts` models `twoFactorCode` in register/login responses. `ProductPages.tsx` displays the demo/local milestone code. |
 | 2FA implementation | `CompletionPages.tsx` shows a `NESTY-2FA` placeholder div, not a real `otpauth://` URI, QR code, TOTP verification, or one-time recovery-code flow. |
-| Messaging upload | `CompletionPages.tsx` creates a PDF attachment when message text contains `pdf`; backend stores attachment metadata JSON with no signed upload/download URL, MIME allowlist, upload progress, or 10 MB validation. |
+| Messaging upload | Secure message attachment prepare/upload/download endpoints and UI upload states now exist for the current messaging surface, with storage writes, MIME/extension/size validation, scan status, signed-style download URLs, and ownership checks. Search/filter/archive and full interaction evidence are still incomplete. |
 | Host analytics | `EfSpecCompletionStore.BuildAnalytics` returns hardcoded revenue/occupancy/ADR series except booking count. |
-| Tests | Backend Debug/Release tests pass with API test count now 17. Frontend `typecheck`, `lint`, `test`, and `build` now pass locally. Playwright E2E and per-screen tests are still missing. |
-| Visual evidence | Existing screenshots are broad QA artifacts, not one desktop/tablet/mobile screenshot per DOCX screen. Missing for all rows below unless explicitly noted. |
+| Tests | Backend API tests now pass locally with 26 tests. Frontend `typecheck`, `lint`, `test`, and `build` pass locally. Playwright smoke coverage passes 9 tests across desktop/tablet/mobile Chromium, but per-screen full DOCX tests are still missing. |
+| Visual evidence | `artifacts/m1-m2-visual` now contains 57 representative screenshots across PUB, AUTH, TRAV, HOST, HPRO, DIR, MSG, ADM, and ERR. This is not yet one desktop/tablet/mobile screenshot per DOCX screen and does not create any PASS rows. |
+
+## 2026-07-24 Current Evidence Update
+
+This update added a representative Playwright suite, CI workflow, and 57 screenshot artifacts. Covered smoke routes include `/`, `/explore`, `/explore/map`, `/experiences`, `/login`, `/register`, `/guest-dashboard`, `/traveler/payment-methods`, `/traveler/invoices`, `/traveler/identity`, `/profile` with profile-photo upload, `/messages`, `/host-dashboard`, `/host/properties`, `/host/pricing`, `/host/profile/edit`, `/directory/provider`, `/admin/ops/disputes`, and `/404`.
+
+The update also hardened seed-only writes against PostgreSQL duplicate-key races seen during parallel Playwright runs and changed admin operations screens to wait for explicit admin-token entry before loading protected queues.
+
+This is evidence progress only. The strict verdict remains NOT COMPLETE because the full DOCX screen matrix, interaction states, ownership tests, and complete visual review are not done.
 
 ## Required Command Results
 
@@ -56,9 +64,9 @@ No audited screen receives PASS in this phase because the repository does not co
 | `cd frontend; npm audit` | Exit 0. `found 0 vulnerabilities`. |
 | `cd frontend; npm run typecheck` | Exit 0. `tsc -b`. |
 | `cd frontend; npm run lint` | Exit 0. `eslint "src/**/*.{ts,tsx}"`. |
-| `cd frontend; npm test` | Exit 0. Vitest 1 file / 3 tests passed. |
-| `cd frontend; npm run build` | Exit 0. `tsc -b && vite build`, 2016 modules transformed. |
-| `cd frontend; npx playwright test` | Not rerun after remediation; no Playwright E2E suite exists in the repository. |
+| `cd frontend; npm test` | Exit 0 on 2026-07-24. Vitest `src` suite: 1 file / 13 tests passed. |
+| `cd frontend; npm run build` | Exit 0 on 2026-07-24. `tsc -b && vite build`, 2065 modules transformed. |
+| `cd frontend; npm run test:e2e` | Exit 0 on 2026-07-24. Playwright 9 tests passed across desktop, tablet, and mobile Chromium; generated 57 representative screenshots under `artifacts/m1-m2-visual`. |
 
 ## Public Experience Screens
 
@@ -179,8 +187,8 @@ No audited screen receives PASS in this phase because the repository does not co
 | MSG-01 | Inbox | Sort, name/badge/last/timestamp/unread, filters/search | `/messages` | `CompletionPages.tsx` `MessagesPage` | `/api/spec/messages/inbox` | Conversations/messages | Signed session token | Participant check after signed principal id | Broad backend | Present | Generic | Generic | Missing | Missing | Broad | PARTIAL | No filters/search UI despite requirement |
 | MSG-02 | Conversation list detail | Booking reference, archived tab | `/messages/{id}` | `MessagesPage` | Conversation API | Conversations | Signed session token | Participant check | Broad | Present | Generic | Generic | Missing | Missing | Broad | PARTIAL | No archived tab; booking context minimal |
 | MSG-03 | Chat view | Timestamps, read status, typing, booking context | `/messages/{id}` | `ConversationPanel` | Message APIs | Messages | Signed session token | Participant check | Broad send/read | Present | Generic | Generic | Missing | Missing | Broad | PARTIAL | No typing/presence polling; limited context |
-| MSG-04 | Media sharing | Photo upload/thumbs/10 MB/WebP | `/messages/{id}` | `ConversationPanel` | Metadata only | JSON attachments | Signed session token | Participant check | PDF metadata only | Present | Missing | Generic | Missing | Missing | Broad | FAIL | No file upload, progress, retry, MIME/size validation |
-| MSG-05 | Document sharing | PDF secure 24h links | `/messages/document` | `SpecScreens.tsx` and `ConversationPanel` | Metadata only | JSON attachments | Signed session token/static | Missing signed URL ownership | Metadata only | Missing | Missing | Missing | Missing | Missing | Broad | FAIL | No signed upload/download or expiry |
+| MSG-04 | Media sharing | Photo upload/thumbs/10 MB/WebP | `/messages/{id}` | `ConversationPanel` secure attachment upload | Message attachment prepare/upload/download APIs | `MilestoneMessageAttachment` plus storage-backed content | Signed session token | Participant/owner checks on current upload surface | Backend upload/security slice plus Playwright inbox smoke | Present | Missing | Generic | Smoke only | `artifacts/m1-m2-visual/MSG` smoke only | Broad | PARTIAL | Upload pipeline exists; full thumbnails, search/filter/archive, retry-state proof, and per-state visual evidence remain incomplete |
+| MSG-05 | Document sharing | PDF secure 24h links | `/messages/document` | `SpecScreens.tsx` and `ConversationPanel` | Message attachment prepare/upload/download APIs | `MilestoneMessageAttachment` plus storage-backed content | Signed session token/static | Participant/owner checks on current upload surface | Backend upload/security slice | Missing | Missing | Missing | Missing | Smoke only | Broad | PARTIAL | Secure PDF upload/download pipeline exists; full document-sharing UI, expiry proof, and per-state evidence remain incomplete |
 | MSG-06 | Online status online | Mi Deh Yah consenting hosts | `/messages` | `MessagesPage` | Conversation participant status | Participant row | Signed session token | Partial | None | Present | Generic | Generic | Missing | Missing | None | PARTIAL | Consent not modeled |
 | MSG-07 | Offline status | Offline and response time | `/messages` | `MessagesPage` | Conversation participant status | Participant row | Signed session token | Partial | None | Present | Generic | Generic | Missing | Missing | None | PARTIAL | Last-seen behavior not real |
 | MSG-08 | Read receipts | Read timestamp vs delivered | `/messages/{id}` | `ConversationPanel` | Mark read API | Participant/message rows | Signed session token | Participant check | Broad backend | Present | Generic | Generic | Missing | Missing | Broad | PARTIAL | UI shows status but not complete read receipt behavior |
@@ -191,7 +199,7 @@ No audited screen receives PASS in this phase because the repository does not co
 | ADM-04 | Property moderation | Approve/suppress/remove/flag history | `/admin/ops/properties` expected; actual map uses `moderation` only for ADM-04 | `AdminOpsSpecPage` | Generic admin cases | `MilestoneAdminCases` | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | Route mapping wrong for `/properties`; no property moderation model |
 | ADM-05 | Reservations overview | Timeline/override reason/audit | `/admin/ops/reservations` | `AdminOpsSpecPage` | Generic cases | Cases/audit | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | No reservation override service |
 | ADM-06 | Payments & transactions | Stripe refunds/payout/reconciliation | `/admin/ops/refunds` required, current `payments` map | `AdminOpsSpecPage` | Generic cases | Cases/audit | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | Route mapping and refund domain missing |
-| ADM-07 | Disputes | Evidence, full/partial/dismiss | `/admin/ops/disputes` | `AdminOpsSpecPage` | Generic cases | Cases/audit | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | No evidence uploads/refund decisions |
+| ADM-07 | Disputes | Evidence, full/partial/dismiss | `/admin/ops/disputes` | `AdminOpsSpecPage` with evidence upload surface | Generic cases plus admin evidence upload APIs | Cases/audit/admin evidence uploads | Admin | Admin policy and case/evidence ownership checks on current upload surface | Broad generic plus upload/security slice and Playwright smoke | Present | Generic | Generic | Smoke only | `artifacts/m1-m2-visual/ADM` smoke only | Broad | PARTIAL | Evidence upload pipeline exists; full dispute/refund decisions and domain-specific workflow remain incomplete |
 | ADM-08 | Support tickets | SLA/assign/internal notes/closure | `/admin/ops/support` | `AdminOpsSpecPage` | Generic cases | Cases/audit | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | No support-ticket model/SLA |
 | ADM-09 | Reports & exports | Reports/compliance/scheduled email | `/admin/ops/audit`, `/admin/reports` | `AdminOpsSpecPage`, `AdminReportsPage` | Generic audit/static | Cases/audit | Admin/static | Partial | Broad audit | Mixed | Generic | Generic | Missing | Missing | Broad | FAIL | Route mapping wrong for audit; scheduled reports static |
 | ADM-10 | Fraud detection | Risk scoring, ban/whitelist/case | `/admin/ops/fraud` | `AdminOpsSpecPage` | Generic cases | Cases/audit | Admin | Admin policy | Broad generic | Present | Generic | Generic | Missing | Missing | Broad | FAIL | No risk scoring/ban/whitelist |
@@ -215,11 +223,11 @@ No audited screen receives PASS in this phase because the repository does not co
 4. Admin token handling was unsafe in the frontend at baseline. This pass removes the `dev-admin-token` default and `localStorage` persistence.
 5. OTP and 2FA secrets are still returned and displayed. Register/login responses expose codes, auth flow responses expose codes/tokens, and the UI instructs users to use demo/local codes.
 6. TOTP is not implemented. The UI placeholder is not a real QR/URI, and recovery codes are generated with GUID-derived values and returned in plaintext.
-7. Messaging file upload is metadata-only. There is no upload endpoint, allowlist validation, size enforcement, signed URL, expiry, progress, or retry.
+7. File upload pipelines now exist for message attachments, property photos, wellness report photos, identity documents, admin case evidence, and profile photos, but full UI state evidence, download/access coverage, expiry proof, scan-provider behavior, and every DOCX upload state are still incomplete.
 8. Several ownership requirements are still missing or incomplete: host review replies do not verify property ownership, pricing/promotions do not verify property ownership, provider profile upsert lacks provider ownership, and property creation/editing still need host ownership enforcement.
 9. Admin operations are generic cases rather than domain-specific user/property/refund/dispute/support/fraud services.
-10. Visual and frontend automated evidence is missing for all DOCX screens.
+10. Visual and frontend automated evidence is still incomplete for most DOCX screens; representative Playwright smoke evidence now exists for 19 screen/view states only.
 
-## Phase 1 Verdict
+## Current Verdict
 
-M1/M2 are not complete. The implementation contains useful scaffolding and some persisted milestone data, but the strict DOCX criteria are not met. Critical security blockers must be fixed before visual/page completion can be credibly claimed.
+M1/M2 are not complete. The implementation contains useful scaffolding, persisted milestone data, multiple secured upload slices, representative Playwright coverage, and CI workflow scaffolding, but the strict DOCX criteria are not met. Critical security, ownership, payment, admin-domain, interaction-state, and full visual evidence gaps remain.

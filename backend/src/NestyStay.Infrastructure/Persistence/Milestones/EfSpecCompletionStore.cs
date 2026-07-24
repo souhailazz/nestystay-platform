@@ -2,6 +2,7 @@ using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
@@ -1537,7 +1538,7 @@ public sealed class EfSpecCompletionStore(
                 Provider("guest-verification-upsell", "Verification", "Guest verification", "Guest Verification Upsell", "All Jamaica", "Verified", "NEVER automatic. Host pays $0.14 per booking, guest pays nothing.", "Available per property"));
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveSeedChangesAsync(cancellationToken);
     }
 
     private async Task SeedTravelerAsync(Guid userId, CancellationToken cancellationToken)
@@ -1556,7 +1557,7 @@ public sealed class EfSpecCompletionStore(
                 Notification(userId, "Payments", "Receipt available", "Payment receipt can be downloaded from traveler payments.", "/traveler/payments"),
                 Notification(userId, "Messages", "Host replied", "Island Villa Hosting sent a platform message.", "/messages"));
         }
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveSeedChangesAsync(cancellationToken);
     }
 
     private async Task SeedMessagingAsync(Guid userId, CancellationToken cancellationToken)
@@ -1685,6 +1686,21 @@ public sealed class EfSpecCompletionStore(
         DeepLink = link,
         CreatedAt = timeProvider.GetUtcNow()
     };
+
+    private async Task SaveSeedChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraintRace(exception))
+        {
+            db.ChangeTracker.Clear();
+        }
+    }
+
+    private static bool IsUniqueConstraintRace(DbUpdateException exception) =>
+        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     private MilestoneAdminCase Case(string type, string subject, Guid? subjectId, string priority, string reason, string assignedTo) => new()
     {

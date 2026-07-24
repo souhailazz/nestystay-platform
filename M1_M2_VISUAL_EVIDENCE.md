@@ -1,18 +1,30 @@
 # M1/M2 Visual Evidence
 
-Audit date: 2026-07-23
+Audit date: 2026-07-24
 
 Branch: `audit/m1-m2-remediation`
 
 Baseline commit audited: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
-Remediation commit: `214f623ef6dd71e3564f9744d7a3cf3d05f886ef`
+Current evidence scope: representative Playwright smoke screenshots for selected M1/M2 routes. This is not the full DOCX visual acceptance set.
 
-CI/visual automation evidence: Not run in this session.
+Verdict: PARTIAL / NOT COMPLETE.
 
-Verdict: FAIL.
+## New Evidence Set
 
-Existing image artifacts in the repository are broad QA screenshots, not a complete DOCX screen-by-screen evidence set. The strict requirement calls for desktop, tablet, and mobile visual evidence for every DOCX M1/M2 screen, plus interaction-state evidence where applicable.
+| Artifact path | Count | Notes |
+| --- | ---: | --- |
+| `artifacts/m1-m2-visual/ADM` | 3 | Admin dispute route after admin token entry. |
+| `artifacts/m1-m2-visual/AUTH` | 6 | Login and register representative routes. |
+| `artifacts/m1-m2-visual/DIR` | 3 | Provider directory/dashboard route. |
+| `artifacts/m1-m2-visual/ERR` | 3 | 404 route. |
+| `artifacts/m1-m2-visual/HOST` | 9 | Host dashboard, properties, and pricing routes. |
+| `artifacts/m1-m2-visual/HPRO` | 3 | Host profile edit route. |
+| `artifacts/m1-m2-visual/MSG` | 3 | Messaging inbox route. |
+| `artifacts/m1-m2-visual/PUB` | 12 | Home, explore, map, and experiences routes. |
+| `artifacts/m1-m2-visual/TRAV` | 15 | Traveler dashboard, payments, invoices, identity, and profile-photo upload state. |
+
+Total screenshots: 57 PNG files, captured by `npm run test:e2e` across desktop Chromium, tablet Chromium, and mobile Chromium.
 
 ## Existing Broad Artifacts
 
@@ -27,10 +39,10 @@ Existing image artifacts in the repository are broad QA screenshots, not a compl
 
 ## Missing Evidence
 
-No complete visual set exists for AUTH-01 through AUTH-10, BOOK-01 through BOOK-10, TRAV-01 through TRAV-16, HOST-01 through HOST-13, HPRO-01 through HPRO-05, DIR-01 through DIR-06, MSG-01 through MSG-09, ADM-01 through ADM-11, or ERR-01 through ERR-10.
+The complete visual matrix is still missing. The repository does not yet contain desktop, tablet, and mobile screenshots for every DOCX M1/M2 screen, nor the required interaction-state screenshots for dialogs, loading states, empty states, error states, booking checkout/payment states, upload progress/retry states, admin moderation actions, protected 401/403 routes, and keyboard/focus states.
 
-Missing visual dimensions include desktop/tablet/mobile variants, loading/empty/error states, keyboard/focus states, dialog open/close states, booking checkout states, file-upload states, admin moderation states, and protected-route 401/403 states.
+The new Playwright smoke suite covers representative routes only. It does not convert any screen family to PASS by itself.
 
 ## Visual Verdict
 
-Do not mark any M1/M2 screen PASS until per-screen desktop/tablet/mobile screenshots and interaction-state screenshots are generated and reviewed against the DOCX.
+Do not mark M1/M2 visual acceptance PASS until every DOCX screen has matching desktop/tablet/mobile screenshots and the interaction states are reviewed against the specification.

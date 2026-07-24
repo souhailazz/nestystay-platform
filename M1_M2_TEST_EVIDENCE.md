@@ -1,47 +1,49 @@
 # M1/M2 Test Evidence
 
-Audit date: 2026-07-23
+Audit date: 2026-07-24
 
 Branch: `audit/m1-m2-remediation`
 
 Baseline commit audited: `5465ba77308c17245cfa06b1a29f231104e037b9`
 
-Remediation commit: `214f623ef6dd71e3564f9744d7a3cf3d05f886ef`
+Current evidence scope: incremental local verification for the Playwright/CI evidence slice. The exact commit SHA is the branch head containing this report update.
 
-CI evidence: Not run in this session. All results below are local evidence from `C:\Users\Administrator\Desktop\nestystayPLATFORM`.
+CI evidence: a new GitHub Actions workflow exists at `.github/workflows/m1-m2-acceptance.yml`; it will not produce hosted results until pushed. All command results below are local evidence from `C:\Users\Administrator\Desktop\nestystayPLATFORM`.
 
-## Required Command Output Summary
+## 2026-07-24 Command Output Summary
 
 | Command | Result |
 | --- | --- |
-| `dotnet build backend\NestyStay.sln` | Exit 0 after earlier stale local API lock was stopped. `Build succeeded. 0 Warning(s) 0 Error(s)`. |
-| `dotnet test backend\NestyStay.sln` | Exit 0. Domain 5 passed, Application 16 passed, Infrastructure 5 passed, API 17 passed. |
-| `dotnet build backend\NestyStay.sln -c Release` | Exit 0. `Build succeeded. 0 Warning(s) 0 Error(s)`. |
-| `dotnet test backend\NestyStay.sln -c Release` | Exit 0. Domain 5 passed, Application 16 passed, Infrastructure 5 passed, API 17 passed. |
-| `dotnet list backend\NestyStay.sln package --vulnerable --include-transitive` | Exit 0. No vulnerable packages reported for all backend projects. |
-| `cd frontend; npm audit` | Exit 0. `found 0 vulnerabilities`. |
+| `dotnet build backend\src\NestyStay.Api\NestyStay.Api.csproj --configuration Debug` | Exit 0. `Build succeeded. 0 Warning(s) 0 Error(s)`. |
+| `dotnet test backend\tests\NestyStay.Api.Tests\NestyStay.Api.Tests.csproj --configuration Debug --no-build` | Exit 0. API tests: 26 passed. |
 | `cd frontend; npm run typecheck` | Exit 0. `tsc -b`. |
 | `cd frontend; npm run lint` | Exit 0. `eslint "src/**/*.{ts,tsx}"`. |
-| `cd frontend; npm test` | Exit 0. Vitest 1 file / 3 tests passed. |
-| `cd frontend; npm run build` | Exit 0. `tsc -b && vite build`; Vite transformed 2016 modules and built successfully. |
+| `cd frontend; npm test` | Exit 0. Vitest `src` suite: 1 file, 13 tests passed. |
+| `cd frontend; npm run build` | Exit 0. `tsc -b && vite build`; Vite transformed 2065 modules and built successfully. |
+| `cd frontend; npm run test:e2e` | Exit 0. Playwright: 9 tests passed across desktop, tablet, and mobile Chromium projects. |
 | `git diff --check` | Exit 0; only CRLF normalization warnings were emitted. |
-| `git grep -n -E "dev-admin-token|local-phase1-token|local-google-token"` | Exit 0 with two intentional negative assertions in backend tests; no runtime app-code acceptance path found. |
-| `rg -n "dev-admin-token|local-phase1-token|local-google-token|sk_live_|pk_live_|BEGIN (RSA|OPENSSH|PRIVATE) KEY" .` | Exit 0 with historical report text and explicit rejection tests only for legacy tokens; no live payment/private-key secret patterns found. |
+| `git grep -n -E "sk_live_|pk_live_|BEGIN (RSA|OPENSSH|PRIVATE) KEY" -- .` | Exit 0 with historical report text only; no live payment/private-key secret patterns found. |
+| `git grep -n -E "dev-admin-token|local-phase1-token|local-google-token" -- .` | Exit 0 with historical report text, development config hashes, and explicit negative tests only; no runtime app-code acceptance path found. |
 
 ## Automated Tests Added Or Updated
 
 | Test file | Evidence |
 | --- | --- |
-| `backend/tests/NestyStay.Application.Tests/PhaseOneWorkflowTests.cs` | Verifies issued session tokens no longer use `local-phase1-token-*` or `local-google-token-*`. |
-| `backend/tests/NestyStay.Api.Tests/SignedAccessTokenSecurityTests.cs` | Verifies missing tokens, legacy predictable tokens, expired tokens, modified payloads, bad signatures, and signed non-admin tokens are rejected; verifies configured admin token is accepted; verifies Production requires a strong session token secret and Development can run without it. |
-| `backend/tests/NestyStay.Api.Tests/HealthEndpointTests.cs` | Verifies unauthenticated booking list rejection, client-submitted `guestUserId` override, cross-user booking-detail rejection, traveler direct verification-result rejection, traveler capture forbidden, and host capture after approval. |
-| `backend/tests/NestyStay.Api.Tests/SpecCompletionEndpointTests.cs` | Uses signed test bearer tokens instead of local GUID-derived tokens for traveler, host, messaging, directory, and admin-path coverage. |
-| `frontend/src/lib/api.test.ts` | Verifies API client bearer-token headers, no Authorization header when token omitted, JSON request bodies, and `ApiError` propagation with status codes. |
+| `frontend/e2e/m1-m2-acceptance-smoke.spec.ts` | Seeds local spec data, creates signed traveler/host sessions via the real auth flow, captures representative public/auth/traveler/host/profile/directory/message/admin/error screens, verifies profile photo upload, and fails on page console errors. |
+| `frontend/playwright.config.ts` | Runs desktop, tablet, and mobile Chromium projects, starts the API and Vite dev server, writes screenshots under `artifacts/m1-m2-visual`, and keeps failure traces under `artifacts/playwright-results`. |
+| `.github/workflows/m1-m2-acceptance.yml` | Adds pull-request/push CI for backend Debug/Release build/test, package scans, migrations, frontend audit/typecheck/lint/test/build, and Playwright artifact upload. |
+| `backend/src/NestyStay.Infrastructure/Persistence/Milestones/EfSpecCompletionStore.cs` | Hardens spec/traveler seed writes against concurrent duplicate-key races observed during parallel Playwright route loads. |
+| `frontend/src/pages/CompletionPages.tsx` | Avoids unauthenticated admin operations fetches until an admin token is entered, preventing protected-route 401 console noise in visual smoke runs. |
+| `frontend/package.json` | Keeps Vitest scoped to `src` so Playwright specs are executed only by Playwright. |
+
+## Evidence Delta
+
+The repository now has representative Playwright coverage and visual artifacts for 19 screen/view states across 9 families: PUB, AUTH, TRAV, HOST, HPRO, DIR, MSG, ADM, and ERR. This is real progress, not full acceptance.
 
 ## Missing Required Test Coverage
 
-Playwright E2E, keyboard-navigation, dialog focus trapping, route-authorization tests, visual screenshot checks, file-upload validation, Stripe Elements, webhook signature/replay, admin domain-operation tests, and per-screen loading/empty/error/mobile tests are still missing.
+The complete DOCX acceptance suite is still missing. Remaining gaps include screen-by-screen Playwright coverage for every M1/M2 row, keyboard-navigation checks, dialog focus trapping, route-authorization tests for every protected view, visual review of every desktop/tablet/mobile screenshot, full payment/Stripe Elements flows, complete webhook signature/replay coverage, domain-specific admin operation tests, and per-screen loading/empty/error/mobile interaction tests.
 
 ## Test Verdict
 
-PARTIAL. Backend and basic frontend local checks now pass, but the full DOCX acceptance suite still does not exist. Do not claim M1/M2 complete.
+PARTIAL. Local backend, frontend, and representative Playwright checks pass, and CI workflow coverage has been added. M1/M2 still must not be marked complete until the full DOCX screen matrix and interaction-state evidence pass.
