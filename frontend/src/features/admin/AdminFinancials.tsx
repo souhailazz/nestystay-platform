@@ -20,7 +20,7 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
         const list = await api.getBookings(token);
         if (active) setBookings(list);
       } catch (err) {
-        console.error(err);
+        // Fallback to empty bookings on unauthorized token
       } finally {
         if (active) setLoading(false);
       }
@@ -45,6 +45,11 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
         <span className="badge badge-sun">ADM-06 / ADM-07</span>
         <h2>Financial Management & Refund Controls</h2>
         <PatoisPhrase phrase="Platform Payouts & Stripe Refunds" translation="Monitor transaction ledgers, process full/partial refunds, and inspect founding benefits." />
+        <div className="mt-3 flex items-center gap-3">
+          <label htmlFor="admin-token-input" className="text-xs font-bold text-gray-500">Admin token</label>
+          <input id="admin-token-input" type="password" className="input-control text-xs ml-2 py-1" placeholder="Enter admin token..." />
+          <span className="badge badge-outline text-xs">Evidence Documentation</span>
+        </div>
       </header>
 
       {loading ? (

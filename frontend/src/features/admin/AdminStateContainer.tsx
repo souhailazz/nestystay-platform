@@ -26,7 +26,7 @@ export function AdminStateContainer({ view, auth }: AdminStateContainerProps) {
     return <AdminProperties view={view} token={token} />;
   }
 
-  if (view === "financials" || view === "refunds" || view === "ledgers") {
+  if (view === "financials" || view === "refunds" || view === "ledgers" || view === "disputes") {
     return <AdminFinancials view={view} token={token} />;
   }
 
