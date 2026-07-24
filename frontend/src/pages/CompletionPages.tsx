@@ -40,6 +40,7 @@ import { BookingStateContainer } from "../features/booking/BookingStateContainer
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
 import { AdminStateContainer } from "../features/admin/AdminStateContainer";
+import { PublicStateContainer } from "../features/public/PublicStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -121,32 +122,7 @@ function HeroImage({ index = 0, alt = "" }: { index?: number; alt?: string }) {
 }
 
 export function PublicContentRoute({ slug }: { slug: string }) {
-  const state = useAsync(() => api.getPublicPage(slug), [slug]);
-  const isContact = slug === "contact";
-  return (
-    <DataGate state={state}>
-      {(page) => (
-        <CompletionShell id={screenForPage(page)} eyebrow={page.kind} title={page.title} copy={page.summary}>
-          <section className="product-section details-layout">
-            <div className="details-copy">
-              <p>{page.body}</p>
-              <div className="highlight-list highlight-list--large">
-                {page.sections.map((section) => (
-                  <span key={section}><Check size={14} /> {section}</span>
-                ))}
-              </div>
-              <div className="button-row">
-                {page.links.map((link) => (
-                  <AppLink className={buttonClassName("outline")} href={link} key={link}>{link}</AppLink>
-                ))}
-              </div>
-            </div>
-            {isContact ? <ContactForm /> : <HeroImage index={slug.length % 4} alt={page.title} />}
-          </section>
-        </CompletionShell>
-      )}
-    </DataGate>
-  );
+  return <PublicStateContainer view={slug} />;
 }
 
 function ContactForm() {

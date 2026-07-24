@@ -47,6 +47,7 @@ import { useProperties, useProperty } from "../hooks/useProperties";
 import { getStayImage } from "../lib/stayImages";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
+import { PublicStateContainer } from "../features/public/PublicStateContainer";
 import {
   api,
   formatMoney,
@@ -214,83 +215,7 @@ function RequireAuth({ auth, title }: { auth: AuthController; title: string }) {
 }
 
 export function ExplorePage({ auth }: { auth: AuthController }) {
-  const { properties, isLoading, error, reload } = useProperties();
-  const [query, setQuery] = useState("");
-  const [badge, setBadge] = useState("all");
-  const [bookingProperty, setBookingProperty] = useState<PropertyListing | null>(null);
-
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return properties.filter((property) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        [property.title, property.location, property.country, property.hostName]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
-      const matchesBadge = badge === "all" || property.badgeLevel === badge;
-      return matchesQuery && matchesBadge;
-    });
-  }, [badge, properties, query]);
-
-  return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Explore stays"
-        title="Find your next tropical base."
-        copy="Live listings come from the backend properties API and stay in sync with host-created homes."
-        actions={
-          <AppLink className={buttonClassName("sun")} href="/host/properties">
-            <Plus size={17} /> List your property
-          </AppLink>
-        }
-      />
-
-      <AnimatedSection>
-      <section className="product-section">
-        <div className="search-panel">
-          <Field label="Search">
-            <Input
-              placeholder="Parish, host, or stay name"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </Field>
-          <Field label="Host badge">
-            <Select value={badge} onChange={(event) => setBadge(event.target.value)}>
-              <option value="all">All badges</option>
-              <option value="Free">Free</option>
-              <option value="Verified">Verified</option>
-              <option value="Trusted">Trusted</option>
-              <option value="Wellness">Wellness</option>
-            </Select>
-          </Field>
-          <Button onClick={reload} variant="dark">
-            <Search size={17} /> Refresh
-          </Button>
-        </div>
-
-        {isLoading && <LoadingState label="Loading properties from the API" />}
-        {error && <ErrorState message={error} onRetry={reload} />}
-        {!isLoading && !error && filtered.length === 0 && (
-          <EmptyState title="No stays match that search." copy="Try a different parish, badge, or host." />
-        )}
-        <div className="stay-result-grid">
-          {filtered.map((property, index) => (
-            <ProductCard key={property.id} property={property} index={index} onBook={setBookingProperty} />
-          ))}
-        </div>
-      </section>
-      </AnimatedSection>
-
-      <BookingModal
-        open={Boolean(bookingProperty)}
-        property={bookingProperty}
-        session={auth.session}
-        onClose={() => setBookingProperty(null)}
-      />
-    </div>
-  );
+  return <PublicStateContainer view="search" />;
 }
 
 export function PropertyDetailsPage({
@@ -300,82 +225,7 @@ export function PropertyDetailsPage({
   auth: AuthController;
   propertyId?: string;
 }) {
-  const { property, isLoading, error } = useProperty(propertyId);
-  const [bookingOpen, setBookingOpen] = useState(false);
-
-  return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Property details"
-        title={property?.title ?? "Stay details"}
-        copy={
-          property
-            ? `${property.location}, ${property.country} hosted by ${property.hostName}.`
-            : "Loading a live property record from the API."
-        }
-        actions={
-          property && (
-            <Button onClick={() => setBookingOpen(true)}>
-              Book this stay <ArrowRight size={17} />
-            </Button>
-          )
-        }
-      />
-
-      {property?.country.toLowerCase() === "jamaica" && (
-        <section className="product-section product-section--compact">
-          <div className="emergency-119-badge">
-            <ShieldCheck size={18} />
-            Jamaica Emergency: 119
-          </div>
-        </section>
-      )}
-
-      <section className="product-section">
-        {isLoading && <LoadingState label="Loading property details" />}
-        {error && <ErrorState message={error} />}
-        {property && (
-          <div className="details-layout">
-            <div className="details-visual">
-              <MiniPropertyArt index={1} title={property.title} />
-            </div>
-            <div className="details-copy">
-              <div className="details-copy__badges">
-                <StatusBadge value={`${property.badgeLevel} host`} />
-                <StatusBadge value={property.guestVerificationEnabled ? "eKYC required" : "No eKYC required"} />
-                <StatusBadge value={property.insuraGuestEnabled ? "InsuraGuest" : "Standard cover"} />
-              </div>
-              <h2>{formatMoney(property.nightlyRate, property.currency)} per night</h2>
-              <p>
-                {property.cancellationPolicy} cancellation. This page is backed by{" "}
-                <code>GET /api/properties/{property.id}</code>.
-              </p>
-              <div className="highlight-list highlight-list--large">
-                {property.highlights.map((highlight) => (
-                  <span key={highlight}>
-                    <Check size={14} /> {highlight}
-                  </span>
-                ))}
-              </div>
-              <div className="button-row">
-                <Button onClick={() => setBookingOpen(true)}>Open booking flow</Button>
-                <AppLink className={buttonClassName("outline")} href="/calendar">
-                  Check calendar
-                </AppLink>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <BookingModal
-        open={bookingOpen}
-        property={property}
-        session={auth.session}
-        onClose={() => setBookingOpen(false)}
-      />
-    </div>
-  );
+  return <PublicStateContainer view="detail" propertyId={propertyId} />;
 }
 
 export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?: "login" | "register" }) {
