@@ -41,6 +41,7 @@ import { TravelerStateContainer } from "../features/traveler/TravelerStateContai
 import { HostStateContainer } from "../features/host/HostStateContainer";
 import { AdminStateContainer } from "../features/admin/AdminStateContainer";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
+import { MessagingStateContainer } from "../features/messaging/MessagingStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -1079,7 +1080,7 @@ async function downloadBookingDocument(load: () => Promise<BookingDocumentDownlo
 }
 
 export function MessagesPage({ auth, conversationId }: { auth: AuthController; conversationId?: string }) {
-  return <RequireSession auth={auth}>{(session) => <MessagesWorkspace userId={session.userId} token={session.accessToken} conversationId={conversationId} />}</RequireSession>;
+  return <MessagingStateContainer auth={auth} />;
 }
 
 function MessagesWorkspace({ userId, token, conversationId }: { userId: string; token: string; conversationId?: string }) {
