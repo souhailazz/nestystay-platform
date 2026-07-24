@@ -38,6 +38,7 @@ import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
+import { HostStateContainer } from "../features/host/HostStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -1466,7 +1467,7 @@ function HostProfileEditor({ session }: { session: NonNullable<AuthController["s
 }
 
 export function HostSpecPage({ view, auth }: { view: string; auth: AuthController }) {
-  return <RequireSession auth={auth}>{(session) => <HostOps view={view} hostUserId={session.userId} token={session.accessToken} />}</RequireSession>;
+  return <HostStateContainer view={view} auth={auth} />;
 }
 
 function HostOps({ view, hostUserId, token }: { view: string; hostUserId: string; token: string }) {

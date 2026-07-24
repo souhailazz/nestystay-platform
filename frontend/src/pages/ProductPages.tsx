@@ -46,6 +46,7 @@ import type { AuthController } from "../hooks/useAuth";
 import { useProperties, useProperty } from "../hooks/useProperties";
 import { getStayImage } from "../lib/stayImages";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
+import { HostStateContainer } from "../features/host/HostStateContainer";
 import {
   api,
   formatMoney,
@@ -786,7 +787,7 @@ function GuestDashboardContent({ auth }: { auth: AuthController }) {
 
 export function HostDashboardPage({ auth }: { auth: AuthController }) {
   if (!auth.session) return <RequireAuth auth={auth} title="Host dashboard needs an active session." />;
-  return <HostDashboardContent auth={auth} />;
+  return <HostStateContainer view="analytics" auth={auth} />;
 }
 
 function HostDashboardContent({ auth }: { auth: AuthController }) {
