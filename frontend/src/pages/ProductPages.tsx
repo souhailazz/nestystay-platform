@@ -45,6 +45,7 @@ import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
 import { useProperties, useProperty } from "../hooks/useProperties";
 import { getStayImage } from "../lib/stayImages";
+import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import {
   api,
   formatMoney,
@@ -737,7 +738,7 @@ function MetricCard({
 
 export function GuestDashboardPage({ auth }: { auth: AuthController }) {
   if (!auth.session) return <RequireAuth auth={auth} title="Guest dashboard needs an active session." />;
-  return <GuestDashboardContent auth={auth} />;
+  return <TravelerStateContainer view="dashboard" auth={auth} />;
 }
 
 function GuestDashboardContent({ auth }: { auth: AuthController }) {

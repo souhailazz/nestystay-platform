@@ -37,6 +37,7 @@ import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type Ad
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
+import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -637,11 +638,7 @@ export function BookingSpecStatePage({ state, auth, bookingId }: { state: string
 }
 
 export function TravelerSpecPage({ view, auth }: { view: string; auth: AuthController }) {
-  return (
-    <RequireSession auth={auth}>
-      {(session) => <TravelerWorkspaceView view={view} userId={session.userId} token={session.accessToken} />}
-    </RequireSession>
-  );
+  return <TravelerStateContainer view={view} auth={auth} />;
 }
 
 function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: string; token: string }) {
