@@ -36,6 +36,7 @@ import type { AuthController } from "../hooks/useAuth";
 import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
+import { BookingStateContainer } from "../features/booking/BookingStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -632,64 +633,7 @@ function JournalDetail({ article }: { article: JournalArticle }) {
 }
 
 export function BookingSpecStatePage({ state, auth, bookingId }: { state: string; auth: AuthController; bookingId?: string }) {
-  const bookings = useAsync(() => auth.session ? api.getBookings(auth.session.accessToken) : Promise.resolve([]), [auth.session?.accessToken, state]);
-  const [notice, setNotice] = useState<string | null>(null);
-  const booking = useMemo(() => bookings.data?.find((item) => item.id === bookingId) ?? bookings.data?.[0] ?? null, [bookings.data, bookingId]);
-  const ids: Record<string, string> = { review: "BOOK-02", checkout: "BOOK-03", success: "BOOK-04", failure: "BOOK-05", rejected: "BOOK-06", pending: "BOOK-07", cancelled: "BOOK-08", invoice: "BOOK-09", receipt: "BOOK-10" };
-
-  async function capture() {
-    if (!booking) return;
-    if (!auth.session) throw new Error("A signed host or admin session is required.");
-    const updated = await api.capturePayment(booking.id, auth.session.accessToken);
-    setNotice(`Payment status: ${updated.paymentStatus}`);
-    bookings.reload();
-  }
-
-  async function downloadDocument(kind: "invoice" | "receipt") {
-    if (!booking) return;
-    if (!auth.session) throw new Error("A signed session is required.");
-    const file = kind === "invoice"
-      ? await api.downloadBookingInvoice(booking.id, auth.session.accessToken)
-      : await api.downloadBookingReceipt(booking.id, auth.session.accessToken);
-    const url = URL.createObjectURL(file.blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setNotice(`${kind === "invoice" ? "Invoice" : "Receipt"} ready: ${file.fileName}`);
-  }
-
-  return (
-    <CompletionShell id={ids[state] ?? "BOOK-01"} eyebrow="Booking flow" title={`Booking ${state}`} copy="Connected booking/payment state page using persisted booking data.">
-      <DataGate state={bookings}>
-        {() => booking ? (
-          <section className="product-section management-layout">
-            <Card className="payment-card">
-              <Badge tone={booking.status === "APPROVED" ? "green" : booking.status === "REJECTED" ? "coral" : "sun"}>{booking.status}</Badge>
-              <h2>{booking.propertyTitle}</h2>
-              <p>{booking.checkIn} to {booking.checkOut} - {booking.nights} nights</p>
-              <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong>
-              <div className="spec-table-wrap">
-                <table className="spec-table"><tbody>{booking.priceBreakdown.map((line) => <tr key={line.code}><td>{line.description}</td><td>{formatMoney(line.amount, line.currency)}</td></tr>)}</tbody></table>
-              </div>
-              {state === "checkout" && <Button onClick={capture}><CreditCard size={17} /> Confirm and capture</Button>}
-              {state === "invoice" && <Button onClick={() => downloadDocument("invoice")}><Download size={17} /> Download invoice</Button>}
-              {state === "receipt" && <Button onClick={() => downloadDocument("receipt")}><Download size={17} /> Download receipt</Button>}
-              {notice && <div className="notice-panel">{notice}</div>}
-            </Card>
-            <Card className="settings-card">
-              <PatoisPhrase phrase={state === "pending" ? "Nuh Fret" : state === "success" ? "Irie!" : state === "failure" ? "Dutty Tough" : state === "cancelled" ? "Suh It Guh" : "Straight!"} translation="The matching English confirmation stays visible in the standard copy." />
-              <h3>Status timeline</h3>
-              <ul>{booking.timeline.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
-            </Card>
-          </section>
-        ) : <EmptyState title="No booking is available yet." action={<AppLink className={buttonClassName("sun")} href="/explore">Create a booking</AppLink>} />}
-      </DataGate>
-    </CompletionShell>
-  );
+  return <BookingStateContainer state={state} bookingId={bookingId} auth={auth} />;
 }
 
 export function TravelerSpecPage({ view, auth }: { view: string; auth: AuthController }) {

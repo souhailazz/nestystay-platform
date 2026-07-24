@@ -138,6 +138,8 @@ export type PropertyListing = {
   cancellationPolicy: string;
   highlights: string[];
   isArchived?: boolean;
+  minimumNights?: number;
+  imageUrl?: string;
 };
 
 export type PropertyPhotoUpload = {
@@ -253,10 +255,16 @@ export type BookingQuoteRequest = {
   propertyId: string;
   checkIn: string;
   checkOut: string;
+  adults?: number;
+  children?: number;
+  accessibilityNeeds?: string;
+  protectionPlan?: string;
 };
 
 export type CreateBookingRequest = BookingQuoteRequest & {
   guestUserId: string;
+  billingCountry?: string;
+  termsAccepted?: boolean;
   ekycMetaInfo?: string;
   documentType?: string;
   ekycCallbackUrl?: string;
@@ -1152,6 +1160,8 @@ export const api = {
     request<Booking[]>("/bookings", { token }),
   getBooking: (id: string, token?: string) => request<Booking>(`/bookings/${id}`, { token }),
   quoteBooking: (body: BookingQuoteRequest) =>
+    request<BookingQuote>("/bookings/quote", { method: "POST", body }),
+  getBookingQuote: (body: BookingQuoteRequest) =>
     request<BookingQuote>("/bookings/quote", { method: "POST", body }),
   createBooking: (body: CreateBookingRequest, token: string) =>
     request<Booking>("/bookings", { method: "POST", body, token }),
