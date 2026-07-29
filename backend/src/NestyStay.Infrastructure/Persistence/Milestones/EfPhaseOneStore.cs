@@ -2,7 +2,9 @@ using System.Globalization;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
+using NestyStay.Application.Admin;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Domain;
@@ -46,12 +48,15 @@ public sealed class EfPhaseOneStore(
     private const string TotpSecretPurpose = "MilestoneUser.TotpSecret";
     private const long MaximumProfilePhotoBytes = 10 * 1024 * 1024;
     private const long MaximumPropertyPhotoBytes = 10 * 1024 * 1024;
+    private const int BookingCreationPersistenceRetries = 3;
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan ProfilePhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan ProfilePhotoDownloadLifetime = TimeSpan.FromHours(24);
     private static readonly TimeSpan PropertyPhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan BookingCreationRateLimitWindow = TimeSpan.FromMinutes(NestyStayBusinessRules.BookingCreationRateLimitWindowMinutes);
+    private static readonly SemaphoreSlim NonRelationalBookingCreationGate = new(1, 1);
     private static readonly IReadOnlyDictionary<string, string[]> AllowedPropertyPhotoExtensions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
         ["image/jpeg"] = [".jpg", ".jpeg"],
@@ -80,6 +85,8 @@ public sealed class EfPhaseOneStore(
             Phone = request.Phone?.Trim(),
             TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
             IsTwoFactorEnabled = true,
+            Status = "Active",
+            AdminPermissionsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([]),
             RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([request.Role])
         };
 
@@ -139,6 +146,7 @@ public sealed class EfPhaseOneStore(
         {
             await db.SaveChangesAsync(cancellationToken);
             var directRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+            var directPermissions = ReadAdminPermissions(user);
             var directTokenExpiresAt = now.AddHours(8);
             return new LoginResponse(
                 user.Id,
@@ -148,7 +156,8 @@ public sealed class EfPhaseOneStore(
                 null,
                 _accessTokenService.Issue(user.Id, directRoles, directTokenExpiresAt),
                 directTokenExpiresAt,
-                directRoles);
+                directRoles,
+                directPermissions);
         }
 
         var expiresAt = now.AddMinutes(10);
@@ -297,6 +306,8 @@ public sealed class EfPhaseOneStore(
                 Phone = null,
                 TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
                 IsTwoFactorEnabled = true,
+                Status = "Active",
+                AdminPermissionsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([]),
                 RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([role])
             };
             db.MilestoneUsers.Add(user);
@@ -311,7 +322,8 @@ public sealed class EfPhaseOneStore(
             _accessTokenService.Issue(user.Id, MilestoneJson.DeserializeList<UserRole>(user.RolesJson), tokenExpiresAt),
             tokenExpiresAt,
             MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
-            "Google");
+            "Google",
+            ReadAdminPermissions(user));
     }
 
     public async Task<VerifyTwoFactorResponse> VerifyTwoFactorAsync(VerifyTwoFactorRequest request, CancellationToken cancellationToken)
@@ -341,11 +353,13 @@ public sealed class EfPhaseOneStore(
 
             var recoveryTokenExpiresAt = now.AddHours(8);
             var recoveryRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+            var recoveryPermissions = ReadAdminPermissions(user);
             return new VerifyTwoFactorResponse(
                 user.Id,
                 _accessTokenService.Issue(user.Id, recoveryRoles, recoveryTokenExpiresAt),
                 recoveryTokenExpiresAt,
-                recoveryRoles);
+                recoveryRoles,
+                recoveryPermissions);
         }
 
         var twoFactorSecret = UnprotectTotpSecret(user.TwoFactorSecret);
@@ -369,11 +383,13 @@ public sealed class EfPhaseOneStore(
 
         var tokenExpiresAt = now.AddHours(8);
         var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+        var permissions = ReadAdminPermissions(user);
         return new VerifyTwoFactorResponse(
             user.Id,
             _accessTokenService.Issue(user.Id, roles, tokenExpiresAt),
             tokenExpiresAt,
-            roles);
+            roles,
+            permissions);
     }
 
     public async Task<DisableTwoFactorResponse> DisableTwoFactorAsync(
@@ -599,6 +615,85 @@ public sealed class EfPhaseOneStore(
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
         return user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value;
+    }
+
+    public async Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        var user = await db.MilestoneUsers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        if (user is null ||
+            !MilestoneJson.DeserializeList<UserRole>(user.RolesJson).Contains(UserRole.Admin) ||
+            !user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) ||
+            user.LockoutEndsAt is not null && user.LockoutEndsAt > now ||
+            user.SessionInvalidatedAt is not null && issuedAt <= user.SessionInvalidatedAt.Value)
+        {
+            return null;
+        }
+
+        return new AdministratorSessionDto(
+            user.Id,
+            user.Email,
+            MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
+            ReadAdminPermissions(user));
+    }
+
+    public async Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken)
+    {
+        ValidateAdministratorBootstrap(request);
+        var email = request.Email.Trim().ToLowerInvariant();
+        var permissions = AdminPermissionCatalog.Normalize(request.Permissions, defaultToSuperAdministration: true);
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(
+            item => item.NormalizedEmail == email,
+            cancellationToken);
+
+        if (user is not null)
+        {
+            var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson).ToList();
+            if (!roles.Contains(UserRole.Admin))
+            {
+                roles.Add(UserRole.Admin);
+                user.RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>(roles);
+            }
+
+            if (ReadAdminPermissions(user).Count == 0)
+            {
+                user.AdminPermissionsJson = MilestoneJson.Serialize(permissions);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return new AdministratorBootstrapResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                ReadAdminPermissions(user),
+                false);
+        }
+
+        user = new MilestoneUser
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            NormalizedEmail = email,
+            PasswordHash = HashPassword(request.Password),
+            DisplayName = request.DisplayName.Trim(),
+            Phone = null,
+            TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
+            IsTwoFactorEnabled = request.RequireTwoFactor,
+            Status = "Active",
+            AdminPermissionsJson = MilestoneJson.Serialize(permissions),
+            RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([UserRole.Admin])
+        };
+
+        db.MilestoneUsers.Add(user);
+        await db.SaveChangesAsync(cancellationToken);
+        return new AdministratorBootstrapResponse(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            ReadAdminPermissions(user),
+            true);
     }
 
     public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
@@ -928,10 +1023,67 @@ public sealed class EfPhaseOneStore(
     public async Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var booking = await PersistCreatedBookingAsync(request, now, cancellationToken);
+
+        if (booking.RequiresGuestVerification)
+        {
+            await StartEkycAsync(booking, request, cancellationToken);
+        }
+        else
+        {
+            await QueueNotificationsAsync(booking, BuildApprovalNotifications(booking), cancellationToken);
+            await AuthorizePaymentAfterApprovalAsync(booking, cancellationToken);
+        }
+
+        return ToDto(booking);
+    }
+
+    private async Task<MilestoneBooking> PersistCreatedBookingAsync(
+        CreateBookingRequest request,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!SupportsSerializableTransactions())
+        {
+            await NonRelationalBookingCreationGate.WaitAsync(cancellationToken);
+            try
+            {
+                return await PersistCreatedBookingCoreAsync(request, now, cancellationToken);
+            }
+            finally
+            {
+                NonRelationalBookingCreationGate.Release();
+            }
+        }
+
+        for (var attempt = 1; attempt <= BookingCreationPersistenceRetries; attempt++)
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            try
+            {
+                var booking = await PersistCreatedBookingCoreAsync(request, now, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return booking;
+            }
+            catch (DbUpdateException) when (attempt < BookingCreationPersistenceRetries)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Booking could not be created after retrying a concurrent persistence conflict.");
+    }
+
+    private async Task<MilestoneBooking> PersistCreatedBookingCoreAsync(
+        CreateBookingRequest request,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
         var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
         var guest = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == request.GuestUserId, cancellationToken)
             ?? throw new InvalidOperationException("Guest user must register before booking.");
-        var now = timeProvider.GetUtcNow();
         var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
@@ -939,6 +1091,8 @@ public sealed class EfPhaseOneStore(
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
         }
+
+        await EnforceBookingCreationRateLimitAsync(guest.Id, now, cancellationToken);
 
         var requiresVerification = property.GuestVerificationEnabled;
         var booking = new MilestoneBooking
@@ -974,19 +1128,12 @@ public sealed class EfPhaseOneStore(
 
         db.MilestoneBookings.Add(booking);
         await db.SaveChangesAsync(cancellationToken);
-
-        if (booking.RequiresGuestVerification)
-        {
-            await StartEkycAsync(booking, request, cancellationToken);
-        }
-        else
-        {
-            await QueueNotificationsAsync(booking, BuildApprovalNotifications(booking), cancellationToken);
-            await AuthorizePaymentAfterApprovalAsync(booking, cancellationToken);
-        }
-
-        return ToDto(booking);
+        return booking;
     }
+
+    private bool SupportsSerializableTransactions() =>
+        db.Database.IsRelational() &&
+        !string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
 
     public async Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken)
     {
@@ -1013,18 +1160,19 @@ public sealed class EfPhaseOneStore(
 
         if (booking.Status != BookingStatus.PendingVerification)
         {
-            if ((request.Passed && booking.Status == BookingStatus.Approved && booking.VerificationStatus == VerificationStatus.Passed) ||
-                (!request.Passed && booking.Status == BookingStatus.Rejected && booking.VerificationStatus is VerificationStatus.Failed or VerificationStatus.Expired))
+            if (BookingPaymentStateMachine.IsIdempotentVerificationResolution(booking.Status, booking.VerificationStatus, request.Passed))
             {
                 return ToDto(booking);
             }
 
-            throw new InvalidOperationException("Verification can only be resolved for PENDING bookings.");
+            BookingPaymentStateMachine.EnsureVerificationCanResolve(booking.Status, booking.VerificationStatus, request.Passed);
         }
 
         IReadOnlyList<PendingNotification> notifications;
         if (!request.Passed)
         {
+            BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "resolve_verification");
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "resolve_verification", booking.Status);
             booking.Status = BookingStatus.Rejected;
             booking.VerificationStatus = VerificationStatus.Failed;
             booking.PaymentStatus = PaymentStatus.Cancelled;
@@ -1034,6 +1182,7 @@ public sealed class EfPhaseOneStore(
         }
         else
         {
+            BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Approved, "resolve_verification");
             booking.Status = BookingStatus.Approved;
             booking.VerificationStatus = VerificationStatus.Passed;
             booking.HoldExpiresAt = null;
@@ -1060,10 +1209,7 @@ public sealed class EfPhaseOneStore(
             return null;
         }
 
-        if (booking.Status != BookingStatus.Approved)
-        {
-            throw new InvalidOperationException("Stripe payment can only be captured after verification passes and booking is APPROVED.");
-        }
+        BookingPaymentStateMachine.EnsureCaptureCanStart(booking.Status, booking.PaymentStatus);
 
         if (booking.PaymentStatus == PaymentStatus.Captured)
         {
@@ -1095,9 +1241,12 @@ public sealed class EfPhaseOneStore(
             throw;
         }
 
+        BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, capture.Status, "capture_payment", booking.Status);
+        BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.PaymentCaptured, "capture_payment");
         booking.PaymentProvider = capture.ProviderName;
         booking.PaymentCaptureReference = capture.CaptureReference;
         booking.PaymentStatus = capture.Status;
+        booking.Status = BookingStatus.PaymentCaptured;
         CompletePaymentAttempt(attempt, capture.ProviderName, capture.CaptureReference, capture.Status);
         AddTimeline(booking, "Stripe payment captured after approval");
         await QueueNotificationsAsync(booking, BuildPaymentCapturedNotifications(booking), cancellationToken);
@@ -1119,14 +1268,15 @@ public sealed class EfPhaseOneStore(
             return ToDto(booking);
         }
 
-        if (booking.PaymentStatus != PaymentStatus.Captured)
-        {
-            throw new InvalidOperationException("Refunds require a captured payment.");
-        }
+        BookingPaymentStateMachine.EnsureRefundCanStart(booking.Status, booking.PaymentStatus);
 
         if (string.IsNullOrWhiteSpace(booking.PaymentCaptureReference))
         {
-            throw new InvalidOperationException("Refunds require a payment capture reference.");
+            throw new BookingStateConflictException(
+                "Refunds require a payment capture reference.",
+                "refund_payment",
+                booking.Status,
+                booking.PaymentStatus);
         }
 
         var amount = BookingRefundPolicy.ResolveAmount(request.Amount, booking.TotalAmount, booking.RefundedAmount);
@@ -1235,6 +1385,7 @@ public sealed class EfPhaseOneStore(
         {
             booking.Status = BookingStatus.Rejected;
             booking.VerificationStatus = VerificationStatus.Failed;
+            booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
             AddTimeline(booking, "Alibaba Cloud eKYC could not be started", "Dates released");
             await db.SaveChangesAsync(cancellationToken);
@@ -1272,6 +1423,7 @@ public sealed class EfPhaseOneStore(
             throw;
         }
 
+        BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, authorization.Status, "authorize_payment", booking.Status);
         booking.PaymentProvider = authorization.ProviderName;
         booking.PaymentAuthorizationReference = authorization.AuthorizationReference;
         booking.PaymentClientSecret = authorization.ClientSecret;
@@ -1840,6 +1992,35 @@ public sealed class EfPhaseOneStore(
         }
     }
 
+    private static void ValidateAdministratorBootstrap(AdministratorBootstrapRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password) ||
+            string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            throw new InvalidOperationException("Administrator email, password, and display name are required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(request.Email.Trim());
+            if (!address.Address.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("A valid administrator email address is required.");
+            }
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("A valid administrator email address is required.");
+        }
+
+        ValidatePasswordPolicy(request.Password);
+        _ = AdminPermissionCatalog.Normalize(request.Permissions, defaultToSuperAdministration: true);
+    }
+
+    private static IReadOnlyList<string> ReadAdminPermissions(MilestoneUser user) =>
+        AdminPermissionCatalog.Normalize(MilestoneJson.DeserializeList<string>(user.AdminPermissionsJson));
+
     private static string NormalizePasswordResetEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -2138,17 +2319,78 @@ public sealed class EfPhaseOneStore(
     private static string ToApiStatus<TStatus>(TStatus status) where TStatus : struct, Enum =>
         status.ToString().ToUpperInvariant();
 
+    private async Task EnforceBookingCreationRateLimitAsync(
+        Guid guestUserId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var bucket = await db.MilestoneBookingCreationRateLimits.SingleOrDefaultAsync(
+            item => item.GuestUserId == guestUserId,
+            cancellationToken);
+
+        if (bucket is null)
+        {
+            db.MilestoneBookingCreationRateLimits.Add(new MilestoneBookingCreationRateLimit
+            {
+                Id = Guid.NewGuid(),
+                GuestUserId = guestUserId,
+                WindowStartedAt = now,
+                WindowEndsAt = now.Add(BookingCreationRateLimitWindow),
+                RequestCount = 1,
+                LastRequestAt = now
+            });
+            return;
+        }
+
+        if (bucket.WindowEndsAt <= now)
+        {
+            bucket.WindowStartedAt = now;
+            bucket.WindowEndsAt = now.Add(BookingCreationRateLimitWindow);
+            bucket.RequestCount = 1;
+            bucket.LastRequestAt = now;
+            bucket.UpdatedAt = now;
+            return;
+        }
+
+        if (bucket.RequestCount >= NestyStayBusinessRules.BookingCreationRateLimitMaximum)
+        {
+            throw new RateLimitExceededException(
+                $"Too many booking requests. Try again in {FormatRetryAfter(bucket.WindowEndsAt - now)}.",
+                bucket.WindowEndsAt - now);
+        }
+
+        bucket.RequestCount++;
+        bucket.LastRequestAt = now;
+        bucket.UpdatedAt = now;
+    }
+
     private void ApplyPaymentWebhookToBooking(MilestoneBooking booking, PaymentWebhookUpdateRequest request)
     {
         booking.PaymentProvider = request.ProviderName;
+        if (!BookingPaymentStateMachine.ShouldApplyWebhookPaymentTransition(booking.PaymentStatus, request.Status))
+        {
+            AddTimeline(
+                booking,
+                $"Stripe webhook ignored {request.Status} for payment already {booking.PaymentStatus}: {request.ProviderEventId}");
+            return;
+        }
+
         switch (request.Status)
         {
             case PaymentStatus.Captured:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Captured, "stripe_webhook", booking.Status);
+                if (booking.Status == BookingStatus.Approved)
+                {
+                    BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.PaymentCaptured, "stripe_webhook");
+                    booking.Status = BookingStatus.PaymentCaptured;
+                }
+
                 booking.PaymentCaptureReference = request.ProviderReference ?? request.PaymentIntentReference;
                 booking.PaymentStatus = PaymentStatus.Captured;
                 AddTimeline(booking, $"Stripe webhook confirmed capture: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Refunded:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Refunded, "stripe_webhook", booking.Status);
                 booking.PaymentRefundReference = request.ProviderReference;
                 if (request.Amount is > 0m)
                 {
@@ -2168,10 +2410,12 @@ public sealed class EfPhaseOneStore(
                 AddTimeline(booking, $"Stripe webhook confirmed refund: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Failed:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Failed, "stripe_webhook", booking.Status);
                 booking.PaymentStatus = PaymentStatus.Failed;
                 AddTimeline(booking, $"Stripe webhook marked payment failed: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Cancelled:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "stripe_webhook", booking.Status);
                 booking.PaymentStatus = PaymentStatus.Cancelled;
                 AddTimeline(booking, $"Stripe webhook marked payment cancelled: {request.ProviderEventId}");
                 break;
@@ -2337,6 +2581,18 @@ public sealed class EfPhaseOneStore(
 
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string FormatRetryAfter(TimeSpan retryAfter)
+    {
+        var totalSeconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+        if (totalSeconds < 60)
+        {
+            return $"{totalSeconds} second{(totalSeconds == 1 ? string.Empty : "s")}";
+        }
+
+        var totalMinutes = (int)Math.Ceiling(totalSeconds / 60m);
+        return $"{totalMinutes} minute{(totalMinutes == 1 ? string.Empty : "s")}";
+    }
 
     private static string ToBase32(byte[] bytes)
     {

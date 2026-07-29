@@ -12,6 +12,8 @@ public sealed class MilestoneUser : BaseEntity
     public string? Phone { get; set; }
     public byte[] TwoFactorSecret { get; set; } = [];
     public bool IsTwoFactorEnabled { get; set; } = true;
+    public string Status { get; set; } = "Active";
+    public string AdminPermissionsJson { get; set; } = "[]";
     public string RolesJson { get; set; } = "[]";
     public int FailedLoginAttempts { get; set; }
     public DateTimeOffset? LockoutEndsAt { get; set; }
@@ -146,6 +148,15 @@ public sealed class MilestonePaymentAttempt : BaseEntity
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     public string FailureReason { get; set; } = string.Empty;
     public DateTimeOffset? CompletedAt { get; set; }
+}
+
+public sealed class MilestoneBookingCreationRateLimit : BaseEntity
+{
+    public Guid GuestUserId { get; set; }
+    public DateTimeOffset WindowStartedAt { get; set; }
+    public DateTimeOffset WindowEndsAt { get; set; }
+    public int RequestCount { get; set; }
+    public DateTimeOffset LastRequestAt { get; set; }
 }
 
 public sealed class MilestonePricebookEntry : BaseEntity

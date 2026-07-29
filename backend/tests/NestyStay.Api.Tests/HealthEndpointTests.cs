@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -908,7 +909,12 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             transactionId = booking.EkycTransactionId,
             passed = false
         });
-        Assert.Equal(HttpStatusCode.BadRequest, conflictingWebhookResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, conflictingWebhookResponse.StatusCode);
+        using (var conflictProblem = await JsonDocument.ParseAsync(await conflictingWebhookResponse.Content.ReadAsStreamAsync()))
+        {
+            Assert.Equal("booking_state_conflict", conflictProblem.RootElement.GetProperty("code").GetString());
+            Assert.Equal("resolve_verification", conflictProblem.RootElement.GetProperty("operation").GetString());
+        }
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
@@ -967,6 +973,23 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(refunded.PaymentRefundReference);
         Assert.Contains(refunded.Notifications, item => item.RecipientType == "guest");
         Assert.Contains(refunded.Notifications, item => item.RecipientType == "host");
+
+        var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
+        Assert.NotNull(audit);
+        Assert.Contains(audit, item =>
+            item.Action == "PaymentCaptured" &&
+            item.SubjectId == booking.Id &&
+            item.ActorRole == "Host" &&
+            item.PreviousStateJson?.Contains("\"paymentStatus\":\"AUTHORIZED\"", StringComparison.Ordinal) == true &&
+            item.NewStateJson?.Contains("\"paymentStatus\":\"CAPTURED\"", StringComparison.Ordinal) == true);
+        Assert.Contains(audit, item =>
+            item.Action == "PaymentRefunded" &&
+            item.SubjectId == booking.Id &&
+            item.ActorRole == "Admin" &&
+            item.EffectivePermission == "refund_management" &&
+            !string.IsNullOrWhiteSpace(item.CorrelationId) &&
+            item.PreviousStateJson?.Contains("\"paymentStatus\":\"CAPTURED\"", StringComparison.Ordinal) == true &&
+            item.NewStateJson?.Contains("\"paymentStatus\":\"REFUNDED\"", StringComparison.Ordinal) == true);
 
         var duplicateRefundResponse = await client.PostAsJsonAsync($"/api/bookings/{booking.Id}/refund-payment", new
         {
@@ -1031,6 +1054,15 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         IReadOnlyList<NotificationResponse> Notifications);
 
     private sealed record NotificationResponse(string RecipientType);
+
+    private sealed record AuditEventResponse(
+        string Action,
+        Guid? SubjectId,
+        string ActorRole,
+        string? EffectivePermission,
+        string? CorrelationId,
+        string? PreviousStateJson,
+        string? NewStateJson);
 
     private static string GenerateTotpFromManualKey(string manualKey)
     {

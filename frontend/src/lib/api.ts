@@ -2,6 +2,18 @@ export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replac
 
 export type UserRole = "Guest" | "Host" | "Admin" | "Officer" | "PropertyManager";
 
+export type AdminPermission =
+  | "super_administration"
+  | "booking_management"
+  | "refund_management"
+  | "payment_management"
+  | "user_management"
+  | "property_moderation"
+  | "officer_management"
+  | "financial_reporting"
+  | "audit_log_access"
+  | "system_configuration";
+
 export type RegisterUserRequest = {
   email: string;
   password: string;
@@ -34,6 +46,7 @@ export type LoginResponse = {
   accessToken?: string | null;
   expiresAt?: string | null;
   roles?: UserRole[] | null;
+  permissions?: AdminPermission[] | null;
 };
 
 export type VerifyTwoFactorResponse = {
@@ -41,6 +54,7 @@ export type VerifyTwoFactorResponse = {
   accessToken: string;
   expiresAt: string;
   roles: UserRole[];
+  permissions?: AdminPermission[] | null;
 };
 
 export type TwoFactorEnrollment = {
@@ -930,6 +944,10 @@ export type AuditEvent = {
   subjectId?: string | null;
   reason: string;
   createdAt: string;
+  effectivePermission?: string | null;
+  correlationId?: string | null;
+  previousStateJson?: string | null;
+  newStateJson?: string | null;
 };
 
 export type AuthFlowResult = {
@@ -965,6 +983,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -995,14 +1015,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const problem = (await response.json()) as { title?: string; detail?: string; message?: string };
-      message = problem.title ?? problem.detail ?? problem.message ?? message;
-    } catch {
-      message = response.statusText || message;
-    }
-    throw new ApiError(message, response.status);
+    throw await buildApiError(response);
   }
 
   if (response.status === 204) {
@@ -1017,14 +1030,7 @@ async function requestFile(path: string, token: string): Promise<DownloadedFile>
   const response = await fetch(`${API_BASE_URL}${path}`, { headers });
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const problem = (await response.json()) as { title?: string; detail?: string; message?: string };
-      message = problem.title ?? problem.detail ?? problem.message ?? message;
-    } catch {
-      message = response.statusText || message;
-    }
-    throw new ApiError(message, response.status);
+    throw await buildApiError(response);
   }
 
   return {
@@ -1061,8 +1067,13 @@ function requestUpload<T>(path: string, token: string | undefined, file: File, o
         return;
       }
 
-      const problem = xhr.response as { title?: string; detail?: string; message?: string } | null;
-      reject(new ApiError(problem?.title ?? problem?.detail ?? problem?.message ?? xhr.statusText ?? `Request failed with status ${xhr.status}`, xhr.status));
+      const problem = xhr.response as ApiProblem | null;
+      reject(new ApiError(
+        problem?.title ?? problem?.detail ?? problem?.message ?? xhr.statusText ?? `Request failed with status ${xhr.status}`,
+        xhr.status,
+        readProblemCode(problem),
+        parseRetryAfterHeader(xhr.getResponseHeader("Retry-After")),
+      ));
     };
 
     xhr.onerror = () => {
@@ -1086,6 +1097,51 @@ function parseContentDispositionFileName(value: string | null): string | null {
   if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ""));
   const asciiMatch = /filename=([^;]+)/i.exec(value);
   return asciiMatch?.[1]?.trim().replace(/^"|"$/g, "") ?? null;
+}
+
+type ApiProblem = {
+  title?: string;
+  detail?: string;
+  message?: string;
+  code?: string;
+  extensions?: { code?: string };
+};
+
+async function buildApiError(response: Response): Promise<ApiError> {
+  let problem: ApiProblem | null = null;
+  let message = `Request failed with status ${response.status}`;
+  try {
+    problem = (await response.json()) as ApiProblem;
+    message = problem.title ?? problem.detail ?? problem.message ?? message;
+  } catch {
+    message = response.statusText || message;
+  }
+
+  return new ApiError(
+    message,
+    response.status,
+    readProblemCode(problem),
+    parseRetryAfterHeader(response.headers.get("Retry-After")),
+  );
+}
+
+function readProblemCode(problem: ApiProblem | null): string | undefined {
+  return problem?.code ?? problem?.extensions?.code;
+}
+
+function parseRetryAfterHeader(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.ceil(seconds);
+  }
+
+  const retryAt = Date.parse(value);
+  if (!Number.isNaN(retryAt)) {
+    return Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+  }
+
+  return undefined;
 }
 
 function withQuery(path: string, params: Record<string, string | undefined>) {

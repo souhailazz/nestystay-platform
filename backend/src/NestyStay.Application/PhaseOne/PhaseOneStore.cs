@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using NestyStay.Application.Admin;
 using NestyStay.Application.Abstractions;
 using NestyStay.Domain;
 using NestyStay.Domain.Common;
@@ -22,6 +23,8 @@ public interface IPhaseOneStore
     Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken);
     Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken);
     Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
+    Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
+    Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken);
     Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken);
     Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken);
     Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken);
@@ -74,6 +77,7 @@ public sealed class PhaseOneStore(
     private static readonly TimeSpan ProfilePhotoDownloadLifetime = TimeSpan.FromHours(24);
     private static readonly TimeSpan PropertyPhotoUploadLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TwoFactorEnrollmentLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan BookingCreationRateLimitWindow = TimeSpan.FromMinutes(NestyStayBusinessRules.BookingCreationRateLimitWindowMinutes);
     private readonly IAccessTokenService _accessTokenService = accessTokenService ?? DevelopmentAccessTokenService.Instance;
     private readonly object _gate = new();
     private readonly List<PhaseOneUser> _users = [];
@@ -81,6 +85,7 @@ public sealed class PhaseOneStore(
     private readonly List<PhaseOnePasswordReset> _passwordResets = [];
     private readonly List<PhaseOneRecoveryCode> _recoveryCodes = [];
     private readonly List<PhaseOneBooking> _bookings = [];
+    private readonly List<PhaseOneBookingRateLimit> _bookingRateLimits = [];
     private readonly List<PhaseOneProfilePhoto> _profilePhotos = [];
     private readonly List<PhaseOnePropertyPhoto> _propertyPhotos = [];
     private readonly HashSet<string> _completedRefundIdempotencyKeys = [];
@@ -160,6 +165,8 @@ public sealed class PhaseOneStore(
                 request.Phone?.Trim(),
                 GenerateSecret(),
                 true,
+                "Active",
+                [],
                 [request.Role]);
 
             _users.Add(user);
@@ -211,7 +218,8 @@ public sealed class PhaseOneStore(
                     null,
                     _accessTokenService.Issue(user.Id, user.Roles, directTokenExpiresAt),
                     directTokenExpiresAt,
-                    user.Roles));
+                    user.Roles,
+                    user.AdminPermissions));
             }
 
             var expiresAt = now.AddMinutes(10);
@@ -383,6 +391,8 @@ public sealed class PhaseOneStore(
                     null,
                     GenerateSecret(),
                     true,
+                    "Active",
+                    [],
                     [role]);
                 _users.Add(user);
             }
@@ -395,7 +405,8 @@ public sealed class PhaseOneStore(
                 _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
                 user.Roles,
-                "Google");
+                "Google",
+                user.AdminPermissions);
         }
     }
 
@@ -422,10 +433,11 @@ public sealed class PhaseOneStore(
                 _challenges.Remove(challenge);
                 var recoveryTokenExpiresAt = now.AddHours(8);
                 return Task.FromResult(new VerifyTwoFactorResponse(
-                    user.Id,
-                    _accessTokenService.Issue(user.Id, user.Roles, recoveryTokenExpiresAt),
-                    recoveryTokenExpiresAt,
-                    user.Roles));
+                user.Id,
+                _accessTokenService.Issue(user.Id, user.Roles, recoveryTokenExpiresAt),
+                recoveryTokenExpiresAt,
+                user.Roles,
+                user.AdminPermissions));
             }
 
             if (string.IsNullOrWhiteSpace(request.Code) ||
@@ -449,7 +461,8 @@ public sealed class PhaseOneStore(
                 user.Id,
                 _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
                 tokenExpiresAt,
-                user.Roles));
+                user.Roles,
+                user.AdminPermissions));
         }
     }
 
@@ -597,6 +610,72 @@ public sealed class PhaseOneStore(
         {
             var user = _users.SingleOrDefault(item => item.Id == userId);
             return Task.FromResult(user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value);
+        }
+    }
+
+    public Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var now = timeProvider.GetUtcNow();
+            var user = _users.SingleOrDefault(item => item.Id == userId);
+            if (user is null ||
+                !user.Roles.Contains(UserRole.Admin) ||
+                !user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) ||
+                user.LockoutEndsAt is not null && user.LockoutEndsAt > now ||
+                user.SessionInvalidatedAt is not null && issuedAt <= user.SessionInvalidatedAt.Value)
+            {
+                return Task.FromResult<AdministratorSessionDto?>(null);
+            }
+
+            return Task.FromResult<AdministratorSessionDto?>(new AdministratorSessionDto(
+                user.Id,
+                user.Email,
+                user.Roles,
+                user.AdminPermissions));
+        }
+    }
+
+    public Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken)
+    {
+        ValidateAdministratorBootstrap(request);
+        var email = request.Email.Trim().ToLowerInvariant();
+        var permissions = AdminPermissionCatalog.Normalize(request.Permissions, defaultToSuperAdministration: true);
+
+        lock (_gate)
+        {
+            var existing = _users.SingleOrDefault(user => user.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                existing.AddRole(UserRole.Admin);
+                existing.SetAdminPermissions(existing.AdminPermissions.Count == 0 ? permissions : existing.AdminPermissions);
+                return Task.FromResult(new AdministratorBootstrapResponse(
+                    existing.Id,
+                    existing.Email,
+                    existing.DisplayName,
+                    existing.AdminPermissions,
+                    false));
+            }
+
+            var user = new PhaseOneUser(
+                Guid.NewGuid(),
+                email,
+                HashPassword(request.Password),
+                request.DisplayName.Trim(),
+                null,
+                GenerateSecret(),
+                request.RequireTwoFactor,
+                "Active",
+                permissions,
+                [UserRole.Admin]);
+            _users.Add(user);
+
+            return Task.FromResult(new AdministratorBootstrapResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.AdminPermissions,
+                true));
         }
     }
 
@@ -985,6 +1064,8 @@ public sealed class PhaseOneStore(
                 throw new InvalidOperationException("Requested dates are already held or approved for this property.");
             }
 
+            EnforceBookingCreationRateLimitNoLock(guest.Id, now);
+
             var requiresVerification = property.GuestVerificationEnabled;
             booking = new PhaseOneBooking(
                 Guid.NewGuid(),
@@ -1070,17 +1151,18 @@ public sealed class PhaseOneStore(
 
             if (booking.Status != BookingStatus.PendingVerification)
             {
-                if ((request.Passed && booking.Status == BookingStatus.Approved && booking.VerificationStatus == VerificationStatus.Passed) ||
-                    (!request.Passed && booking.Status == BookingStatus.Rejected && booking.VerificationStatus is VerificationStatus.Failed or VerificationStatus.Expired))
+                if (BookingPaymentStateMachine.IsIdempotentVerificationResolution(booking.Status, booking.VerificationStatus, request.Passed))
                 {
                     return ToDto(booking);
                 }
 
-                throw new InvalidOperationException("Verification can only be resolved for PENDING bookings.");
+                BookingPaymentStateMachine.EnsureVerificationCanResolve(booking.Status, booking.VerificationStatus, request.Passed);
             }
 
             if (!request.Passed)
             {
+                BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "resolve_verification");
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "resolve_verification", booking.Status);
                 booking.Status = BookingStatus.Rejected;
                 booking.VerificationStatus = VerificationStatus.Failed;
                 booking.PaymentStatus = PaymentStatus.Cancelled;
@@ -1092,6 +1174,7 @@ public sealed class PhaseOneStore(
             }
             else
             {
+                BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Approved, "resolve_verification");
                 booking.Status = BookingStatus.Approved;
                 booking.VerificationStatus = VerificationStatus.Passed;
                 booking.HoldExpiresAt = null;
@@ -1125,10 +1208,7 @@ public sealed class PhaseOneStore(
                 return null;
             }
 
-            if (booking.Status != BookingStatus.Approved)
-            {
-                throw new InvalidOperationException("Stripe payment can only be captured after verification passes and booking is APPROVED.");
-            }
+            BookingPaymentStateMachine.EnsureCaptureCanStart(booking.Status, booking.PaymentStatus);
 
             if (booking.PaymentStatus == PaymentStatus.Captured)
             {
@@ -1158,9 +1238,12 @@ public sealed class PhaseOneStore(
 
         lock (_gate)
         {
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, capture.Status, "capture_payment", booking.Status);
+            BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.PaymentCaptured, "capture_payment");
             booking.PaymentProvider = capture.ProviderName;
             booking.PaymentCaptureReference = capture.CaptureReference;
             booking.PaymentStatus = capture.Status;
+            booking.Status = BookingStatus.PaymentCaptured;
             booking.Timeline.Add("Stripe payment captured after approval");
         }
 
@@ -1192,14 +1275,15 @@ public sealed class PhaseOneStore(
                 return ToDto(booking);
             }
 
-            if (booking.PaymentStatus != PaymentStatus.Captured)
-            {
-                throw new InvalidOperationException("Refunds require a captured payment.");
-            }
+            BookingPaymentStateMachine.EnsureRefundCanStart(booking.Status, booking.PaymentStatus);
 
             if (string.IsNullOrWhiteSpace(booking.PaymentCaptureReference))
             {
-                throw new InvalidOperationException("Refunds require a payment capture reference.");
+                throw new BookingStateConflictException(
+                    "Refunds require a payment capture reference.",
+                    "refund_payment",
+                    booking.Status,
+                    booking.PaymentStatus);
             }
 
             var amount = BookingRefundPolicy.ResolveAmount(request.Amount, booking.TotalAmount, booking.RefundedAmount);
@@ -1298,6 +1382,7 @@ public sealed class PhaseOneStore(
             {
                 booking.Status = BookingStatus.Rejected;
                 booking.VerificationStatus = VerificationStatus.Failed;
+                booking.PaymentStatus = PaymentStatus.Cancelled;
                 booking.HoldExpiresAt = null;
                 booking.Timeline.Add("Alibaba Cloud eKYC could not be started");
                 booking.Timeline.Add("Dates released");
@@ -1331,6 +1416,7 @@ public sealed class PhaseOneStore(
 
         lock (_gate)
         {
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, authorization.Status, "authorize_payment", booking.Status);
             booking.PaymentProvider = authorization.ProviderName;
             booking.PaymentAuthorizationReference = authorization.AuthorizationReference;
             booking.PaymentClientSecret = authorization.ClientSecret;
@@ -1997,17 +2083,92 @@ public sealed class PhaseOneStore(
     private static string ToApiStatus<TStatus>(TStatus status) where TStatus : struct, Enum =>
         status.ToString().ToUpperInvariant();
 
+    private void EnforceBookingCreationRateLimitNoLock(Guid guestUserId, DateTimeOffset now)
+    {
+        var bucket = _bookingRateLimits.SingleOrDefault(item => item.GuestUserId == guestUserId);
+        if (bucket is null)
+        {
+            _bookingRateLimits.Add(new PhaseOneBookingRateLimit(
+                guestUserId,
+                now,
+                now.Add(BookingCreationRateLimitWindow),
+                1,
+                now));
+            return;
+        }
+
+        if (bucket.WindowEndsAt <= now)
+        {
+            bucket.WindowStartedAt = now;
+            bucket.WindowEndsAt = now.Add(BookingCreationRateLimitWindow);
+            bucket.RequestCount = 1;
+            bucket.LastRequestAt = now;
+            return;
+        }
+
+        if (bucket.RequestCount >= NestyStayBusinessRules.BookingCreationRateLimitMaximum)
+        {
+            throw new RateLimitExceededException(
+                $"Too many booking requests. Try again in {FormatRetryAfter(bucket.WindowEndsAt - now)}.",
+                bucket.WindowEndsAt - now);
+        }
+
+        bucket.RequestCount++;
+        bucket.LastRequestAt = now;
+    }
+
+    private static void ValidateAdministratorBootstrap(AdministratorBootstrapRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password) ||
+            string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            throw new InvalidOperationException("Administrator email, password, and display name are required.");
+        }
+
+        try
+        {
+            var address = new MailAddress(request.Email.Trim());
+            if (!address.Address.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("A valid administrator email address is required.");
+            }
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("A valid administrator email address is required.");
+        }
+
+        ValidatePasswordPolicy(request.Password);
+        _ = AdminPermissionCatalog.Normalize(request.Permissions, defaultToSuperAdministration: true);
+    }
+
     private static void ApplyPaymentWebhookToBooking(PhaseOneBooking booking, PaymentWebhookUpdateRequest request)
     {
         booking.PaymentProvider = request.ProviderName;
+        if (!BookingPaymentStateMachine.ShouldApplyWebhookPaymentTransition(booking.PaymentStatus, request.Status))
+        {
+            booking.Timeline.Add(
+                $"Stripe webhook ignored {request.Status} for payment already {booking.PaymentStatus}: {request.ProviderEventId}");
+            return;
+        }
+
         switch (request.Status)
         {
             case PaymentStatus.Captured:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Captured, "stripe_webhook", booking.Status);
+                if (booking.Status == BookingStatus.Approved)
+                {
+                    BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.PaymentCaptured, "stripe_webhook");
+                    booking.Status = BookingStatus.PaymentCaptured;
+                }
+
                 booking.PaymentCaptureReference = request.ProviderReference ?? request.PaymentIntentReference;
                 booking.PaymentStatus = PaymentStatus.Captured;
                 booking.Timeline.Add($"Stripe webhook confirmed capture: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Refunded:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Refunded, "stripe_webhook", booking.Status);
                 booking.PaymentRefundReference = request.ProviderReference;
                 if (request.Amount is > 0m)
                 {
@@ -2027,10 +2188,12 @@ public sealed class PhaseOneStore(
                 booking.Timeline.Add($"Stripe webhook confirmed refund: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Failed:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Failed, "stripe_webhook", booking.Status);
                 booking.PaymentStatus = PaymentStatus.Failed;
                 booking.Timeline.Add($"Stripe webhook marked payment failed: {request.ProviderEventId}");
                 break;
             case PaymentStatus.Cancelled:
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "stripe_webhook", booking.Status);
                 booking.PaymentStatus = PaymentStatus.Cancelled;
                 booking.Timeline.Add($"Stripe webhook marked payment cancelled: {request.ProviderEventId}");
                 break;
@@ -2117,6 +2280,18 @@ public sealed class PhaseOneStore(
 
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string FormatRetryAfter(TimeSpan retryAfter)
+    {
+        var totalSeconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+        if (totalSeconds < 60)
+        {
+            return $"{totalSeconds} second{(totalSeconds == 1 ? string.Empty : "s")}";
+        }
+
+        var totalMinutes = (int)Math.Ceiling(totalSeconds / 60m);
+        return $"{totalMinutes} minute{(totalMinutes == 1 ? string.Empty : "s")}";
+    }
 
     private static string ToBase32(byte[] bytes)
     {
@@ -2211,6 +2386,8 @@ public sealed class PhaseOneStore(
         string? phone,
         byte[] twoFactorSecret,
         bool isTwoFactorEnabled,
+        string status,
+        IReadOnlyList<string> adminPermissions,
         IReadOnlyList<UserRole> roles)
     {
         public Guid Id { get; } = id;
@@ -2220,7 +2397,9 @@ public sealed class PhaseOneStore(
         public string? Phone { get; } = phone;
         public byte[] TwoFactorSecret { get; set; } = twoFactorSecret;
         public bool IsTwoFactorEnabled { get; set; } = isTwoFactorEnabled;
-        public IReadOnlyList<UserRole> Roles { get; } = roles;
+        public string Status { get; set; } = status;
+        public IReadOnlyList<UserRole> Roles { get; private set; } = roles;
+        public IReadOnlyList<string> AdminPermissions { get; private set; } = adminPermissions;
         public int FailedLoginAttempts { get; set; }
         public DateTimeOffset? LockoutEndsAt { get; set; }
         public DateTimeOffset? SessionInvalidatedAt { get; set; }
@@ -2228,6 +2407,17 @@ public sealed class PhaseOneStore(
         public string? PendingTwoFactorEnrollmentId { get; set; }
         public byte[]? PendingTwoFactorSecret { get; set; }
         public DateTimeOffset? PendingTwoFactorExpiresAt { get; set; }
+
+        public void AddRole(UserRole role)
+        {
+            if (!Roles.Contains(role))
+            {
+                Roles = Roles.Append(role).Distinct().ToArray();
+            }
+        }
+
+        public void SetAdminPermissions(IReadOnlyList<string> permissions) =>
+            AdminPermissions = permissions;
     }
 
     private sealed class PhaseOneChallenge(string id, Guid userId, DateTimeOffset expiresAt)
@@ -2319,6 +2509,20 @@ public sealed class PhaseOneStore(
         bool IsDeleted);
 
     private sealed record PendingNotification(string RecipientType, NotificationMessage Message);
+
+    private sealed class PhaseOneBookingRateLimit(
+        Guid guestUserId,
+        DateTimeOffset windowStartedAt,
+        DateTimeOffset windowEndsAt,
+        int requestCount,
+        DateTimeOffset lastRequestAt)
+    {
+        public Guid GuestUserId { get; } = guestUserId;
+        public DateTimeOffset WindowStartedAt { get; set; } = windowStartedAt;
+        public DateTimeOffset WindowEndsAt { get; set; } = windowEndsAt;
+        public int RequestCount { get; set; } = requestCount;
+        public DateTimeOffset LastRequestAt { get; set; } = lastRequestAt;
+    }
 
     private sealed class PhaseOneBooking(
         Guid id,

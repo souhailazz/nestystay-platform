@@ -5,6 +5,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using NestyStay.Api.Controllers;
 using NestyStay.Api.Webhooks;
+using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Domain;
 using System.Security.Cryptography;
@@ -37,37 +38,57 @@ public sealed class WebhookSecurityTests
     }
 
     [Fact]
-    public async Task StripeWebhookRejectsInvalidSignatureInProduction()
+    public async Task StripeWrapperWebhookIsRejectedInProduction()
+    {
+        var controller = CreateController();
+
+        var result = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{\"id\":\"evt_bad\"}", "evt_bad"), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task StripeRawWebhookRejectsInvalidSignatureInProduction()
     {
         var controller = CreateController();
         controller.Request.Headers["Stripe-Signature"] = "t=1,v1=bad";
+        SetRawBody(controller, "{\"id\":\"evt_bad\"}");
 
-        var result = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", "{\"id\":\"evt_bad\"}", "evt_bad"), CancellationToken.None);
+        var result = await controller.ReceiveStripeRaw(CancellationToken.None);
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
-    public async Task StripeWebhookAcceptsValidSignatureAndRejectsReplayInProduction()
+    public async Task StripeRawWebhookPersistsSignedEventAndMarksDuplicateReplay()
     {
         var eventId = $"evt_{Guid.NewGuid():N}";
         var payload = $"{{\"id\":\"{eventId}\"}}";
-        var controller = CreateController();
+        var eventStore = new StubProviderEventStore();
+        var controller = CreateController(eventStore: eventStore);
         controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        SetRawBody(controller, payload);
 
-        var acceptedResult = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
+        var acceptedResult = await controller.ReceiveStripeRaw(CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(acceptedResult);
+        var stored = Assert.Single(eventStore.Records);
+        Assert.Equal(eventId, stored.EventId);
+        Assert.Equal("stripe.event", stored.EventType);
+        Assert.Equal("Stripe", stored.ProviderName);
+        Assert.NotEmpty(stored.PayloadSha256);
 
-        var replayController = CreateController();
+        var replayController = CreateController(eventStore: eventStore);
         replayController.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
-        var replayResult = await replayController.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
+        SetRawBody(replayController, payload);
+        var replayResult = await replayController.ReceiveStripeRaw(CancellationToken.None);
 
-        Assert.IsType<ConflictObjectResult>(replayResult);
+        Assert.IsType<AcceptedResult>(replayResult);
+        Assert.Single(eventStore.Records);
     }
 
     [Fact]
-    public async Task StripeWebhookAppliesPaymentIntentUpdatesToBookingStore()
+    public async Task StripeRawWebhookAppliesPaymentIntentUpdatesToBookingStore()
     {
         var eventId = $"evt_{Guid.NewGuid():N}";
         var payload = $$"""
@@ -86,10 +107,12 @@ public sealed class WebhookSecurityTests
             }
             """;
         var store = new StubPhaseOneStore();
-        var controller = CreateController(store);
+        var eventStore = new StubProviderEventStore();
+        var controller = CreateController(store, eventStore);
         controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        SetRawBody(controller, payload);
 
-        var result = await controller.Receive("stripe", new WebhookEventRequest("stripe", "payment_intent.succeeded", payload, eventId), CancellationToken.None);
+        var result = await controller.ReceiveStripeRaw(CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(result);
         var update = Assert.Single(store.PaymentWebhookUpdates);
@@ -101,9 +124,13 @@ public sealed class WebhookSecurityTests
         Assert.Equal("USD", update.Currency);
         Assert.Equal(610.50m, update.Amount);
         Assert.Equal(PaymentStatus.Captured, update.Status);
+        var processed = Assert.Single(eventStore.Results);
+        Assert.Equal("Processed", processed.Status);
     }
 
-    private static WebhooksController CreateController(StubPhaseOneStore? store = null)
+    private static WebhooksController CreateController(
+        StubPhaseOneStore? store = null,
+        StubProviderEventStore? eventStore = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -113,7 +140,11 @@ public sealed class WebhookSecurityTests
             })
             .Build();
 
-        var controller = new WebhooksController(store ?? new StubPhaseOneStore(), configuration, new ProductionEnvironment())
+        var controller = new WebhooksController(
+            store ?? new StubPhaseOneStore(),
+            eventStore ?? new StubProviderEventStore(),
+            configuration,
+            new ProductionEnvironment())
         {
             ControllerContext = new ControllerContext
             {
@@ -131,6 +162,9 @@ public sealed class WebhookSecurityTests
         var signature = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes($"{timestamp}.{payload}"))).ToLowerInvariant();
         return $"t={timestamp},v1={signature}";
     }
+
+    private static void SetRawBody(WebhooksController controller, string payload) =>
+        controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
 
     private sealed class ProductionEnvironment : IHostEnvironment
     {
@@ -177,6 +211,12 @@ public sealed class WebhookSecurityTests
 
         public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
             Task.FromResult(true);
+
+        public Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
+            Task.FromResult<AdministratorSessionDto?>(null);
+
+        public Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
@@ -247,6 +287,41 @@ public sealed class WebhookSecurityTests
         {
             PaymentWebhookUpdates.Add(request);
             return Task.FromResult<BookingDto?>(null);
+        }
+    }
+
+    private sealed class StubProviderEventStore : IProviderEventStore
+    {
+        private readonly Dictionary<string, Guid> _ids = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<Guid, string> _statuses = [];
+
+        public List<ProviderEventRecord> Records { get; } = [];
+        public List<ProviderEventProcessingResult> Results { get; } = [];
+
+        public Task<ProviderEventReceipt> RecordReceivedAsync(ProviderEventRecord record, CancellationToken cancellationToken)
+        {
+            var key = $"{record.Kind}:{record.ProviderName}:{record.EventId}";
+            if (_ids.TryGetValue(key, out var existingId))
+            {
+                return Task.FromResult(new ProviderEventReceipt(
+                    existingId,
+                    true,
+                    _statuses.GetValueOrDefault(existingId, "Received"),
+                    Records.Single(item => item.EventId == record.EventId).ReceivedAt));
+            }
+
+            var id = Guid.NewGuid();
+            _ids[key] = id;
+            _statuses[id] = "Received";
+            Records.Add(record);
+            return Task.FromResult(new ProviderEventReceipt(id, false, "Received", record.ReceivedAt));
+        }
+
+        public Task MarkProcessedAsync(Guid providerEventId, ProviderEventProcessingResult result, CancellationToken cancellationToken)
+        {
+            _statuses[providerEventId] = result.Status;
+            Results.Add(result);
+            return Task.CompletedTask;
         }
     }
 }

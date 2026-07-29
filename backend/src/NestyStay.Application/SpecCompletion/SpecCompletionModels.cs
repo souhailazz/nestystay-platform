@@ -47,11 +47,11 @@ public interface ISpecCompletionStore
     Task<HostPricingRuleDto> SaveHostPricingRuleAsync(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken);
     Task<HostPromotionDto> SaveHostPromotionAsync(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken);
     Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken);
-    Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken);
-    Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken);
-    Task<AdminCaseEvidenceUploadDto> PrepareAdminCaseEvidenceUploadAsync(Guid caseId, PrepareAdminCaseEvidenceUploadRequest request, Guid? actorUserId, CancellationToken cancellationToken);
-    Task<AdminCaseEvidenceUploadDto> UploadAdminCaseEvidenceContentAsync(Guid caseId, Guid evidenceId, string contentType, long sizeBytes, Stream content, Guid? actorUserId, CancellationToken cancellationToken);
-    Task<AdminCaseEvidenceDownloadDto> GetAdminCaseEvidenceDownloadAsync(Guid caseId, Guid evidenceId, Guid? actorUserId, CancellationToken cancellationToken);
+    Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken);
+    Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceUploadDto> PrepareAdminCaseEvidenceUploadAsync(Guid caseId, PrepareAdminCaseEvidenceUploadRequest request, AuditActorContext? actor, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceUploadDto> UploadAdminCaseEvidenceContentAsync(Guid caseId, Guid evidenceId, string contentType, long sizeBytes, Stream content, AuditActorContext? actor, CancellationToken cancellationToken);
+    Task<AdminCaseEvidenceDownloadDto> GetAdminCaseEvidenceDownloadAsync(Guid caseId, Guid evidenceId, AuditActorContext? actor, CancellationToken cancellationToken);
     Task<IReadOnlyList<AuditEventDto>> GetAuditEventsAsync(CancellationToken cancellationToken);
     Task<AuthFlowResultDto> StartAuthFlowAsync(StartAuthFlowRequest request, CancellationToken cancellationToken);
     Task<AuthFlowResultDto> CompleteAuthFlowAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken);
@@ -59,6 +59,22 @@ public interface ISpecCompletionStore
     Task<IReadOnlyList<RecoveryCodeDto>> GenerateRecoveryCodesAsync(Guid userId, CancellationToken cancellationToken);
     Task<SocialAuthConfigDto> GetSocialAuthConfigAsync(CancellationToken cancellationToken);
 }
+
+public interface IPrivilegedAuditStore
+{
+    Task RecordPrivilegedAuditAsync(PrivilegedAuditRecord record, CancellationToken cancellationToken);
+}
+
+public sealed record AuditActorContext(Guid? ActorUserId, string ActorRole, string? EffectivePermission, string CorrelationId);
+
+public sealed record PrivilegedAuditRecord(
+    AuditActorContext Actor,
+    string Action,
+    string SubjectType,
+    Guid? SubjectId,
+    string Reason,
+    object? PreviousState = null,
+    object? NewState = null);
 
 public sealed record SpecSeedStatusDto(bool Seeded, int PublicPages, int Experiences, int JournalArticles, int HostProfiles, int DirectoryProviders);
 public sealed record PublicContentPageDto(string Slug, string Title, string Kind, string Summary, string Body, IReadOnlyList<string> Sections, IReadOnlyList<string> Links);
@@ -114,7 +130,19 @@ public sealed record PrepareAdminCaseEvidenceUploadRequest(string FileName, stri
 public sealed record AdminCaseEvidenceUploadDto(Guid Id, Guid CaseId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null);
 public sealed record AdminCaseEvidenceDto(Guid Id, Guid CaseId, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash);
 public sealed record AdminCaseEvidenceDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
-public sealed record AuditEventDto(Guid Id, Guid? ActorUserId, string ActorRole, string Action, string SubjectType, Guid? SubjectId, string Reason, DateTimeOffset CreatedAt);
+public sealed record AuditEventDto(
+    Guid Id,
+    Guid? ActorUserId,
+    string ActorRole,
+    string Action,
+    string SubjectType,
+    Guid? SubjectId,
+    string Reason,
+    DateTimeOffset CreatedAt,
+    string? EffectivePermission = null,
+    string? CorrelationId = null,
+    string? PreviousStateJson = null,
+    string? NewStateJson = null);
 public sealed record AuthFlowResultDto(
     Guid Id,
     Guid? UserId,

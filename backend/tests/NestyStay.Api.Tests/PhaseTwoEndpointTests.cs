@@ -188,6 +188,28 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         var transfer = await transferResponse.Content.ReadFromJsonAsync<TransferEvaluationResponse>();
         Assert.NotNull(transfer);
         Assert.True(transfer.CanTransfer);
+
+        var campaignResponse = await client.PostAsJsonAsync("/api/badges-pricing/campaigns", new
+        {
+            key = $"audit-campaign-{Guid.NewGuid():N}",
+            name = "Audit campaign",
+            campaignType = "BadgePriceOverride",
+            overrideAmount = 25,
+            appliesTo = "Hosts"
+        });
+        Assert.Equal(HttpStatusCode.OK, campaignResponse.StatusCode);
+
+        var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
+        Assert.NotNull(audit);
+        var pricebookAudit = Assert.Single(audit, item =>
+            item.Action == "PricebookItemUpdated" &&
+            item.NewStateJson?.Contains("\"amount\":82", StringComparison.Ordinal) == true);
+        Assert.Equal("Admin", pricebookAudit.ActorRole);
+        Assert.Equal("system_configuration", pricebookAudit.EffectivePermission);
+        Assert.False(string.IsNullOrWhiteSpace(pricebookAudit.CorrelationId));
+        Assert.NotNull(pricebookAudit.NewStateJson);
+        Assert.Contains(audit, item => item.Action == "CampaignCreated" && item.EffectivePermission == "system_configuration");
+        Assert.Contains(audit, item => item.Action == "FoundingBenefitUpserted" && item.EffectivePermission == "system_configuration");
     }
 
     [Fact]
@@ -280,4 +302,11 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
     private sealed record EligibilityResponse(bool Eligible);
 
     private sealed record FeatureAccessResponse(string ActiveLevel, IReadOnlyList<string> UnlockedFeatures);
+
+    private sealed record AuditEventResponse(
+        string Action,
+        string ActorRole,
+        string? EffectivePermission,
+        string? CorrelationId,
+        string? NewStateJson);
 }

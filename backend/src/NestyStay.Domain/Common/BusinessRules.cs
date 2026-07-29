@@ -3,6 +3,8 @@ namespace NestyStay.Domain.Common;
 public static class NestyStayBusinessRules
 {
     public const int DefaultBookingHoldMinutes = 60;
+    public const int BookingCreationRateLimitMaximum = 3;
+    public const int BookingCreationRateLimitWindowMinutes = 10;
     public const int LegacyPdfBookingHoldMinutes = 30;
     public const int MessageRetentionDays = 90;
     public const int WellnessEscrowAutoReleaseHours = 48;

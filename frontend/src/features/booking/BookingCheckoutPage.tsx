@@ -1,9 +1,30 @@
 import { useState, useEffect } from "react";
-import { CreditCard, Lock, ShieldCheck, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Lock, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import { PatoisPhrase } from "../../lib/patois";
 import type { AuthController } from "../../hooks/useAuth";
+
+let cachedStripeKey: string | undefined;
+let cachedStripePromise: ReturnType<typeof loadStripe> | null | undefined;
+
+function getStripePromise() {
+  const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY as string | undefined;
+  if (!stripePublishableKey) {
+    cachedStripeKey = undefined;
+    cachedStripePromise = null;
+    return null;
+  }
+
+  if (cachedStripeKey !== stripePublishableKey || cachedStripePromise === undefined) {
+    cachedStripeKey = stripePublishableKey;
+    cachedStripePromise = loadStripe(stripePublishableKey);
+  }
+
+  return cachedStripePromise;
+}
 
 interface BookingCheckoutPageProps {
   bookingId: string;
@@ -12,16 +33,84 @@ interface BookingCheckoutPageProps {
   onFailure: (bookingId: string, reason: string) => void;
 }
 
+function CheckoutForm({ booking, onSuccess, onFailure }: { booking: BookingDetails, onSuccess: (id: string) => void, onFailure: (id: string, reason: string) => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+    setError(null);
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message || "Please fill out the payment details.");
+      setProcessing(false);
+      return;
+    }
+
+    // Because this is manual capture, the backend created the PaymentIntent with capture_method: manual.
+    // confirmPayment will authorize the card.
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret: booking.paymentClientSecret!,
+      confirmParams: {
+        return_url: `${window.location.origin}/booking/${booking.id}/success`,
+      },
+      redirect: 'if_required' // we handle success directly if redirect is not required
+    });
+
+    if (confirmError) {
+      const msg = confirmError.message || "Payment authorization failed.";
+      setError(msg);
+      onFailure(booking.id, msg);
+      setProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === "requires_capture") {
+      onSuccess(booking.id);
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      onSuccess(booking.id);
+    } else {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4">
+      <PaymentElement />
+      {error && (
+        <div className="alert-box alert-error mb-4 mt-4">
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+      <button
+        type="submit"
+        className="btn btn-primary btn-lg w-full mt-6"
+        disabled={!stripe || processing}
+      >
+        {processing ? (
+          <>
+            <RefreshCw size={18} className="spin" /> Processing Payment...
+          </>
+        ) : (
+          <>
+            <Lock size={18} /> Pay {formatMoney(booking.totalAmount, booking.currency)} Now
+          </>
+        )}
+      </button>
+    </form>
+  );
+}
+
 export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: BookingCheckoutPageProps) {
+  const stripePromise = getStripePromise();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [cardholderName, setCardholderName] = useState(auth.session?.displayName || "");
-  const [postalCode, setPostalCode] = useState("KGN01");
-  const [saveMethod, setSaveMethod] = useState(true);
-  const [simulate3DS, setSimulate3DS] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -39,37 +128,6 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
     load();
     return () => { active = false; };
   }, [bookingId, auth.session?.accessToken]);
-
-  async function handlePayment() {
-    if (!auth.session || !booking) return;
-    if (!cardholderName.trim()) {
-      setError("Please enter the cardholder name.");
-      return;
-    }
-    setProcessing(true);
-    setError(null);
-
-    try {
-      if (simulate3DS) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-      }
-      // Capture payment using backend authorization service & idempotency key
-      const updated = await api.capturePayment(booking.id, auth.session.accessToken);
-      if (updated.paymentStatus === "CAPTURED" || updated.status === "CONFIRMED" || updated.status === "APPROVED") {
-        onSuccess(booking.id);
-      } else if (updated.paymentStatus === "FAILED" || updated.status === "REJECTED") {
-        onFailure(booking.id, "Payment authorization declined by issuing bank.");
-      } else {
-        onSuccess(booking.id);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Payment failed.";
-      setError(msg);
-      onFailure(booking.id, msg);
-    } finally {
-      setProcessing(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -93,6 +151,28 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
     );
   }
 
+  if (!booking.paymentClientSecret) {
+    return (
+      <div className="container py-6" data-testid="book-03-no-secret">
+        <div className="alert-box alert-error">
+          <AlertCircle size={20} />
+          <span>Payment cannot be processed right now. {booking.status === "PendingVerification" ? "Please complete verification first." : "Payment secret missing."}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stripePromise) {
+    return (
+      <div className="container py-6" data-testid="book-03-stripe-config-missing">
+        <div className="alert-box alert-error">
+          <AlertCircle size={20} />
+          <span>Payment cannot be processed right now. Stripe checkout is not configured.</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container container py-6" data-testid="book-03-page" id="BOOK-03">
       <header className="page-header mb-4">
@@ -111,83 +191,9 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
             </div>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }}>
-            <div className="field-group mb-3">
-              <label className="field-label">Cardholder Name</label>
-              <input 
-                type="text" 
-                className="input-control" 
-                value={cardholderName} 
-                onChange={(e) => setCardholderName(e.target.value)}
-                placeholder="Full name on card"
-                required
-              />
-            </div>
-
-            {/* Simulated Stripe Element */}
-            <div className="field-group mb-3">
-              <label className="field-label"><CreditCard size={16} /> Card Details (Stripe Elements Container)</label>
-              <div className="stripe-element-input-container">
-                <div className="stripe-mock-field">
-                  <span>•••• •••• •••• 4242</span>
-                  <span>12/28</span>
-                  <span>***</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="field-group mb-3">
-              <label className="field-label">Billing Postal / Zip Code</label>
-              <input 
-                type="text" 
-                className="input-control" 
-                value={postalCode} 
-                onChange={(e) => setPostalCode(e.target.value)} 
-                required
-              />
-            </div>
-
-            <label className="checkbox-card mb-3">
-              <input 
-                type="checkbox" 
-                checked={saveMethod} 
-                onChange={(e) => setSaveMethod(e.target.checked)} 
-              />
-              <span>Save this payment method securely for future bookings (SetupIntent)</span>
-            </label>
-
-            <label className="checkbox-card mb-4">
-              <input 
-                type="checkbox" 
-                checked={simulate3DS} 
-                onChange={(e) => setSimulate3DS(e.target.checked)} 
-              />
-              <span>Require 3D Secure (3DS) authentication verification</span>
-            </label>
-
-            {error && (
-              <div className="alert-box alert-error mb-4">
-                <AlertCircle size={18} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button 
-              type="submit" 
-              className="btn btn-primary btn-lg w-full" 
-              disabled={processing}
-            >
-              {processing ? (
-                <>
-                  <RefreshCw size={18} className="spin" /> Processing Payment...
-                </>
-              ) : (
-                <>
-                  <Lock size={18} /> Pay {formatMoney(booking.totalAmount, booking.currency)} Now
-                </>
-              )}
-            </button>
-          </form>
+          <Elements stripe={stripePromise} options={{ clientSecret: booking.paymentClientSecret }}>
+            <CheckoutForm booking={booking} onSuccess={onSuccess} onFailure={onFailure} />
+          </Elements>
         </div>
 
         {/* Sidebar Summary */}

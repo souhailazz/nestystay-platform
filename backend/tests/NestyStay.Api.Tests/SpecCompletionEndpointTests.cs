@@ -782,7 +782,13 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
         Assert.NotNull(audit);
         Assert.Contains(audit, item => item.Action == "AdminCaseEvidenceUploaded");
-        Assert.Contains(audit, item => item.Action == "AdminCaseResolved");
+        var resolvedAudit = Assert.Single(audit, item => item.Action == "AdminCaseResolved" && item.SubjectId == adminCase.Id);
+        Assert.Equal("Admin", resolvedAudit.ActorRole);
+        Assert.Equal("AdminCase", resolvedAudit.SubjectType);
+        Assert.Equal("user_management", resolvedAudit.EffectivePermission);
+        Assert.False(string.IsNullOrWhiteSpace(resolvedAudit.CorrelationId));
+        Assert.Contains("\"status\":\"Open\"", resolvedAudit.PreviousStateJson);
+        Assert.Contains("\"status\":\"Resolved\"", resolvedAudit.NewStateJson);
     }
 
     private static AuthenticationHeaderValue LocalUser(Guid userId, params UserRole[] roles) =>
@@ -892,5 +898,13 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
 
     private sealed record AdminCaseEvidenceDownloadResponse(string FileName, string Url);
 
-    private sealed record AuditEventResponse(string Action);
+    private sealed record AuditEventResponse(
+        string Action,
+        string ActorRole,
+        string SubjectType,
+        Guid? SubjectId,
+        string? EffectivePermission,
+        string? CorrelationId,
+        string? PreviousStateJson,
+        string? NewStateJson);
 }

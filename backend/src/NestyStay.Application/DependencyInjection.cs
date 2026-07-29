@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.Services;
@@ -16,9 +17,46 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IPhaseOneStore, PhaseOneStore>();
         services.AddSingleton<IPhaseTwoStore, PhaseTwoStore>();
+        services.AddSingleton<IProviderEventStore, InMemoryProviderEventStore>();
         services.AddScoped<IWellnessStore, WellnessStoreUnavailable>();
 
         return services;
+    }
+
+    private sealed class InMemoryProviderEventStore : IProviderEventStore
+    {
+        private readonly Dictionary<string, ProviderEventReceipt> _receipts = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _gate = new();
+
+        public Task<ProviderEventReceipt> RecordReceivedAsync(ProviderEventRecord record, CancellationToken cancellationToken)
+        {
+            var key = $"{record.Kind}:{record.ProviderName}:{record.EventId}";
+            lock (_gate)
+            {
+                if (_receipts.TryGetValue(key, out var existing))
+                {
+                    return Task.FromResult(existing with { IsDuplicate = true });
+                }
+
+                var receipt = new ProviderEventReceipt(Guid.NewGuid(), false, "Received", record.ReceivedAt);
+                _receipts[key] = receipt;
+                return Task.FromResult(receipt);
+            }
+        }
+
+        public Task MarkProcessedAsync(Guid providerEventId, ProviderEventProcessingResult result, CancellationToken cancellationToken)
+        {
+            lock (_gate)
+            {
+                var match = _receipts.SingleOrDefault(item => item.Value.Id == providerEventId);
+                if (!string.IsNullOrWhiteSpace(match.Key))
+                {
+                    _receipts[match.Key] = match.Value with { Status = result.Status };
+                }
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class WellnessStoreUnavailable : IWellnessStore

@@ -20,7 +20,7 @@ public sealed class EfSpecCompletionStore(
     IGoogleIdentityValidator googleIdentityValidator,
     IStorageProvider storageProvider,
     IFileSafetyScanner fileSafetyScanner,
-    IPaymentGateway paymentGateway) : ISpecCompletionStore
+    IPaymentGateway paymentGateway) : ISpecCompletionStore, IPrivilegedAuditStore
 {
     private const int MaximumAuthFlowAttempts = 5;
     private const int MaximumAccountAuthFlowsPerWindow = 5;
@@ -944,7 +944,7 @@ public sealed class EfSpecCompletionStore(
         await db.MilestoneAdminCases.SingleOrDefaultAsync(item => item.Id == caseId && !item.IsDeleted, cancellationToken)
         ?? throw new InvalidOperationException("Admin case not found.");
 
-    private async Task<DateTimeOffset> RequirePendingAdminCaseEvidenceUploadAsync(MilestoneAdminCaseEvidence evidence, Guid? actorUserId, CancellationToken cancellationToken)
+    private async Task<DateTimeOffset> RequirePendingAdminCaseEvidenceUploadAsync(MilestoneAdminCaseEvidence evidence, AuditActorContext? actor, CancellationToken cancellationToken)
     {
         if (evidence.Status != AttachmentStatusPendingUpload)
         {
@@ -956,7 +956,7 @@ public sealed class EfSpecCompletionStore(
         {
             evidence.Status = AttachmentStatusExpired;
             evidence.UpdatedAt = now;
-            evidence.UpdatedByUserId = actorUserId;
+            evidence.UpdatedByUserId = actor?.ActorUserId;
             await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Admin case evidence upload URL has expired.");
         }
@@ -966,7 +966,7 @@ public sealed class EfSpecCompletionStore(
 
     private async Task<AdminCaseEvidenceUploadDto> FinalizeAdminCaseEvidenceUploadAsync(
         MilestoneAdminCaseEvidence evidence,
-        Guid? actorUserId,
+        AuditActorContext? actor,
         DateTimeOffset verifiedAt,
         string providerName,
         string contentType,
@@ -975,6 +975,7 @@ public sealed class EfSpecCompletionStore(
         byte[] headerBytes,
         CancellationToken cancellationToken)
     {
+        var previousState = SnapshotAdminCaseEvidence(evidence);
         var scan = await fileSafetyScanner.ScanAsync(
             new FileSafetyScanRequest(evidence.ObjectKey, evidence.SafeFileName, contentType, sizeBytes, sha256Hash, headerBytes),
             cancellationToken);
@@ -987,18 +988,35 @@ public sealed class EfSpecCompletionStore(
         evidence.ScanProviderName = fileSafetyScanner.ProviderName;
         evidence.ScanCheckedAt = verifiedAt;
         evidence.UpdatedAt = verifiedAt;
-        evidence.UpdatedByUserId = actorUserId;
+        evidence.UpdatedByUserId = actor?.ActorUserId;
 
         if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
         {
             evidence.Status = AttachmentStatusQuarantined;
+            await AddAuditAsync(
+                "AdminCaseEvidenceQuarantined",
+                "AdminCase",
+                evidence.CaseId,
+                scan.Reason ?? "Admin case evidence failed safety scanning.",
+                actor,
+                previousState,
+                SnapshotAdminCaseEvidence(evidence),
+                cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException(scan.Reason ?? "Admin case evidence failed safety scanning.");
         }
 
         evidence.Status = AttachmentStatusUploaded;
         evidence.UploadedAt = verifiedAt;
-        await AddAuditAsync("AdminCaseEvidenceUploaded", "AdminCase", evidence.CaseId, $"Evidence {evidence.SafeFileName} uploaded and scanned clean.", actorUserId, cancellationToken);
+        await AddAuditAsync(
+            "AdminCaseEvidenceUploaded",
+            "AdminCase",
+            evidence.CaseId,
+            $"Evidence {evidence.SafeFileName} uploaded and scanned clean.",
+            actor,
+            previousState,
+            SnapshotAdminCaseEvidence(evidence),
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToUploadDto(evidence);
     }
@@ -1149,7 +1167,7 @@ public sealed class EfSpecCompletionStore(
         return new AdminOperationsDto(cases, audits, metrics);
     }
 
-    public async Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken)
+    public async Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken)
     {
         var entity = new MilestoneAdminCase
         {
@@ -1160,25 +1178,42 @@ public sealed class EfSpecCompletionStore(
             Reason = RequireText(request.Reason, "Reason"),
             AssignedTo = request.AssignedTo.Trim(),
             Status = "Open",
-            CreatedByUserId = actorUserId,
-            UpdatedByUserId = actorUserId
+            CreatedByUserId = actor?.ActorUserId,
+            UpdatedByUserId = actor?.ActorUserId
         };
         db.MilestoneAdminCases.Add(entity);
-        await AddAuditAsync("AdminCaseCreated", entity.SubjectType, entity.SubjectId, entity.Reason, actorUserId, cancellationToken);
+        await AddAuditAsync(
+            "AdminCaseCreated",
+            "AdminCase",
+            entity.Id,
+            entity.Reason,
+            actor,
+            null,
+            SnapshotAdminCase(entity),
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
     }
 
-    public async Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, Guid? actorUserId, CancellationToken cancellationToken)
+    public async Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken)
     {
         var entity = await db.MilestoneAdminCases.SingleOrDefaultAsync(item => item.Id == caseId && !item.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Admin case not found.");
+        var previousState = SnapshotAdminCase(entity);
         entity.Status = string.IsNullOrWhiteSpace(request.Status) ? "Resolved" : request.Status.Trim();
         entity.ResolutionNotes = RequireText(request.ResolutionNotes, "Resolution notes");
         entity.ResolvedAt = timeProvider.GetUtcNow();
         entity.UpdatedAt = timeProvider.GetUtcNow();
-        entity.UpdatedByUserId = actorUserId;
-        await AddAuditAsync("AdminCaseResolved", entity.SubjectType, entity.SubjectId, entity.ResolutionNotes, actorUserId, cancellationToken);
+        entity.UpdatedByUserId = actor?.ActorUserId;
+        await AddAuditAsync(
+            "AdminCaseResolved",
+            "AdminCase",
+            entity.Id,
+            entity.ResolutionNotes,
+            actor,
+            previousState,
+            SnapshotAdminCase(entity),
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
     }
@@ -1186,7 +1221,7 @@ public sealed class EfSpecCompletionStore(
     public async Task<AdminCaseEvidenceUploadDto> PrepareAdminCaseEvidenceUploadAsync(
         Guid caseId,
         PrepareAdminCaseEvidenceUploadRequest request,
-        Guid? actorUserId,
+        AuditActorContext? actor,
         CancellationToken cancellationToken)
     {
         var adminCase = await RequireAdminCaseAsync(caseId, cancellationToken);
@@ -1210,11 +1245,20 @@ public sealed class EfSpecCompletionStore(
             UploadExpiresAt = now.Add(AttachmentUploadLifetime),
             CreatedAt = now,
             UpdatedAt = now,
-            CreatedByUserId = actorUserId,
-            UpdatedByUserId = actorUserId
+            CreatedByUserId = actor?.ActorUserId,
+            UpdatedByUserId = actor?.ActorUserId
         };
 
         db.MilestoneAdminCaseEvidenceUploads.Add(evidence);
+        await AddAuditAsync(
+            "AdminCaseEvidenceUploadPrepared",
+            "AdminCase",
+            adminCase.Id,
+            $"Evidence {evidence.SafeFileName} upload URL issued.",
+            actor,
+            null,
+            SnapshotAdminCaseEvidence(evidence),
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToUploadDto(evidence);
     }
@@ -1225,7 +1269,7 @@ public sealed class EfSpecCompletionStore(
         string contentType,
         long sizeBytes,
         Stream content,
-        Guid? actorUserId,
+        AuditActorContext? actor,
         CancellationToken cancellationToken)
     {
         await RequireAdminCaseAsync(caseId, cancellationToken);
@@ -1233,7 +1277,7 @@ public sealed class EfSpecCompletionStore(
             .SingleOrDefaultAsync(item => item.Id == evidenceId && item.CaseId == caseId && !item.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Admin case evidence upload not found.");
 
-        var now = await RequirePendingAdminCaseEvidenceUploadAsync(evidence, actorUserId, cancellationToken);
+        var now = await RequirePendingAdminCaseEvidenceUploadAsync(evidence, actor, cancellationToken);
         ValidateAdminCaseEvidenceUploadMetadata(evidence, contentType, sizeBytes);
 
         var stored = await storageProvider.SaveObjectAsync(
@@ -1244,7 +1288,7 @@ public sealed class EfSpecCompletionStore(
 
         return await FinalizeAdminCaseEvidenceUploadAsync(
             evidence,
-            actorUserId,
+            actor,
             now,
             stored.ProviderName,
             stored.ContentType,
@@ -1257,7 +1301,7 @@ public sealed class EfSpecCompletionStore(
     public async Task<AdminCaseEvidenceDownloadDto> GetAdminCaseEvidenceDownloadAsync(
         Guid caseId,
         Guid evidenceId,
-        Guid? actorUserId,
+        AuditActorContext? actor,
         CancellationToken cancellationToken)
     {
         await RequireAdminCaseAsync(caseId, cancellationToken);
@@ -1274,7 +1318,22 @@ public sealed class EfSpecCompletionStore(
 
         var expiresAt = timeProvider.GetUtcNow().Add(AttachmentDownloadLifetime);
         var url = await storageProvider.CreateDownloadUrlAsync(evidence.ObjectKey, expiresAt, cancellationToken);
-        await AddAuditAsync("AdminCaseEvidenceDownloaded", "AdminCase", caseId, $"Evidence {evidence.SafeFileName} download URL issued.", actorUserId, cancellationToken);
+        await AddAuditAsync(
+            "AdminCaseEvidenceDownloaded",
+            "AdminCase",
+            caseId,
+            $"Evidence {evidence.SafeFileName} download URL issued.",
+            actor,
+            null,
+            new
+            {
+                evidence.Id,
+                evidence.SafeFileName,
+                evidence.ContentType,
+                evidence.SizeBytes,
+                ExpiresAt = expiresAt
+            },
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return new AdminCaseEvidenceDownloadDto(evidence.Id, evidence.SafeFileName, evidence.ContentType, evidence.SizeBytes, url, expiresAt);
     }
@@ -2087,20 +2146,96 @@ public sealed class EfSpecCompletionStore(
         [new("30d", 6200m), new("60d", 8100m), new("90d", 10550m)],
         [new("30d", 74m), new("60d", 81m), new("90d", 82m)]);
 
-    private async Task AddAuditAsync(string action, string subjectType, Guid? subjectId, string reason, Guid? actorUserId, CancellationToken cancellationToken)
+    public async Task RecordPrivilegedAuditAsync(PrivilegedAuditRecord record, CancellationToken cancellationToken)
     {
+        await AddAuditAsync(
+            record.Action,
+            record.SubjectType,
+            record.SubjectId,
+            record.Reason,
+            record.Actor,
+            record.PreviousState,
+            record.NewState,
+            cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private Task AddAuditAsync(string action, string subjectType, Guid? subjectId, string reason, Guid? actorUserId, CancellationToken cancellationToken) =>
+        AddAuditAsync(
+            action,
+            subjectType,
+            subjectId,
+            reason,
+            new AuditActorContext(
+                actorUserId,
+                actorUserId is null ? "System" : "User",
+                null,
+                string.Empty),
+            null,
+            null,
+            cancellationToken);
+
+    private Task AddAuditAsync(
+        string action,
+        string subjectType,
+        Guid? subjectId,
+        string reason,
+        AuditActorContext? actor,
+        object? previousState,
+        object? newState,
+        CancellationToken cancellationToken)
+    {
+        var metadata = new MilestoneAuditMetadata(
+            string.IsNullOrWhiteSpace(actor?.CorrelationId) ? null : actor.CorrelationId.Trim(),
+            string.IsNullOrWhiteSpace(actor?.EffectivePermission) ? null : actor.EffectivePermission.Trim(),
+            previousState is null ? null : MilestoneJson.Serialize(previousState),
+            newState is null ? null : MilestoneJson.Serialize(newState));
+
         db.MilestoneAuditEvents.Add(new MilestoneAuditEvent
         {
-            ActorUserId = actorUserId,
-            ActorRole = actorUserId is null ? "System" : "User",
-            Action = action,
-            SubjectType = subjectType,
+            ActorUserId = actor?.ActorUserId,
+            ActorRole = string.IsNullOrWhiteSpace(actor?.ActorRole)
+                ? actor?.ActorUserId is null ? "System" : "User"
+                : actor.ActorRole.Trim(),
+            Action = RequireText(action, "Audit action"),
+            SubjectType = RequireText(subjectType, "Audit subject type"),
             SubjectId = subjectId,
-            Reason = reason,
-            CreatedAt = timeProvider.GetUtcNow()
+            Reason = RequireText(reason, "Audit reason"),
+            CreatedAt = timeProvider.GetUtcNow(),
+            MetadataJson = MilestoneJson.Serialize(metadata)
         });
-        await Task.CompletedTask;
+
+        return Task.CompletedTask;
     }
+
+    private static object SnapshotAdminCase(MilestoneAdminCase item) => new
+    {
+        item.Id,
+        item.CaseType,
+        item.SubjectType,
+        item.SubjectId,
+        item.Status,
+        item.Priority,
+        item.Reason,
+        item.AssignedTo,
+        item.ResolutionNotes,
+        item.ResolvedAt,
+        item.UpdatedAt
+    };
+
+    private static object SnapshotAdminCaseEvidence(MilestoneAdminCaseEvidence item) => new
+    {
+        item.Id,
+        item.CaseId,
+        item.SafeFileName,
+        item.ContentType,
+        item.SizeBytes,
+        item.Status,
+        item.ScanStatus,
+        item.Sha256Hash,
+        item.UploadedAt,
+        item.UploadExpiresAt
+    };
 
     private async Task EnforceAuthFlowRateLimitsAsync(
         Guid? userId,
@@ -2341,7 +2476,23 @@ public sealed class EfSpecCompletionStore(
     private static AdminCaseDto ToDto(MilestoneAdminCase item, IReadOnlyList<AdminCaseEvidenceDto>? evidence = null) => new(item.Id, item.CaseType, item.SubjectType, item.SubjectId, item.Status, item.Priority, item.Reason, item.AssignedTo, item.ResolutionNotes, item.CreatedAt, item.UpdatedAt, item.ResolvedAt, evidence ?? []);
     private static AdminCaseEvidenceDto ToDto(MilestoneAdminCaseEvidence item) => new(item.Id, item.CaseId, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt ?? item.UpdatedAt, item.Sha256Hash);
     private static AdminCaseEvidenceUploadDto ToUploadDto(MilestoneAdminCaseEvidence item) => new(item.Id, item.CaseId, item.SafeFileName, item.ContentType, item.SizeBytes, item.ObjectKey, item.UploadUrl, item.Status, item.ScanStatus, item.UploadExpiresAt, item.Sha256Hash);
-    private static AuditEventDto ToDto(MilestoneAuditEvent item) => new(item.Id, item.ActorUserId, item.ActorRole, item.Action, item.SubjectType, item.SubjectId, item.Reason, item.CreatedAt);
+    private static AuditEventDto ToDto(MilestoneAuditEvent item)
+    {
+        var metadata = MilestoneJson.Deserialize<MilestoneAuditMetadata>(item.MetadataJson) ?? new MilestoneAuditMetadata();
+        return new AuditEventDto(
+            item.Id,
+            item.ActorUserId,
+            item.ActorRole,
+            item.Action,
+            item.SubjectType,
+            item.SubjectId,
+            item.Reason,
+            item.CreatedAt,
+            metadata.EffectivePermission,
+            metadata.CorrelationId,
+            metadata.PreviousStateJson,
+            metadata.NewStateJson);
+    }
     private static AuthFlowResultDto ToDto(MilestoneAuthFlow item) => new(
         item.Id,
         item.UserId,
@@ -2353,3 +2504,9 @@ public sealed class EfSpecCompletionStore(
         item.LastSentAt,
         Math.Max(0, MaximumAuthFlowAttempts - item.FailedAttempts));
 }
+
+internal sealed record MilestoneAuditMetadata(
+    string? CorrelationId = null,
+    string? EffectivePermission = null,
+    string? PreviousStateJson = null,
+    string? NewStateJson = null);

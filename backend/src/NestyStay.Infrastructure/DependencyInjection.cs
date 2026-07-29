@@ -24,7 +24,7 @@ public static class DependencyInjection
     {
         services.AddDbContext<NestyStayDbContext>(options =>
             options.UseNpgsql(postgresConnectionString ??
-                              "Host=localhost;Port=5432;Database=nestystay_dev;Username=nestystay;Password=nestystay"));
+                              "Host=localhost;Port=5432;Database=nestystay_dev;Username=nestystay"));
 
         services.AddSingleton<IEkycProvider, AlibabaEkycProvider>();
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
@@ -40,7 +40,10 @@ public static class DependencyInjection
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
         services.AddScoped<IWellnessStore, EfWellnessStore>();
-        services.AddScoped<ISpecCompletionStore, EfSpecCompletionStore>();
+        services.AddScoped<EfSpecCompletionStore>();
+        services.AddScoped<ISpecCompletionStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
+        services.AddScoped<IPrivilegedAuditStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
+        services.AddScoped<IProviderEventStore, EfProviderEventStore>();
 
         return services;
     }

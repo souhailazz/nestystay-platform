@@ -10,7 +10,7 @@ interface BookingReviewPageProps {
   details: { adults: number; children: number; accessibility: string; protection: string };
   auth: AuthController;
   onBackToModal: () => void;
-  onProceedToCheckout: (bookingId: string) => void;
+  onProceedToCheckout: (bookingId: string, status: string) => void;
 }
 
 export function BookingReviewPage({ quote, details, auth, onBackToModal, onProceedToCheckout }: BookingReviewPageProps) {
@@ -43,9 +43,9 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
         billingCountry,
         termsAccepted: acceptedTerms
       }, auth.session.accessToken);
-      onProceedToCheckout(created.id);
+      onProceedToCheckout(created.id, created.status);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create booking.");
+      setError(formatCreateBookingError(err));
     } finally {
       setLoading(false);
     }
@@ -177,4 +177,26 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
       </div>
     </div>
   );
+}
+
+function formatCreateBookingError(error: unknown): string {
+  const candidate = error as { status?: number; code?: string; retryAfterSeconds?: number; message?: string };
+  if (candidate.status === 429 || candidate.code === "rate_limit_exceeded") {
+    return `Too many booking attempts. Please wait ${formatRetryAfter(candidate.retryAfterSeconds)} before trying again.`;
+  }
+
+  return error instanceof Error ? error.message : "Failed to create booking.";
+}
+
+function formatRetryAfter(seconds?: number): string {
+  if (!seconds || seconds <= 0) {
+    return "a few minutes";
+  }
+
+  if (seconds < 60) {
+    return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  }
+
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }

@@ -12,6 +12,11 @@ internal static class MilestoneJson
 
     public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
 
+    public static T? Deserialize<T>(string? json) =>
+        string.IsNullOrWhiteSpace(json)
+            ? default
+            : JsonSerializer.Deserialize<T>(json, Options);
+
     public static List<T> DeserializeList<T>(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? []

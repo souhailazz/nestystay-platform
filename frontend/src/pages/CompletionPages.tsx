@@ -1477,8 +1477,8 @@ function Table({ rows }: { rows: ReactNode[][] }) {
   return <div className="spec-table-wrap"><table className="spec-table"><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 
-export function AdminOpsSpecPage({ view }: { view: string }) {
-  return <AdminStateContainer view={view} auth={{ session: { accessToken: "admin_token_default" } } as any} />;
+export function AdminOpsSpecPage({ view, auth }: { view: string; auth: AuthController }) {
+  return <AdminStateContainer view={view} auth={auth} />;
 }
 
 type AdminEvidenceUploadItem = {

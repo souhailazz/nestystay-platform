@@ -1,14 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Application.Admin;
 using NestyStay.Application.PhaseOne;
+using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/bookings")]
-public sealed class BookingsController(IPhaseOneStore phaseOneStore, IResourceAuthorizationService authorization) : ControllerBase
+public sealed class BookingsController(
+    IPhaseOneStore phaseOneStore,
+    IResourceAuthorizationService authorization,
+    IPrivilegedAuditStore auditStore) : ControllerBase
 {
     [Authorize]
     [HttpGet]
@@ -63,11 +68,26 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, IResourceAu
         return Ok(await phaseOneStore.CreateBookingAsync(request with { GuestUserId = guestUserId }, cancellationToken));
     }
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.BookingManagement)]
     [HttpPost("{id:guid}/verification-result")]
     public async Task<IActionResult> ResolveVerification(Guid id, ResolveVerificationRequest request, CancellationToken cancellationToken)
     {
+        var previous = phaseOneStore.GetBooking(id);
         var booking = await phaseOneStore.ResolveVerificationAsync(id, request, cancellationToken);
+        if (booking is not null)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(
+                    AuditActor(AdminPermissionCatalog.BookingManagement),
+                    "BookingVerificationOverridden",
+                    "Booking",
+                    booking.Id,
+                    request.Passed ? "Booking verification marked passed." : "Booking verification marked failed.",
+                    previous is null ? null : SnapshotBooking(previous),
+                    SnapshotBooking(booking)),
+                cancellationToken);
+        }
+
         return booking is null ? NotFound() : Ok(booking);
     }
 
@@ -86,15 +106,50 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, IResourceAu
             return Forbid();
         }
 
+        var isAdmin = authorization.IsInRole(UserRole.Admin);
+        if (isAdmin && !AdminAuthorizationPolicies.HasPermission(User, AdminPermissionCatalog.PaymentManagement))
+        {
+            return Forbid();
+        }
+
         var booking = await phaseOneStore.CapturePaymentAsync(id, cancellationToken);
+        if (booking is not null)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(
+                    AuditActor(isAdmin ? AdminPermissionCatalog.PaymentManagement : null),
+                    "PaymentCaptured",
+                    "Booking",
+                    booking.Id,
+                    "Payment capture requested.",
+                    SnapshotBooking(existing),
+                    SnapshotBooking(booking)),
+                cancellationToken);
+        }
+
         return booking is null ? NotFound() : Ok(booking);
     }
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.RefundManagement)]
     [HttpPost("{id:guid}/refund-payment")]
     public async Task<IActionResult> RefundPayment(Guid id, RefundBookingRequest request, CancellationToken cancellationToken)
     {
+        var previous = phaseOneStore.GetBooking(id);
         var booking = await phaseOneStore.RefundPaymentAsync(id, request, cancellationToken);
+        if (booking is not null)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(
+                    AuditActor(AdminPermissionCatalog.RefundManagement),
+                    "PaymentRefunded",
+                    "Booking",
+                    booking.Id,
+                    string.IsNullOrWhiteSpace(request.Reason) ? "Refund requested." : request.Reason,
+                    previous is null ? null : SnapshotBooking(previous),
+                    SnapshotBooking(booking)),
+                cancellationToken);
+        }
+
         return booking is null ? NotFound() : Ok(booking);
     }
 
@@ -115,4 +170,28 @@ public sealed class BookingsController(IPhaseOneStore phaseOneStore, IResourceAu
             : File(document.Content, document.ContentType, document.FileName);
     }
 
+    private AuditActorContext AuditActor(string? effectivePermission) => new(
+        authorization.TryGetSignedInUser(),
+        authorization.IsInRole(UserRole.Admin) ? "Admin" : authorization.IsInRole(UserRole.Host) ? "Host" : "User",
+        effectivePermission,
+        HttpContext.TraceIdentifier);
+
+    private static object SnapshotBooking(BookingDto booking) => new
+    {
+        booking.Id,
+        booking.PropertyId,
+        booking.HostUserId,
+        booking.GuestUserId,
+        booking.Status,
+        booking.VerificationStatus,
+        booking.PaymentStatus,
+        booking.TotalAmount,
+        booking.Currency,
+        booking.PaymentAuthorizationReference,
+        booking.PaymentCaptureReference,
+        booking.PaymentRefundReference,
+        booking.RefundedAmount,
+        booking.RefundReason,
+        booking.RefundedAt
+    };
 }

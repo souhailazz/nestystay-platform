@@ -173,6 +173,121 @@ public sealed class MilestonePersistenceTests
     }
 
     [Fact]
+    public async Task PhaseOneStorePersistsStateMachineConflictsAndIgnoresStaleWebhookDowngrades()
+    {
+        var databaseName = $"phase-one-state-machine-{Guid.NewGuid():N}";
+        var root = new InMemoryDatabaseRoot();
+        var providers = new ProviderHarness();
+        Guid bookingId;
+        string paymentIntentReference;
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var registered = await store.RegisterAsync(
+                new RegisterUserRequest("state-machine@test.local", "Password123!", "State Guest", null, "Password123!", true, true),
+                CancellationToken.None);
+            var property = await store.CreatePropertyAsync(new CreatePropertyRequest(
+                Guid.NewGuid(),
+                "State Host",
+                "state-host@test.local",
+                "State Persistence Cottage",
+                "Kingston",
+                "Jamaica",
+                150m,
+                "USD"),
+                CancellationToken.None);
+
+            var booking = await store.CreateBookingAsync(
+                new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 3)),
+                CancellationToken.None);
+
+            var refundConflict = await Assert.ThrowsAsync<BookingStateConflictException>(() =>
+                store.RefundPaymentAsync(booking.Id, new RefundBookingRequest(Reason: "too early"), CancellationToken.None));
+            Assert.Equal("refund_payment", refundConflict.Operation);
+            Assert.Equal(PaymentStatus.Authorized, refundConflict.CurrentPaymentStatus);
+
+            var captured = await store.CapturePaymentAsync(booking.Id, CancellationToken.None);
+            Assert.NotNull(captured);
+            Assert.Equal("CAPTURED", captured.PaymentStatus);
+
+            bookingId = captured.Id;
+            paymentIntentReference = captured.PaymentAuthorizationReference!;
+            var stored = await db.MilestoneBookings.SingleAsync(item => item.Id == bookingId);
+            Assert.Equal(BookingStatus.PaymentCaptured, stored.Status);
+        }
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = CreatePhaseOneStore(db, providers);
+            var failedWebhook = await store.ApplyPaymentWebhookAsync(new PaymentWebhookUpdateRequest(
+                "Stripe",
+                "evt_stale_failed_persisted",
+                "payment_intent.payment_failed",
+                paymentIntentReference,
+                PaymentStatus.Failed,
+                330m,
+                "USD",
+                "pi_stale_failed",
+                OccurredAt: DateTimeOffset.UtcNow), CancellationToken.None);
+
+            Assert.NotNull(failedWebhook);
+            Assert.Equal("CAPTURED", failedWebhook.PaymentStatus);
+            Assert.Contains(failedWebhook.Timeline, entry => entry.Contains("ignored Failed", StringComparison.OrdinalIgnoreCase));
+
+            var stored = await db.MilestoneBookings.SingleAsync(item => item.Id == bookingId);
+            Assert.Equal(BookingStatus.PaymentCaptured, stored.Status);
+            Assert.Equal(PaymentStatus.Captured, stored.PaymentStatus);
+        }
+    }
+
+    [Fact]
+    public async Task ProviderEventStorePersistsProcessingStateAndDeduplicatesProviderEventIds()
+    {
+        var databaseName = $"provider-events-{Guid.NewGuid():N}";
+        var root = new InMemoryDatabaseRoot();
+        Guid providerEventId;
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var store = new EfProviderEventStore(db);
+            var record = new ProviderEventRecord(
+                ProviderKind.Payment,
+                "Stripe",
+                "evt_provider_store",
+                "payment_intent.succeeded",
+                "{\"id\":\"evt_provider_store\"}",
+                "payload-hash",
+                DateTimeOffset.UtcNow);
+
+            var first = await store.RecordReceivedAsync(record, CancellationToken.None);
+            var duplicate = await store.RecordReceivedAsync(record, CancellationToken.None);
+
+            Assert.False(first.IsDuplicate);
+            Assert.True(duplicate.IsDuplicate);
+            Assert.Equal(first.Id, duplicate.Id);
+            providerEventId = first.Id;
+
+            await store.MarkProcessedAsync(
+                providerEventId,
+                new ProviderEventProcessingResult("Processed", "Booking", Guid.Parse("11111111-1111-4111-8111-111111111111"), "Applied to booking.", DateTimeOffset.UtcNow),
+                CancellationToken.None);
+        }
+
+        await using (var db = CreateContext(databaseName, root))
+        {
+            var providerEvent = await db.ProviderEvents.SingleAsync(item => item.Id == providerEventId);
+            Assert.Equal("Stripe", providerEvent.ProviderName);
+            Assert.Equal("evt_provider_store", providerEvent.EventId);
+            Assert.Equal("payload-hash", providerEvent.PayloadSha256);
+            Assert.Equal("Processed", providerEvent.Status);
+            Assert.Equal("Booking", providerEvent.SubjectType);
+            Assert.Equal("Applied to booking.", providerEvent.ProcessingResult);
+            Assert.NotNull(providerEvent.ProcessedAt);
+        }
+    }
+
+    [Fact]
     public void PhaseTwoStorePersistsPricebookAssignmentsRenewalsCampaignsAndFoundingBenefits()
     {
         var databaseName = $"phase-two-persistence-{Guid.NewGuid():N}";

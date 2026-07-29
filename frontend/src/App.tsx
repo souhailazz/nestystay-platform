@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
@@ -11,6 +11,8 @@ import TrustSection from "./components/landing/TrustSection";
 import FinalCTA from "./components/landing/FinalCTA";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { useAuth, type AuthController } from "./hooks/useAuth";
+import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
+import type { AdminPermission } from "./lib/api";
 import { PatoisProvider, PatoisToggle } from "./lib/patois";
 import {
   AdminPage,
@@ -439,6 +441,32 @@ function LogoutRoute({ auth }: { auth: AuthController }) {
   return <LogoutScreenPage />;
 }
 
+function AdminRoute({
+  auth,
+  permission,
+  children,
+}: {
+  auth: AuthController;
+  permission: AdminPermission;
+  children: ReactNode;
+}) {
+  if (!auth.session) {
+    return <AuthPage auth={auth} mode="login" />;
+  }
+
+  if (!isAdminSession(auth.session) || !hasAdminPermission(auth.session, permission)) {
+    return <AccessRestrictedPage />;
+  }
+
+  return <>{children}</>;
+}
+
+function adminOpsPermission(view: string): AdminPermission {
+  if (view === "audit" || view === "logs") return AdminPermissions.auditLogAccess;
+  if (view === "payments" || view === "refunds" || view === "reports") return AdminPermissions.financialReporting;
+  return AdminPermissions.userManagement;
+}
+
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
   switch (route.name) {
     case "public-content":
@@ -462,7 +490,11 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "host-spec":
       return <HostSpecPage auth={auth} view={route.view} />;
     case "admin-ops":
-      return <AdminOpsSpecPage view={route.view} />;
+      return (
+        <AdminRoute auth={auth} permission={adminOpsPermission(route.view)}>
+          <AdminOpsSpecPage auth={auth} view={route.view} />
+        </AdminRoute>
+      );
     case "explore":
       return <ExplorePage auth={auth} />;
     case "map-search":
@@ -530,13 +562,29 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "document-message":
       return <DocumentMessagePage />;
     case "admin":
-      return <AdminPage />;
+      return (
+        <AdminRoute auth={auth} permission={AdminPermissions.superAdministration}>
+          <AdminPage auth={auth} />
+        </AdminRoute>
+      );
     case "admin-kpis":
-      return <AdminKpiPage />;
+      return (
+        <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}>
+          <AdminKpiPage />
+        </AdminRoute>
+      );
     case "admin-reports":
-      return <AdminReportsPage />;
+      return (
+        <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}>
+          <AdminReportsPage />
+        </AdminRoute>
+      );
     case "officer-id-reset":
-      return <OfficerIdResetPage />;
+      return (
+        <AdminRoute auth={auth} permission={AdminPermissions.officerManagement}>
+          <OfficerIdResetPage />
+        </AdminRoute>
+      );
     case "sign-in-required":
       return <SignInRequiredPage />;
     case "access-restricted":

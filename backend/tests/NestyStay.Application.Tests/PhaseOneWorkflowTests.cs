@@ -254,7 +254,7 @@ public sealed class PhaseOneWorkflowTests
         Assert.NotNull(booking.EkycTransactionId);
         Assert.Equal(1, harness.EkycProvider.StartCount);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None));
+        await Assert.ThrowsAsync<BookingStateConflictException>(() => harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None));
 
         var approved = await harness.Store.ResolveVerificationAsync(booking.Id, new ResolveVerificationRequest(true, booking.EkycTransactionId), CancellationToken.None);
         Assert.NotNull(approved);
@@ -266,7 +266,7 @@ public sealed class PhaseOneWorkflowTests
         Assert.NotNull(duplicateWebhook);
         Assert.Equal(2, duplicateWebhook.Notifications.Count);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BookingStateConflictException>(() =>
             harness.Store.ResolveVerificationAsync(booking.Id, new ResolveVerificationRequest(false, booking.EkycTransactionId), CancellationToken.None));
 
         var captured = await harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None);
@@ -303,9 +303,9 @@ public sealed class PhaseOneWorkflowTests
         Assert.Equal(2, rejected.Notifications.Count);
         Assert.Equal(2, duplicateRejection.Notifications.Count);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BookingStateConflictException>(() =>
             harness.Store.ResolveVerificationAsync(booking.Id, new ResolveVerificationRequest(true, booking.EkycTransactionId), CancellationToken.None));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None));
+        await Assert.ThrowsAsync<BookingStateConflictException>(() => harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None));
 
         var replacement = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 4)), CancellationToken.None);
         Assert.Equal("PENDING", replacement.Status);
@@ -358,6 +358,51 @@ public sealed class PhaseOneWorkflowTests
         Assert.False(booking.RequiresGuestVerification);
         Assert.Equal(0, harness.EkycProvider.StartCount);
         Assert.DoesNotContain(booking.PriceBreakdown, line => line.Code == "guest-verification");
+    }
+
+    [Fact]
+    public async Task PaymentStateMachineRejectsInvalidRefundsAndIgnoresStaleWebhookDowngrades()
+    {
+        var harness = CreateHarness();
+        var user = await harness.Store.RegisterAsync(Registration("states@test.local", "State Guest"), CancellationToken.None);
+        var property = await harness.Store.CreatePropertyAsync(new CreatePropertyRequest(
+            Guid.NewGuid(),
+            "State Host",
+            "state-host@test.local",
+            "State Machine Cottage",
+            "Kingston",
+            "Jamaica",
+            150m,
+            "USD"),
+            CancellationToken.None);
+
+        var booking = await harness.Store.CreateBookingAsync(
+            new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 3)),
+            CancellationToken.None);
+
+        var refundConflict = await Assert.ThrowsAsync<BookingStateConflictException>(() =>
+            harness.Store.RefundPaymentAsync(booking.Id, new RefundBookingRequest(Reason: "too early"), CancellationToken.None));
+        Assert.Equal("refund_payment", refundConflict.Operation);
+        Assert.Equal(PaymentStatus.Authorized, refundConflict.CurrentPaymentStatus);
+
+        var captured = await harness.Store.CapturePaymentAsync(booking.Id, CancellationToken.None);
+        Assert.NotNull(captured);
+        Assert.Equal("CAPTURED", captured.PaymentStatus);
+
+        var failedWebhook = await harness.Store.ApplyPaymentWebhookAsync(new PaymentWebhookUpdateRequest(
+            "Stripe",
+            "evt_stale_failed",
+            "payment_intent.payment_failed",
+            captured.PaymentAuthorizationReference!,
+            PaymentStatus.Failed,
+            captured.TotalAmount,
+            captured.Currency,
+            "pi_stale_failed",
+            OccurredAt: DateTimeOffset.UtcNow), CancellationToken.None);
+
+        Assert.NotNull(failedWebhook);
+        Assert.Equal("CAPTURED", failedWebhook.PaymentStatus);
+        Assert.Contains(failedWebhook.Timeline, entry => entry.Contains("ignored Failed", StringComparison.OrdinalIgnoreCase));
     }
 
     private static PhaseOneHarness CreateHarness(TimeProvider? timeProvider = null)

@@ -27,7 +27,13 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     setLoading(true);
     setNotice(null);
     try {
-      await auth.login(email, password);
+      const result = await auth.login(email, password);
+      if ("challengeId" in result) {
+        setMode("2fa-verify");
+        setNotice("Enter your authenticator code to finish signing in.");
+        return;
+      }
+
       setNotice("Logged in successfully!");
       if (onClose) onClose();
     } catch (err) {
@@ -47,6 +53,22 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
       setMode("2fa-enroll");
     } catch (err) {
       setNotice("Failed to begin 2FA enrollment.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyLogin2FA(e: React.FormEvent) {
+    e.preventDefault();
+    if (!otpCode.trim()) return;
+    setLoading(true);
+    setNotice(null);
+    try {
+      await auth.verify(otpCode);
+      setNotice("Logged in successfully!");
+      if (onClose) onClose();
+    } catch (err) {
+      setNotice(`Verification failed: ${err instanceof Error ? err.message : "Error"}`);
     } finally {
       setLoading(false);
     }
@@ -136,6 +158,25 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               Verify & Enable 2FA
             </button>
           </div>
+        )}
+
+        {mode === "2fa-verify" && (
+          <form onSubmit={handleVerifyLogin2FA} className="space-y-3" id="AUTH-05">
+            <div className="field-group">
+              <label className="field-label">Authenticator code</label>
+              <input
+                type="text"
+                className="input-control text-center font-bold tracking-widest text-lg"
+                placeholder="000 000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-full py-2" disabled={loading}>
+              {loading ? "Verifying..." : "Verify & continue"}
+            </button>
+          </form>
         )}
       </div>
     </div>
