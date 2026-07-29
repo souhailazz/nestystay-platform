@@ -1,10 +1,10 @@
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { ArrowUpRight, Heart, MapPin } from "lucide-react";
 import type { MouseEvent } from "react";
-import { AppLink } from "../AppLink";
-import { useProperties } from "../../hooks/useProperties";
-import { formatMoney, type PropertyListing } from "../../lib/api";
-import { getStayImage } from "../../lib/stayImages";
+import { AppLink } from "../../AppLink";
+import { useProperties } from "../../../hooks/useProperties";
+import { formatMoney, type PropertyListing } from "../../../lib/api";
+import { getStayImage } from "../../../lib/stayImages";
 
 function PropertyArt({ index, title }: { index: number; title: string }) {
   const image = getStayImage(index);

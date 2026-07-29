@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Instagram, Linkedin } from "lucide-react";
-import { AppLink } from "../AppLink";
+import { AppLink } from "../../AppLink";
 
 export default function FinalCTA() {
   return (

@@ -2,13 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
-import Hero3D from "./components/landing/Hero3D";
-import ScrollStory from "./components/landing/ScrollStory";
-import FeatureCards from "./components/landing/FeatureCards";
-import PropertyShowcase from "./components/landing/PropertyShowcase";
-import HowItWorks from "./components/landing/HowItWorks";
-import TrustSection from "./components/landing/TrustSection";
-import FinalCTA from "./components/landing/FinalCTA";
+import { Pub01Landing } from "./components/landing/pub01/Pub01Landing";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { useAuth, type AuthController } from "./hooks/useAuth";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
@@ -359,17 +353,7 @@ function Navbar({ auth }: { auth: AuthController; route: Route }) {
 }
 
 function LandingPage() {
-  return (
-    <>
-      <Hero3D />
-      <ScrollStory />
-      <FeatureCards />
-      <PropertyShowcase />
-      <HowItWorks />
-      <TrustSection />
-      <FinalCTA />
-    </>
-  );
+  return <Pub01Landing />;
 }
 
 function isWorkspaceRoute(route: Route) {
@@ -415,8 +399,8 @@ function isWorkspaceRoute(route: Route) {
 }
 
 function hasPublicNav(route: Route) {
+  // "home" is excluded: the PUB-01 landing owns its floating pill navbar.
   return [
-    "home",
     "explore",
     "map-search",
     "public-content",

@@ -7956,6 +7956,9 @@ body {
 
 .ns-emblem img {
   display: block;
+  /* The circular crop relies on the img being wider than the circle;
+     escape Tailwind preflight's img { max-width: 100% }. */
+  max-width: none;
 }
 
 /* ---------- Footer ---------- */
@@ -8120,4 +8123,1027 @@ body {
   font-size: 13.5px;
   margin: 0;
   opacity: 0.92;
+}
+
+/* ============================================================
+   PUB-01 landing — "a Jamaican day" narrative
+   Ported from design-system/PUB-01.dc.html
+   Sections: golden hour → broad daylight → high noon →
+   dusk → nightfall (+ fused footer)
+   ============================================================ */
+
+.ns-landing {
+  background: var(--ns-sand);
+  overflow-x: hidden;
+}
+
+/* ---------- 01 · GOLDEN HOUR — hero ---------- */
+.ns-hero {
+  position: relative;
+  background: var(--ns-deep);
+  margin-top: -72px;
+}
+
+.ns-hero__bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -60px;
+  width: 100%;
+  height: calc(100% + 120px);
+  object-fit: cover;
+  opacity: 0.78;
+  filter: saturate(1.1) sepia(0.22) contrast(1.04);
+}
+
+.ns-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    178deg,
+    rgba(92, 48, 10, 0.42) 0%,
+    rgba(140, 86, 20, 0.22) 38%,
+    rgba(6, 43, 43, 0.72) 78%,
+    rgba(6, 43, 43, 0.92) 100%
+  );
+}
+
+.ns-hero__inner {
+  position: relative;
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+  padding: clamp(150px, 16vw, 210px) var(--ns-gutter) clamp(90px, 10vw, 130px);
+  display: flex;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ns-hero__copy {
+  flex: 1 1 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  align-items: flex-start;
+}
+
+.ns-hero .ns-eyebrow {
+  color: var(--ns-warm-cream);
+}
+
+.ns-hero__title {
+  font-size: clamp(52px, 8.6vw, 116px);
+  line-height: 0.98;
+  color: var(--ns-cream-text);
+}
+
+.ns-hero__title em {
+  color: var(--ns-yellow);
+}
+
+.ns-hero__lede {
+  color: var(--ns-body-dark);
+  font-size: clamp(15px, 1.3vw, 17px);
+  max-width: 440px;
+  margin: 0;
+}
+
+.ns-hero__ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Hero search bar — "Weh Yuh Deh?" */
+.ns-hero__search {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(460px, 100%);
+}
+
+.ns-hero__search .ns-patois {
+  font-size: 22px;
+}
+
+.ns-hero__search .ns-patois small {
+  font-size: 12.5px;
+}
+
+.ns-hero__search .ns-patois__fallback {
+  color: var(--ns-body-dark);
+  font-weight: 600;
+}
+
+.ns-hero__searchbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ns-cream);
+  border-radius: var(--ns-radius-pill);
+  padding: 6px 6px 6px 22px;
+  box-shadow: 0 20px 44px rgba(4, 31, 31, 0.35);
+}
+
+.ns-hero__searchbar input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  outline: none;
+  font-family: var(--ns-font-body);
+  font-size: 14.5px;
+  color: var(--ns-ink);
+}
+
+.ns-hero__searchbar input::placeholder {
+  color: var(--ns-sand-500);
+}
+
+.ns-hero__searchbar button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ns-yellow);
+  color: var(--ns-deep);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  flex: none;
+  transition: background 0.25s ease-out;
+}
+
+.ns-hero__searchbar button:hover {
+  background: var(--ns-yellow-hover);
+}
+
+.ns-hero__proof {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+}
+
+.ns-hero__avatars {
+  display: flex;
+}
+
+.ns-hero__avatars img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--ns-cream-text);
+}
+
+.ns-hero__avatars img + img {
+  margin-left: -10px;
+}
+
+.ns-hero__rating {
+  font-size: 12.5px;
+  color: var(--ns-body-dark);
+}
+
+.ns-hero__rating .ns-stars {
+  color: var(--ns-yellow);
+}
+
+/* Floating featured card */
+.ns-hero__cardwrap {
+  flex: 0 1 330px;
+  position: relative;
+  transform: rotate(2.5deg);
+  margin: 0 auto;
+}
+
+.ns-hero__card {
+  background: var(--ns-cream-text);
+  border-radius: var(--ns-radius-card);
+  box-shadow: var(--ns-shadow-float);
+  overflow: hidden;
+}
+
+.ns-hero__cardimg {
+  position: relative;
+  aspect-ratio: 4 / 3;
+}
+
+.ns-hero__cardimg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ns-hero__cardtag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(6, 43, 43, 0.85);
+  color: var(--ns-yellow);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 6px 12px;
+  border-radius: var(--ns-radius-pill);
+}
+
+.ns-hero__cardbody {
+  padding: 16px 18px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ns-hero__cardname {
+  font-family: var(--ns-font-display);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--ns-ink);
+}
+
+.ns-hero__cardloc {
+  font-size: 12.5px;
+  color: #66705f;
+  margin-top: 2px;
+}
+
+.ns-hero__cardrating {
+  font-size: 13px;
+  color: var(--ns-ink);
+  white-space: nowrap;
+}
+
+.ns-chip {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--ns-radius-pill);
+  box-shadow: var(--ns-shadow-pill-chip);
+}
+
+.ns-hero__chip-dates {
+  position: absolute;
+  top: -16px;
+  right: -12px;
+  display: block;
+}
+
+.ns-hero__chip-dates .ns-chip {
+  background: var(--ns-deep);
+  color: var(--ns-cream-text);
+  transform: rotate(-4deg);
+}
+
+.ns-hero__chip-verified {
+  position: absolute;
+  bottom: -26px;
+  left: 4px;
+  display: block;
+}
+
+.ns-hero__chip-verified .ns-chip {
+  background: var(--ns-deep-hover);
+  color: #ffffff;
+  font-weight: 700;
+  transform: rotate(3deg);
+}
+
+.ns-hero__scrollcue {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 26px;
+  color: var(--ns-nav-meta);
+}
+
+.ns-hero__scrollcue span:first-child {
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  font-weight: 600;
+}
+
+.ns-hero__scrollcue span:last-child {
+  width: 1px;
+  height: 34px;
+  background: linear-gradient(var(--ns-nav-meta), transparent);
+  display: block;
+}
+
+/* ---------- 02 · BROAD DAYLIGHT — explore ---------- */
+.ns-day {
+  background: var(--ns-sand);
+  padding: var(--ns-section-pad) var(--ns-gutter) 0;
+}
+
+.ns-day__inner {
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+}
+
+.ns-day .ns-eyebrow {
+  color: var(--ns-sand-500);
+}
+
+.ns-day__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 18px 0 40px;
+}
+
+.ns-day__title {
+  font-size: clamp(38px, 5.6vw, 76px);
+  line-height: 1.02;
+  max-width: 640px;
+}
+
+.ns-day__title em {
+  color: var(--ns-deep-hover);
+}
+
+.ns-day__grid {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.ns-photo-card {
+  position: relative;
+  border-radius: var(--ns-radius-photo-card);
+  overflow: hidden;
+  min-height: 430px;
+  box-shadow: var(--ns-shadow-photo);
+  transition: box-shadow 0.3s ease-out;
+}
+
+.ns-photo-card:hover {
+  box-shadow: var(--ns-shadow-photo-hover);
+}
+
+.ns-photo-card--large {
+  flex: 1.7 1 420px;
+}
+
+.ns-photo-card--narrow {
+  flex: 1 1 260px;
+}
+
+.ns-photo-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ns-photo-card--large .ns-photo-card__img {
+  inset: -5% 0;
+  height: 110%;
+}
+
+.ns-photo-card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(185deg, rgba(6, 43, 43, 0) 40%, rgba(6, 43, 43, 0.82) 100%);
+}
+
+.ns-tier-chip {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  display: inline-flex;
+  padding: 6px 14px;
+  border-radius: var(--ns-radius-pill);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.ns-tier-chip--wellness {
+  background: var(--ns-mint-tint);
+  color: var(--ns-mint-text);
+}
+
+.ns-tier-chip--verified {
+  background: var(--ns-deep-hover);
+  color: #ffffff;
+}
+
+.ns-tier-chip--trusted {
+  background: var(--ns-deep);
+  color: var(--ns-yellow);
+}
+
+.ns-tier-chip--free {
+  background: var(--ns-cream-text);
+  color: #66705f;
+}
+
+.ns-photo-card__info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ns-photo-card--large .ns-photo-card__info {
+  padding: 22px 24px;
+  gap: 14px;
+}
+
+.ns-photo-card__name {
+  font-family: var(--ns-font-display);
+  font-weight: 500;
+  font-size: 21px;
+  color: var(--ns-cream-text);
+}
+
+.ns-photo-card--large .ns-photo-card__name {
+  font-size: 27px;
+}
+
+.ns-photo-card__loc {
+  font-size: 12.5px;
+  color: var(--ns-nav-meta);
+  margin-top: 2px;
+}
+
+.ns-photo-card__price {
+  color: var(--ns-cream-text);
+  font-size: 15.5px;
+  margin-top: 8px;
+}
+
+.ns-photo-card__price span {
+  font-size: 12px;
+  color: var(--ns-nav-meta);
+}
+
+.ns-photo-card__open {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ns-deep);
+  color: var(--ns-yellow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex: none;
+  transition: background 0.25s ease-out;
+}
+
+.ns-photo-card__open:hover {
+  background: var(--ns-deep-hover);
+  color: var(--ns-yellow);
+}
+
+/* Skeletons — "Tek Time" */
+.ns-skel-card {
+  border-radius: var(--ns-radius-photo-card);
+  min-height: 430px;
+  background: var(--ns-shell);
+  background-image: linear-gradient(90deg, #f3eac8 0px, #faf6ea 200px, #f3eac8 400px);
+  background-size: 800px;
+}
+
+.ns-day__state {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ns-day__statecopy {
+  background: var(--ns-cream);
+  border: 1px solid var(--ns-sand-border);
+  border-radius: var(--ns-radius-panel);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ns-day__error {
+  background: var(--ns-coral-tint);
+  border-radius: var(--ns-radius-input);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--ns-coral-text);
+}
+
+/* Overlapping card into HIGH NOON */
+.ns-day__overlap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  position: relative;
+  z-index: 5;
+  transform: translateY(84px);
+  margin-bottom: -66px;
+  padding: 0 clamp(0px, 2vw, 24px);
+}
+
+.ns-overlap-card {
+  flex: 0 1 460px;
+  display: flex;
+  background: var(--ns-cream-text);
+  border-radius: var(--ns-radius-card);
+  overflow: hidden;
+  box-shadow: 0 26px 56px rgba(60, 45, 10, 0.3);
+}
+
+.ns-overlap-card > img {
+  width: 42%;
+  min-height: 150px;
+  object-fit: cover;
+}
+
+.ns-overlap-card__body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.ns-overlap-card__body .ns-tier-chip {
+  position: static;
+  align-self: flex-start;
+  padding: 4px 11px;
+  font-size: 9.5px;
+}
+
+.ns-overlap-card__name {
+  font-family: var(--ns-font-display);
+  font-weight: 500;
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.ns-overlap-card__loc {
+  font-size: 12.5px;
+  color: #66705f;
+}
+
+.ns-overlap-card__price {
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.ns-overlap-card__price span {
+  font-size: 12px;
+  color: #98a08c;
+}
+
+.ns-overlap-card__price a {
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-left: 8px;
+}
+
+/* ---------- 03 · HIGH NOON — yellow statement ---------- */
+.ns-noon {
+  background: var(--ns-yellow);
+  padding: clamp(120px, 14vw, 180px) var(--ns-gutter) clamp(88px, 10vw, 140px);
+}
+
+.ns-noon__inner {
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.ns-noon .ns-eyebrow {
+  color: var(--ns-deep);
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.ns-noon__title {
+  font-size: clamp(44px, 7.4vw, 104px);
+  letter-spacing: -0.02em;
+  color: var(--ns-deep);
+  max-width: 980px;
+}
+
+.ns-noon__lede {
+  color: var(--ns-deep);
+  font-size: clamp(15px, 1.4vw, 18px);
+  max-width: 540px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* ---------- 04 · DUSK — security ---------- */
+.ns-dusk {
+  background: linear-gradient(180deg, #062b2b 0%, #052731 62%, #04222b 100%);
+  padding: 0 var(--ns-gutter);
+  position: relative;
+}
+
+.ns-dusk__birds {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  width: 100%;
+  height: 220px;
+  pointer-events: none;
+}
+
+.ns-dusk__glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -120px;
+  height: 260px;
+  background: radial-gradient(
+    ellipse 70% 100% at 50% 100%,
+    rgba(214, 110, 34, 0.28) 0%,
+    rgba(214, 110, 34, 0) 70%
+  );
+  pointer-events: none;
+}
+
+.ns-dusk__inner {
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+  position: relative;
+}
+
+.ns-dusk__cols {
+  display: flex;
+  gap: clamp(24px, 4vw, 56px);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ns-dusk__copy {
+  flex: 1 1 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: clamp(80px, 10vw, 130px);
+}
+
+.ns-dusk .ns-eyebrow {
+  color: var(--ns-eyebrow-dark);
+}
+
+.ns-dusk__title {
+  font-size: clamp(40px, 5.4vw, 74px);
+  line-height: 1.02;
+  color: var(--ns-cream-text);
+  max-width: 600px;
+}
+
+.ns-dusk__title em {
+  color: var(--ns-yellow);
+}
+
+.ns-dusk__lede {
+  color: var(--ns-muted-dark);
+  font-size: 15px;
+  margin: 0;
+  max-width: 430px;
+}
+
+/* 119 card overlaps the HIGH NOON boundary above */
+.ns-dusk__card {
+  flex: 0 1 400px;
+  margin-left: auto;
+  margin-top: -150px;
+  position: relative;
+  z-index: 5;
+}
+
+.ns-dusk__tiles {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.ns-dusk__tile {
+  flex: 0 1 400px;
+  min-width: 250px;
+  border: 1px solid rgba(143, 168, 162, 0.35);
+  border-radius: var(--ns-radius-panel);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ns-dusk__tiletitle {
+  color: var(--ns-cream-text);
+  font-family: var(--ns-font-display);
+  font-weight: 500;
+  font-size: 19px;
+}
+
+.ns-dusk__tile p {
+  color: var(--ns-muted-dark);
+  font-size: 13px;
+  margin: 0;
+}
+
+.ns-dusk__horizon {
+  display: block;
+  width: calc(100% + 2 * var(--ns-gutter));
+  margin: 64px calc(-1 * var(--ns-gutter)) 0;
+  height: 120px;
+}
+
+@media (max-width: 960px) {
+  .ns-dusk__card {
+    margin-top: 32px;
+    margin-left: 0;
+    flex: 1 1 320px;
+  }
+}
+
+/* ---------- 05 · NIGHTFALL ---------- */
+.ns-night-sec {
+  position: relative;
+  background-color: var(--ns-night);
+  background-image:
+    radial-gradient(circle 1.1px at 12% 18%, rgba(255, 255, 255, 0.55) 0 1px, transparent 2px),
+    radial-gradient(circle 0.9px at 34% 8%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
+    radial-gradient(circle 1px at 58% 22%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle 0.8px at 79% 12%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
+    radial-gradient(circle 1.2px at 91% 28%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+    radial-gradient(circle 0.9px at 45% 16%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px);
+  background-size: 900px 700px;
+  padding: clamp(84px, 10vw, 140px) var(--ns-gutter) 0;
+}
+
+.ns-night-sec__inner {
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+  display: flex;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ns-night-sec__scene {
+  flex: 1 1 420px;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+}
+
+.ns-night-sec__scene svg {
+  width: 100%;
+  max-width: 530px;
+  height: auto;
+  display: block;
+}
+
+.ns-night-sec__copy {
+  flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: flex-start;
+  padding-bottom: 24px;
+}
+
+.ns-night-sec .ns-eyebrow {
+  color: var(--ns-eyebrow-dark);
+}
+
+.ns-night-sec__title {
+  font-size: clamp(42px, 6vw, 84px);
+  color: var(--ns-cream-text);
+}
+
+.ns-night-sec__title em {
+  color: var(--ns-yellow);
+}
+
+.ns-night-sec__lede {
+  color: var(--ns-muted-dark);
+  font-size: clamp(15px, 1.3vw, 17px);
+  max-width: 420px;
+  margin: 0;
+}
+
+/* Footer fused to the scene's ground */
+.ns-night-sec__footerwrap {
+  margin: 64px calc(-1 * var(--ns-gutter)) 0;
+}
+
+/* ============================================================
+   PUB-01 motion — strict progressive enhancement.
+   Hidden initial states exist ONLY under .ns-js (added by JS
+   after mount) and only when motion is allowed. Without JS or
+   with prefers-reduced-motion, the page renders complete and
+   static.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Scroll reveals */
+  .ns-js .ns-rv {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.7s ease-out,
+      transform 0.7s ease-out;
+    transition-delay: var(--d, 0s);
+  }
+
+  .ns-js .ns-rv.ns-on {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Hero line-by-line reveal on load */
+  @keyframes ns-linein {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .ns-js .ns-line {
+    display: inline-block;
+    opacity: 0;
+    animation: ns-linein 0.8s ease-out forwards;
+    animation-delay: var(--d, 0s);
+  }
+
+  /* Loops — slow, CSS-only */
+  @keyframes ns-breathe {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .ns-breathe {
+    animation: ns-breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes ns-b1 {
+    0%,
+    100% {
+      transform: rotate(-4deg) translateY(0);
+    }
+
+    50% {
+      transform: rotate(-4deg) translateY(-6px);
+    }
+  }
+
+  .ns-b1 .ns-chip {
+    animation: ns-b1 6s ease-in-out infinite;
+    animation-delay: 0.9s;
+  }
+
+  @keyframes ns-b2 {
+    0%,
+    100% {
+      transform: rotate(3deg) translateY(0);
+    }
+
+    50% {
+      transform: rotate(3deg) translateY(-6px);
+    }
+  }
+
+  .ns-b2 .ns-chip {
+    animation: ns-b2 6s ease-in-out infinite;
+    animation-delay: 1.8s;
+  }
+
+  /* Photo zoom on hover */
+  .ns-zoomimg {
+    transition: transform 0.8s ease-out;
+  }
+
+  .ns-zoom:hover .ns-zoomimg {
+    transform: scale(1.03);
+  }
+
+  /* Dusk horizon ember pulse */
+  @keyframes ns-duskpulse {
+    from {
+      opacity: 0.7;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .ns-duskglow {
+    animation: ns-duskpulse 8s ease-in-out infinite alternate;
+  }
+
+  /* Hammock sway */
+  @keyframes ns-sway {
+    0%,
+    100% {
+      transform: rotate(-2.5deg);
+    }
+
+    50% {
+      transform: rotate(2.5deg);
+    }
+  }
+
+  .ns-sway {
+    animation: ns-sway 4s ease-in-out infinite;
+    transform-box: view-box;
+    transform-origin: 280px 300px;
+  }
+
+  /* Fireflies — flicker + slow drift */
+  @keyframes ns-ff {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: translate(0, 0);
+    }
+
+    50% {
+      opacity: 1;
+      transform: translate(4px, -6px);
+    }
+  }
+
+  .ns-ff {
+    animation: ns-ff var(--ffd, 4s) ease-in-out infinite;
+    animation-delay: var(--ffdel, 0s);
+    transform-box: fill-box;
+  }
+
+  /* Night-sky twinkle overlay */
+  @keyframes ns-twinkle {
+    from {
+      opacity: 0.35;
+    }
+
+    to {
+      opacity: 0.9;
+    }
+  }
+
+  .ns-night-sec::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle 1px at 22% 14%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
+      radial-gradient(circle 1px at 68% 10%, rgba(255, 255, 255, 0.55) 0 1px, transparent 2px),
+      radial-gradient(circle 1.2px at 86% 20%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px);
+    background-size: 800px 640px;
+    animation: ns-twinkle 6s ease-in-out infinite alternate;
+  }
+
+  /* Loading shimmer */
+  @keyframes ns-shimmer {
+    0% {
+      background-position: -400px 0;
+    }
+
+    100% {
+      background-position: 400px 0;
+    }
+  }
+
+  .ns-skel-card {
+    animation: ns-shimmer 1.4s linear infinite;
+  }
 }

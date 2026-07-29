@@ -8,8 +8,8 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import { AppLink } from "../AppLink";
-import { getStayImage } from "../../lib/stayImages";
+import { AppLink } from "../../AppLink";
+import { getStayImage } from "../../../lib/stayImages";
 
 function Palm({ side }: { side: "left" | "right" }) {
   return (

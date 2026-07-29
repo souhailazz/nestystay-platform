@@ -15,6 +15,8 @@ import { describe, expect, it } from "vitest";
 const srcDir = dirname(fileURLToPath(import.meta.url));
 
 const lexicon: Array<{ phrase: string; file: string }> = [
+  // Landing (PUB-01) — hero search bar
+  { phrase: "Weh Yuh Deh?", file: "components/landing/pub01/GoldenHourHero.tsx" },
   // Shared UI
   { phrase: "Tek Time", file: "components/ui/LoadingState.tsx" },
   { phrase: "Yuh Gud?", file: "components/ui/PatoisToast.tsx" },
@@ -33,6 +35,10 @@ describe("patois lexicon", () => {
   it.each(lexicon)("locks $phrase to $file", ({ phrase, file }) => {
     const source = readFileSync(resolve(srcDir, file), "utf8");
     expect(source, `${file} must render the locked phrase "${phrase}"`).toContain(phrase);
-    expect(source, `${file} must render patois through the PatoisPhrase channel`).toContain("PatoisPhrase");
+    // PatoisBlock is the styled Design System v2 wrapper around PatoisPhrase.
+    expect(
+      /PatoisPhrase|PatoisBlock/.test(source),
+      `${file} must render patois through the PatoisPhrase channel`,
+    ).toBe(true);
   });
 });
