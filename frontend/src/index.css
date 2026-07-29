@@ -7620,3 +7620,504 @@ body {
     display: none;
   }
 }
+
+/* ============================================================
+   NestyStay Design System v2 — tokens & shared components
+   Source of truth: design-system/NestyStay Design System v2.dc.html
+   Prefix: ns- (scoped to v2 surfaces; legacy vars above untouched)
+   ============================================================ */
+
+:root {
+  /* Brand */
+  --ns-deep: #062b2b; /* Nesty Deep — brand fields, dark sections, navbar pill */
+  --ns-yellow: #ffd21f; /* Nesty Yellow — dark grounds ONLY */
+  --ns-yellow-hover: #ffdd52;
+  --ns-deep-hover: #0e4a45; /* links, hovers, italic accents on light */
+  --ns-emergency: #dc2626; /* 119 badge exclusively */
+  --ns-night-card: #04201f; /* opaque cards on dark */
+  --ns-night: #041f1f; /* nightfall grounds */
+  --ns-footer-green: #052a22;
+  --ns-ember: #d66e22; /* atmosphere only — never UI */
+
+  /* Warm neutrals — light surfaces */
+  --ns-ink: #12241f;
+  --ns-gray-600: #5a6b63;
+  --ns-sand-500: #8a7f5e;
+  --ns-sand-border: #e7dcc2;
+  --ns-input-border: #c7bc9c;
+  --ns-shell: #f3eac8;
+  --ns-sand: #faf3e4;
+  --ns-cream: #fbf7ec;
+
+  /* On-dark text ramp */
+  --ns-cream-text: #fbf7ec;
+  --ns-warm-cream: #e9dfc4;
+  --ns-body-dark: #dce6e1;
+  --ns-nav-meta: #c9dad5;
+  --ns-muted-dark: #9fb3ac;
+  --ns-eyebrow-dark: #8fa8a2;
+
+  /* Semantic (StatusBadge) */
+  --ns-success: #1b7a4b;
+  --ns-success-tint: #e3f2e9;
+  --ns-success-text: #135a38;
+  --ns-coral: #d64f45;
+  --ns-coral-tint: #fbe7e6;
+  --ns-coral-text: #9e2b23;
+  --ns-amber: #d9a800;
+  --ns-amber-tint: #fbf1ce;
+  --ns-amber-text: #7a5800;
+  --ns-info: #2e6bd6;
+  --ns-info-tint: #e5edfb;
+  --ns-info-text: #1d4fa8;
+  --ns-mint: #2fb893;
+  --ns-mint-tint: #dff6ef;
+  --ns-mint-text: #0e6b57;
+
+  /* Type */
+  --ns-font-display: "Fraunces", Georgia, serif;
+  --ns-font-body: "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radii */
+  --ns-radius-pill: 999px;
+  --ns-radius-photo-card: 26px;
+  --ns-radius-card: 22px;
+  --ns-radius-panel: 18px;
+  --ns-radius-tile: 16px;
+  --ns-radius-input: 14px;
+
+  /* Shadows */
+  --ns-shadow-nav: 0 12px 32px rgba(4, 31, 31, 0.35);
+  --ns-shadow-nav-scrolled: 0 18px 44px rgba(4, 31, 31, 0.5);
+  --ns-shadow-photo: 0 18px 40px rgba(96, 74, 20, 0.16);
+  --ns-shadow-photo-hover: 0 26px 56px rgba(96, 74, 20, 0.24);
+  --ns-shadow-float: 0 32px 64px rgba(4, 31, 31, 0.45);
+  --ns-shadow-night-card: 0 34px 70px rgba(2, 14, 14, 0.6);
+  --ns-shadow-workspace: 0 10px 26px rgba(96, 74, 20, 0.08);
+  --ns-shadow-pill-chip: 0 10px 24px rgba(4, 31, 31, 0.4);
+
+  /* Spacing rhythm */
+  --ns-gutter: clamp(20px, 3vw, 28px);
+  --ns-section-pad: clamp(72px, 9vw, 120px);
+  --ns-content-width: 1160px;
+}
+
+/* ---------- Base helpers ---------- */
+.ns-surface {
+  font-family: var(--ns-font-body);
+  color: var(--ns-ink);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ns-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--ns-font-body);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  font-weight: 600;
+}
+
+.ns-eyebrow::before {
+  content: "";
+  width: 34px;
+  height: 1px;
+  background: currentcolor;
+  display: inline-block;
+}
+
+.ns-display {
+  font-family: var(--ns-font-display);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.ns-display em {
+  font-style: italic;
+}
+
+/* ---------- Pill buttons (DS-03) ---------- */
+.ns-btn {
+  border-radius: var(--ns-radius-pill);
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 28px;
+  font-family: var(--ns-font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  transition:
+    background 0.25s ease-out,
+    border-color 0.25s ease-out,
+    color 0.25s ease-out;
+}
+
+.ns-btn--sun {
+  background: var(--ns-yellow);
+  color: var(--ns-deep);
+}
+
+.ns-btn--sun:hover {
+  background: var(--ns-yellow-hover);
+  color: var(--ns-deep);
+}
+
+.ns-btn--outline {
+  border: 1.5px solid rgba(251, 247, 236, 0.55);
+  color: var(--ns-cream-text);
+  font-weight: 600;
+}
+
+.ns-btn--outline:hover {
+  border-color: var(--ns-cream-text);
+  color: var(--ns-cream-text);
+  background: rgba(251, 247, 236, 0.08);
+}
+
+.ns-btn--outline-light {
+  border: 1.5px solid var(--ns-input-border);
+  color: var(--ns-ink);
+  font-weight: 600;
+  min-height: 48px;
+  padding: 0 26px;
+  font-size: 14.5px;
+}
+
+.ns-btn--outline-light:hover {
+  border-color: var(--ns-deep);
+  color: var(--ns-ink);
+}
+
+.ns-btn--primary-light {
+  background: var(--ns-deep);
+  color: var(--ns-cream-text);
+  font-weight: 600;
+  min-height: 48px;
+  padding: 0 26px;
+  font-size: 14.5px;
+}
+
+.ns-btn--primary-light:hover {
+  background: var(--ns-deep-hover);
+  color: var(--ns-cream-text);
+}
+
+.ns-btn--ghost {
+  min-height: 44px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ns-deep-hover);
+}
+
+.ns-btn--ghost:hover {
+  color: var(--ns-deep);
+}
+
+.ns-btn__disc {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--ns-deep);
+  color: var(--ns-yellow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.ns-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease-out;
+}
+
+.ns-btn:hover .ns-arrow {
+  transform: translateX(4px);
+}
+
+/* ---------- Floating pill navbar ---------- */
+.ns-nav-wrap {
+  position: sticky;
+  top: 14px;
+  z-index: 50;
+  padding: 0 clamp(12px, 3vw, 28px);
+}
+
+.ns-nav {
+  max-width: 1140px;
+  margin: 0 auto;
+  background: var(--ns-deep);
+  border-radius: var(--ns-radius-pill);
+  box-shadow: var(--ns-shadow-nav);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 8px;
+  flex-wrap: wrap;
+  transition:
+    padding 0.3s ease-out,
+    box-shadow 0.3s ease-out;
+}
+
+.ns-nav--scrolled {
+  padding: 3px 6px 3px 4px;
+  box-shadow: var(--ns-shadow-nav-scrolled);
+}
+
+.ns-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-left: 4px;
+}
+
+.ns-nav__wordmark {
+  font-family: var(--ns-font-body);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  color: #faf3e4;
+}
+
+.ns-nav__links {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  align-items: center;
+}
+
+.ns-navlink {
+  position: relative;
+  color: var(--ns-nav-meta);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 0 14px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--ns-radius-pill);
+}
+
+.ns-navlink:hover {
+  color: #ffffff;
+}
+
+.ns-navlink::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 8px;
+  height: 1.5px;
+  background: var(--ns-yellow);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+
+.ns-navlink:hover::after {
+  transform: scaleX(1);
+}
+
+.ns-nav__cta {
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: 13.5px;
+  margin-left: 6px;
+}
+
+@media (max-width: 680px) {
+  .ns-navlink {
+    display: none;
+  }
+}
+
+/* ---------- Emblem (official logo, circular crop) ---------- */
+.ns-emblem {
+  border-radius: 50%;
+  background: #faf3e4;
+  overflow: hidden;
+  display: block;
+  flex: none;
+}
+
+.ns-emblem img {
+  display: block;
+}
+
+/* ---------- Footer ---------- */
+.ns-footer {
+  background: var(--ns-footer-green);
+  border-top: 1px solid rgba(143, 168, 162, 0.28);
+}
+
+.ns-footer__inner {
+  max-width: var(--ns-content-width);
+  margin: 0 auto;
+  padding: 34px var(--ns-gutter) 42px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.ns-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ns-footer__wordmark {
+  font-family: var(--ns-font-body);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.22em;
+  color: #f3eac8;
+}
+
+.ns-footer__meta {
+  font-size: 13.5px;
+  color: var(--ns-muted-dark);
+}
+
+.ns-footer__meta a {
+  color: var(--ns-muted-dark);
+}
+
+/* ---------- Patois block (DS-07) ---------- */
+.ns-patois {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ns-patois .patois-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ns-patois strong {
+  font-family: var(--ns-font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1em;
+}
+
+.ns-patois small {
+  font-family: var(--ns-font-body);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.ns-patois--dark strong {
+  color: var(--ns-yellow);
+}
+
+.ns-patois--dark small {
+  color: var(--ns-muted-dark);
+}
+
+.ns-patois--light strong {
+  color: var(--ns-deep);
+}
+
+.ns-patois--light small {
+  color: var(--ns-gray-600);
+}
+
+/* ---------- 119 badge (DS-06) ---------- */
+.ns-119-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ns-emergency);
+  color: #ffffff;
+  border-radius: var(--ns-radius-input);
+  padding: 14px 18px;
+  font-family: var(--ns-font-body);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.ns-119-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--ns-radius-card);
+  padding: 34px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--ns-night-card);
+  box-shadow: var(--ns-shadow-night-card);
+}
+
+.ns-119-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: var(--ns-emergency);
+  flex: none;
+}
+
+.ns-119-card__title {
+  color: var(--ns-cream-text);
+  font-family: var(--ns-font-display);
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.ns-119-card__number {
+  color: var(--ns-yellow);
+  font-weight: 600;
+  font-size: 52px;
+  letter-spacing: 0.01em;
+}
+
+.ns-119-card__services {
+  color: var(--ns-warm-cream);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.ns-119-card__chip {
+  align-self: flex-start;
+  display: inline-flex;
+  background: var(--ns-emergency);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: var(--ns-radius-pill);
+  letter-spacing: 0.04em;
+}
+
+.ns-119-card__note {
+  color: var(--ns-warm-cream);
+  font-size: 13.5px;
+  margin: 0;
+  opacity: 0.92;
+}
