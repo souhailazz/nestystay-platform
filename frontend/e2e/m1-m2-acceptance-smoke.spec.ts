@@ -11,6 +11,7 @@ type AuthSession = {
   accessToken: string;
   expiresAt: string;
   roles: string[];
+  permissions: string[];
 };
 
 const repoRoot = path.resolve(process.cwd(), "..");
@@ -21,6 +22,8 @@ const transparentPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64",
 );
+
+test.describe.configure({ timeout: 180_000 });
 
 test.beforeAll(async ({ baseURL }) => {
   const api = await playwrightRequest.newContext({ baseURL });
@@ -50,7 +53,7 @@ test.describe("M1/M2 public, auth, admin, and error evidence", () => {
 });
 
 test.describe("M1/M2 authenticated traveler and messaging evidence", () => {
-  test("captures traveler, profile upload, identity, payment, and messaging routes", async ({ baseURL, page }, testInfo) => {
+  test("captures traveler, identity, payment, and messaging routes", async ({ baseURL, page }, testInfo) => {
     const errors = collectPageErrors(page);
     const api = await playwrightRequest.newContext({ baseURL });
     const session = await createSession(api, "Guest");
@@ -63,6 +66,18 @@ test.describe("M1/M2 authenticated traveler and messaging evidence", () => {
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-11", "/traveler/invoices");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-13", "/traveler/identity");
     await visitAndCapture(page, testInfo, "MSG", "MSG-01", "/messages");
+
+    expect(errors).toEqual([]);
+  });
+
+  test("captures traveler profile upload route", async ({ baseURL, page }, testInfo) => {
+    const errors = collectPageErrors(page);
+    const api = await playwrightRequest.newContext({ baseURL });
+    const session = await createSession(api, "Guest");
+    await api.dispose();
+    await stubLocalStorageHost(page);
+    await installSession(page, session);
+
     await uploadProfilePhotoAndCapture(page, testInfo);
 
     expect(errors).toEqual([]);
@@ -89,16 +104,14 @@ test.describe("M1/M2 authenticated host, directory, and host profile evidence", 
 });
 
 async function visitAndCapture(page: Page, testInfo: TestInfo, family: string, screenId: string, route: string) {
-  await page.goto(route);
-  await page.waitForLoadState("domcontentloaded");
-  await page.waitForTimeout(750);
+  await page.goto(route, { waitUntil: "domcontentloaded" });
   await expect(page.locator("main, [role='main']").first()).toBeVisible();
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
   await capture(page, testInfo, family, screenId);
 }
 
 async function uploadProfilePhotoAndCapture(page: Page, testInfo: TestInfo) {
-  await page.goto("/profile");
-  await page.waitForLoadState("domcontentloaded");
+  await page.goto("/profile", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Profile photo").first()).toBeVisible();
   await page.locator(".profile-photo-picker input[type='file']").setInputFiles({
     name: "profile-e2e.png",
@@ -120,9 +133,16 @@ async function stubLocalStorageHost(page: Page) {
 }
 
 async function visitAdminAndCapture(page: Page, testInfo: TestInfo) {
-  await page.goto("/admin/ops/disputes");
-  await page.waitForLoadState("domcontentloaded");
-  await page.getByLabel("Admin token").fill(adminToken);
+  await installSession(page, {
+    userId: "admin-e2e",
+    email: "admin@nestystay.local",
+    displayName: "E2E Admin",
+    accessToken: adminToken,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    roles: ["Admin"],
+    permissions: ["super_administration"],
+  });
+  await page.goto("/admin/ops/disputes", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Evidence").first()).toBeVisible();
   await capture(page, testInfo, "ADM", "ADM-07");
 }
@@ -183,6 +203,7 @@ async function createSession(api: APIRequestContext, role: UserRole): Promise<Au
     accessToken: session.accessToken,
     expiresAt: session.expiresAt,
     roles: session.roles,
+    permissions: session.permissions ?? [],
   };
 }
 

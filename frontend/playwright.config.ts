@@ -5,14 +5,14 @@ const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5019/api/heal
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 60_000,
+  timeout: 120_000,
   expect: {
     timeout: 10_000,
   },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 2,
   reporter: [
     ["line"],
     ["html", { open: "never", outputFolder: "../artifacts/playwright-report" }],

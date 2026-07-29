@@ -43,6 +43,7 @@ import { PatoisToast } from "../components/ui/PatoisToast";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
+import { AdminPermissions, hasAdminPermission } from "../lib/adminPermissions";
 import { useProperties, useProperty } from "../hooks/useProperties";
 import { getStayImage } from "../lib/stayImages";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
@@ -1743,7 +1744,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   );
 }
 
-export function AdminPage() {
+export function AdminPage({ auth }: { auth: AuthController }) {
   const [data, setData] = useState<{
     health?: string;
     modules?: number;
@@ -1764,7 +1765,10 @@ export function AdminPage() {
     errors: string[];
   }>({ errors: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [adminToken, setAdminToken] = useState("");
+  const adminToken = auth.session?.accessToken ?? "";
+  const canManageOfficers = hasAdminPermission(auth.session, AdminPermissions.officerManagement);
+  const canViewFinancials = hasAdminPermission(auth.session, AdminPermissions.financialReporting);
+  const canConfigureSystem = hasAdminPermission(auth.session, AdminPermissions.systemConfiguration);
   const [selectedPricebookKey, setSelectedPricebookKey] = useState("");
   const [pricebookAmount, setPricebookAmount] = useState("0");
   const [pricebookActive, setPricebookActive] = useState(true);
@@ -2063,9 +2067,6 @@ export function AdminPage() {
         <form className="management-form management-form--wellness">
           <h2 className="section-subtitle">Wellness operations</h2>
           <div className="form-grid form-grid--two">
-            <Field label="Admin token" className="form-grid__full">
-              <Input value={adminToken} onChange={(event) => setAdminToken(event.target.value)} />
-            </Field>
             <Field label="Officer">
               <Select value={selectedWellnessOfficerId} onChange={(event) => setSelectedWellnessOfficerId(event.target.value)}>
                 {(data.wellnessOfficers ?? []).map((officer) => (
@@ -2104,7 +2105,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!selectedWellnessOfficerId}
+              disabled={!selectedWellnessOfficerId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
                   const officer = await api.approveWellnessOfficer(selectedWellnessOfficerId, adminToken, "Approved from admin dashboard.");
@@ -2117,7 +2118,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="ghost"
-              disabled={!selectedWellnessOfficerId}
+              disabled={!selectedWellnessOfficerId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
                   const officer = await api.rejectWellnessOfficer(selectedWellnessOfficerId, adminToken, "Rejected from admin dashboard.");
@@ -2130,7 +2131,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!selectedWellnessVisitId || !selectedWellnessOfficerId}
+              disabled={!selectedWellnessVisitId || !selectedWellnessOfficerId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
                   const visit = await api.assignWellnessOfficer(selectedWellnessVisitId, selectedWellnessOfficerId, adminToken);
@@ -2142,7 +2143,7 @@ export function AdminPage() {
             </Button>
             <Button
               type="button"
-              disabled={!selectedWellnessVisitId || uploadedAdminReportPhotoIds.length === 0}
+              disabled={!selectedWellnessVisitId || uploadedAdminReportPhotoIds.length === 0 || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
                   await api.completeWellnessVisit(selectedWellnessVisitId, adminToken, {
@@ -2159,7 +2160,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="ghost"
-              disabled={!selectedWellnessVisitId}
+              disabled={!selectedWellnessVisitId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
                   await api.cancelWellnessVisit(selectedWellnessVisitId, adminToken, "Cancelled from admin dashboard.");
@@ -2171,7 +2172,7 @@ export function AdminPage() {
             </Button>
             <Button
               type="button"
-              disabled={!selectedWellnessVisitId}
+              disabled={!selectedWellnessVisitId || !canViewFinancials}
               onClick={() =>
                 void runAction(async () => {
                   const payout = await api.markWellnessPayoutPaid(
@@ -2238,9 +2239,6 @@ export function AdminPage() {
         >
           <h2 className="section-subtitle">Pricebook</h2>
           <div className="form-grid form-grid--two">
-            <Field label="Admin token" className="form-grid__full">
-              <Input value={adminToken} onChange={(event) => setAdminToken(event.target.value)} />
-            </Field>
             <Field label="Item">
               <Select value={selectedPricebookKey} onChange={(event) => onPricebookKeyChange(event.target.value)}>
                 {(data.pricebook ?? []).map((item) => (
@@ -2270,7 +2268,7 @@ export function AdminPage() {
               Active
             </InlineLabel>
           </div>
-          <Button type="submit">
+          <Button disabled={!canConfigureSystem} type="submit">
             <ReceiptText size={17} /> Save price
           </Button>
           {selectedPricebookItem && (
@@ -2418,7 +2416,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!selectedAssignment}
+              disabled={!selectedAssignment || !canConfigureSystem}
               onClick={() =>
                 void runAction(async () => {
                   if (!selectedAssignment) throw new Error("No assignment is available.");
@@ -2432,7 +2430,7 @@ export function AdminPage() {
             <Button
               type="button"
               variant="ghost"
-              disabled={!selectedAssignment}
+              disabled={!selectedAssignment || !canConfigureSystem}
               onClick={() =>
                 void runAction(async () => {
                   if (!selectedAssignment) throw new Error("No assignment is available.");
@@ -2551,7 +2549,7 @@ export function AdminPage() {
             </InlineLabel>
           </div>
           <div className="button-row">
-            <Button type="submit">
+            <Button disabled={!canConfigureSystem} type="submit">
               <Plus size={17} /> Save campaign
             </Button>
             <Button
@@ -2642,6 +2640,7 @@ export function AdminPage() {
           <div className="button-row">
             <Button
               type="button"
+              disabled={!canConfigureSystem}
               onClick={() =>
                 void runAction(async () => {
                   const result = await api.upsertFoundingBenefit(

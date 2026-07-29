@@ -99,7 +99,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
     }
 
     [Fact]
-    public void ProductionValidatorRequiresStrongSessionTokenSecretOnlyInProduction()
+    public void ProductionValidatorRequiresExternalizedLiveSecretsOnlyInProduction()
     {
         WithoutProductionEnvironmentVariables(() =>
         {
@@ -113,6 +113,64 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             Assert.Throws<InvalidOperationException>(() =>
                 ProductionIntegrationValidator.Validate(
                     BuildProductionConfig("strong-production-session-token-secret-32-plus", totpProtectionKey: "short"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        stripeSecretKey: "sk_test_local"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        stripePublishableKey: "pk_test_local"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        stripeWebhookSecret: "whsec_test_local"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        postgresConnectionString: "Host=prod-db;Database=nestystay_dev;Username=app;Password=nestystay"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        webhookSharedSecret: "replace-with-production-secret"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        allowLegacyAdminTokens: true),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        allowLegacyAdminTokens: true,
+                        adminTokenSha256: "not-a-sha256-hash"),
+                    production));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                ProductionIntegrationValidator.Validate(
+                    BuildProductionConfig(
+                        "strong-production-session-token-secret-32-plus",
+                        adminBootstrapEnabled: true,
+                        adminBootstrapPassword: "replace-with-admin-password"),
                     production));
 
             ProductionIntegrationValidator.Validate(
@@ -212,24 +270,51 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
 
     private static IConfiguration BuildProductionConfig(
         string? sessionTokenSecret,
-        string totpProtectionKey = "strong-production-totp-protection-key-32-plus")
+        string totpProtectionKey = "strong-production-totp-protection-key-32-plus",
+        string postgresConnectionString = "Host=prod-db;Port=5432;Database=nestystay;Username=nestystay_app;Password=strong-production-db-password",
+        string webhookSharedSecret = "production-webhook-shared-secret",
+        string stripeSecretKey = "production-stripe-secret-key-placeholder",
+        string stripePublishableKey = "production-stripe-publishable-key-placeholder",
+        string stripeWebhookSecret = "production-stripe-webhook-secret-placeholder",
+        bool allowLegacyAdminTokens = false,
+        string? adminTokenSha256 = null,
+        bool adminBootstrapEnabled = false,
+        string? adminBootstrapPassword = "strong-production-admin-password")
     {
         var settings = new Dictionary<string, string?>
         {
-            ["Security:AdminTokenSha256"] = new('a', 64),
+            ["ConnectionStrings:Postgres"] = postgresConnectionString,
             ["Security:TotpSecretProtectionKey"] = totpProtectionKey,
-            ["Webhooks:SharedSecret"] = "webhook-shared-secret",
-            ["Webhooks:StripeSigningSecret"] = "whsec_test",
-            ["Integrations:StripeSecretKey"] = "sk_test_local",
-            ["Integrations:StripePublishableKey"] = "pk_test_local",
+            ["Webhooks:SharedSecret"] = webhookSharedSecret,
+            ["Webhooks:StripeSigningSecret"] = stripeWebhookSecret,
+            ["Integrations:StripeSecretKey"] = stripeSecretKey,
+            ["Integrations:StripePublishableKey"] = stripePublishableKey,
             ["Integrations:AlibabaEkycTransactionUrlBase"] = "https://example.test/ekyc",
             ["Integrations:CloudflareR2UploadUrlBase"] = "https://example.test/r2",
+            ["Integrations:CloudflareR2DownloadUrlBase"] = "https://example.test/r2-download",
             ["Integrations:InsuraGuestApiBaseUrl"] = "https://example.test/insuraguest"
         };
 
         if (sessionTokenSecret is not null)
         {
             settings["Security:SessionTokenSecret"] = sessionTokenSecret;
+        }
+
+        if (allowLegacyAdminTokens)
+        {
+            settings["Security:AllowLegacyAdminTokens"] = "true";
+        }
+
+        if (adminTokenSha256 is not null)
+        {
+            settings["Security:AdminTokenSha256"] = adminTokenSha256;
+        }
+
+        if (adminBootstrapEnabled)
+        {
+            settings["Security:AdminBootstrap:Enabled"] = "true";
+            settings["Security:AdminBootstrap:Email"] = "admin@example.test";
+            settings["Security:AdminBootstrap:Password"] = adminBootstrapPassword;
         }
 
         return new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
@@ -240,6 +325,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
         string[] keys =
         [
             "NESTYSTAY_ADMIN_TOKEN_SHA256",
+            "ConnectionStrings__Postgres",
             "NESTYSTAY_SESSION_TOKEN_SECRET",
             "NESTYSTAY_TOTP_SECRET_PROTECTION_KEY",
             "NESTYSTAY_WEBHOOK_SHARED_SECRET",
@@ -248,6 +334,7 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             "STRIPE_PUBLISHABLE_KEY",
             "ALIBABA_EKYC_TRANSACTION_URL_BASE",
             "CLOUDFLARE_R2_UPLOAD_URL_BASE",
+            "CLOUDFLARE_R2_DOWNLOAD_URL_BASE",
             "INSURAGUEST_API_BASE_URL"
         ];
         var previous = keys.ToDictionary(key => key, Environment.GetEnvironmentVariable);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using NestyStay.Api.Auth;
+using NestyStay.Application.PhaseOne;
 
 namespace NestyStay.Api.Middleware;
 
@@ -11,6 +12,40 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
         try
         {
             await next(context);
+        }
+        catch (RateLimitExceededException exception)
+        {
+            logger.LogWarning(exception, "API rate limit exceeded");
+            context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+            context.Response.ContentType = "application/problem+json";
+            if (exception.RetryAfterSeconds is { } retryAfterSeconds)
+            {
+                context.Response.Headers.RetryAfter = retryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = exception.Message,
+                status = context.Response.StatusCode,
+                code = exception.Code,
+                traceId = context.TraceIdentifier
+            }));
+        }
+        catch (BookingStateConflictException exception)
+        {
+            logger.LogWarning(exception, "API booking state conflict");
+            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = exception.Message,
+                status = context.Response.StatusCode,
+                code = exception.Code,
+                operation = exception.Operation,
+                currentBookingStatus = exception.CurrentBookingStatus?.ToString(),
+                currentPaymentStatus = exception.CurrentPaymentStatus?.ToString(),
+                traceId = context.TraceIdentifier
+            }));
         }
         catch (InvalidOperationException exception)
         {

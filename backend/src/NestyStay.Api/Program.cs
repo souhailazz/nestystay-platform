@@ -43,11 +43,7 @@ builder.Services.AddAuthentication(AdminTokenAuthenticationHandler.SchemeName)
         _ => { });
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(AdminTokenAuthenticationHandler.AdminPolicyName, policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireRole("Admin");
-    });
+    AdminAuthorizationPolicies.AddPolicies(options);
 });
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices();
@@ -55,12 +51,15 @@ builder.Services.AddInfrastructureServices(builder.Configuration.GetConnectionSt
 
 var app = builder.Build();
 
+await app.BootstrapAdministratorAsync();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseProductionSecurityHeaders(app.Environment);
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 

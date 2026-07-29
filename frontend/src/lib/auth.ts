@@ -1,4 +1,4 @@
-import type { GoogleSignInResponse, LoginResponse, UserRole, VerifyTwoFactorResponse } from "./api";
+import type { AdminPermission, GoogleSignInResponse, LoginResponse, UserRole, VerifyTwoFactorResponse } from "./api";
 
 const STORAGE_KEY = "nestyStay.session";
 
@@ -9,6 +9,7 @@ export type AuthSession = {
   accessToken: string;
   expiresAt: string;
   roles: UserRole[];
+  permissions: AdminPermission[];
 };
 
 export function createSession(
@@ -23,6 +24,7 @@ export function createSession(
     accessToken: verification.accessToken,
     expiresAt: verification.expiresAt,
     roles: verification.roles,
+    permissions: verification.permissions ?? [],
   };
 }
 
@@ -34,6 +36,7 @@ export function createGoogleSession(verification: GoogleSignInResponse): AuthSes
     accessToken: verification.accessToken,
     expiresAt: verification.expiresAt,
     roles: verification.roles,
+    permissions: verification.permissions ?? [],
   };
 }
 
@@ -49,6 +52,7 @@ export function createLoginSession(login: LoginResponse, displayName?: string): 
     accessToken: login.accessToken,
     expiresAt: login.expiresAt,
     roles: login.roles,
+    permissions: login.permissions ?? [],
   };
 }
 
@@ -62,7 +66,7 @@ export function loadSession(): AuthSession | null {
       clearSession();
       return null;
     }
-    return session;
+    return { ...session, permissions: session.permissions ?? [] };
   } catch {
     clearSession();
     return null;

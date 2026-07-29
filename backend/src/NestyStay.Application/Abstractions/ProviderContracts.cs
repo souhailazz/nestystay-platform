@@ -71,6 +71,12 @@ public interface ISecretProtector
     bool IsProtected(byte[] protectedSecret);
 }
 
+public interface IProviderEventStore
+{
+    Task<ProviderEventReceipt> RecordReceivedAsync(ProviderEventRecord record, CancellationToken cancellationToken);
+    Task MarkProcessedAsync(Guid providerEventId, ProviderEventProcessingResult result, CancellationToken cancellationToken);
+}
+
 public interface IInsuranceProvider
 {
     string ProviderName { get; }
@@ -116,6 +122,28 @@ public sealed record FileSafetyScanRequest(
 public sealed record FileSafetyScanResult(
     string Status,
     string? Reason);
+
+public sealed record ProviderEventRecord(
+    ProviderKind Kind,
+    string ProviderName,
+    string EventId,
+    string EventType,
+    string PayloadJson,
+    string PayloadSha256,
+    DateTimeOffset ReceivedAt);
+
+public sealed record ProviderEventReceipt(
+    Guid Id,
+    bool IsDuplicate,
+    string Status,
+    DateTimeOffset ReceivedAt);
+
+public sealed record ProviderEventProcessingResult(
+    string Status,
+    string SubjectType,
+    Guid? SubjectId,
+    string Message,
+    DateTimeOffset ProcessedAt);
 
 public sealed record PaymentAuthorizationRequest(
     Guid BookingId,

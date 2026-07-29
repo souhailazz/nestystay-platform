@@ -16,8 +16,8 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: nestystay
-          POSTGRES_PASSWORD: nestystay
           POSTGRES_DB: nestystay_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -65,7 +65,7 @@ jobs:
       - name: Apply migrations
         env:
           ASPNETCORE_ENVIRONMENT: Development
-          ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay;Password=nestystay
+          ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay
         run: dotnet ef database update --project backend/src/NestyStay.Infrastructure --startup-project backend/src/NestyStay.Api
 
       - name: Install frontend dependencies
@@ -100,7 +100,7 @@ jobs:
         working-directory: frontend
         env:
           ASPNETCORE_ENVIRONMENT: Development
-          ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay;Password=nestystay
+          ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay
           Security__EnableDevelopmentAuthCodes: "true"
         run: npm run test:e2e
 

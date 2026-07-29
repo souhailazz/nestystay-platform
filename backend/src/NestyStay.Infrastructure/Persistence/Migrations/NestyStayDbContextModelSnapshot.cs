@@ -2595,6 +2595,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_id");
+
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -2617,6 +2623,22 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("payload_json");
 
+                    b.Property<string>("PayloadSha256")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("payload_sha256");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("ProcessingResult")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("processing_result");
+
                     b.Property<string>("ProviderName")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -2627,6 +2649,22 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("received_at");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("subject_type");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -2636,6 +2674,9 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Kind", "ProviderName", "EventId")
+                        .IsUnique();
 
                     b.ToTable("provider_event");
                 });
@@ -6333,6 +6374,61 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.ToTable("milestone_booking");
                 });
 
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneBookingCreationRateLimit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid>("GuestUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("guest_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<DateTimeOffset>("LastRequestAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_request_at");
+
+                    b.Property<int>("RequestCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("request_count");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<DateTimeOffset>("WindowEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_ends_at");
+
+                    b.Property<DateTimeOffset>("WindowStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_started_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GuestUserId")
+                        .IsUnique();
+
+                    b.ToTable("milestone_booking_creation_rate_limit");
+                });
+
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneCampaign", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8489,6 +8585,14 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AdminPermissionsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("admin_permissions_json");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -8571,6 +8675,14 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("session_invalidated_at");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasDefaultValue("Active")
+                        .HasColumnName("status");
+
                     b.Property<byte[]>("TwoFactorSecret")
                         .IsRequired()
                         .HasColumnType("bytea")
@@ -8588,6 +8700,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
+
+                    b.HasIndex("Status");
 
                     b.ToTable("milestone_user");
                 });

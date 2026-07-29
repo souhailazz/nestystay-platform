@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
+using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Api.Webhooks;
 using NestyStay.Domain;
@@ -13,6 +14,7 @@ namespace NestyStay.Api.Controllers;
 [Route("api/webhooks")]
 public sealed class WebhooksController(
     IPhaseOneStore phaseOneStore,
+    IProviderEventStore providerEventStore,
     IConfiguration configuration,
     IHostEnvironment environment) : ControllerBase
 {
@@ -41,12 +43,10 @@ public sealed class WebhooksController(
     {
         if (IsStripeProvider(provider) && environment.IsProduction())
         {
-            if (!IsStripeWebhookAuthorized(request.PayloadJson))
-            {
-                return Unauthorized(new { message = "Stripe webhook signature is missing or invalid." });
-            }
+            return BadRequest(new { message = "Stripe webhooks must use the raw-body endpoint." });
         }
-        else if (!IsWebhookAuthorized())
+
+        if (!IsWebhookAuthorized())
         {
             return Unauthorized(new { message = "Webhook shared secret is missing or invalid." });
         }
@@ -67,6 +67,91 @@ public sealed class WebhooksController(
             accepted = true,
             bookingId = booking?.Id
         });
+    }
+
+    [HttpPost("stripe/raw")]
+    public async Task<IActionResult> ReceiveStripeRaw(CancellationToken cancellationToken)
+    {
+        var payloadJson = await ReadRawRequestBodyAsync(cancellationToken);
+        if (environment.IsProduction() && !IsStripeWebhookAuthorized(payloadJson))
+        {
+            return Unauthorized(new { message = "Stripe webhook signature is missing or invalid." });
+        }
+
+        var eventType = ResolveStripeEventType(payloadJson, "stripe.event");
+        var eventId = ResolveWebhookEventId(eventType, payloadJson, null);
+        var receipt = await providerEventStore.RecordReceivedAsync(
+            new ProviderEventRecord(
+                ProviderKind.Payment,
+                "Stripe",
+                eventId,
+                eventType,
+                payloadJson,
+                ComputeSha256Hex(payloadJson),
+                DateTimeOffset.UtcNow),
+            cancellationToken);
+
+        if (receipt.IsDuplicate)
+        {
+            return Accepted(new
+            {
+                provider = "stripe",
+                eventType,
+                accepted = true,
+                duplicate = true,
+                providerEventId = receipt.Id
+            });
+        }
+
+        try
+        {
+            var request = new WebhookEventRequest("stripe", eventType, payloadJson, eventId);
+            if (TryCreateStripePaymentUpdate(request) is not { } update)
+            {
+                await providerEventStore.MarkProcessedAsync(
+                    receipt.Id,
+                    new ProviderEventProcessingResult("Ignored", string.Empty, null, "Unsupported Stripe event type.", DateTimeOffset.UtcNow),
+                    cancellationToken);
+
+                return Accepted(new
+                {
+                    provider = "stripe",
+                    eventType,
+                    accepted = true,
+                    duplicate = false,
+                    providerEventId = receipt.Id
+                });
+            }
+
+            var booking = await phaseOneStore.ApplyPaymentWebhookAsync(update, cancellationToken);
+            await providerEventStore.MarkProcessedAsync(
+                receipt.Id,
+                new ProviderEventProcessingResult(
+                    "Processed",
+                    booking is null ? string.Empty : "Booking",
+                    booking?.Id,
+                    booking is null ? "No matching booking found." : "Applied to booking.",
+                    DateTimeOffset.UtcNow),
+                cancellationToken);
+
+            return Accepted(new
+            {
+                provider = "stripe",
+                eventType,
+                accepted = true,
+                duplicate = false,
+                providerEventId = receipt.Id,
+                bookingId = booking?.Id
+            });
+        }
+        catch (Exception exception)
+        {
+            await providerEventStore.MarkProcessedAsync(
+                receipt.Id,
+                new ProviderEventProcessingResult("Failed", string.Empty, null, exception.Message, DateTimeOffset.UtcNow),
+                cancellationToken);
+            throw;
+        }
     }
 
     private async Task<BookingDto?> ApplyStripeWebhookAsync(WebhookEventRequest request, CancellationToken cancellationToken)
@@ -243,16 +328,19 @@ public sealed class WebhooksController(
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
 
-    private static string ResolveWebhookEventId(WebhookEventRequest request)
+    private static string ResolveWebhookEventId(WebhookEventRequest request) =>
+        ResolveWebhookEventId(request.EventType, request.PayloadJson, request.EventId);
+
+    private static string ResolveWebhookEventId(string eventType, string payloadJson, string? eventId)
     {
-        if (!string.IsNullOrWhiteSpace(request.EventId))
+        if (!string.IsNullOrWhiteSpace(eventId))
         {
-            return request.EventId.Trim();
+            return eventId.Trim();
         }
 
         try
         {
-            using var document = JsonDocument.Parse(request.PayloadJson);
+            using var document = JsonDocument.Parse(payloadJson);
             if (document.RootElement.TryGetProperty("id", out var id) && !string.IsNullOrWhiteSpace(id.GetString()))
             {
                 return id.GetString()!;
@@ -262,8 +350,33 @@ public sealed class WebhooksController(
         {
         }
 
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{request.EventType}:{request.PayloadJson}"))).ToLowerInvariant();
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{eventType}:{payloadJson}"))).ToLowerInvariant();
     }
+
+    private async Task<string> ReadRawRequestBodyAsync(CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+        return await reader.ReadToEndAsync(cancellationToken);
+    }
+
+    private static string ResolveStripeEventType(string payloadJson, string fallback)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payloadJson);
+            return document.RootElement.TryGetProperty("type", out var typeElement) &&
+                !string.IsNullOrWhiteSpace(typeElement.GetString())
+                    ? typeElement.GetString()!
+                    : fallback;
+        }
+        catch (JsonException)
+        {
+            return fallback;
+        }
+    }
+
+    private static string ComputeSha256Hex(string payloadJson) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payloadJson))).ToLowerInvariant();
 
     private bool IsWebhookAuthorized()
     {

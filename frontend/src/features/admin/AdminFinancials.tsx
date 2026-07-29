@@ -46,8 +46,6 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
         <h2>Financial Management & Refund Controls</h2>
         <PatoisPhrase phrase="Platform Payouts & Stripe Refunds" translation="Monitor transaction ledgers, process full/partial refunds, and inspect founding benefits." />
         <div className="mt-3 flex items-center gap-3">
-          <label htmlFor="admin-token-input" className="text-xs font-bold text-gray-500">Admin token</label>
-          <input id="admin-token-input" type="password" className="input-control text-xs ml-2 py-1" placeholder="Enter admin token..." />
           <span className="badge badge-outline text-xs">Evidence Documentation</span>
         </div>
       </header>

@@ -14,9 +14,16 @@ public sealed class ProviderEvent : BaseEntity
 {
     public ProviderKind Kind { get; set; }
     public string ProviderName { get; set; } = string.Empty;
+    public string EventId { get; set; } = string.Empty;
     public string EventType { get; set; } = string.Empty;
     public string PayloadJson { get; set; } = "{}";
+    public string PayloadSha256 { get; set; } = string.Empty;
     public DateTimeOffset ReceivedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string Status { get; set; } = "Received";
+    public string SubjectType { get; set; } = string.Empty;
+    public Guid? SubjectId { get; set; }
+    public string ProcessingResult { get; set; } = string.Empty;
+    public DateTimeOffset? ProcessedAt { get; set; }
 }
 
 public sealed class IntegrationFailover : BaseEntity

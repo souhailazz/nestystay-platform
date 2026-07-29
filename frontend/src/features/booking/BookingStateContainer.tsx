@@ -9,7 +9,7 @@ import { BookingPendingPage } from "./BookingPendingPage";
 import { BookingCancelledPage } from "./BookingCancelledPage";
 import { BookingInvoicePage } from "./BookingInvoicePage";
 import { BookingReceiptPage } from "./BookingReceiptPage";
-import type { BookingQuote } from "./types";
+import type { BookingDetails, BookingQuote } from "./types";
 import { api } from "../../lib/api";
 
 interface BookingStateContainerProps {
@@ -29,21 +29,32 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
   }, [bookingId]);
 
   useEffect(() => {
-    // If on review page without an explicit bookingId, load default property quote
     if (state === "review" && !dummyQuote) {
-      api.getProperties().then((props) => {
+      let active = true;
+      async function loadReviewQuote() {
+        if (bookingId && auth.session) {
+          const booking = await api.getBooking(bookingId, auth.session.accessToken) as unknown as BookingDetails;
+          if (active) setDummyQuote(toQuote(booking));
+          return;
+        }
+
+        const props = await api.getProperties();
         if (props.length > 0) {
-          api.getBookingQuote({
+          const q = await api.getBookingQuote({
             propertyId: props[0].id,
             checkIn: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
             checkOut: new Date(Date.now() + 10 * 86400000).toISOString().split("T")[0],
             adults: 2,
             children: 0
-          }).then((q: unknown) => setDummyQuote(q as BookingQuote));
+          });
+          if (active) setDummyQuote(q as unknown as BookingQuote);
         }
-      });
+      }
+
+      loadReviewQuote();
+      return () => { active = false; };
     }
-  }, [state, dummyQuote]);
+  }, [state, dummyQuote, bookingId, auth.session?.accessToken]);
 
   const activeId = currentBookingId || "11111111-1111-4111-8111-111111111111";
 
@@ -55,9 +66,13 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
           details={{ adults: 2, children: 0, accessibility: "", protection: "insuraguest" }}
           auth={auth}
           onBackToModal={() => { window.location.href = "/explore"; }}
-          onProceedToCheckout={(id) => {
+          onProceedToCheckout={(id, status) => {
             setCurrentBookingId(id);
-            window.history.pushState({}, "", `/booking/${id}/checkout`);
+            if (status === "PendingVerification") {
+              window.history.pushState({}, "", `/booking/${id}/pending`);
+            } else {
+              window.history.pushState({}, "", `/booking/${id}/checkout`);
+            }
             window.dispatchEvent(new PopStateEvent("popstate"));
           }}
         />
@@ -105,4 +120,32 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
     default:
       return <BookingSuccessPage bookingId={activeId} auth={auth} />;
   }
+}
+
+function toQuote(booking: BookingDetails): BookingQuote {
+  return {
+    property: {
+      id: booking.propertyId,
+      title: booking.propertyTitle ?? "Booked stay",
+      location: "Jamaica",
+      country: "Jamaica",
+      hostName: booking.hostName ?? "NestyStay host",
+      badgeLevel: "Verified",
+      guestVerificationEnabled: booking.requiresGuestVerification,
+      insuraGuestEnabled: false,
+      cancellationPolicy: "Moderate",
+    },
+    checkIn: booking.checkIn,
+    checkOut: booking.checkOut,
+    nights: booking.nights,
+    nightlyRate: booking.nightlyRate,
+    staySubtotal: booking.staySubtotal,
+    guestPlatformFee: booking.guestPlatformFee,
+    totalAmount: booking.totalAmount,
+    currency: booking.currency,
+    requiresGuestVerification: booking.requiresGuestVerification,
+    datesAvailable: true,
+    holdExpiresAt: booking.holdExpiresAt,
+    priceBreakdown: booking.priceBreakdown,
+  };
 }

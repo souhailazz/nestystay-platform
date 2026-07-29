@@ -99,6 +99,19 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         var reactivated = await reactivatedResponse.Content.ReadFromJsonAsync<OfficerResponse>();
         Assert.NotNull(reactivated);
         Assert.Equal("Verified", reactivated.VerificationStatus);
+
+        var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
+        Assert.NotNull(audit);
+        Assert.Contains(audit, item =>
+            item.Action == "OfficerApproved" &&
+            item.SubjectId == officer.Id &&
+            item.ActorRole == "Admin" &&
+            item.EffectivePermission == "officer_management" &&
+            !string.IsNullOrWhiteSpace(item.CorrelationId) &&
+            item.PreviousStateJson?.Contains("\"verificationStatus\":\"Pending\"", StringComparison.Ordinal) == true &&
+            item.NewStateJson?.Contains("\"verificationStatus\":\"Verified\"", StringComparison.Ordinal) == true);
+        Assert.Contains(audit, item => item.Action == "OfficerSuspended" && item.EffectivePermission == "officer_management");
+        Assert.Contains(audit, item => item.Action == "OfficerReactivated" && item.EffectivePermission == "officer_management");
     }
 
     [Fact]
@@ -331,6 +344,16 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(payout);
         Assert.Equal("Paid", payout.Status);
 
+        var audit = await client.GetFromJsonAsync<List<AuditEventResponse>>("/api/spec/admin/audit-log");
+        Assert.NotNull(audit);
+        Assert.Contains(audit, item =>
+            item.Action == "WellnessPayoutMarkedPaid" &&
+            item.SubjectId == payout.Id &&
+            item.ActorRole == "Admin" &&
+            item.EffectivePermission == "financial_reporting" &&
+            !string.IsNullOrWhiteSpace(item.CorrelationId) &&
+            item.NewStateJson?.Contains("\"status\":\"Paid\"", StringComparison.Ordinal) == true);
+
         var duplicatePayout = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/payout", new
         {
             providerReference = "local-paid-again"
@@ -404,4 +427,13 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         string? OfficerBadgeNumber);
 
     private sealed record PayoutResponse(Guid Id, string Status);
+
+    private sealed record AuditEventResponse(
+        string Action,
+        Guid? SubjectId,
+        string ActorRole,
+        string? EffectivePermission,
+        string? CorrelationId,
+        string? PreviousStateJson,
+        string? NewStateJson);
 }

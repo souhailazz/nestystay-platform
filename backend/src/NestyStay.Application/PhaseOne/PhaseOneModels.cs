@@ -24,13 +24,14 @@ public sealed record LoginResponse(
     DateTimeOffset? ChallengeExpiresAt,
     string? AccessToken = null,
     DateTimeOffset? ExpiresAt = null,
-    IReadOnlyList<UserRole>? Roles = null);
+    IReadOnlyList<UserRole>? Roles = null,
+    IReadOnlyList<string>? Permissions = null);
 
 public sealed record DevelopmentAuthCodeResponse(string ChallengeId, string Code, DateTimeOffset ExpiresAt);
 
 public sealed record VerifyTwoFactorRequest(string ChallengeId, string Code);
 
-public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles);
+public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles, IReadOnlyList<string>? Permissions = null);
 
 public sealed record BeginTwoFactorEnrollmentResponse(
     string EnrollmentId,
@@ -55,7 +56,28 @@ public sealed record GoogleSignInResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt,
     IReadOnlyList<UserRole> Roles,
-    string Provider);
+    string Provider,
+    IReadOnlyList<string>? Permissions = null);
+
+public sealed record AdministratorBootstrapRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    IReadOnlyList<string>? Permissions = null,
+    bool RequireTwoFactor = false);
+
+public sealed record AdministratorBootstrapResponse(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    IReadOnlyList<string> Permissions,
+    bool Created);
+
+public sealed record AdministratorSessionDto(
+    Guid UserId,
+    string Email,
+    IReadOnlyList<UserRole> Roles,
+    IReadOnlyList<string> Permissions);
 
 public sealed record PasswordResetRequest(string Email, string? RequestIp = null);
 

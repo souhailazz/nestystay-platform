@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Application.Admin;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.SpecCompletion;
 
@@ -347,30 +348,30 @@ public sealed class SpecCompletionController(
         return Ok(await store.SaveHostPromotionAsync(hostUserId, request, cancellationToken));
     }
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpGet("admin/operations")]
     public async Task<ActionResult<AdminOperationsDto>> GetAdminOperations(CancellationToken cancellationToken) =>
         Ok(await store.GetAdminOperationsAsync(cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpPost("admin/cases")]
     public async Task<ActionResult<AdminCaseDto>> CreateAdminCase(CreateAdminCaseRequest request, CancellationToken cancellationToken) =>
-        Ok(await store.CreateAdminCaseAsync(request, authorization.TryGetSignedInUser(), cancellationToken));
+        Ok(await store.CreateAdminCaseAsync(request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpPost("admin/cases/{caseId:guid}/resolve")]
     public async Task<ActionResult<AdminCaseDto>> ResolveAdminCase(Guid caseId, ResolveAdminCaseRequest request, CancellationToken cancellationToken) =>
-        Ok(await store.ResolveAdminCaseAsync(caseId, request, authorization.TryGetSignedInUser(), cancellationToken));
+        Ok(await store.ResolveAdminCaseAsync(caseId, request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpPost("admin/cases/{caseId:guid}/evidence/uploads")]
     public async Task<ActionResult<AdminCaseEvidenceUploadDto>> PrepareAdminCaseEvidenceUpload(
         Guid caseId,
         PrepareAdminCaseEvidenceUploadRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await store.PrepareAdminCaseEvidenceUploadAsync(caseId, request, authorization.TryGetSignedInUser(), cancellationToken));
+        Ok(await store.PrepareAdminCaseEvidenceUploadAsync(caseId, request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpPut("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/content")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<AdminCaseEvidenceUploadDto>> UploadAdminCaseEvidenceContent(
@@ -383,18 +384,18 @@ public sealed class SpecCompletionController(
             Request.ContentType ?? string.Empty,
             Request.ContentLength ?? 0,
             Request.Body,
-            authorization.TryGetSignedInUser(),
+            AuditActor(AdminPermissionCatalog.UserManagement),
             cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpGet("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/download")]
     public async Task<ActionResult<AdminCaseEvidenceDownloadDto>> GetAdminCaseEvidenceDownload(
         Guid caseId,
         Guid evidenceId,
         CancellationToken cancellationToken) =>
-        Ok(await store.GetAdminCaseEvidenceDownloadAsync(caseId, evidenceId, authorization.TryGetSignedInUser(), cancellationToken));
+        Ok(await store.GetAdminCaseEvidenceDownloadAsync(caseId, evidenceId, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
 
-    [Authorize(Policy = AdminTokenAuthenticationHandler.AdminPolicyName)]
+    [Authorize(Policy = AdminAuthorizationPolicies.AuditLogAccess)]
     [HttpGet("admin/audit-log")]
     public async Task<ActionResult<IReadOnlyList<AuditEventDto>>> GetAuditLog(CancellationToken cancellationToken) =>
         Ok(await store.GetAuditEventsAsync(cancellationToken));
@@ -436,4 +437,10 @@ public sealed class SpecCompletionController(
         HttpContext.Connection.RemoteIpAddress?.ToString() ??
         Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
         "unknown";
+
+    private AuditActorContext AuditActor(string effectivePermission) => new(
+        authorization.TryGetSignedInUser(),
+        "Admin",
+        effectivePermission,
+        HttpContext.TraceIdentifier);
 }
