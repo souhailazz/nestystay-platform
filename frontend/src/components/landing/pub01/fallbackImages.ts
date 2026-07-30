@@ -38,7 +38,7 @@ export const heroFallbackImages = {
   ],
 } as const;
 
-export function showcaseImage(index: number, imageUrl?: string) {
-  if (imageUrl) return { src: imageUrl, alt: "Property photo" };
+export function showcaseImage(index: number, imageUrl?: string, title?: string) {
+  if (imageUrl) return { src: imageUrl, alt: title ? `Photo of ${title}` : "Property photo" };
   return showcaseFallbackImages[Math.abs(index) % showcaseFallbackImages.length];
 }

@@ -104,7 +104,7 @@ export function NightfallScene() {
             at your <em>yard.</em>
           </h2>
           <p className="ns-night-sec__lede">Hammock hung, coconuts heavy, night warm. Your spot is waiting.</p>
-          <PillLink variant="sun" href="/explore" arrow>
+          <PillLink variant="sun" href="/explore" arrow className="ns-night-sec__cta">
             Explore Stays
           </PillLink>
         </div>

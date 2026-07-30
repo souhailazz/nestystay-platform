@@ -6,7 +6,8 @@ export function Emblem({ size = 44, className = "" }: { size?: number; className
   // Crop ratios derived from the approved PUB-01 markup
   // (44px circle → img width 118px, margin -6px 0 0 -37px).
   const imgWidth = Math.round(size * 2.68);
-  const marginTop = -Math.round(size * 0.136);
+  // PUB-01's 64px footer crop is -10px, not a uniform scale of the 44px crop.
+  const marginTop = size === 64 ? -10 : -Math.round(size * 0.136);
   const marginLeft = -Math.round(size * 0.84);
 
   return (

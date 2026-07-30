@@ -50,6 +50,12 @@ export function useLandingMotion(rootRef: RefObject<HTMLElement | null>) {
     const t2 = window.setTimeout(observeAll, 2000);
     window.addEventListener("load", observeAll);
 
+    // Reveal elements rendered after mount (e.g. showcase cards once the
+    // properties API resolves) — without this they would stay hidden until
+    // the next scroll.
+    const mo = new MutationObserver(() => observeAll());
+    mo.observe(root, { childList: true, subtree: true });
+
     // Safety net: reveal anything at or above the viewport threshold on scroll
     const onScroll = () => {
       root.querySelectorAll<HTMLElement>(".ns-rv:not(.ns-on)").forEach((el) => {
@@ -74,7 +80,13 @@ export function useLandingMotion(rootRef: RefObject<HTMLElement | null>) {
         return;
       }
       px.items = Array.from(root.querySelectorAll<HTMLElement>("[data-depth]")).map((el) => {
-        if (el.dataset.pbase === undefined) el.dataset.pbase = el.style.transform || "";
+        if (el.dataset.pbase === undefined) {
+          // Preserve transforms coming from CSS rules too (e.g. the hero
+          // card's rotate tilt) — inline style alone would drop them.
+          const inline = el.style.transform;
+          const computed = getComputedStyle(el).transform;
+          el.dataset.pbase = inline || (computed !== "none" ? computed : "");
+        }
         const prev = el.style.transform;
         el.style.transform = el.dataset.pbase;
         const rect = el.getBoundingClientRect();
@@ -118,6 +130,7 @@ export function useLandingMotion(rootRef: RefObject<HTMLElement | null>) {
     return () => {
       root.classList.remove("ns-js");
       io.disconnect();
+      mo.disconnect();
       cancelAnimationFrame(rafId);
       window.clearTimeout(t1);
       window.clearTimeout(t2);

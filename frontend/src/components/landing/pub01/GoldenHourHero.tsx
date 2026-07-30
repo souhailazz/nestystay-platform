@@ -73,9 +73,10 @@ export function GoldenHourHero() {
             </PillLink>
           </div>
           <div className="ns-hero__proof">
-            <div className="ns-hero__avatars">
+            {/* decorative avatar strip — the caption carries the meaning */}
+            <div className="ns-hero__avatars" aria-hidden="true">
               {heroFallbackImages.travelers.map((src) => (
-                <img key={src} src={src} alt="Traveler portrait" />
+                <img key={src} src={src} alt="" />
               ))}
             </div>
             <div className="ns-hero__rating">

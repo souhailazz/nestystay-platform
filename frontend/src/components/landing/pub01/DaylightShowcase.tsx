@@ -22,7 +22,7 @@ function ShowcaseCard({
   index: number;
   size: "large" | "narrow";
 }) {
-  const image = showcaseImage(index, property.imageUrl);
+  const image = showcaseImage(index, property.imageUrl, property.title);
   const chip = tierChip(property.badgeLevel);
 
   return (
@@ -110,7 +110,7 @@ export function DaylightShowcase() {
 
   const featured = properties.slice(0, 3);
   const overlap = properties[3];
-  const overlapImage = overlap ? showcaseImage(3, overlap.imageUrl) : null;
+  const overlapImage = overlap ? showcaseImage(3, overlap.imageUrl, overlap.title) : null;
   const overlapChip = overlap ? tierChip(overlap.badgeLevel) : null;
 
   return (

@@ -8261,6 +8261,17 @@ body {
   color: var(--ns-sand-500);
 }
 
+.ns-hero__searchbar:focus-within {
+  box-shadow:
+    0 0 0 3px rgba(255, 210, 31, 0.65),
+    0 20px 44px rgba(4, 31, 31, 0.35);
+}
+
+.ns-hero__searchbar button:focus-visible {
+  outline: 2px solid var(--ns-deep);
+  outline-offset: 2px;
+}
+
 .ns-hero__searchbar button {
   width: 44px;
   height: 44px;
@@ -8596,6 +8607,14 @@ body {
   color: var(--ns-nav-meta);
 }
 
+.ns-photo-card--large .ns-photo-card__loc {
+  font-size: 13px;
+}
+
+.ns-photo-card--large .ns-photo-card__price span {
+  font-size: 12.5px;
+}
+
 .ns-photo-card__open {
   width: 44px;
   height: 44px;
@@ -8717,6 +8736,7 @@ body {
   font-weight: 700;
   font-size: 12.5px;
   margin-left: 8px;
+  color: var(--ns-deep-hover);
 }
 
 /* ---------- 03 · HIGH NOON — yellow statement ---------- */
@@ -9145,5 +9165,22 @@ body {
 
   .ns-skel-card {
     animation: ns-shimmer 1.4s linear infinite;
+  }
+}
+
+/* PUB-01 nightfall CTA is 2px wider than the canonical sun pill */
+.ns-night-sec__cta {
+  padding: 0 30px;
+}
+
+/* Reduced motion disables everything on v2 surfaces, including hover
+   micro-transitions defined outside the motion media query above. */
+@media (prefers-reduced-motion: reduce) {
+  .ns-surface *,
+  .ns-surface *::before,
+  .ns-surface *::after,
+  .ns-nav-wrap * {
+    transition: none !important;
+    animation: none !important;
   }
 }

@@ -26,8 +26,9 @@ export function PillLink({
       {children}
       {arrow &&
         (variant === "ghost" ? (
+          // The ghost disc arrow is static in the design — no slide on hover.
           <span aria-hidden="true" className="ns-btn__disc">
-            <span className="ns-arrow">→</span>
+            →
           </span>
         ) : (
           <span aria-hidden="true" className="ns-arrow">
