@@ -1471,6 +1471,12 @@ export const api = {
 };
 
 export function formatMoney(amount: number, currency = "USD") {
+  if (currency.toUpperCase() === "PERCENT") {
+    return `${new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    }).format(amount)}%`;
+  }
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,

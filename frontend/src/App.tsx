@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
+import { FigmaPngScreen } from "./components/design/FigmaPngScreen";
+import { ImportedDesignScreen } from "./components/design/ImportedDesignScreen";
 import Hero3D from "./components/landing/Hero3D";
 import ScrollStory from "./components/landing/ScrollStory";
 import FeatureCards from "./components/landing/FeatureCards";
@@ -138,13 +140,16 @@ type Route =
   | { name: "server-error" }
   | { name: "no-favorites" }
   | { name: "no-reservations" }
-  | { name: "not-found" };
+  | { name: "not-found" }
+  | { name: "design-screen"; screenId: string };
 
 function parseRoute(): Route {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const search = new URLSearchParams(window.location.search);
 
   if (path === "/") return { name: "home" };
+  if (path === "/screens") return { name: "design-screen", screenId: "INDEX" };
+  if (path.startsWith("/screens/")) return { name: "design-screen", screenId: path.split("/")[2] ?? "PUB-01" };
   if (path === "/explore") return { name: "explore" };
   if (path === "/explore/map") return { name: "map-search" };
   if (path === "/coming-soon") return { name: "coming-soon" };
@@ -244,6 +249,13 @@ function parseRoute(): Route {
   if (path === "/empty/reservations") return { name: "no-reservations" };
   if (path === "/404") return { name: "not-found" };
   return { name: "not-found" };
+}
+
+function designMode() {
+  const search = new URLSearchParams(window.location.search);
+  if (search.get("live") === "1") return "live";
+  if (search.get("html") === "1") return "html";
+  return "figma";
 }
 
 function useRoute() {
@@ -433,6 +445,222 @@ function hasPublicNav(route: Route) {
   ].includes(route.name);
 }
 
+function importedDesignScreenForRoute(route: Route) {
+  switch (route.name) {
+    case "home":
+      return "PUB-01";
+    case "explore":
+      return "PUB-02";
+    case "map-search":
+      return "PUB-MAP";
+    case "coming-soon":
+      return "PUB-SOON";
+    case "property":
+      return "PUB-04";
+    case "login":
+      return "AUTH-01";
+    case "register":
+      return "AUTH-01#register";
+    case "auth-spec":
+      if (route.kind === "forgot" || route.kind === "reset") return "AUTH-01#recover";
+      return "AUTH-01";
+    case "auth-post":
+      return "AUTH-POST";
+    case "logout":
+      return "AUTH-LOGOUT";
+    case "booking-state":
+      if (route.state === "quote") return "BOOK-02";
+      if (route.state === "identity" || route.state === "verification") return "BOOK-03";
+      if (route.state === "checkout" || route.state === "payment") return "BOOK-05";
+      if (route.state === "pending") return "BOOK-07";
+      if (route.state === "success" || route.state === "confirmed" || route.state === "confirmation") return "BOOK-CONF";
+      return "BOOK-01";
+    case "guest-dashboard":
+      return "TRAV-01";
+    case "trav-favorites":
+      return "TRAV-COL";
+    case "trav-reviews":
+      return "TRAV-PEND";
+    case "trav-notifications":
+      return "TRAV-NOTIF";
+    case "trav-suggestions":
+      return "TRAV-SUGG";
+    case "traveler-spec":
+      if (route.view === "payment-methods" || route.view === "payment-history" || route.view === "invoices") return "TRAV-INV";
+      if (route.view === "reviews-pending" || route.view === "reviews-given") return "TRAV-PEND";
+      if (route.view === "identity" || route.view === "preferences") return "TRAV-12";
+      return "TRAV-01";
+    case "messages":
+      return "MSG-01";
+    case "document-message":
+      return "MSG-DOC";
+    case "payment":
+      return "BOOK-CONF";
+    case "profile":
+      return "TRAV-12";
+    case "host-dashboard":
+      return "HOST-01";
+    case "property-management":
+      return "HOST-05";
+    case "host-property-edit":
+      return "HOST-EDIT";
+    case "host-reports":
+      return "HOST-RPT";
+    case "host-wellness":
+      return "HOST-WELL";
+    case "officer-directory":
+      return "OFC-DIR";
+    case "wellness-booking":
+      return "OFC-BOOK";
+    case "officer-wellness":
+      return "OFC-01";
+    case "host-profile":
+      return route.edit ? "HOST-EDIT" : "HOST-01";
+    case "host-spec":
+      if (route.view === "badges") return "HOST-BADGE";
+      if (route.view === "exports") return "HOST-RPT";
+      if (route.view === "archived") return "HOST-EDIT";
+      return "HOST-01";
+    case "pm-gates":
+      return "PM-GATE";
+    case "pm-utilities":
+      return "PM-UTIL";
+    case "pm-verification":
+      return "PM-VERIFY";
+    case "pm-reports":
+      return "PM-RPT";
+    case "pm-insurance":
+      return "PM-INS";
+    case "directory-spec":
+      if (route.kind === "ProviderDashboard" || route.kind === "Provider") return "DIR-PROV";
+      if (route.kind === "LocalBusiness") return "DIR-BIZ";
+      return "DIR-02";
+    case "business-directory":
+      return "DIR-BIZ";
+    case "provider-dashboard":
+      return "DIR-PROV";
+    case "admin":
+      return "ADM-01";
+    case "admin-kpis":
+      return "ADM-KPI";
+    case "admin-reports":
+      return "ADM-RPT";
+    case "officer-id-reset":
+      return "ADM-RESET";
+    case "admin-ops":
+      if (route.view === "analytics" || route.view === "kpis") return "ADM-KPI";
+      if (route.view === "reports" || route.view === "audit" || route.view === "logs") return "ADM-RPT";
+      if (route.view === "officer-id-reset") return "ADM-RESET";
+      return "ADM-01";
+    case "sign-in-required":
+      return "ERR-401";
+    case "access-restricted":
+      return "ERR-403";
+    case "server-error":
+      return "ERR-500";
+    case "no-favorites":
+      return "ERR-NOFAV";
+    case "no-reservations":
+      return "ERR-NORES";
+    case "not-found":
+      return "ERR-404";
+    case "design-screen":
+      return route.screenId;
+    default:
+      return undefined;
+  }
+}
+
+function hasAnyRole(auth: AuthController, roles: string[]) {
+  const sessionRoles = auth.session?.roles.map((role) => role.toLowerCase()) ?? [];
+  return roles.some((role) => sessionRoles.includes(role.toLowerCase())) || sessionRoles.includes("admin");
+}
+
+function protectedImportedDesignScreenForRoute(route: Route, auth: AuthController) {
+  const screenId = importedDesignScreenForRoute(route);
+  if (!screenId) return undefined;
+
+  if (route.name === "logout") return screenId;
+
+  const authenticatedRoutes = [
+    "guest-dashboard",
+    "trav-favorites",
+    "trav-reviews",
+    "trav-notifications",
+    "trav-suggestions",
+    "traveler-spec",
+    "messages",
+    "document-message",
+    "profile",
+    "calendar",
+    "bookings",
+    "payment",
+    "host-dashboard",
+    "property-management",
+    "host-property-edit",
+    "host-reports",
+    "host-wellness",
+    "wellness-booking",
+    "host-spec",
+    "pm-gates",
+    "pm-utilities",
+    "pm-verification",
+    "pm-reports",
+    "pm-insurance",
+    "officer-wellness",
+    "provider-dashboard",
+    "admin",
+    "admin-ops",
+    "admin-kpis",
+    "admin-reports",
+    "officer-id-reset",
+  ];
+
+  if (!authenticatedRoutes.includes(route.name)) return screenId;
+  if (!auth.session) return "ERR-401";
+
+  if (["admin", "admin-ops", "admin-kpis", "admin-reports", "officer-id-reset"].includes(route.name)) {
+    let permission: AdminPermission;
+    if (route.name === "admin") {
+      permission = AdminPermissions.superAdministration;
+    } else if (route.name === "admin-kpis" || route.name === "admin-reports") {
+      permission = AdminPermissions.financialReporting;
+    } else if (route.name === "officer-id-reset") {
+      permission = AdminPermissions.officerManagement;
+    } else if (route.name === "admin-ops") {
+      permission = adminOpsPermission(route.view);
+    } else {
+      permission = AdminPermissions.userManagement;
+    }
+
+    return isAdminSession(auth.session) && hasAdminPermission(auth.session, permission) ? screenId : "ERR-403";
+  }
+
+  if (
+    [
+      "host-dashboard",
+      "property-management",
+      "host-property-edit",
+      "host-reports",
+      "host-wellness",
+      "wellness-booking",
+      "host-spec",
+    ].includes(route.name)
+  ) {
+    return hasAnyRole(auth, ["Host"]) ? screenId : "ERR-403";
+  }
+
+  if (["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"].includes(route.name)) {
+    return hasAnyRole(auth, ["PropertyManager"]) ? screenId : "ERR-403";
+  }
+
+  if (route.name === "officer-wellness") {
+    return hasAnyRole(auth, ["Officer"]) ? screenId : "ERR-403";
+  }
+
+  return screenId;
+}
+
 function LogoutRoute({ auth }: { auth: AuthController }) {
   useEffect(() => {
     auth.logout();
@@ -606,14 +834,34 @@ export default function App() {
   const reduceMotion = useReducedMotion();
   const auth = useAuth();
   const route = useRoute();
+  const currentDesignMode = designMode();
+  const importedDesignScreenId =
+    currentDesignMode !== "live" ? protectedImportedDesignScreenForRoute(route, auth) : undefined;
+  const shouldUseHtmlDesign = currentDesignMode === "html" || importedDesignScreenId?.includes("#");
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = reduceMotion ? "auto" : "smooth";
   }, [reduceMotion]);
 
+  useEffect(() => {
+    if (route.name === "logout") {
+      auth.logout();
+    }
+  }, [auth.logout, route.name]);
+
   return (
     <PatoisProvider>
-      <div className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}>
+      <div
+        className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""} ${
+          importedDesignScreenId ? "app-shell--imported-design" : ""
+        }`}
+      >
+        {importedDesignScreenId && shouldUseHtmlDesign ? (
+          <ImportedDesignScreen screenId={importedDesignScreenId} />
+        ) : importedDesignScreenId ? (
+          <FigmaPngScreen screenId={importedDesignScreenId} />
+        ) : (
+          <>
         {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
         {isWorkspaceRoute(route) ? (
           <WorkspaceFrame routeName={route.name}>
@@ -623,6 +871,8 @@ export default function App() {
           <main>
             <CurrentPage auth={auth} route={route} />
           </main>
+        )}
+          </>
         )}
       </div>
     </PatoisProvider>

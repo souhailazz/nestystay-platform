@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, api } from "./api";
+import { ApiError, api, formatMoney } from "./api";
 
 function jsonResponse(body: unknown, status = 200, statusText = "OK") {
   return new Response(JSON.stringify(body), {
@@ -16,6 +16,11 @@ function stubFetch(response: Response) {
 }
 
 describe("api client", () => {
+  it("formats percentage pricebook rows without treating them as currencies", () => {
+    expect(formatMoney(3, "PERCENT")).toBe("3%");
+    expect(formatMoney(2.5, "percent")).toBe("2.5%");
+  });
+
   it("sends bearer tokens and JSON bodies when creating bookings", async () => {
     const fetchMock = stubFetch(jsonResponse({ id: "booking-1", status: "PENDING" }));
 

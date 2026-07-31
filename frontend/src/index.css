@@ -80,6 +80,159 @@ svg {
   background: var(--cream);
 }
 
+.app-shell--imported-design {
+  overflow: visible;
+  background: #faf3e4;
+}
+
+.imported-design-main {
+  min-height: 100vh;
+  background: #faf3e4;
+}
+
+.imported-design-frame {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  border: 0;
+  background: #faf3e4;
+}
+
+.imported-design-status {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 10px;
+  padding: 32px;
+  color: #12241f;
+  background: #faf3e4;
+  text-align: center;
+}
+
+.imported-design-status h1 {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 500;
+}
+
+.imported-design-status p {
+  margin: 0;
+  color: #5a6b63;
+}
+
+.figma-screen-main {
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+  background: #faf3e4;
+}
+
+.figma-screen-stage {
+  position: relative;
+  width: min(100vw, 1366px);
+  margin: 0 auto;
+  background: #faf3e4;
+}
+
+.figma-screen-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.figma-hotspot {
+  position: absolute;
+  z-index: 4;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.figma-hotspot:focus-visible {
+  outline: 3px solid rgba(255, 210, 31, 0.95);
+  outline-offset: 2px;
+  background: rgba(255, 210, 31, 0.14);
+}
+
+.figma-input,
+.figma-booking-input {
+  position: absolute;
+  z-index: 5;
+  box-sizing: border-box;
+  border: 1.5px solid #c7bc9c;
+  border-radius: 14px;
+  background: #fff;
+  color: #12241f;
+  font: 500 clamp(12px, 1.65vw, 16px) Sora, Arial, sans-serif;
+  outline: none;
+}
+
+.figma-input:focus,
+.figma-booking-input:focus {
+  border-color: #0e4a45;
+  box-shadow: 0 0 0 3px rgba(14, 74, 69, 0.14);
+}
+
+.figma-input--email {
+  left: 45%;
+  top: 61.4%;
+  width: 47%;
+  height: 9%;
+  padding: 0 1.8%;
+}
+
+.figma-input--password {
+  left: 45%;
+  top: 78.8%;
+  width: 47%;
+  height: 9%;
+  padding: 0 1.8%;
+}
+
+.figma-booking-input {
+  padding: 0 1.8%;
+}
+
+.figma-booking-input--checkin {
+  left: 5.8%;
+  top: 52.1%;
+  width: 43.5%;
+  height: 9.4%;
+}
+
+.figma-booking-input--checkout {
+  left: 50.8%;
+  top: 52.1%;
+  width: 43.5%;
+  height: 9.4%;
+}
+
+.figma-booking-input--guests {
+  left: 5.8%;
+  top: 69.1%;
+  width: 24.2%;
+  height: 8.9%;
+}
+
+.figma-live-chip {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  max-width: min(420px, calc(100vw - 32px));
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #e3f2e9;
+  color: #135a38;
+  box-shadow: 0 10px 24px rgba(6, 43, 43, 0.12);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .site-nav {
   position: fixed;
   z-index: 100;
