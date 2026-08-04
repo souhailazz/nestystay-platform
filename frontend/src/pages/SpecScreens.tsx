@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Pencil,
   ReceiptText,
+  RefreshCw,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -82,6 +83,83 @@ function ScreenShell({
       />
       {children}
     </div>
+  );
+}
+
+export function DesignSystemReferencePage() {
+  const tokens = [
+    ["Deep green", "#061f1d"],
+    ["Palm", "#0f5a45"],
+    ["Sun", "#ffd228"],
+    ["Cream", "#f7f3e8"],
+    ["Coral", "#e57b54"],
+    ["Blue", "#3267a8"],
+  ];
+
+  return (
+    <ScreenShell
+      id="DS-V2"
+      eyebrow="Design system"
+      title="Reusable product tokens and components."
+      copy="Reference screen for the live React implementation: colors, states, cards, controls, tables, badges, and page rhythm."
+    >
+      <section className="product-section">
+        <div className="spec-card-grid spec-card-grid--three">
+          {tokens.map(([label, value]) => (
+            <Card className="spec-card" key={label}>
+              <span
+                aria-hidden="true"
+                className="spec-card__icon"
+                style={{ background: value, color: value === "#ffd228" || value === "#f7f3e8" ? "#061f1d" : "#fff" }}
+              >
+                Aa
+              </span>
+              <div>
+                <Badge tone={value === "#ffd228" ? "sun" : "slate"}>{value}</Badge>
+                <h3>{label}</h3>
+                <p>Bound to the shared frontend theme and used across public, traveler, host, and admin flows.</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+        <Card className="settings-card">
+          <h3>Control samples</h3>
+          <div className="button-row">
+            <Button variant="sun"><Check size={16} /> Primary action</Button>
+            <Button variant="outline"><SlidersHorizontal size={16} /> Filter</Button>
+            <Button variant="ghost"><Download size={16} /> Export</Button>
+          </div>
+          <div className="form-grid form-grid--two">
+            <Field label="Destination"><Input defaultValue="Montego Bay" /></Field>
+            <Field label="Mode"><Select defaultValue="Guest"><option>Guest</option><option>Host</option><option>Admin</option></Select></Field>
+          </div>
+        </Card>
+      </section>
+    </ScreenShell>
+  );
+}
+
+export function LoadingStatePage() {
+  return (
+    <ScreenShell
+      id="ERR-LOAD"
+      eyebrow="Loading state"
+      title="Live loading and retry state."
+      copy="Reusable loading surface for backend-connected screens while DTOs are being fetched."
+    >
+      <section className="product-section product-section--center">
+        <Card className="error-frame">
+          <RefreshCw className="spin" size={38} />
+          <h2>Loading latest NestyStay data.</h2>
+          <p>Fetching listings, bookings, verification status, and account permissions from the API.</p>
+          <div className="progress-bar"><span /></div>
+          <div className="loading-skeleton__cards">
+            <Card className="metric-card"><small>Properties</small><strong>Syncing</strong></Card>
+            <Card className="metric-card"><small>Bookings</small><strong>Syncing</strong></Card>
+          </div>
+        </Card>
+      </section>
+    </ScreenShell>
   );
 }
 

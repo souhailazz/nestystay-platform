@@ -80,157 +80,86 @@ svg {
   background: var(--cream);
 }
 
-.app-shell--imported-design {
-  overflow: visible;
-  background: #faf3e4;
-}
-
-.imported-design-main {
+.screen-index-page {
   min-height: 100vh;
-  background: #faf3e4;
+  padding: 128px max(22px, calc((100vw - 1180px) / 2)) 72px;
+  background:
+    linear-gradient(180deg, rgb(6 31 29 / 92%) 0 360px, transparent 360px),
+    var(--cream);
 }
 
-.imported-design-frame {
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-  border: 0;
-  background: #faf3e4;
-}
-
-.imported-design-status {
+.screen-index-hero {
   display: grid;
-  min-height: 100vh;
-  place-content: center;
+  max-width: 800px;
+  gap: 14px;
+  color: white;
+}
+
+.screen-index-hero h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 5vw, 72px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 0.96;
+}
+
+.screen-index-hero p {
+  max-width: 650px;
+  margin: 0;
+  color: rgb(255 255 255 / 74%);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.screen-index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin-top: 42px;
+}
+
+.screen-index-card {
+  display: grid;
+  min-height: 138px;
+  align-content: start;
   gap: 10px;
-  padding: 32px;
-  color: #12241f;
-  background: #faf3e4;
-  text-align: center;
+  padding: 18px;
+  color: var(--ink);
+  border: 1px solid rgb(6 31 29 / 12%);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 18px 42px rgb(6 31 29 / 8%);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.imported-design-status h1 {
-  margin: 0;
-  font-family: Fraunces, Georgia, serif;
-  font-size: clamp(28px, 5vw, 48px);
-  font-weight: 500;
+.screen-index-card:hover {
+  border-color: rgb(15 90 69 / 30%);
+  box-shadow: 0 24px 52px rgb(6 31 29 / 12%);
+  transform: translateY(-2px);
 }
 
-.imported-design-status p {
-  margin: 0;
-  color: #5a6b63;
+.screen-index-card span {
+  width: fit-content;
+  padding: 5px 8px;
+  color: var(--deep);
+  border-radius: 6px;
+  background: var(--sun-soft);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
 }
 
-.figma-screen-main {
-  display: flex;
-  min-height: 100vh;
-  justify-content: center;
-  background: #faf3e4;
+.screen-index-card strong {
+  font-size: 17px;
 }
 
-.figma-screen-stage {
-  position: relative;
-  width: min(100vw, 1366px);
-  margin: 0 auto;
-  background: #faf3e4;
-}
-
-.figma-screen-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  user-select: none;
-}
-
-.figma-hotspot {
-  position: absolute;
-  z-index: 4;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.figma-hotspot:focus-visible {
-  outline: 3px solid rgba(255, 210, 31, 0.95);
-  outline-offset: 2px;
-  background: rgba(255, 210, 31, 0.14);
-}
-
-.figma-input,
-.figma-booking-input {
-  position: absolute;
-  z-index: 5;
-  box-sizing: border-box;
-  border: 1.5px solid #c7bc9c;
-  border-radius: 14px;
-  background: #fff;
-  color: #12241f;
-  font: 500 clamp(12px, 1.65vw, 16px) Sora, Arial, sans-serif;
-  outline: none;
-}
-
-.figma-input:focus,
-.figma-booking-input:focus {
-  border-color: #0e4a45;
-  box-shadow: 0 0 0 3px rgba(14, 74, 69, 0.14);
-}
-
-.figma-input--email {
-  left: 45%;
-  top: 61.4%;
-  width: 47%;
-  height: 9%;
-  padding: 0 1.8%;
-}
-
-.figma-input--password {
-  left: 45%;
-  top: 78.8%;
-  width: 47%;
-  height: 9%;
-  padding: 0 1.8%;
-}
-
-.figma-booking-input {
-  padding: 0 1.8%;
-}
-
-.figma-booking-input--checkin {
-  left: 5.8%;
-  top: 52.1%;
-  width: 43.5%;
-  height: 9.4%;
-}
-
-.figma-booking-input--checkout {
-  left: 50.8%;
-  top: 52.1%;
-  width: 43.5%;
-  height: 9.4%;
-}
-
-.figma-booking-input--guests {
-  left: 5.8%;
-  top: 69.1%;
-  width: 24.2%;
-  height: 8.9%;
-}
-
-.figma-live-chip {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 20;
-  max-width: min(420px, calc(100vw - 32px));
-  border: 1px solid #bbf7d0;
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: #e3f2e9;
-  color: #135a38;
-  box-shadow: 0 10px 24px rgba(6, 43, 43, 0.12);
-  font-size: 12px;
-  font-weight: 800;
+.screen-index-card small {
+  color: var(--slate);
+  overflow-wrap: anywhere;
 }
 
 .site-nav {

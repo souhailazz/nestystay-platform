@@ -1174,6 +1174,8 @@ export const api = {
       method: "POST",
       body: { challengeId, code },
     }),
+  getDevelopmentTwoFactorCode: (challengeId: string) =>
+    request<{ challengeId: string; code: string; expiresAt: string }>(`/auth/development/challenges/${challengeId}`),
   beginTwoFactorEnrollment: (token: string) =>
     request<TwoFactorEnrollment>("/auth/2fa/enrollments", { method: "POST", token }),
   confirmTwoFactorEnrollment: (token: string, body: { enrollmentId: string; code: string }) =>

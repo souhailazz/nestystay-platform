@@ -2,8 +2,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
-import { FigmaPngScreen } from "./components/design/FigmaPngScreen";
-import { ImportedDesignScreen } from "./components/design/ImportedDesignScreen";
 import Hero3D from "./components/landing/Hero3D";
 import ScrollStory from "./components/landing/ScrollStory";
 import FeatureCards from "./components/landing/FeatureCards";
@@ -51,11 +49,13 @@ import {
   AuthPostLoginToastPage,
   BusinessDirectoryPage,
   ComingSoonPage,
+  DesignSystemReferencePage,
   DocumentMessagePage,
   FavoritesCollectionsPage,
   HostPropertyEditPage,
   HostReportsPage,
   InsuraGuestPage,
+  LoadingStatePage,
   LogoutScreenPage,
   MapSearchPage,
   NoFavoritesPage,
@@ -141,6 +141,8 @@ type Route =
   | { name: "no-favorites" }
   | { name: "no-reservations" }
   | { name: "not-found" }
+  | { name: "design-system" }
+  | { name: "loading-state" }
   | { name: "design-screen"; screenId: string };
 
 function parseRoute(): Route {
@@ -150,6 +152,8 @@ function parseRoute(): Route {
   if (path === "/") return { name: "home" };
   if (path === "/screens") return { name: "design-screen", screenId: "INDEX" };
   if (path.startsWith("/screens/")) return { name: "design-screen", screenId: path.split("/")[2] ?? "PUB-01" };
+  if (path === "/design-system") return { name: "design-system" };
+  if (path === "/loading") return { name: "loading-state" };
   if (path === "/explore") return { name: "explore" };
   if (path === "/explore/map") return { name: "map-search" };
   if (path === "/coming-soon") return { name: "coming-soon" };
@@ -249,13 +253,6 @@ function parseRoute(): Route {
   if (path === "/empty/reservations") return { name: "no-reservations" };
   if (path === "/404") return { name: "not-found" };
   return { name: "not-found" };
-}
-
-function designMode() {
-  const search = new URLSearchParams(window.location.search);
-  if (search.get("live") === "1") return "live";
-  if (search.get("html") === "1") return "html";
-  return "figma";
 }
 
 function useRoute() {
@@ -442,223 +439,9 @@ function hasPublicNav(route: Route) {
     "access-restricted",
     "server-error",
     "not-found",
+    "design-system",
+    "loading-state",
   ].includes(route.name);
-}
-
-function importedDesignScreenForRoute(route: Route) {
-  switch (route.name) {
-    case "home":
-      return "PUB-01";
-    case "explore":
-      return "PUB-02";
-    case "map-search":
-      return "PUB-MAP";
-    case "coming-soon":
-      return "PUB-SOON";
-    case "property":
-      return "PUB-04";
-    case "login":
-      return "AUTH-01";
-    case "register":
-      return "AUTH-01#register";
-    case "auth-spec":
-      if (route.kind === "forgot" || route.kind === "reset") return "AUTH-01#recover";
-      return "AUTH-01";
-    case "auth-post":
-      return "AUTH-POST";
-    case "logout":
-      return "AUTH-LOGOUT";
-    case "booking-state":
-      if (route.state === "quote") return "BOOK-02";
-      if (route.state === "identity" || route.state === "verification") return "BOOK-03";
-      if (route.state === "checkout" || route.state === "payment") return "BOOK-05";
-      if (route.state === "pending") return "BOOK-07";
-      if (route.state === "success" || route.state === "confirmed" || route.state === "confirmation") return "BOOK-CONF";
-      return "BOOK-01";
-    case "guest-dashboard":
-      return "TRAV-01";
-    case "trav-favorites":
-      return "TRAV-COL";
-    case "trav-reviews":
-      return "TRAV-PEND";
-    case "trav-notifications":
-      return "TRAV-NOTIF";
-    case "trav-suggestions":
-      return "TRAV-SUGG";
-    case "traveler-spec":
-      if (route.view === "payment-methods" || route.view === "payment-history" || route.view === "invoices") return "TRAV-INV";
-      if (route.view === "reviews-pending" || route.view === "reviews-given") return "TRAV-PEND";
-      if (route.view === "identity" || route.view === "preferences") return "TRAV-12";
-      return "TRAV-01";
-    case "messages":
-      return "MSG-01";
-    case "document-message":
-      return "MSG-DOC";
-    case "payment":
-      return "BOOK-CONF";
-    case "profile":
-      return "TRAV-12";
-    case "host-dashboard":
-      return "HOST-01";
-    case "property-management":
-      return "HOST-05";
-    case "host-property-edit":
-      return "HOST-EDIT";
-    case "host-reports":
-      return "HOST-RPT";
-    case "host-wellness":
-      return "HOST-WELL";
-    case "officer-directory":
-      return "OFC-DIR";
-    case "wellness-booking":
-      return "OFC-BOOK";
-    case "officer-wellness":
-      return "OFC-01";
-    case "host-profile":
-      return route.edit ? "HOST-EDIT" : "HOST-01";
-    case "host-spec":
-      if (route.view === "badges") return "HOST-BADGE";
-      if (route.view === "exports") return "HOST-RPT";
-      if (route.view === "archived") return "HOST-EDIT";
-      return "HOST-01";
-    case "pm-gates":
-      return "PM-GATE";
-    case "pm-utilities":
-      return "PM-UTIL";
-    case "pm-verification":
-      return "PM-VERIFY";
-    case "pm-reports":
-      return "PM-RPT";
-    case "pm-insurance":
-      return "PM-INS";
-    case "directory-spec":
-      if (route.kind === "ProviderDashboard" || route.kind === "Provider") return "DIR-PROV";
-      if (route.kind === "LocalBusiness") return "DIR-BIZ";
-      return "DIR-02";
-    case "business-directory":
-      return "DIR-BIZ";
-    case "provider-dashboard":
-      return "DIR-PROV";
-    case "admin":
-      return "ADM-01";
-    case "admin-kpis":
-      return "ADM-KPI";
-    case "admin-reports":
-      return "ADM-RPT";
-    case "officer-id-reset":
-      return "ADM-RESET";
-    case "admin-ops":
-      if (route.view === "analytics" || route.view === "kpis") return "ADM-KPI";
-      if (route.view === "reports" || route.view === "audit" || route.view === "logs") return "ADM-RPT";
-      if (route.view === "officer-id-reset") return "ADM-RESET";
-      return "ADM-01";
-    case "sign-in-required":
-      return "ERR-401";
-    case "access-restricted":
-      return "ERR-403";
-    case "server-error":
-      return "ERR-500";
-    case "no-favorites":
-      return "ERR-NOFAV";
-    case "no-reservations":
-      return "ERR-NORES";
-    case "not-found":
-      return "ERR-404";
-    case "design-screen":
-      return route.screenId;
-    default:
-      return undefined;
-  }
-}
-
-function hasAnyRole(auth: AuthController, roles: string[]) {
-  const sessionRoles = auth.session?.roles.map((role) => role.toLowerCase()) ?? [];
-  return roles.some((role) => sessionRoles.includes(role.toLowerCase())) || sessionRoles.includes("admin");
-}
-
-function protectedImportedDesignScreenForRoute(route: Route, auth: AuthController) {
-  const screenId = importedDesignScreenForRoute(route);
-  if (!screenId) return undefined;
-
-  if (route.name === "logout") return screenId;
-
-  const authenticatedRoutes = [
-    "guest-dashboard",
-    "trav-favorites",
-    "trav-reviews",
-    "trav-notifications",
-    "trav-suggestions",
-    "traveler-spec",
-    "messages",
-    "document-message",
-    "profile",
-    "calendar",
-    "bookings",
-    "payment",
-    "host-dashboard",
-    "property-management",
-    "host-property-edit",
-    "host-reports",
-    "host-wellness",
-    "wellness-booking",
-    "host-spec",
-    "pm-gates",
-    "pm-utilities",
-    "pm-verification",
-    "pm-reports",
-    "pm-insurance",
-    "officer-wellness",
-    "provider-dashboard",
-    "admin",
-    "admin-ops",
-    "admin-kpis",
-    "admin-reports",
-    "officer-id-reset",
-  ];
-
-  if (!authenticatedRoutes.includes(route.name)) return screenId;
-  if (!auth.session) return "ERR-401";
-
-  if (["admin", "admin-ops", "admin-kpis", "admin-reports", "officer-id-reset"].includes(route.name)) {
-    let permission: AdminPermission;
-    if (route.name === "admin") {
-      permission = AdminPermissions.superAdministration;
-    } else if (route.name === "admin-kpis" || route.name === "admin-reports") {
-      permission = AdminPermissions.financialReporting;
-    } else if (route.name === "officer-id-reset") {
-      permission = AdminPermissions.officerManagement;
-    } else if (route.name === "admin-ops") {
-      permission = adminOpsPermission(route.view);
-    } else {
-      permission = AdminPermissions.userManagement;
-    }
-
-    return isAdminSession(auth.session) && hasAdminPermission(auth.session, permission) ? screenId : "ERR-403";
-  }
-
-  if (
-    [
-      "host-dashboard",
-      "property-management",
-      "host-property-edit",
-      "host-reports",
-      "host-wellness",
-      "wellness-booking",
-      "host-spec",
-    ].includes(route.name)
-  ) {
-    return hasAnyRole(auth, ["Host"]) ? screenId : "ERR-403";
-  }
-
-  if (["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"].includes(route.name)) {
-    return hasAnyRole(auth, ["PropertyManager"]) ? screenId : "ERR-403";
-  }
-
-  if (route.name === "officer-wellness") {
-    return hasAnyRole(auth, ["Officer"]) ? screenId : "ERR-403";
-  }
-
-  return screenId;
 }
 
 function LogoutRoute({ auth }: { auth: AuthController }) {
@@ -695,8 +478,205 @@ function adminOpsPermission(view: string): AdminPermission {
   return AdminPermissions.userManagement;
 }
 
+const implementedScreens = [
+  ["INDEX", "Validation index", "/screens"],
+  ["DS-V2", "Design system", "/design-system"],
+  ["PUB-01", "Landing", "/"],
+  ["PUB-02", "Explore stays", "/explore"],
+  ["PUB-04", "Property detail", "/properties/22222222-2222-4222-8222-222222222222"],
+  ["PUB-MAP", "Map search", "/explore/map"],
+  ["PUB-SOON", "Coming soon", "/coming-soon"],
+  ["AUTH-01", "Login and signup", "/login"],
+  ["AUTH-POST", "Post-login toast", "/auth/post-login-toast"],
+  ["AUTH-LOGOUT", "Logout", "/logout"],
+  ["BOOK-01", "Booking dates/review", "/booking/review"],
+  ["BOOK-02", "Booking quote", "/booking/quote"],
+  ["BOOK-03", "Booking identity", "/booking/identity"],
+  ["BOOK-05", "Booking checkout", "/booking/checkout"],
+  ["BOOK-07", "Booking pending", "/booking/pending"],
+  ["BOOK-CONF", "Booking confirmation", "/booking/success"],
+  ["TRAV-01", "Traveler dashboard", "/guest-dashboard"],
+  ["TRAV-12", "Traveler settings", "/profile"],
+  ["TRAV-COL", "Traveler collections", "/traveler/favorites"],
+  ["TRAV-INV", "Traveler invoices", "/traveler/invoices"],
+  ["TRAV-NOTIF", "Traveler notifications", "/traveler/notifications"],
+  ["TRAV-PEND", "Pending reviews", "/traveler/reviews/pending"],
+  ["TRAV-SUGG", "Trip suggestions", "/traveler/suggestions"],
+  ["MSG-01", "Messages", "/messages"],
+  ["MSG-DOC", "Secure document message", "/messages/document"],
+  ["DIR-02", "Trades directory", "/directory/trades"],
+  ["DIR-BIZ", "Business directory", "/directory/businesses"],
+  ["DIR-PROV", "Provider profile", "/directory/provider"],
+  ["HOST-01", "Host dashboard", "/host-dashboard"],
+  ["HOST-05", "Host properties", "/host/properties"],
+  ["HOST-EDIT", "Host property edit", "/host/properties/edit"],
+  ["HOST-RPT", "Host reports", "/host/reports"],
+  ["HOST-WELL", "Host wellness", "/host/wellness"],
+  ["HOST-BADGE", "Host badges", "/host/badges"],
+  ["OFC-01", "Officer onboarding", "/officer/wellness"],
+  ["OFC-02", "Officer visits", "/officer/wellness"],
+  ["OFC-DIR", "Officer directory", "/host/wellness/directory"],
+  ["OFC-BOOK", "Wellness booking", "/host/wellness/book"],
+  ["PM-GATE", "Gate communications", "/pm/gates"],
+  ["PM-UTIL", "Utility proofing", "/pm/utilities"],
+  ["PM-VERIFY", "Tenant verification", "/pm/verification"],
+  ["PM-RPT", "Portfolio reports", "/pm/reports"],
+  ["PM-INS", "Insurance", "/pm/insurance"],
+  ["ADM-01", "Admin operations", "/admin/ops/disputes"],
+  ["ADM-KPI", "Admin KPIs", "/admin/kpis"],
+  ["ADM-RESET", "Officer ID reset", "/admin/officer-id-reset"],
+  ["ADM-RPT", "Admin reports", "/admin/reports"],
+  ["ERR-401", "Sign-in required", "/401"],
+  ["ERR-403", "Access restricted", "/403"],
+  ["ERR-404", "Not found", "/404"],
+  ["ERR-500", "Server error", "/500"],
+  ["ERR-LOAD", "Loading state", "/loading"],
+  ["ERR-NOFAV", "No favorites", "/empty/favorites"],
+  ["ERR-NORES", "No reservations", "/empty/reservations"],
+] as const;
+
+function componentRouteForScreen(screenId: string): Route | undefined {
+  switch (screenId) {
+    case "DS-V2":
+      return { name: "design-system" };
+    case "PUB-01":
+      return { name: "home" };
+    case "PUB-02":
+      return { name: "explore" };
+    case "PUB-04":
+      return { name: "property", propertyId: "22222222-2222-4222-8222-222222222222" };
+    case "PUB-MAP":
+      return { name: "map-search" };
+    case "PUB-SOON":
+      return { name: "coming-soon" };
+    case "AUTH-01":
+      return { name: "login" };
+    case "AUTH-POST":
+      return { name: "auth-post" };
+    case "AUTH-LOGOUT":
+      return { name: "logout" };
+    case "BOOK-01":
+      return { name: "booking-state", state: "review" };
+    case "BOOK-02":
+      return { name: "booking-state", state: "quote" };
+    case "BOOK-03":
+      return { name: "booking-state", state: "identity" };
+    case "BOOK-05":
+      return { name: "booking-state", state: "checkout" };
+    case "BOOK-07":
+      return { name: "booking-state", state: "pending" };
+    case "BOOK-CONF":
+      return { name: "booking-state", state: "success" };
+    case "TRAV-01":
+      return { name: "guest-dashboard" };
+    case "TRAV-12":
+      return { name: "profile" };
+    case "TRAV-COL":
+      return { name: "trav-favorites" };
+    case "TRAV-INV":
+      return { name: "traveler-spec", view: "invoices" };
+    case "TRAV-NOTIF":
+      return { name: "trav-notifications" };
+    case "TRAV-PEND":
+      return { name: "traveler-spec", view: "reviews-pending" };
+    case "TRAV-SUGG":
+      return { name: "trav-suggestions" };
+    case "MSG-01":
+      return { name: "messages" };
+    case "MSG-DOC":
+      return { name: "document-message" };
+    case "DIR-02":
+      return { name: "directory-spec", kind: "Trades" };
+    case "DIR-BIZ":
+      return { name: "directory-spec", kind: "LocalBusiness" };
+    case "DIR-PROV":
+      return { name: "provider-dashboard" };
+    case "HOST-01":
+      return { name: "host-dashboard" };
+    case "HOST-05":
+      return { name: "property-management" };
+    case "HOST-EDIT":
+      return { name: "host-property-edit" };
+    case "HOST-RPT":
+      return { name: "host-reports" };
+    case "HOST-WELL":
+      return { name: "host-wellness" };
+    case "HOST-BADGE":
+      return { name: "host-spec", view: "badges" };
+    case "OFC-01":
+    case "OFC-02":
+      return { name: "officer-wellness" };
+    case "OFC-DIR":
+      return { name: "officer-directory" };
+    case "OFC-BOOK":
+      return { name: "wellness-booking" };
+    case "PM-GATE":
+      return { name: "pm-gates" };
+    case "PM-UTIL":
+      return { name: "pm-utilities" };
+    case "PM-VERIFY":
+      return { name: "pm-verification" };
+    case "PM-RPT":
+      return { name: "pm-reports" };
+    case "PM-INS":
+      return { name: "pm-insurance" };
+    case "ADM-01":
+      return { name: "admin-ops", view: "disputes" };
+    case "ADM-KPI":
+      return { name: "admin-kpis" };
+    case "ADM-RESET":
+      return { name: "officer-id-reset" };
+    case "ADM-RPT":
+      return { name: "admin-reports" };
+    case "ERR-401":
+      return { name: "sign-in-required" };
+    case "ERR-403":
+      return { name: "access-restricted" };
+    case "ERR-404":
+      return { name: "not-found" };
+    case "ERR-500":
+      return { name: "server-error" };
+    case "ERR-LOAD":
+      return { name: "loading-state" };
+    case "ERR-NOFAV":
+      return { name: "no-favorites" };
+    case "ERR-NORES":
+      return { name: "no-reservations" };
+    default:
+      return undefined;
+  }
+}
+
+function ScreenImplementationIndex() {
+  return (
+    <main className="screen-index-page">
+      <section className="screen-index-hero">
+        <span className="badge badge-sun">Component implementation map</span>
+        <h1>Client screens are implemented as React routes.</h1>
+        <p>
+          Each client screen ID points to a component route backed by typed DTOs and the NestyStay API client.
+        </p>
+      </section>
+      <section className="screen-index-grid">
+        {implementedScreens.map(([screenId, title, href]) => (
+          <AppLink className="screen-index-card" href={`/screens/${screenId}`} key={screenId}>
+            <span>{screenId}</span>
+            <strong>{title}</strong>
+            <small>{href}</small>
+          </AppLink>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
   switch (route.name) {
+    case "design-screen": {
+      if (route.screenId === "INDEX") return <ScreenImplementationIndex />;
+      const componentRoute = componentRouteForScreen(route.screenId);
+      return componentRoute ? <CurrentPage auth={auth} route={componentRoute} /> : <ScreenImplementationIndex />;
+    }
     case "public-content":
       return <PublicContentRoute slug={route.slug} />;
     case "auth-spec":
@@ -819,6 +799,10 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <AccessRestrictedPage />;
     case "server-error":
       return <ServerErrorPage />;
+    case "design-system":
+      return <DesignSystemReferencePage />;
+    case "loading-state":
+      return <LoadingStatePage />;
     case "no-favorites":
       return <NoFavoritesPage />;
     case "no-reservations":
@@ -834,10 +818,6 @@ export default function App() {
   const reduceMotion = useReducedMotion();
   const auth = useAuth();
   const route = useRoute();
-  const currentDesignMode = designMode();
-  const importedDesignScreenId =
-    currentDesignMode !== "live" ? protectedImportedDesignScreenForRoute(route, auth) : undefined;
-  const shouldUseHtmlDesign = currentDesignMode === "html" || importedDesignScreenId?.includes("#");
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = reduceMotion ? "auto" : "smooth";
@@ -852,16 +832,8 @@ export default function App() {
   return (
     <PatoisProvider>
       <div
-        className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""} ${
-          importedDesignScreenId ? "app-shell--imported-design" : ""
-        }`}
+        className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}
       >
-        {importedDesignScreenId && shouldUseHtmlDesign ? (
-          <ImportedDesignScreen screenId={importedDesignScreenId} />
-        ) : importedDesignScreenId ? (
-          <FigmaPngScreen screenId={importedDesignScreenId} />
-        ) : (
-          <>
         {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
         {isWorkspaceRoute(route) ? (
           <WorkspaceFrame routeName={route.name}>
@@ -871,8 +843,6 @@ export default function App() {
           <main>
             <CurrentPage auth={auth} route={route} />
           </main>
-        )}
-          </>
         )}
       </div>
     </PatoisProvider>

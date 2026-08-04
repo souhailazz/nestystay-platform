@@ -56,6 +56,20 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
     }
   }, [state, dummyQuote, bookingId, auth.session?.accessToken]);
 
+  if (state !== "review" && !auth.session) {
+    return (
+      <div className="page-container container py-6" data-testid="booking-auth-required">
+        <div className="alert-box alert-error">
+          <span>Sign in to continue this protected booking flow.</span>
+        </div>
+        <div className="button-row mt-4">
+          <a className="btn btn-primary" href="/login">Log in</a>
+          <a className="btn btn-outline" href="/register">Create account</a>
+        </div>
+      </div>
+    );
+  }
+
   const activeId = currentBookingId || "11111111-1111-4111-8111-111111111111";
 
   switch (state) {
