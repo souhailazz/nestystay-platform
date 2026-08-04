@@ -1,0 +1,151 @@
+name: Deploy NestyStay Platform
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: nestystay-platform-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, migrate, and deploy
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nestystay
+          POSTGRES_DB: nestystay_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nestystay -d nestystay_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DOTNET_NOLOGO: "true"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+      VITE_API_BASE_URL: /api
+      VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY || 'pk_test_local' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore backend
+        run: dotnet restore backend/NestyStay.sln
+
+      - name: Test backend
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__Postgres: Host=127.0.0.1;Port=5432;Database=nestystay_ci;Username=nestystay
+          Security__EnableDevelopmentAuthCodes: "true"
+        run: dotnet test backend/NestyStay.sln --no-restore
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend packages
+        working-directory: frontend
+        run: npm audit
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Publish backend
+        run: >
+          dotnet publish backend/src/NestyStay.Api/NestyStay.Api.csproj
+          -c Release
+          -r linux-x64
+          --self-contained true
+          -o artifacts/api
+
+      - name: Build migration bundle
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.9
+          dotnet ef migrations bundle \
+            --project backend/src/NestyStay.Infrastructure \
+            --startup-project backend/src/NestyStay.Api \
+            --configuration Release \
+            --self-contained \
+            --target-runtime linux-x64 \
+            --output artifacts/efbundle
+
+      - name: Package release
+        run: |
+          tar -czf artifacts/api-publish.tar.gz -C artifacts/api .
+          tar -czf artifacts/frontend-dist.tar.gz -C frontend/dist .
+          tar -czf artifacts/migrations.tar.gz -C artifacts efbundle
+
+      - name: Configure SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.NESTYSTAY_DEPLOY_PORT || '22' }}
+          DEPLOY_SSH_KEY: ${{ secrets.NESTYSTAY_DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_SSH_KEY"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/nestystay_deploy_key
+          chmod 600 ~/.ssh/nestystay_deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload release to server
+        env:
+          DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.NESTYSTAY_DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.NESTYSTAY_DEPLOY_PORT || '22' }}
+        run: |
+          REMOTE_RELEASE="/tmp/nestystay-deploy-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
+          echo "REMOTE_RELEASE=$REMOTE_RELEASE" >> "$GITHUB_ENV"
+          ssh -i ~/.ssh/nestystay_deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "rm -rf '$REMOTE_RELEASE' && mkdir -p '$REMOTE_RELEASE'"
+          scp -i ~/.ssh/nestystay_deploy_key -P "$DEPLOY_PORT" \
+            artifacts/api-publish.tar.gz \
+            artifacts/frontend-dist.tar.gz \
+            artifacts/migrations.tar.gz \
+            "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_RELEASE/"
+
+      - name: Activate release
+        env:
+          DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.NESTYSTAY_DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.NESTYSTAY_DEPLOY_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/nestystay_deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo -n /usr/local/bin/nestystay-deploy '$REMOTE_RELEASE'"
+
+      - name: Smoke test deployed app
+        env:
+          DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
+        run: |
+          curl --fail --show-error --silent "http://$DEPLOY_HOST/api/health"
