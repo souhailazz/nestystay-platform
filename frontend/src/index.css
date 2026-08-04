@@ -80,6 +80,40 @@ svg {
   background: var(--cream);
 }
 
+.root-error-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgb(6 31 29 / 95%), rgb(15 90 69 / 82%)),
+    var(--deep);
+}
+
+.root-error-page section {
+  display: grid;
+  width: min(520px, 100%);
+  justify-items: start;
+  gap: 16px;
+}
+
+.root-error-page h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(36px, 7vw, 68px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 0.96;
+}
+
+.root-error-page p {
+  margin: 0;
+  color: rgb(255 255 255 / 76%);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
 .screen-index-page {
   min-height: 100vh;
   padding: 128px max(22px, calc((100vw - 1180px) / 2)) 72px;
