@@ -1,19 +1,24 @@
 import { useState } from "react";
-import { MessageSquare, Send, Paperclip, ShieldCheck, QrCode, PhoneCall, AlertTriangle, Check, DollarSign } from "lucide-react";
-import { PatoisPhrase } from "../../lib/patois";
+import { QrCode } from "lucide-react";
+import { AppLink } from "../../components/AppLink";
+import { SampleDataChip } from "../../pages/SpecScreens";
+import { cx } from "../../lib/ui";
 import type { ChatThread, ChatMessage } from "./types";
 
 interface MessagingCenterProps {
   token: string;
 }
 
-export function MessagingCenter({ token }: MessagingCenterProps) {
+/* MSG-01 (DS v2) — guest↔host threads. SPEC screen: the messaging API is still
+   to come, so threads are local sample data (chipped); sending appends locally.
+   All communication stays on-platform. */
+export function MessagingCenter({ token: _token }: MessagingCenterProps) {
   const [threads, setThreads] = useState<ChatThread[]>([
     {
       id: "th-1",
       propertyId: "11111111-1111-4111-8111-111111111111",
-      propertyTitle: "Ocho Rios Verified Villa",
-      participantName: "Island Villa Hosting",
+      propertyTitle: "Cliffside Retreat",
+      participantName: "Marcia — Cliffside Retreat",
       participantRole: "Host",
       unreadCount: 1,
       lastMessageAt: new Date().toISOString(),
@@ -21,22 +26,60 @@ export function MessagingCenter({ token }: MessagingCenterProps) {
         {
           id: "m-1",
           senderId: "host-1",
-          senderName: "Island Villa Hosting",
+          senderName: "Marcia",
           senderRole: "Host",
-          content: "Welcome to Ocho Rios! Here is your security gate pass for arrival.",
+          content: "Welcome Keisha! Anything you need before check-in on the 12th?",
+          sentAt: new Date().toISOString(),
+          isRead: true,
+        },
+        {
+          id: "m-2",
+          senderId: "user-current",
+          senderName: "Traveler Guest",
+          senderRole: "Traveler",
+          content: "Could we get a late check-out on the 18th?",
+          sentAt: new Date().toISOString(),
+          isRead: true,
+        },
+        {
+          id: "m-3",
+          senderId: "host-1",
+          senderName: "Marcia",
+          senderRole: "Host",
+          content: "No problem — 1 pm works. Linens and a welcome basket will be ready.",
           sentAt: new Date().toISOString(),
           isRead: true,
           cardType: "GatePass",
-          cardPayload: { passCode: "NSTY-GATE-99" }
-        }
-      ]
-    }
+          cardPayload: { passCode: "NSTY-GATE-99" },
+        },
+      ],
+    },
+    {
+      id: "th-2",
+      propertyId: "22222222-2222-4222-8222-222222222222",
+      propertyTitle: "Sea Grape Cottage",
+      participantName: "Devon — Sea Grape Cottage",
+      participantRole: "Host",
+      unreadCount: 0,
+      lastMessageAt: new Date().toISOString(),
+      messages: [
+        {
+          id: "m-4",
+          senderId: "host-2",
+          senderName: "Devon",
+          senderRole: "Host",
+          content: "The gate code changes Friday.",
+          sentAt: new Date().toISOString(),
+          isRead: true,
+        },
+      ],
+    },
   ]);
 
   const [activeThreadId, setActiveThreadId] = useState<string>("th-1");
   const [inputMessage, setInputMessage] = useState("");
 
-  const activeThread = threads.find(t => t.id === activeThreadId) || threads[0];
+  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
 
   function handleSend() {
     if (!inputMessage.trim() || !activeThread) return;
@@ -47,94 +90,112 @@ export function MessagingCenter({ token }: MessagingCenterProps) {
       senderRole: "Traveler",
       content: inputMessage.trim(),
       sentAt: new Date().toISOString(),
-      isRead: true
+      isRead: true,
     };
-    setThreads(threads.map(t => t.id === activeThread.id ? { ...t, messages: [...t.messages, newMsg] } : t));
+    setThreads(threads.map((t) => (t.id === activeThread.id ? { ...t, messages: [...t.messages, newMsg] } : t)));
     setInputMessage("");
   }
 
   return (
-    <div className="page-container container py-6" data-testid="msg-01-page" id="MSG-01">
-      <header className="page-header mb-6 flex justify-between items-center">
-        <div>
-          <span className="badge badge-sun">MSG-01 through MSG-09</span>
-          <h2>Guest & Host Messaging Center</h2>
-          <PatoisPhrase phrase="Chat & Stay Coordination" translation="Real-time messaging, gate pass sharing, special offers, and 119 emergency safety alerts." />
-        </div>
-        {/* MSG-09 Emergency 119 Alert */}
-        <button 
-          type="button" 
-          className="btn btn-ghost text-coral border border-coral font-bold flex items-center gap-1"
-          onClick={() => alert("EMERGENCY 119: Contacting Jamaican Police & Security Dispatch")}
-          id="MSG-09"
-        >
-          <PhoneCall size={16} /> 119 Emergency Alert
-        </button>
-      </header>
+    <div className="flex flex-col gap-5 font-sans text-ink" data-testid="msg-01-page" id="MSG-01">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">Messages</h1>
+        <SampleDataChip />
+      </div>
 
-      <div className="layout-grid-2-1 h-[650px] border rounded-xl overflow-hidden bg-white">
-        {/* Thread List Sidebar (MSG-01) */}
-        <div className="border-r overflow-y-auto p-4 space-y-2">
-          <h3 className="font-bold text-sm text-gray-500 uppercase mb-3">Conversations</h3>
-          {threads.map((t) => (
-            <div 
-              key={t.id} 
-              className={`p-3 rounded-lg cursor-pointer transition ${activeThreadId === t.id ? "bg-sun-light border-l-4 border-sun" : "hover:bg-gray-50"}`}
-              onClick={() => setActiveThreadId(t.id)}
+      <div className="grid min-h-[480px] overflow-hidden rounded-card border border-sand-border bg-cream md:grid-cols-[minmax(240px,320px)_1fr]">
+        <div className="flex flex-col border-b border-sand-border md:border-b-0 md:border-r">
+          {threads.map((thread) => (
+            <button
+              className={cx(
+                "flex min-h-11 w-full cursor-pointer flex-col gap-0.5 border-b border-shell px-4 py-3.5 text-left font-sans",
+                activeThreadId === thread.id ? "bg-shell" : "bg-transparent hover:bg-shell/60",
+              )}
+              key={thread.id}
+              onClick={() => setActiveThreadId(thread.id)}
+              type="button"
             >
-              <div className="flex justify-between items-start">
-                <strong className="text-sm">{t.participantName}</strong>
-                {t.unreadCount > 0 && <span className="badge badge-sun">{t.unreadCount}</span>}
-              </div>
-              <p className="subtext text-xs mt-1">{t.propertyTitle}</p>
-            </div>
+              <span className="flex justify-between gap-2">
+                <span className="text-[13.5px] font-bold text-ink">{thread.participantName}</span>
+                {thread.unreadCount > 0 && (
+                  <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-deep text-[10.5px] font-bold text-yellow">
+                    {thread.unreadCount}
+                  </span>
+                )}
+              </span>
+              <span className="truncate text-[12.5px] text-gray-600">
+                {thread.messages[thread.messages.length - 1]?.content}
+              </span>
+            </button>
           ))}
         </div>
 
-        {/* Active Chat Window (MSG-02) */}
-        <div className="flex flex-col h-full bg-gray-50">
-          <div className="p-4 bg-white border-b flex justify-between items-center">
+        <div className="flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-shell px-5 py-3.5">
             <div>
-              <strong className="text-lg">{activeThread?.participantName}</strong>
-              <p className="subtext text-xs">{activeThread?.propertyTitle}</p>
+              <div className="text-sm font-bold">{activeThread?.participantName}</div>
+              <div className="text-[11.5px] text-sand-500">Verified host · responds in ~1 hr</div>
             </div>
-            <span className="badge badge-green flex items-center gap-1"><ShieldCheck size={12} /> Encrypted Chat</span>
+            <span className="inline-flex items-center rounded-pill bg-success-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-success-text">
+              BOOKING: CONFIRMED
+            </span>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto space-y-4">
-            {activeThread?.messages.map((m) => (
-              <div key={m.id} className={`flex flex-col ${m.senderRole === "Traveler" ? "items-end" : "items-start"}`}>
-                <div className={`p-3 rounded-xl max-w-md ${m.senderRole === "Traveler" ? "bg-sun text-white" : "bg-white border shadow-sm"}`}>
-                  <p className="text-sm">{m.content}</p>
-
-                  {/* MSG-07 Special Gate Pass Card */}
-                  {m.cardType === "GatePass" && (
-                    <div className="bg-sun-light p-3 rounded mt-2 border border-sun text-gray-900 text-center" id="MSG-07">
-                      <QrCode size={36} className="mx-auto text-sun mb-1" />
-                      <strong className="text-xs uppercase">Jamaican Gate Pass</strong>
-                      <p className="font-bold text-lg text-sun">{m.cardPayload?.passCode}</p>
+          <div className="flex flex-1 flex-col gap-3 p-5">
+            {activeThread?.messages.map((message) => (
+              <div
+                className={cx("flex max-w-[70%] flex-col", message.senderRole === "Traveler" ? "items-end self-end" : "items-start self-start")}
+                key={message.id}
+              >
+                <div
+                  className={cx(
+                    "px-4 py-3 text-[13.5px]",
+                    message.senderRole === "Traveler"
+                      ? "rounded-[16px_16px_4px_16px] bg-deep text-on-dark-heading"
+                      : "rounded-[16px_16px_16px_4px] bg-shell text-ink",
+                  )}
+                >
+                  {message.content}
+                  {message.cardType === "GatePass" && (
+                    <div className="mt-2.5 flex flex-col items-center gap-1 rounded-field border border-sand-border bg-cream px-4 py-3 text-center text-ink">
+                      <QrCode className="text-deep-hover" size={34} />
+                      <strong className="text-[10.5px] uppercase tracking-[0.08em]">Gate pass</strong>
+                      <span className="font-mono text-lg font-bold text-deep">{message.cardPayload?.passCode}</span>
                     </div>
                   )}
                 </div>
-                <span className="text-xs subtext mt-1">{new Date(m.sentAt).toLocaleTimeString()}</span>
+                <span className="mt-1 text-[11px] text-sand-500">
+                  {new Date(message.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
               </div>
             ))}
           </div>
 
-          <div className="p-3 bg-white border-t flex gap-2 items-center">
-            <input 
-              type="text" 
-              className="input-control flex-1" 
-              placeholder="Write a message to host..." 
-              value={inputMessage} 
-              onChange={(e) => setInputMessage(e.target.value)} 
-              onKeyDown={(e) => e.key === "Enter" && handleSend()} 
+          <div className="flex gap-2.5 border-t border-shell px-5 py-3.5">
+            <input
+              className="min-h-12 flex-1 rounded-pill border-[1.5px] border-sand-input bg-white px-[18px] font-sans text-sm text-ink outline-none focus:border-deep-hover"
+              onChange={(event) => setInputMessage(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && handleSend()}
+              placeholder="Write a message…"
+              type="text"
+              value={inputMessage}
             />
-            <button type="button" className="btn btn-primary" onClick={handleSend}>
-              <Send size={16} />
+            <button
+              className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
+              onClick={handleSend}
+              type="button"
+            >
+              Send
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="text-[12.5px] text-sand-500">
+        Document sharing in threads →{" "}
+        <AppLink className="font-semibold text-deep-hover" href="/messages/document">
+          MSG-DOC
+        </AppLink>
       </div>
     </div>
   );

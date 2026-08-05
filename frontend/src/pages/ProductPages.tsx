@@ -105,33 +105,9 @@ function AnimatedSection({ children, className, delay = 0 }: { children: ReactNo
   );
 }
 
-function statusTone(value: string): "green" | "sun" | "coral" | "ink" | "blue" | "slate" | "mint" {
-  const normalized = value.toUpperCase();
-  if (
-    normalized.includes("APPROVED") ||
-    normalized.includes("CAPTURED") ||
-    normalized.includes("PASSED") ||
-    normalized.includes("COMPLETED") ||
-    normalized.includes("SUBMITTED") ||
-    normalized.includes("VERIFIED")
-  ) {
-    return "green";
-  }
-  if (normalized.includes("REJECTED") || normalized.includes("FAILED") || normalized.includes("CANCELLED")) {
-    return "coral";
-  }
-  if (normalized.includes("PENDING") || normalized.includes("AUTHORIZED") || normalized.includes("REQUESTED")) {
-    return "sun";
-  }
-  if (normalized.includes("SCHEDULED") || normalized.includes("ASSIGNED") || normalized.includes("ACTIVE")) {
-    return "blue";
-  }
-  if (normalized.includes("WELLNESS")) return "mint";
-  return "ink";
-}
-
+/* DS v2 — StatusBadge now delegates to the contractual StatusChip tones. */
 function StatusBadge({ value }: { value: string }) {
-  return <Badge tone={statusTone(value)}>{value}</Badge>;
+  return <StatusChip value={value} />;
 }
 
 function MiniPropertyArt({ index = 0, title = "Jamaican stay" }: { index?: number; title?: string }) {
@@ -336,13 +312,13 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <Card className="metric-card">
-      <span>
-        <Icon size={21} />
+    <div className="flex flex-col gap-2 rounded-card border border-sand-border bg-cream p-[18px] font-sans text-ink">
+      <span className="text-deep-hover">
+        <Icon size={19} />
       </span>
-      <small>{label}</small>
-      <strong>{value}</strong>
-    </Card>
+      <small className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-sand-500">{label}</small>
+      <strong className="font-display text-[24px] font-medium leading-none">{value}</strong>
+    </div>
   );
 }
 
@@ -2213,13 +2189,20 @@ export function AdminPage({ auth }: { auth: AuthController }) {
     }
   }
 
+  /* ADM-01 (DS v2) — bearer-token auth surface; all metrics and actions run
+     against the live admin APIs. */
   return (
-    <div className="product-page product-page--admin">
-      <PageHeader
-        eyebrow="Admin"
-        title="Platform health, badges, pricing, and benefits."
-        copy="A compact control surface for platform metadata, pricing, benefits, and wellness operations."
-      />
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ADM-01">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+          Platform <em className="italic text-deep-hover">operations</em>
+        </h1>
+        <div className="flex items-center gap-2 rounded-pill border-[1.5px] border-sand-input bg-cream py-1 pl-[18px] pr-1.5">
+          <span className="text-xs font-semibold text-sand-500">Bearer token</span>
+          <span className="font-mono text-[13px] tracking-widest">••••••••</span>
+          <StatusChip value={adminToken ? "Authenticated" : "Missing token"} />
+        </div>
+      </div>
       <section className="product-section">
         {isLoading && <LoadingState label="Checking backend admin endpoints" />}
         {data.errors.map((message) => (
@@ -2241,16 +2224,13 @@ export function AdminPage({ auth }: { auth: AuthController }) {
           <MetricCard icon={ShieldCheck} label="Wellness visits" value={String(data.wellness?.requestedVisits ?? 0)} />
           <MetricCard icon={CreditCard} label="Wellness payouts" value={String(data.wellness?.pendingPayouts ?? 0)} />
         </div>
-        <Card className="admin-reset-card">
-          <TimerReset size={22} />
-          <div>
-            <strong>Officer ID Reset - Next: Jan 1</strong>
-            <span>{String(data.wellnessOfficers?.length || 1240)} officers enrolled. No Override and Zero Trace rules apply.</span>
-          </div>
-          <AppLink className={buttonClassName("outline")} href="/admin/officer-id-reset">
-            View schedule
-          </AppLink>
-        </Card>
+        <AppLink className="flex flex-col gap-1.5 rounded-card bg-deep p-[22px] transition-colors hover:bg-deep-hover" href="/admin/officer-id-reset">
+          <span className="text-[11px] font-bold tracking-[0.16em] text-on-dark-faint">OFFICER ID RESET</span>
+          <span className="font-display text-[22px] font-medium text-on-dark-heading">
+            Next: Jan 1 · {String(data.wellnessOfficers?.length || 0)} officers enrolled
+          </span>
+          <span className="text-[13px] font-bold text-yellow">View schedule →</span>
+        </AppLink>
       </section>
 
       <section className="product-section management-layout wellness-workflow">
@@ -2331,7 +2311,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             >
               Assign
             </Button>
-            <Button
+            <Button variant="dark"
               type="button"
               disabled={!selectedWellnessVisitId || uploadedAdminReportPhotoIds.length === 0 || !canManageOfficers}
               onClick={() =>
@@ -2360,7 +2340,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             >
               Cancel
             </Button>
-            <Button
+            <Button variant="dark"
               type="button"
               disabled={!selectedWellnessVisitId || !canViewFinancials}
               onClick={() =>
@@ -2458,7 +2438,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               Active
             </InlineLabel>
           </div>
-          <Button disabled={!canConfigureSystem} type="submit">
+          <Button variant="dark" disabled={!canConfigureSystem} type="submit">
             <ReceiptText size={17} /> Save price
           </Button>
           {selectedPricebookItem && (
@@ -2551,7 +2531,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             >
               <ShieldCheck size={17} /> Check
             </Button>
-            <Button
+            <Button variant="dark"
               type="button"
               onClick={() =>
                 void runAction(async () => {
@@ -2631,7 +2611,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             >
               Suspend
             </Button>
-            <Button
+            <Button variant="dark"
               type="button"
               disabled={!selectedAssignment}
               onClick={() =>
@@ -2739,7 +2719,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             </InlineLabel>
           </div>
           <div className="button-row">
-            <Button disabled={!canConfigureSystem} type="submit">
+            <Button variant="dark" disabled={!canConfigureSystem} type="submit">
               <Plus size={17} /> Save campaign
             </Button>
             <Button
@@ -2828,7 +2808,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             ))}
           </div>
           <div className="button-row">
-            <Button
+            <Button variant="dark"
               type="button"
               disabled={!canConfigureSystem}
               onClick={() =>

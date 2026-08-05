@@ -32,7 +32,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { AppLink } from "../components/AppLink";
+import { AppLink, navigate } from "../components/AppLink";
 import { Badge } from "../components/ui/Badge";
 import { Button, buttonClassName } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -158,27 +158,38 @@ export function DesignSystemReferencePage() {
   );
 }
 
+/* ERR-LOAD (DS v2) — structured "Tek Time" skeleton that mirrors the real
+   layout: never a bare spinner, layout never shifts on load. */
 export function LoadingStatePage() {
+  const shimmer = "animate-pulse rounded-lg bg-shell";
   return (
-    <ScreenShell
-      id="ERR-LOAD"
-      eyebrow="Loading state"
-      title="Live loading and retry state."
-      copy="Reusable loading surface for backend-connected screens while DTOs are being fetched."
-    >
-      <section className="product-section product-section--center">
-        <Card className="error-frame">
-          <RefreshCw className="spin" size={38} />
-          <h2>Loading latest NestyStay data.</h2>
-          <p>Fetching listings, bookings, verification status, and account permissions from the API.</p>
-          <div className="progress-bar"><span /></div>
-          <div className="loading-skeleton__cards">
-            <Card className="metric-card"><small>Properties</small><strong>Syncing</strong></Card>
-            <Card className="metric-card"><small>Bookings</small><strong>Syncing</strong></Card>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ERR-LOAD">
+      <div className="flex items-baseline gap-2.5">
+        <em className="font-display text-[22px] italic text-deep">Tek Time</em>
+        <span className="text-[13px] text-sand-500">Loading your trips…</span>
+      </div>
+      <div className={cx(shimmer, "h-[38px] w-[260px] rounded-[10px]")} />
+      <div className="grid max-w-[760px] grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5">
+        {[0, 1, 2].map((index) => (
+          <div className="flex flex-col gap-2.5 rounded-[18px] border border-sand-border bg-cream p-[18px]" key={index}>
+            <div className={cx(shimmer, "h-2.5 w-3/5")} />
+            <div className={cx(shimmer, "h-[30px] w-2/5")} />
           </div>
-        </Card>
-      </section>
-    </ScreenShell>
+        ))}
+      </div>
+      <div className="flex max-w-[760px] flex-col gap-3.5">
+        {[0, 1].map((index) => (
+          <div className="flex items-center gap-3.5 rounded-card border border-sand-border bg-cream p-[18px]" key={index}>
+            <div className={cx(shimmer, "h-[76px] w-24 shrink-0 rounded-field")} />
+            <div className="flex flex-1 flex-col gap-2">
+              <div className={cx(shimmer, "h-4 w-1/2")} />
+              <div className={cx(shimmer, "h-3 w-1/3")} />
+              <div className={cx(shimmer, "h-3 w-2/3")} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2173,102 +2184,273 @@ export function ProviderDashboardPage() {
   );
 }
 
+/* ADM-KPI (DS v2) — analytics. VISION data (chipped) until the KPI API lands. */
 export function AdminKpiPage() {
+  const [period, setPeriod] = useState("30d");
+  const chartCard = "flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]";
+  const chartHead = (title: string) => (
+    <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <div className="text-[13px] font-semibold">{title}</div>
+        <SampleDataChip />
+      </div>
+      <button className="inline-flex min-h-11 cursor-pointer items-center border-none bg-transparent p-0 text-xs font-bold text-deep-hover" type="button">
+        ↓ CSV
+      </button>
+    </div>
+  );
+  const track = "h-2 rounded-pill bg-shell";
+  const barRow = (label: string, value: string, width: string, color: string) => (
+    <div className="flex flex-col gap-1" key={label}>
+      <div className="flex justify-between text-[12.5px]">
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div className={track}>
+        <div className="h-full rounded-pill" style={{ width, background: color }} />
+      </div>
+    </div>
+  );
+
   return (
-    <ScreenShell
-      id="ADM-KPI"
-      eyebrow="Admin operations"
-      title="Platform KPI trend charts."
-      copy="Analytics dashboard with period selection, prior-period comparison, and per-chart CSV export."
-    >
-      <section className="product-section">
-        <div className="segmented-control spec-tabs">
-          {["7 days", "30 days", "90 days", "Year to date"].map((tab, index) => (
-            <button className={index === 1 ? "is-active" : ""} key={tab} type="button">{tab}</button>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ADM-KPI">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">Analytics</h1>
+        <div className="flex gap-1.5">
+          {["7d", "30d", "90d", "YTD"].map((option) => (
+            <button
+              className={cx(
+                "inline-flex min-h-11 cursor-pointer items-center rounded-pill px-[18px] font-sans text-[13px] font-semibold transition-colors",
+                period === option
+                  ? "border-none bg-deep font-bold text-on-dark-heading"
+                  : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink",
+              )}
+              key={option}
+              onClick={() => setPeriod(option)}
+              type="button"
+            >
+              {option}
+            </button>
           ))}
         </div>
-        <div className="chart-grid">
-          {[
-            ["New users by week", "bar"],
-            ["Booking volume by week", "line"],
-            ["Platform revenue by month", "bar"],
-            ["Verification success rate", "donut"],
-            ["Cancellation rate by property type", "bar"],
-            ["Average response time by host badge", "line"],
-          ].map(([title, type], index) => (
-            <Card className={`chart-card chart-card--${type}`} key={title}>
-              <div>
-                <h3>{title}</h3>
-                <Button variant="ghost"><Download size={16} /> Export CSV</Button>
-              </div>
-              <div className="fake-chart" style={{ "--chart-index": index } as React.CSSProperties} />
-              <InlineLabel><input type="checkbox" /> Compare to prior period</InlineLabel>
-            </Card>
-          ))}
+      </div>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4">
+        <div className={chartCard}>
+          {chartHead("New users / week")}
+          <div className="flex h-[120px] items-end gap-2">
+            {[42, 55, 48, 71, 64, 89].map((height, index) => (
+              <div className="flex-1 rounded-t-[6px] bg-deep-hover" key={index} style={{ height: `${height}%` }} />
+            ))}
+          </div>
+          <div className="text-xs text-success-text">▲ 18% vs previous period</div>
         </div>
-      </section>
-    </ScreenShell>
+
+        <div className={chartCard}>
+          {chartHead("Bookings / week")}
+          <svg aria-label="Bookings per week line chart" className="h-[120px] w-full" viewBox="0 0 300 120">
+            <polyline fill="none" points="0,90 50,74 100,80 150,52 200,60 250,34 300,28" stroke="#0E4A45" strokeLinejoin="round" strokeWidth="3" />
+            <polyline fill="rgba(14,74,69,0.08)" points="0,90 50,74 100,80 150,52 200,60 250,34 300,28 300,120 0,120" stroke="none" />
+          </svg>
+          <div className="text-xs text-success-text">▲ 11% vs previous period</div>
+        </div>
+
+        <div className={chartCard}>
+          {chartHead("Revenue / month")}
+          <div className="flex h-[120px] items-end gap-2">
+            {[38, 46, 52, 61, 58, 74].map((height, index) => (
+              <div className="flex-1 rounded-t-[6px] bg-[#D9A800]" key={index} style={{ height: `${height}%` }} />
+            ))}
+          </div>
+          <div className="text-xs text-success-text">▲ 9% vs previous period</div>
+        </div>
+
+        <div className={chartCard}>
+          {chartHead("Verification success")}
+          <div className="flex items-center gap-5">
+            <svg aria-label="Verification success donut 94%" className="size-[110px]" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" fill="none" r="46" stroke="#FBE7E6" strokeWidth="16" />
+              <circle cx="60" cy="60" fill="none" r="46" stroke="#1B7A4B" strokeDasharray="271.7 289.03" strokeLinecap="round" strokeWidth="16" transform="rotate(-90 60 60)" />
+              <text fill="#12241F" fontFamily="Fraunces,serif" fontSize="24" textAnchor="middle" x="60" y="66">
+                94%
+              </text>
+            </svg>
+            <div className="flex flex-col gap-1.5 text-[12.5px] text-gray-600">
+              <span>
+                <span className="mr-1.5 inline-block size-2.5 rounded-[3px] bg-[#1B7A4B]" />
+                Passed — 94%
+              </span>
+              <span>
+                <span className="mr-1.5 inline-block size-2.5 rounded-[3px] bg-[#D64F45]" />
+                Failed — 6%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={chartCard}>
+          {chartHead("Cancellations by type")}
+          {barRow("Traveler-initiated", "62%", "62%", "#D64F45")}
+          {barRow("Host-initiated", "24%", "24%", "#D9A800")}
+          {barRow("Verification failed", "14%", "14%", "#8A7F5E")}
+        </div>
+
+        <div className={chartCard}>
+          {chartHead("Host response time by badge")}
+          {barRow("◆ Wellness", "41 min", "82%", "#2FB893")}
+          {barRow("★ Trusted", "1.2 hrs", "66%", "#062B2B")}
+          {barRow("✓ Verified", "3.4 hrs", "38%", "#1B7A4B")}
+          {barRow("Free", "9.1 hrs", "14%", "#8A7F5E")}
+        </div>
+      </div>
+    </div>
   );
 }
 
+/* ADM-RPT (DS v2) — 6 report types + scheduled email reports (VISION, chipped). */
 export function AdminReportsPage() {
   const reports = [
-    "User growth report",
-    "Booking volume report",
-    "Revenue and commission report",
-    "Verification audit report",
-    "Cancellation and refund report",
-    "Compliance report for Jamaican tax authorities",
-  ];
+    ["User growth", "Sign-ups, activations, churn by role"],
+    ["Bookings", "Volume, value, parish breakdown"],
+    ["Revenue & commission", "GMV, platform take, payouts"],
+    ["Verification audit", "eKYC pass/fail trail, per property"],
+    ["Cancellations & refunds", "Reasons, refundable splits, fees kept"],
+    ["Jamaica tax compliance", "GCT-ready ledger, platform fees separated"],
+  ] as const;
+  const scheduled = [
+    ["Revenue & commission", "Weekly · Mondays 07:00 · ops@nestystay.net", "Active"],
+    ["Jamaica tax compliance", "Monthly · 1st · finance@nestystay.net", "Active"],
+    ["Verification audit", "Weekly · paused", "Paused"],
+  ] as const;
 
   return (
-    <ScreenShell
-      id="ADM-RPT"
-      eyebrow="Admin operations"
-      title="Reports and compliance exports."
-      copy="Admin report generation with PDF/CSV outputs and scheduled email delivery controls."
-    >
-      <section className="product-section">
-        <DataTable
-          columns={["Report", "Date range", "Generate", "Downloads", "Schedule"]}
-          rows={reports.map((report, index) => [
-            report,
-            <Input type="date" defaultValue="2026-07-21" />,
-            <Button variant="outline">Generate report</Button>,
-            <div className="button-row"><Button variant="ghost">PDF</Button><Button variant="ghost">CSV</Button></div>,
-            <InlineLabel><input defaultChecked={index < 2} type="checkbox" /> Weekly/monthly email</InlineLabel>,
-          ])}
-        />
-      </section>
-    </ScreenShell>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ADM-RPT">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Reports &amp; <em className="italic text-deep-hover">compliance</em>
+      </h1>
+
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+        {reports.map(([title, copy]) => (
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={title}>
+            <div className="font-display text-lg font-medium">{title}</div>
+            <div className="text-[12.5px] text-gray-600">{copy}</div>
+            <div className="mt-auto flex gap-2">
+              <button className={pmDeepPill} type="button">
+                Generate
+              </button>
+              <button className={pmOutlinePill} type="button">
+                PDF
+              </button>
+              <button className={pmOutlinePill} type="button">
+                CSV
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="text-[13px] font-semibold">Scheduled reports</div>
+          <SampleDataChip />
+        </div>
+        {scheduled.map(([title, cadence, status]) => (
+          <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2" key={title}>
+            <div>
+              <div className="text-[13.5px] font-semibold">{title}</div>
+              <div className="text-xs text-sand-500">{cadence}</div>
+            </div>
+            <StatusChip value={status} />
+          </div>
+        ))}
+        <button className="inline-flex min-h-11 cursor-pointer items-center self-start border-none bg-transparent p-0 font-sans text-[12.5px] font-bold text-deep-hover" type="button">
+          + Schedule a report
+        </button>
+      </div>
+    </div>
   );
 }
 
+/* ADM-RESET (DS v2) — rule 4: "No Override" + "Zero Trace"; no control may
+   suggest linking old→new IDs. Figures are VISION data (chipped). Schedule
+   statuses use the contractual StatusChip tones. */
 export function OfficerIdResetPage() {
   return (
-    <ScreenShell
-      id="ADM-OFC-RESET"
-      eyebrow="Admin operations"
-      title="Annual officer ID reset."
-      copy="Officer IDs reset every January 1 with strict privacy controls."
-    >
-      <section className="product-section">
-        <MetricStrip
-          items={[
-            { icon: TimerReset, label: "Next reset", value: "Jan 1" },
-            { icon: ShieldCheck, label: "Officers", value: "1,240" },
-            { icon: Lock, label: "No Override", value: "Active" },
-            { icon: KeyRound, label: "Zero Trace", value: "Active" },
-          ]}
-        />
-        <div className="warning-banner">
-          <ShieldAlert size={18} /> No admin action can link old officer IDs to new IDs. Zero Trace is enforced.
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ADM-RESET">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Annual officer ID <em className="italic text-deep-hover">reset</em>
+      </h1>
+
+      <div className="flex flex-col gap-3.5 rounded-card bg-deep p-[26px]">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <span className="font-display text-2xl font-medium text-on-dark-heading">Next reset: January 1, 2027</span>
+          <span className="flex items-center gap-2">
+            <span className="font-display text-[30px] text-yellow">in 155 days</span>
+            <SampleDataChip />
+          </span>
         </div>
-      </section>
-    </ScreenShell>
+        <div className="h-2 rounded-pill bg-on-dark-heading/10">
+          <div className="h-full w-[58%] rounded-pill bg-yellow" />
+        </div>
+        <div className="text-[13px] text-on-dark-muted">
+          1,240 officers enrolled · every NST-OFC-XXXX ID regenerates at 00:00 JST
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-nav bg-coral-tint text-coral-text">
+              <ShieldAlert size={20} />
+            </span>
+            <div className="font-display text-[19px] font-medium">No Override</div>
+          </div>
+          <div className="text-[13px] text-gray-600">
+            The reset cannot be postponed, skipped, or applied selectively — for any officer, by any admin, ever.
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-nav bg-info-tint text-info-text">
+              <KeyRound size={20} />
+            </span>
+            <div className="font-display text-[19px] font-medium">Zero Trace</div>
+          </div>
+          <div className="text-[13px] text-gray-600">
+            No mapping between old and new IDs is stored or derivable. Historical records keep the ID that was current at
+            the time.
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="text-[13px] font-semibold">Reset schedule</div>
+          <SampleDataChip />
+        </div>
+        {(
+          [
+            ["Jan 1, 2027", "1,240 IDs regenerate", "Scheduled"],
+            ["Jan 1, 2026", "1,082 IDs regenerated", "Completed"],
+            ["Jan 1, 2025", "914 IDs regenerated", "Completed"],
+          ] as const
+        ).map(([date, detail, status]) => (
+          <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2" key={date}>
+            <div>
+              <div className="text-[13.5px] font-semibold">{date}</div>
+              <div className="text-xs text-sand-500">{detail}</div>
+            </div>
+            <StatusChip value={status} />
+          </div>
+        ))}
+        <div className="text-xs text-sand-500">By design there is no per-officer view here — the schedule is the only control.</div>
+      </div>
+    </div>
   );
 }
 
+/* ERR-* (DS v2) — centered full-height states: emblem roundel, line icon,
+   Fraunces title, muted copy. Footer stays with the app shell. */
 function ErrorTemplate({
   id,
   icon: Icon,
@@ -2277,159 +2459,219 @@ function ErrorTemplate({
   children,
 }: {
   id: string;
-  icon: LucideIcon;
-  title: string;
+  icon?: LucideIcon;
+  title: ReactNode;
   copy: string;
   children?: ReactNode;
 }) {
   return (
-    <ScreenShell id={id} eyebrow="Error state" title={title} copy={copy}>
-      <section className="product-section product-section--center">
-        <Card className="error-frame">
-          <Icon size={38} />
-          <h2>{title}</h2>
-          <p>{copy}</p>
-          {children}
-        </Card>
-      </section>
-    </ScreenShell>
+    <div className="flex min-h-[72vh] flex-col items-center justify-center gap-4 px-6 py-[72px] text-center font-sans text-ink" id={id}>
+      <EmblemRoundel size={48} />
+      {Icon && <Icon className="text-sand-500" size={48} strokeWidth={1.6} />}
+      <h1 className="m-0 font-display text-[clamp(32px,4vw,44px)] font-normal">{title}</h1>
+      <div className="max-w-[420px] text-[14.5px] text-gray-600">{copy}</div>
+      {children}
+    </div>
   );
 }
+
+const errDeepPill =
+  "inline-flex min-h-12 items-center gap-2.5 rounded-pill bg-deep px-[26px] font-sans text-[14.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover";
+const errOutlinePill =
+  "inline-flex min-h-12 cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-[26px] font-sans text-[14.5px] font-semibold text-ink transition-colors hover:border-deep";
 
 export function SignInRequiredPage() {
   return (
     <ErrorTemplate
-      copy="Log in to continue to this protected NestyStay area."
+      copy="This part of NestyStay needs an account. Log in, or keep browsing as a guest."
       icon={Lock}
       id="ERR-401"
       title="Sign in required."
     >
-      <div className="button-row">
-        <AppLink className={buttonClassName("dark")} href="/login">Log in</AppLink>
-        <AppLink className={buttonClassName("outline")} href="/explore">Browse as guest</AppLink>
+      <div className="mt-1.5 flex flex-wrap justify-center gap-3">
+        <AppLink className={errDeepPill} href="/login">
+          Log in →
+        </AppLink>
+        <AppLink className={errOutlinePill} href="/explore">
+          Browse as guest
+        </AppLink>
       </div>
-      <AppLink className="inline-action" href="/register">Create an account</AppLink>
+      <AppLink className="inline-flex min-h-11 items-center text-[13.5px] font-semibold text-deep-hover" href="/register">
+        Create account
+      </AppLink>
     </ErrorTemplate>
   );
 }
 
+/* ERR-403 — security rule: never leak which permission was missing. */
 export function AccessRestrictedPage() {
   return (
     <ErrorTemplate
-      copy="Your account does not have permission to view this resource."
+      copy="Your account can't open this page. If you think this is a mistake, reach out to support."
       icon={ShieldAlert}
       id="ERR-403"
       title="Access is restricted."
     >
-      <div className="button-row">
-        <AppLink className={buttonClassName("dark")} href="/">Return safely</AppLink>
-        <AppLink className={buttonClassName("outline")} href="/profile">Support</AppLink>
+      <div className="mt-1.5 flex flex-wrap justify-center gap-3">
+        <AppLink className={errDeepPill} href="/">
+          Return safely
+        </AppLink>
       </div>
+      <a className="inline-flex min-h-11 items-center text-[13.5px] font-semibold text-deep-hover" href="https://wa.me/17542482435">
+        Contact support
+      </a>
     </ErrorTemplate>
   );
 }
 
+/* ERR-404 — approved patois lexicon, always paired with English. */
 export function NotFoundPage() {
   return (
     <ErrorTemplate
       copy="This page has drifted away."
-      icon={Map}
       id="ERR-404"
-      title="Dis page gone a sea."
+      title={<em className="font-display italic text-deep" style={{ fontSize: "clamp(38px,6vw,64px)", lineHeight: 1.05 }}>Dis page gone a sea</em>}
     >
-      <div className="search-panel spec-filter-bar">
-        <Field label="Search destination">
-          <Input placeholder="Try Montego Bay, Kingston, Portland" />
-        </Field>
-        <AppLink className={buttonClassName("dark")} href="/explore">
+      <div className="mt-1.5 flex flex-wrap justify-center gap-3">
+        <AppLink className={errDeepPill} href="/explore">
           Return to trusted stays
         </AppLink>
       </div>
+      <form
+        className="mt-2 flex w-full max-w-[380px] items-center gap-2.5 rounded-pill border-[1.5px] border-sand-input bg-cream px-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          navigate("/explore");
+        }}
+      >
+        <Search className="shrink-0 text-sand-500" size={16} />
+        <input
+          className="min-h-[50px] flex-1 border-none bg-transparent font-sans text-[14.5px] text-ink outline-none"
+          placeholder="Search stays, parishes…"
+          type="text"
+        />
+      </form>
     </ErrorTemplate>
   );
 }
 
+/* ERR-500 — tappable WhatsApp support is required on 5xx. */
 export function ServerErrorPage() {
   return (
     <ErrorTemplate
-      copy="Something went wrong on our side. The team has been notified."
+      copy="We're on it. Try again in a moment — your booking and payment data are safe."
       icon={AlertTriangle}
       id="ERR-500"
-      title="Server error."
+      title="Something went wrong on our side."
     >
-      <a className={buttonClassName("dark")} href="https://wa.me/17542482435" rel="noreferrer" target="_blank">
+      <div className="mt-1.5 flex flex-wrap justify-center gap-3">
+        <button className={errOutlinePill} onClick={() => window.location.reload()} type="button">
+          ↻ Try again
+        </button>
+        <AppLink className={errDeepPill} href="/explore">
+          Back to Explore
+        </AppLink>
+      </div>
+      <a
+        className="mt-1.5 inline-flex min-h-12 items-center gap-2.5 rounded-pill bg-success-tint px-[22px] text-sm font-bold text-success-text"
+        href="https://wa.me/17542482435"
+      >
         Urgent? Message us on WhatsApp: 754-248-2435
       </a>
     </ErrorTemplate>
   );
 }
 
+/* ERR-NOFAV / ERR-NORES — dashed empty cards; navigation stays visible via the app shell. */
 export function NoFavoritesPage() {
   return (
-    <ScreenShell
-      id="ERR-NOFAV"
-      eyebrow="Empty state"
-      title="No favorites saved."
-      copy="Wishlist tab empty state with navigation still visible."
-    >
-      <section className="product-section product-section--center">
-        <EmptyState
-          action={<AppLink className={buttonClassName("dark")} href="/explore">Explore NestyStay</AppLink>}
-          copy="Save a stay to return to it here."
-          title="No favorites saved."
-        />
-      </section>
-    </ScreenShell>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ERR-NOFAV">
+      <h1 className="m-0 font-display text-4xl font-normal">Collections</h1>
+      <div className="flex max-w-[640px] flex-col items-center gap-2.5 rounded-card border border-dashed border-sand-input bg-cream px-6 py-14 text-center">
+        <Heart className="text-sand-500" size={44} strokeWidth={1.5} />
+        <div className="font-display text-[22px] font-medium">No favorites saved.</div>
+        <div className="text-[13.5px] text-gray-600">Save a stay to return to it here.</div>
+        <AppLink className={cx(errDeepPill, "mt-1.5")} href="/explore">
+          Explore stays
+        </AppLink>
+      </div>
+    </div>
   );
 }
 
 export function NoReservationsPage() {
+  const [filterActive, setFilterActive] = useState(true);
+
   return (
-    <ScreenShell
-      id="ERR-NORES"
-      eyebrow="Empty state"
-      title="No reservations found."
-      copy="Reservations empty state for no bookings or filters with no matches."
-    >
-      <section className="product-section product-section--center">
-        <EmptyState
-          action={
-            <div className="button-row">
-              <AppLink className={buttonClassName("dark")} href="/explore">Explore NestyStay</AppLink>
-              <Button variant="outline">Clear filters</Button>
-            </div>
-          }
-          copy="Explore verified stays or adjust the selected dates."
-          title="No reservations found."
-        />
-      </section>
-    </ScreenShell>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="ERR-NORES">
+      <h1 className="m-0 font-display text-4xl font-normal">
+        Your <em className="italic text-deep-hover">trips</em>
+      </h1>
+      {filterActive && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-pill border-none bg-deep px-[18px] font-sans text-[13px] font-semibold text-on-dark-heading"
+            onClick={() => setFilterActive(false)}
+            type="button"
+          >
+            Cancelled ✕
+          </button>
+          <span className="text-[12.5px] text-sand-500">← active filter</span>
+        </div>
+      )}
+      <div className="flex max-w-[640px] flex-col items-center gap-2.5 rounded-card border border-dashed border-sand-input bg-cream px-6 py-14 text-center">
+        <CalendarDays className="text-sand-500" size={44} strokeWidth={1.5} />
+        <div className="font-display text-[22px] font-medium">No reservations found.</div>
+        <div className="text-[13.5px] text-gray-600">
+          {filterActive ? "Nothing matches this filter." : "Explore verified stays to plan your first trip."}
+        </div>
+        <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
+          {filterActive && (
+            <button className={errOutlinePill} onClick={() => setFilterActive(false)} type="button">
+              Clear filters
+            </button>
+          )}
+          <AppLink className={errDeepPill} href="/explore">
+            Explore stays
+          </AppLink>
+        </div>
+      </div>
+    </div>
   );
 }
 
+/* MSG-DOC (DS v2) — file bubble; secure link expires 24 h after download. */
 export function DocumentMessagePage() {
   return (
-    <ScreenShell
-      id="MSG-DOC"
-      eyebrow="Messaging system"
-      title="Document sharing in messaging."
-      copy="A document attachment displayed inside a chat thread with secure download status."
-    >
-      <section className="product-section message-thread">
-        <div className="message-bubble">
-          <strong>Arrival notes are ready.</strong>
-          <p>Please download this before check-in.</p>
+    <div className="flex flex-col gap-5 font-sans text-ink" id="MSG-DOC">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Secure document <em className="italic text-deep-hover">share</em>
+      </h1>
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="text-[13px] font-semibold">File bubble — in thread</div>
+          <SampleDataChip />
         </div>
-        <div className="message-bubble message-bubble--document">
-          <FileText size={28} />
-          <div>
-            <strong>Arrival_Guide_Azure_Cove.pdf</strong>
-            <span>1.4 MB - Secure link expires 24 hours after download</span>
-            <small>Downloaded and saved</small>
+        <div className="flex max-w-[420px] flex-col gap-2.5 self-start rounded-[16px_16px_16px_4px] bg-shell px-4 py-3.5">
+          <div className="text-[13px]">Here&apos;s the rental agreement for your stay:</div>
+          <div className="flex items-center gap-3 rounded-field border border-sand-border bg-cream px-3.5 py-3">
+            <span className="inline-flex size-[42px] shrink-0 items-center justify-center rounded-[10px] bg-[#D64F45] text-[10px] font-extrabold text-white">
+              PDF
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13.5px] font-bold">Rental-Agreement-Dec.pdf</div>
+              <div className="text-[11.5px] text-sand-500">248 KB</div>
+            </div>
+            <button className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover" type="button">
+              ↓ Download
+            </button>
           </div>
-          <Button variant="outline"><Download size={17} /> Download</Button>
+          <div className="text-[11px] text-sand-500">Secure link · expires 24 hours after download</div>
         </div>
-      </section>
-    </ScreenShell>
+        <div className="flex items-center gap-2 text-xs text-sand-500">
+          After download: <StatusChip value="Downloaded — link expires in 24 hrs" className="normal-case" />
+        </div>
+      </div>
+    </div>
   );
 }

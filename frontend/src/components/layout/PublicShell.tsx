@@ -38,8 +38,8 @@ export function EmblemRoundel({
  * TRUSTED = Deep bg + Yellow text · VERIFIED = Deep Hover bg + white ·
  * WELLNESS = mint tint · FREE = cream/gray outline.
  */
-export function TierBadge({ level, className }: { level: string; className?: string }) {
-  const tier = level.toLowerCase();
+export function TierBadge({ level, className }: { level?: string | null; className?: string }) {
+  const tier = (level ?? "").toLowerCase();
   const base =
     "inline-flex items-center rounded-pill px-3 py-[5px] font-sans text-[11px] font-bold uppercase tracking-[0.06em]";
   if (tier.includes("trust")) return <span className={cx(base, "bg-deep text-yellow", className)}>★ Trusted</span>;
