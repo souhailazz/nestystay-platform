@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+</style>
+</helmet>
+<div data-screen-label="INDEX Screen hub" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55">
+  <header style="background:#062B2B;padding:56px 48px 48px">
+    <div style="max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem" style="width:118px;margin:-6px 0 0 -37px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></div>
+      <h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(36px,4.6vw,58px);line-height:1;color:#FBF7EC;margin:0">Platform screen <em style="font-style:italic;color:#FFD21F">index</em></h1>
+      <p style="color:#9FB3AC;font-size:14px;margin:0;max-width:640px">Every screen is a standalone page named by its client ID, built on <a href="NestyStay Design System v2.dc.html" style="color:#C9DAD5;text-decoration:underline">Design System v2</a>. Data source, API dependency and navigation targets are annotated in each file. Spec: <a href="PLATFORM_SPEC.md" style="color:#C9DAD5;text-decoration:underline">PLATFORM_SPEC.md</a>.</p>
+    </div>
+  </header>
+  <main style="max-width:1160px;margin:0 auto;padding:40px 48px 72px;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;align-items:start">
+    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="12">
+      <section style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:20px;margin:0">{{ sec.title }}</h2><span style="font-size:11px;letter-spacing:0.1em;color:#8A7F5E;font-weight:700">{{ sec.num }}</span></div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ sec.screens }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8">
+              <span style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8A7F5E;min-width:86px">{{ s.id }}</span>
+              <sc-if value="{{ s.href }}" hint-placeholder-val="{{ true }}">
+                <a href="{{ s.href }}" style="font-size:13.5px;font-weight:600;flex:1;min-height:32px;display:inline-flex;align-items:center">{{ s.name }}</a>
+                <span style="background:#E3F2E9;color:#135A38;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.06em">BUILT</span>
+              </sc-if>
+              <sc-if value="{{ s.queued }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:13.5px;color:#5A6B63;flex:1">{{ s.name }}</span>
+                <span style="background:#FBF1CE;color:#7A5800;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.06em">QUEUED</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </main>
+  <footer style="background:#052A22;padding:22px 48px;display:flex;justify-content:center"><span style="font-size:13px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const S = (id, name, href) => href ? { id, name, href } : { id, name, queued: true };
+    return { sections: [
+      { num: '01', title: 'Design system', screens: [
+        S('DS-V2', 'Design System v2', 'NestyStay Design System v2.dc.html'),
+        S('SPEC', 'Platform spec & inventory', 'PLATFORM_SPEC.md'),
+      ]},
+      { num: '02', title: 'Auth flows', screens: [
+        S('AUTH-01', 'Login / Register / 2FA / Recover', 'AUTH-01.dc.html'),
+        S('AUTH-POST', '"Yuh Gud?" post-login toast', 'AUTH-POST.dc.html'),
+        S('AUTH-LOGOUT', '"Likkle More" sign-out', 'AUTH-LOGOUT.dc.html'),
+      ]},
+      { num: '03', title: 'Public experience', screens: [
+        S('PUB-01', 'Landing (source of truth)', 'PUB-01.dc.html'),
+        S('PUB-02', 'Explore & search', 'PUB-02.dc.html'),
+        S('PUB-04', 'Property detail + 119', 'PUB-04.dc.html'),
+        S('PUB-MAP', 'Map view', 'PUB-MAP.html'),
+        S('PUB-SOON', 'Coming soon', 'PUB-SOON.dc.html'),
+      ]},
+      { num: '04', title: 'Booking flow', screens: [
+        S('BOOK-01', 'Dates & guests', 'BOOK-01.dc.html'), S('BOOK-02', 'Quote (degressive fees)', 'BOOK-02.dc.html'),
+        S('BOOK-03', 'eKYC document choice', 'BOOK-03.dc.html'), S('BOOK-05', 'Payment (Stripe Elements)', 'BOOK-05.dc.html'),
+        S('BOOK-07', 'Pending + Nuh Fret + 60-min hold', 'BOOK-07.dc.html'), S('BOOK-CONF', 'Confirmation & receipt', 'BOOK-CONF.dc.html'),
+      ]},
+      { num: '05', title: 'Traveler portal', screens: [
+        S('TRAV-01', 'Dashboard (triple statuses)', 'TRAV-01.dc.html'), S('TRAV-COL', 'Collections', 'TRAV-COL.dc.html'),
+        S('TRAV-INV', 'Invoices', 'TRAV-INV.dc.html'), S('TRAV-PEND', 'Pending reviews', 'TRAV-PEND.dc.html'),
+        S('TRAV-NOTIF', 'Notifications center', 'TRAV-NOTIF.dc.html'), S('TRAV-SUGG', 'Trip suggestions', 'TRAV-SUGG.dc.html'),
+        S('TRAV-12', 'Settings + patois toggle', 'TRAV-12.dc.html'),
+      ]},
+      { num: '06', title: 'Host portal — Manage Your Yard', screens: [
+        S('HOST-01', 'Dashboard', 'HOST-01.dc.html'), S('HOST-05', 'Property wizard (rule 2)', 'HOST-05.dc.html'),
+        S('HOST-EDIT', 'Property edit', 'HOST-EDIT.dc.html'), S('HOST-RPT', 'Reports & tax', 'HOST-RPT.dc.html'),
+        S('HOST-WELL', 'Wellness visits', 'HOST-WELL.dc.html'), S('HOST-BADGE', 'Badge upsell', 'HOST-BADGE.dc.html'),
+      ]},
+      { num: '07', title: 'Property Manager portal', screens: [
+        S('PM-GATE', 'Gate guard threads', 'PM-GATE.dc.html'), S('PM-UTIL', 'Utility bill-back', 'PM-UTIL.dc.html'),
+        S('PM-VERIFY', 'Tenant/owner verification', 'PM-VERIFY.dc.html'), S('PM-RPT', 'Portfolio reports', 'PM-RPT.dc.html'),
+        S('PM-INS', 'InsuraGuest plans', 'PM-INS.dc.html'),
+      ]},
+      { num: '08', title: 'Messaging', screens: [
+        S('MSG-01', 'Inbox & threads', 'MSG-01.dc.html'), S('MSG-DOC', 'Secure document share', 'MSG-DOC.dc.html'),
+      ]},
+      { num: '09', title: 'Officer wellness', screens: [
+        S('OFC-01', 'Officer onboarding', 'OFC-01.dc.html'), S('OFC-02', 'Visit report', 'OFC-02.dc.html'),
+        S('OFC-DIR', 'Police directory (hosts)', 'OFC-DIR.dc.html'), S('OFC-BOOK', 'Visit booking', 'OFC-BOOK.dc.html'),
+      ]},
+      { num: '10', title: 'Service directories', screens: [
+        S('DIR-02', 'Trades (EITA)', 'DIR-02.dc.html'), S('DIR-BIZ', 'Local business', 'DIR-BIZ.dc.html'), S('DIR-PROV', 'Provider dashboard', 'DIR-PROV.dc.html'),
+      ]},
+      { num: '11', title: 'Admin operations', screens: [
+        S('ADM-01', 'Ops dashboard', 'ADM-01.dc.html'), S('ADM-KPI', 'Analytics', 'ADM-KPI.dc.html'),
+        S('ADM-RPT', 'Reports & compliance', 'ADM-RPT.dc.html'), S('ADM-RESET', 'Officer ID reset', 'ADM-RESET.dc.html'),
+      ]},
+      { num: '12', title: 'Errors & empty states', screens: [
+        S('ERR-401', 'Sign in required', 'ERR-401.dc.html'),
+        S('ERR-403', 'Access restricted', 'ERR-403.dc.html'),
+        S('ERR-404', 'Dis page gone a sea', 'ERR-404.dc.html'),
+        S('ERR-500', 'Server error + WhatsApp', 'ERR-500.dc.html'),
+        S('ERR-NOFAV', 'No favorites', 'ERR-NOFAV.dc.html'),
+        S('ERR-NORES', 'No reservations', 'ERR-NORES.dc.html'),
+        S('ERR-LOAD', 'Tek Time skeletons', 'ERR-LOAD.dc.html'),
+      ]},
+    ]};
+  }
+}
+</script>
+</body>
+</html>

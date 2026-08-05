@@ -1,19 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Menu, UserRound, X } from "lucide-react";
+import { Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
-import Hero3D from "./components/landing/Hero3D";
-import ScrollStory from "./components/landing/ScrollStory";
-import FeatureCards from "./components/landing/FeatureCards";
-import PropertyShowcase from "./components/landing/PropertyShowcase";
-import HowItWorks from "./components/landing/HowItWorks";
-import TrustSection from "./components/landing/TrustSection";
-import FinalCTA from "./components/landing/FinalCTA";
+import { EmblemRoundel } from "./components/layout/PublicShell";
+import { PublicLanding } from "./features/public/LandingPage";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
+import { cx } from "./lib/ui";
 import { useAuth, type AuthController } from "./hooks/useAuth";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
-import { PatoisProvider, PatoisToggle } from "./lib/patois";
+import { PatoisProvider } from "./lib/patois";
 import {
   AdminPage,
   AuthPage,
@@ -77,6 +73,12 @@ import {
 } from "./pages/SpecScreens";
 
 const navItems = [
+  ["Explore", "/explore"],
+  ["Host", "/host-dashboard"],
+  ["Wellness", "/host/wellness"],
+] as const;
+
+const mobileNavItems = [
   ["Explore", "/explore"],
   ["Guest", "/guest-dashboard"],
   ["Host", "/host-dashboard"],
@@ -267,27 +269,12 @@ function useRoute() {
   return route;
 }
 
-function LogoMark({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="560 150 930 700"
-      role="img"
-      aria-label="Nesty Stay"
-    >
-      <image
-        href="/assets/nesty/Nesty-Stay.png"
-        width="2048"
-        height="1280"
-        preserveAspectRatio="xMidYMid meet"
-      />
-    </svg>
-  );
-}
-
-function Navbar({ auth }: { auth: AuthController; route: Route }) {
+/** DS v2 floating deep pill navbar — sticky top 14px, compacts slightly on scroll. */
+function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isHome = route.name === "home";
+  const path = window.location.pathname;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -297,88 +284,109 @@ function Navbar({ auth }: { auth: AuthController; route: Route }) {
   }, []);
 
   return (
-    <header
-      className={`site-nav ${scrolled ? "site-nav--scrolled" : ""}`}
-      aria-label="Main navigation"
-    >
-      <AppLink className="brand-lockup" href="/" aria-label="Nesty Stay home">
-        <span className="brand-mark">
-          <LogoMark />
-        </span>
-        <span>NESTY STAY</span>
-      </AppLink>
-
-      <nav className="desktop-nav">
-        {navItems.map(([label, href]) => (
-          <AppLink key={href} className={window.location.pathname === href ? "is-active" : ""} href={href}>
-            {label}
-          </AppLink>
-        ))}
-      </nav>
-
-      <AppLink className="nav-cta" href={auth.session ? "/profile" : "/login"}>
-        {auth.session ? (
-          <>
-            <UserRound size={16} /> {auth.session.displayName.split(" ")[0]}
-          </>
-        ) : (
-          <>
-            Explore Stays <ArrowUpRight size={16} />
-          </>
+    <div className="sticky top-3.5 z-50 px-[clamp(12px,3vw,28px)]">
+      <header
+        aria-label="Main navigation"
+        className={cx(
+          "mx-auto flex max-w-[1140px] flex-wrap items-center gap-2 rounded-pill bg-deep font-sans transition-[padding,box-shadow] duration-300",
+          scrolled ? "px-1.5 py-[3px] pl-1 shadow-[0_18px_44px_rgba(4,31,31,0.5)]" : "px-2.5 py-[7px] pl-2 shadow-navbar",
         )}
-      </AppLink>
-      <div className="nav-patois-toggle">
-        <PatoisToggle />
-      </div>
-
-      <button
-        type="button"
-        className="menu-button"
-        aria-label={menuOpen ? "Close menu" : "Open menu"}
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((open) => !open)}
       >
-        {menuOpen ? <X /> : <Menu />}
-      </button>
+        <AppLink aria-label="Nesty Stay home" className="flex min-h-11 items-center gap-2.5 pl-1" href="/">
+          <EmblemRoundel size={44} />
+          <span className="text-[15px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
+        </AppLink>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            className="mobile-nav"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-          >
+        <div className="ml-auto flex flex-wrap items-center gap-0.5">
+          <nav className="hidden items-center gap-0.5 md:flex">
             {navItems.map(([label, href]) => (
-              <AppLink key={href} href={href} onClick={() => setMenuOpen(false)}>
+              <AppLink
+                className={cx(
+                  "ns-navlink flex min-h-11 items-center rounded-pill px-3.5 text-[13.5px] transition-colors",
+                  path === href ? "font-bold text-yellow" : "font-semibold text-on-dark-nav hover:text-white",
+                )}
+                href={href}
+                key={href}
+              >
                 {label}
               </AppLink>
             ))}
-            <AppLink href="/admin" onClick={() => setMenuOpen(false)}>
-              Admin <ArrowUpRight size={16} />
+          </nav>
+
+          {auth.session ? (
+            <AppLink
+              className="ml-1.5 flex min-h-11 items-center gap-2 rounded-pill bg-yellow px-5 text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+              href="/profile"
+            >
+              <UserRound size={16} /> {auth.session.displayName.split(" ")[0]}
             </AppLink>
-            <AppLink href={auth.session ? "/profile" : "/login"} onClick={() => setMenuOpen(false)}>
-              {auth.session ? "Profile" : "Login"} <ArrowUpRight size={16} />
+          ) : (
+            <AppLink
+              className="group ml-1.5 flex min-h-11 items-center gap-2 rounded-pill bg-yellow px-5 text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+              href={isHome ? "/explore" : "/login"}
+            >
+              {isHome ? (
+                <>
+                  Explore stays{" "}
+                  <span aria-hidden="true" className="inline-block transition-transform duration-200 group-hover:translate-x-1">
+                    →
+                  </span>
+                </>
+              ) : (
+                "Sign in"
+              )}
             </AppLink>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-    </header>
+          )}
+
+          <button
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            className="grid size-11 cursor-pointer place-items-center rounded-pill text-on-dark-nav transition-colors hover:text-white md:hidden"
+            onClick={() => setMenuOpen((open) => !open)}
+            type="button"
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.nav
+              animate={{ opacity: 1, y: 0 }}
+              className="flex w-full flex-col gap-0.5 border-t border-white/10 px-2 py-2 md:hidden"
+              exit={{ opacity: 0, y: -12 }}
+              initial={{ opacity: 0, y: -12 }}
+            >
+              {mobileNavItems.map(([label, href]) => (
+                <AppLink
+                  className={cx(
+                    "flex min-h-11 items-center rounded-nav px-3.5 text-[13.5px] font-semibold",
+                    path === href ? "bg-yellow/10 text-yellow" : "text-on-dark-nav hover:bg-on-dark-heading/5",
+                  )}
+                  href={href}
+                  key={href}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {label}
+                </AppLink>
+              ))}
+              <AppLink
+                className="flex min-h-11 items-center rounded-nav px-3.5 text-[13.5px] font-semibold text-on-dark-nav hover:bg-on-dark-heading/5"
+                href={auth.session ? "/profile" : "/login"}
+                onClick={() => setMenuOpen(false)}
+              >
+                {auth.session ? "Profile" : "Sign in"}
+              </AppLink>
+            </motion.nav>
+          )}
+        </AnimatePresence>
+      </header>
+    </div>
   );
 }
 
 function LandingPage() {
-  return (
-    <>
-      <Hero3D />
-      <ScrollStory />
-      <FeatureCards />
-      <PropertyShowcase />
-      <HowItWorks />
-      <TrustSection />
-      <FinalCTA />
-    </>
-  );
+  return <PublicLanding />;
 }
 
 function isWorkspaceRoute(route: Route) {
@@ -427,14 +435,13 @@ function hasPublicNav(route: Route) {
   return [
     "home",
     "explore",
-    "map-search",
+    "booking-state",
     "public-content",
     "auth-spec",
     "experiences",
     "journal",
     "host-profile",
     "property",
-    "auth-post",
     "sign-in-required",
     "access-restricted",
     "server-error",

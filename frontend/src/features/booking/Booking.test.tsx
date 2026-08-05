@@ -119,7 +119,7 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
       const termsCheckbox = container.querySelector('input[type="checkbox"]');
       expect(termsCheckbox).toBeTruthy();
       fireEvent.click(termsCheckbox as HTMLInputElement);
-      fireEvent.click(within(container).getByRole('button', { name: /Proceed to Secure Checkout/i }));
+      fireEvent.click(within(container).getByRole('button', { name: /Continue to (identity|payment)/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Please wait 3 minutes before trying again/i)).toBeDefined();

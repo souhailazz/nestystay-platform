@@ -1,16 +1,23 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, DollarSign, Calendar, Users, Eye, Download, Filter, BarChart3, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AppLink } from "../../components/AppLink";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { StatusChip } from "../../components/ui/StatusChip";
+import { TierBadge } from "../../components/layout/PublicShell";
 import { api, formatMoney, type Booking, type PropertyListing } from "../../lib/api";
-import { PatoisPhrase } from "../../lib/patois";
-import type { HostAnalyticsData } from "./types";
+import { getStayImage } from "../../lib/stayImages";
 
 interface HostAnalyticsProps {
   token: string;
 }
 
+const outlinePill =
+  "inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep";
+const deepPill =
+  "inline-flex min-h-[46px] items-center gap-2 rounded-pill bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover";
+
+/* HOST-01 (DS v2) — "Manage Your Yard" (approved lexicon). Metrics computed
+   from the live bookings + properties APIs; logic unchanged. */
 export function HostAnalytics({ token }: HostAnalyticsProps) {
-  const [dateRange, setDateRange] = useState("30d");
-  const [selectedProperty, setSelectedProperty] = useState("all");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +26,7 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
     let active = true;
     async function load() {
       try {
-        const [bList, pList] = await Promise.all([
-          api.getBookings(token),
-          api.getProperties()
-        ]);
+        const [bList, pList] = await Promise.all([api.getBookings(token), api.getProperties()]);
         if (active) {
           setBookings(bList);
           setProperties(pList);
@@ -34,114 +38,102 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
       }
     }
     load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [token]);
 
-  const filteredBookings = bookings.filter((b) => selectedProperty === "all" || b.propertyId === selectedProperty);
+  if (loading) {
+    return (
+      <div data-testid="host-01-loading">
+        <LoadingState label="Loading your host dashboard" />
+      </div>
+    );
+  }
 
-  const totalRevenue = filteredBookings.reduce((sum, b) => sum + (b.paymentStatus === "CAPTURED" ? b.totalAmount : 0), 0);
-  const totalNights = filteredBookings.reduce((sum, b) => sum + b.nights, 0);
-  const adr = totalNights > 0 ? totalRevenue / totalNights : 185;
-  const occupancyRate = 72.5;
-
-  function exportCSV() {
-    const headers = ["Booking ID", "Property", "CheckIn", "CheckOut", "Total", "Status"];
-    const rows = filteredBookings.map(b => [b.id, `"${b.propertyTitle}"`, b.checkIn, b.checkOut, b.totalAmount, b.paymentStatus]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `host-analytics-${dateRange}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const revenue = bookings.reduce((sum, b) => sum + (/captur|paid/i.test(b.paymentStatus ?? "") ? b.totalAmount : 0), 0);
+  const currency = bookings[0]?.currency ?? "USD";
+  const upcomingByProperty = new Map<string, number>();
+  const pendingByProperty = new Map<string, number>();
+  for (const b of bookings) {
+    if (/pending/i.test(b.status)) {
+      pendingByProperty.set(b.propertyId, (pendingByProperty.get(b.propertyId) ?? 0) + 1);
+    } else if (new Date(b.checkOut).getTime() >= Date.now() && !/cancel|reject/i.test(b.status)) {
+      upcomingByProperty.set(b.propertyId, (upcomingByProperty.get(b.propertyId) ?? 0) + 1);
+    }
   }
 
   return (
-    <div className="page-container container py-6" data-testid="host-01-page" id="HOST-01">
-      <header className="page-header mb-6 flex justify-between items-center">
-        <div>
-          <span className="badge badge-sun">HOST-01 / HOST-02</span>
-          <h2>Host Performance & Analytics</h2>
-          <PatoisPhrase phrase="Track Yuh Earnings & Growth" translation="Real-time revenue, occupancy rates, ADR, impressions, and booking origins." />
-        </div>
-        <div className="flex gap-2" id="HOST-02">
-          <select className="input-control" value={selectedProperty} onChange={(e) => setSelectedProperty(e.target.value)}>
-            <option value="all">All Properties</option>
-            {properties.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-          </select>
-          <button type="button" className="btn btn-outline" onClick={exportCSV}>
-            <Download size={16} /> Export CSV
-          </button>
-        </div>
-      </header>
+    <div className="flex flex-col gap-5 font-sans text-ink" data-testid="host-01-page" id="HOST-01">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Manage Your <em className="italic text-deep-hover">Yard</em>
+      </h1>
 
-      {loading ? (
-        <div className="loading-shimmer p-6 text-center">Loading host analytics...</div>
-      ) : (
-        <>
-          {/* Top KPI Metric Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="card-box bg-white p-5 border rounded-xl">
-              <span className="subtext flex items-center gap-1"><DollarSign size={16} className="text-green" /> Total Revenue</span>
-              <h3 className="text-3xl font-bold mt-1 text-green">{formatMoney(totalRevenue, "USD")}</h3>
-              <p className="text-xs text-green mt-1">↑ +14% vs previous period</p>
-            </div>
-            <div className="card-box bg-white p-5 border rounded-xl">
-              <span className="subtext flex items-center gap-1"><TrendingUp size={16} className="text-sun" /> Occupancy Rate</span>
-              <h3 className="text-3xl font-bold mt-1 text-sun">{occupancyRate}%</h3>
-              <p className="text-xs text-sun mt-1">Jamaican avg: 65%</p>
-            </div>
-            <div className="card-box bg-white p-5 border rounded-xl">
-              <span className="subtext flex items-center gap-1"><BarChart3 size={16} className="text-blue" /> Average Daily Rate (ADR)</span>
-              <h3 className="text-3xl font-bold mt-1 text-blue">{formatMoney(adr, "USD")}</h3>
-              <p className="text-xs text-blue mt-1">Calculated from persisted stays</p>
-            </div>
-            <div className="card-box bg-white p-5 border rounded-xl">
-              <span className="subtext flex items-center gap-1"><Eye size={16} className="text-purple" /> Search Impressions</span>
-              <h3 className="text-3xl font-bold mt-1 text-purple">1,480</h3>
-              <p className="text-xs text-purple mt-1">3.8% conversion rate</p>
-            </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
+        {(
+          [
+            ["PROPERTIES", String(properties.length)],
+            ["BOOKINGS", String(bookings.length)],
+            ["REVENUE", formatMoney(revenue, currency)],
+            ["AVG RATING", "—"],
+          ] as const
+        ).map(([label, value]) => (
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={label}>
+            <div className="text-[11px] font-semibold tracking-[0.16em] text-sand-500">{label}</div>
+            <div className="font-display text-[32px] font-medium leading-none">{value}</div>
           </div>
+        ))}
+      </div>
 
-          {/* Revenue Chart & Guest Origin Breakdown */}
-          <div className="layout-grid-2-1 mb-6">
-            <div className="card-box p-6">
-              <h3 className="font-bold text-lg mb-4">Monthly Revenue Overview</h3>
-              <div className="chart-bar-container flex items-end justify-between h-48 pt-6 border-b">
-                {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"].map((m, i) => (
-                  <div key={m} className="flex flex-col items-center gap-2 flex-1">
-                    <div className="w-8 bg-sun rounded-t" style={{ height: `${(i + 3) * 12}px` }} />
-                    <span className="text-xs subtext">{m}</span>
-                  </div>
-                ))}
+      {properties.length === 0 && (
+        <div className="flex flex-col items-start gap-3 rounded-card border border-dashed border-sand-input bg-cream p-6">
+          <div className="font-display text-lg font-medium">No properties yet</div>
+          <AppLink className={deepPill} href="/host/properties">
+            + Add your first property
+          </AppLink>
+        </div>
+      )}
+
+      {properties.map((property, index) => {
+        const upcoming = upcomingByProperty.get(property.id) ?? 0;
+        const pending = pendingByProperty.get(property.id) ?? 0;
+        return (
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={property.id}>
+            <div className="flex flex-wrap items-center gap-3.5">
+              <img alt="" className="block size-[88px] shrink-0 rounded-field object-cover" src={property.imageUrl ?? getStayImage(index).src} />
+              <div className="min-w-[220px] flex-1">
+                <div className="font-display text-[19px] font-medium">{property.title}</div>
+                <div className="text-[12.5px] text-gray-600">
+                  {property.location} · {formatMoney(property.nightlyRate, property.currency)}/night
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <StatusChip value={property.isArchived ? "Draft" : "Published"} />
+                  <TierBadge className="!px-2.5 !py-1 !text-[10.5px]" level={property.badgeLevel} />
+                  {pending > 0 && <StatusChip value={`${pending} pending request${pending === 1 ? "" : "s"}`} />}
+                  {upcoming > 0 && (
+                    <span className="rounded-pill bg-shell px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-gray-600">
+                      {upcoming} upcoming
+                    </span>
+                  )}
+                  {property.isArchived && (
+                    <span className="rounded-pill bg-shell px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-sand-500">
+                      Not visible to travelers
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <AppLink className={outlinePill} href="/host/properties/edit">
+                  Edit
+                </AppLink>
+                <AppLink className={deepPill} href="/bookings">
+                  Bookings
+                </AppLink>
               </div>
             </div>
-
-            <div className="card-box p-6">
-              <h3 className="font-bold text-lg mb-4">Guest Origins</h3>
-              <ul className="space-y-3">
-                <li className="flex justify-between items-center">
-                  <span>🇺🇸 United States</span>
-                  <strong>48%</strong>
-                </li>
-                <li className="flex justify-between items-center">
-                  <span>🇯🇲 Jamaica (Staycation)</span>
-                  <strong>24%</strong>
-                </li>
-                <li className="flex justify-between items-center">
-                  <span>🇨🇦 Canada</span>
-                  <strong>18%</strong>
-                </li>
-                <li className="flex justify-between items-center">
-                  <span>🇬🇧 United Kingdom</span>
-                  <strong>10%</strong>
-                </li>
-              </ul>
-            </div>
           </div>
-        </>
-      )}
+        );
+      })}
     </div>
   );
 }

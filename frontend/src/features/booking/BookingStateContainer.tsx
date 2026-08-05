@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { AuthController } from "../../hooks/useAuth";
 import { BookingReviewPage } from "./BookingReviewPage";
+import { BookingIdentityPage } from "./BookingIdentityPage";
 import { BookingCheckoutPage } from "./BookingCheckoutPage";
 import { BookingSuccessPage } from "./BookingSuccessPage";
 import { BookingFailurePage } from "./BookingFailurePage";
@@ -58,13 +59,17 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
 
   if (state !== "review" && !auth.session) {
     return (
-      <div className="page-container container py-6" data-testid="booking-auth-required">
-        <div className="alert-box alert-error">
-          <span>Sign in to continue this protected booking flow.</span>
+      <div className="mx-auto max-w-[1160px] px-6 py-9 font-sans text-ink" data-testid="booking-auth-required">
+        <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">
+          Sign in to continue this protected booking flow.
         </div>
-        <div className="button-row mt-4">
-          <a className="btn btn-primary" href="/login">Log in</a>
-          <a className="btn btn-outline" href="/register">Create account</a>
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          <a className="inline-flex min-h-12 items-center rounded-pill bg-deep px-6 font-sans text-sm font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover" href="/login">
+            Log in
+          </a>
+          <a className="inline-flex min-h-12 items-center rounded-pill border-[1.5px] border-sand-input px-6 font-sans text-sm font-semibold text-ink transition-colors hover:border-deep" href="/register">
+            Create account
+          </a>
         </div>
       </div>
     );
@@ -83,7 +88,8 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
           onProceedToCheckout={(id, status) => {
             setCurrentBookingId(id);
             if (status === "PendingVerification") {
-              window.history.pushState({}, "", `/booking/${id}/pending`);
+              // eKYC required: document choice (BOOK-03) before the pending/hold screen.
+              window.history.pushState({}, "", `/booking/${id}/identity`);
             } else {
               window.history.pushState({}, "", `/booking/${id}/checkout`);
             }
@@ -91,8 +97,11 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
           }}
         />
       ) : (
-        <div className="container py-6">Loading booking review...</div>
+        <div className="mx-auto max-w-[1160px] px-6 py-9 text-[13.5px] text-gray-600">Loading booking review…</div>
       );
+
+    case "identity":
+      return <BookingIdentityPage bookingId={activeId} auth={auth} />;
 
     case "checkout":
       return (

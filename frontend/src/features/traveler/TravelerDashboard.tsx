@@ -1,30 +1,42 @@
-import { useState, useEffect } from "react";
-import { Calendar, MapPin, Sparkles, Bell, Heart, CreditCard, ChevronRight, Star, AlertCircle, RefreshCw } from "lucide-react";
-import { api, formatMoney, type Booking, type PropertyListing } from "../../lib/api";
-import { PatoisPhrase } from "../../lib/patois";
+import { useEffect, useState } from "react";
+import { AppLink } from "../../components/AppLink";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { StatusChip } from "../../components/ui/StatusChip";
+import { api, formatMoney, type Booking } from "../../lib/api";
+import { getStayImage } from "../../lib/stayImages";
 
 interface TravelerDashboardProps {
   userId: string;
   token: string;
 }
 
-export function TravelerDashboard({ userId, token }: TravelerDashboardProps) {
+const outlinePill =
+  "inline-flex min-h-[46px] items-center self-start rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep";
+
+function isFinished(booking: Booking) {
+  return new Date(booking.checkOut).getTime() < Date.now();
+}
+
+function isCancelled(booking: Booking) {
+  return /cancel|reject/i.test(booking.status);
+}
+
+function needsVerification(booking: Booking) {
+  return booking.requiresGuestVerification && !/pass|approv|verif/i.test(booking.verificationStatus ?? "");
+}
+
+/* TRAV-01 (DS v2) — traveler dashboard. GET /bookings (mine); every row shows
+   the contractual TRIPLE status: booking / verification / payment, verbatim. */
+export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [suggestions, setSuggestions] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     async function loadData() {
       try {
-        const [bList, pList] = await Promise.all([
-          api.getBookings(token),
-          api.getProperties()
-        ]);
-        if (active) {
-          setBookings(bList);
-          setSuggestions(pList.slice(0, 3));
-        }
+        const list = await api.getBookings(token);
+        if (active) setBookings(list);
       } catch (err) {
         console.error(err);
       } finally {
@@ -32,132 +44,110 @@ export function TravelerDashboard({ userId, token }: TravelerDashboardProps) {
       }
     }
     loadData();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [token]);
-
-  const upcomingTrip = bookings.find(b => b.status === "APPROVED" || b.status === "CONFIRMED" || b.paymentStatus === "CAPTURED");
 
   if (loading) {
     return (
-      <div className="container py-6" data-testid="trav-01-loading">
-        <div className="loading-shimmer p-6 text-center">
-          <RefreshCw size={24} className="spin mb-2" />
-          <p>Loading your traveler dashboard...</p>
-        </div>
+      <div data-testid="trav-01-loading">
+        <LoadingState label="Loading your traveler dashboard" />
       </div>
     );
   }
 
+  const upcoming = bookings.filter((b) => !isFinished(b) && !isCancelled(b));
+  const completed = bookings.filter((b) => isFinished(b) && !isCancelled(b));
+  const totalSpent = bookings
+    .filter((b) => /captur|paid/i.test(b.paymentStatus ?? ""))
+    .reduce((sum, b) => sum + b.totalAmount, 0);
+  const currency = bookings[0]?.currency ?? "USD";
+
   return (
-    <div className="page-container container py-6" data-testid="trav-01-page" id="TRAV-01">
-      <header className="page-header mb-6">
-        <span className="badge badge-sun">TRAV-01</span>
-        <h2>Welcome Back to NestyStay</h2>
-        <PatoisPhrase phrase="Walk Good & Stay Safe" translation="Explore your upcoming trips, personalized stay recommendations, and alerts." />
-      </header>
+    <div className="flex flex-col gap-5" data-testid="trav-01-page" id="TRAV-01">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Your <em className="italic text-deep-hover">trips</em>
+      </h1>
 
-      {/* Hero Upcoming Trip Banner */}
-      <div className="card-box upcoming-trip-hero mb-6 bg-sun-light p-6 rounded-xl border border-sun">
-        <div className="flex items-center justify-between mb-3">
-          <span className="badge badge-sun font-bold"><Calendar size={14} className="inline mr-1" /> Upcoming Stay</span>
-          <span className="text-sm subtext">Booking ID: {upcomingTrip ? upcomingTrip.id.substring(0, 8) : "No active trip"}</span>
-        </div>
-
-        {upcomingTrip ? (
-          <div className="grid md:grid-cols-2 gap-4 items-center">
-            <div>
-              <h3 className="text-2xl font-bold">{upcomingTrip.propertyTitle}</h3>
-              <p className="subtext mt-1"><MapPin size={16} className="inline" /> Jamaica • {upcomingTrip.checkIn} to {upcomingTrip.checkOut}</p>
-              <div className="mt-4 flex gap-3">
-                <a href={`/traveler/reservations/${upcomingTrip.id}`} className="btn btn-primary">
-                  View Booking Details
-                </a>
-                <a href="/messages" className="btn btn-outline">
-                  Contact Host
-                </a>
-              </div>
-            </div>
-            <div className="trip-status-card p-4 bg-white rounded-lg shadow-sm">
-              <div className="info-row">
-                <span>Verification:</span>
-                <span className="badge badge-green">{upcomingTrip.verificationStatus}</span>
-              </div>
-              <div className="info-row">
-                <span>Payment:</span>
-                <span className="badge badge-green">{upcomingTrip.paymentStatus}</span>
-              </div>
-              <div className="info-row">
-                <span>Total Amount:</span>
-                <strong>{formatMoney(upcomingTrip.totalAmount, upcomingTrip.currency)}</strong>
-              </div>
-            </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
+        {(
+          [
+            ["UPCOMING", String(upcoming.length)],
+            ["COMPLETED", String(completed.length)],
+            ["TOTAL SPENT", formatMoney(totalSpent, currency)],
+          ] as const
+        ).map(([label, value]) => (
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={label}>
+            <div className="text-[11px] font-semibold tracking-[0.16em] text-sand-500">{label}</div>
+            <div className="font-display text-[34px] font-medium leading-none">{value}</div>
           </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-lg font-medium">No upcoming reservations scheduled right now.</p>
-            <p className="subtext mt-1">Ready for your next Jamaican getaway?</p>
-            <a href="/explore" className="btn btn-primary mt-3">Explore Stays</a>
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Dashboard KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="card-box">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-sun-light rounded-lg"><Calendar size={24} className="text-sun" /></div>
-            <div>
-              <span className="subtext">Total Bookings</span>
-              <h4 className="text-2xl font-bold">{bookings.length}</h4>
-            </div>
-          </div>
+      {/* Booking rows with triple status */}
+      {bookings.length === 0 ? (
+        <div className="flex flex-col items-start gap-3 rounded-card border border-dashed border-sand-input bg-cream p-6">
+          <div className="font-display text-lg font-medium">No trips yet</div>
+          <p className="m-0 text-[13.5px] text-gray-600">Ready for your next Jamaican getaway?</p>
+          <AppLink
+            className="inline-flex min-h-[46px] items-center rounded-pill bg-deep px-6 font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
+            href="/explore"
+          >
+            Explore stays
+          </AppLink>
         </div>
-        <div className="card-box">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-light rounded-lg"><Heart size={24} className="text-green" /></div>
-            <div>
-              <span className="subtext">Wishlist Collections</span>
-              <h4 className="text-2xl font-bold">2 Saved</h4>
-            </div>
-          </div>
-        </div>
-        <div className="card-box">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-light rounded-lg"><Bell size={24} className="text-blue" /></div>
-            <div>
-              <span className="subtext">Notifications</span>
-              <h4 className="text-2xl font-bold">0 Unread</h4>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TRAV-02 AI Trip Suggestions Section */}
-      <section className="suggestions-section mb-6" id="TRAV-02" data-testid="trav-02-section">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <span className="badge badge-sun">TRAV-02</span>
-            <h3 className="text-xl font-bold"><Sparkles size={18} className="inline text-sun" /> Curated Stays For You</h3>
-          </div>
-          <a href="/explore" className="btn btn-ghost">View All Stays <ChevronRight size={16} /></a>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {suggestions.map((prop) => (
-            <div key={prop.id} className="card-box property-card-compact hover:shadow-md transition">
-              <div className="property-card-header mb-2">
-                <span className="badge badge-green">{prop.badgeLevel}</span>
-                <h4 className="font-bold text-lg mt-1">{prop.title}</h4>
-                <p className="subtext"><MapPin size={14} className="inline" /> {prop.location}, {prop.country}</p>
+      ) : (
+        bookings.map((booking, index) => {
+          const image = getStayImage(index);
+          const resume = needsVerification(booking);
+          const timeline = (booking as Booking & { timeline?: string[] }).timeline ?? [];
+          return (
+            <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={booking.id}>
+              <div className="flex flex-wrap items-start gap-3.5">
+                <img alt="" className="block size-24 shrink-0 rounded-field object-cover" src={image.src} />
+                <div className="min-w-[220px] flex-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2.5">
+                    <div className="font-display text-[19px] font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>
+                    <span className="font-mono text-[11.5px] text-sand-500">NSTY-BK-{booking.id.slice(0, 8).toUpperCase()}</span>
+                  </div>
+                  <div className="text-[12.5px] text-gray-600">
+                    {booking.checkIn} → {booking.checkOut} · {booking.nights} night{booking.nights === 1 ? "" : "s"} ·{" "}
+                    {formatMoney(booking.totalAmount, booking.currency)}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <StatusChip label="Booking" value={booking.status} />
+                    <StatusChip label="Verification" value={booking.verificationStatus} />
+                    <StatusChip label="Payment" value={booking.paymentStatus} />
+                  </div>
+                </div>
+                <AppLink className={outlinePill} href={`/booking/${booking.id}/${resume ? "pending" : "success"}`}>
+                  {resume ? "Resume verification" : "Details"}
+                </AppLink>
               </div>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                <span className="font-bold text-sun">{formatMoney(prop.nightlyRate, prop.currency)} <span className="text-xs font-normal">/ night</span></span>
-                <a href={`/properties/${prop.id}`} className="btn btn-outline btn-sm">Details</a>
-              </div>
+              {index === 0 && timeline.length > 0 && (
+                <div className="flex flex-col border-t border-shell pt-3">
+                  {timeline.map((item, i) => {
+                    const last = i === timeline.length - 1;
+                    return (
+                      <div className="grid grid-cols-[20px_1fr] gap-3.5" key={i}>
+                        <div className="flex flex-col items-center">
+                          <span className="mt-[3px] size-3 rounded-full bg-success" />
+                          {!last && <span className="w-0.5 flex-1 bg-sand-border" />}
+                        </div>
+                        <div className={last ? "" : "pb-3"}>
+                          <div className="text-[13px] font-semibold">{item}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </section>
+          );
+        })
+      )}
     </div>
   );
 }

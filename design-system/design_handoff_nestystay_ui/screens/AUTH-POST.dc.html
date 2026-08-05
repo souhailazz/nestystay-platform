@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+  @keyframes toastin { from { transform:translateX(24px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+</style>
+</helmet>
+<!-- AUTH-POST [SPEC] · toast "Yuh Gud?" over the traveler dashboard right after login · slide-in 200ms ease-out top-right, auto-dismiss 3s · hidden when patois toggle OFF (plain "Welcome back, Keisha!") · backdrop: TRAV-01 condensed -->
+<div data-screen-label="AUTH-POST Yuh Gud toast" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55;min-height:100vh;position:relative">
+  <!-- Dashboard backdrop (condensed TRAV-01) -->
+  <div style="display:grid;grid-template-columns:220px 1fr;min-height:100vh">
+    <aside style="background:#062B2B;padding:20px 14px;display:flex;flex-direction:column;gap:4px">
+      <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:8px;padding:0 8px 14px"><span style="width:32px;height:32px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:86px;margin:-4px 0 0 -27px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></a>
+      <a href="#" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;background:rgba(255,210,31,0.12);color:#FFD21F;font-size:13px;font-weight:600">My trips</a>
+      <a href="TRAV-COL.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Collections</a>
+      <a href="TRAV-INV.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Invoices</a>
+      <a href="TRAV-12.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Settings</a>
+    </aside>
+    <main style="padding:36px 40px;display:flex;flex-direction:column;gap:20px">
+      <h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:0">Your <em style="font-style:italic;color:#0E4A45">trips</em></h1>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:760px">
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:18px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">UPCOMING</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px">2</div></div>
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:18px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">SAVED STAYS</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px">14</div></div>
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:18px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">PENDING REVIEWS</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px">2</div></div>
+      </div>
+      <div style="font-size:13px;color:#8A7F5E">Full dashboard: <a href="TRAV-01.dc.html">TRAV-01</a></div>
+    </main>
+  </div>
+  <!-- anim: slide-in 200ms ease-out, auto-dismiss 3s -->
+  <div role="status" style="position:fixed;top:20px;right:20px;background:#062B2B;border-radius:16px;padding:16px 20px;box-shadow:0 20px 44px rgba(4,31,31,0.35);display:flex;gap:14px;align-items:flex-start;max-width:380px;animation:toastin 0.2s ease-out;z-index:50">
+    <span style="width:40px;height:40px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:106px;margin:-5px 0 0 -33px;display:block"></span>
+    <div><div style="font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:#FFD21F">Yuh Gud?</div><div style="font-size:13px;color:#DCE6E1;margin-top:1px">Are you OK? — Welcome back, Keisha!</div></div>
+    <button aria-label="Dismiss" style="background:none;border:none;color:#8FA8A2;font-size:14px;cursor:pointer;min-width:44px;min-height:44px;margin:-10px -14px -10px -6px">✕</button>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -30,12 +30,16 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
+import { StatusChip } from "../components/ui/StatusChip";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
 import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
+import { cx } from "../lib/ui";
+import { TierBadge } from "../components/layout/PublicShell";
+import { SampleDataChip } from "./SpecScreens";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
@@ -637,7 +641,7 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
             {view === "invoices" ? <InvoiceListPanel bookings={bookings} token={token} /> : null}
             {view === "preferences" || view === "profile" ? <PreferencesPanel /> : null}
             {view === "identity" ? <IdentityPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
-            {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} view={view} bookings={bookings.data ?? []} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "notifications" ? <NotificationsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
           </section>
         )}
@@ -747,42 +751,62 @@ function InvoiceListPanel({ bookings, token }: { bookings: AsyncState<Booking[]>
     }
   }
 
+  const gridCols = "grid-cols-[1.1fr_1.4fr_1fr_0.7fr_0.8fr_0.9fr]";
+
   return (
     <DataGate state={bookings}>
       {() => (
-        <>
-          <div className="search-panel spec-filter-bar">
-            <Field label="Year">
-              <Select value={year} onChange={(event) => setYear(event.target.value)}>
-                <option value="all">All</option>
-                {years.map((item) => <option key={item} value={item}>{item}</option>)}
-              </Select>
-            </Field>
-            <Button variant="dark" disabled={invoices.length === 0} onClick={downloadVisible}>
-              <Download size={17} /> Download visible
-            </Button>
+        <div className="flex flex-col gap-5 font-sans text-ink">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <select
+              aria-label="Filter by year"
+              className="min-h-[46px] rounded-pill border-[1.5px] border-sand-input bg-cream px-[18px] font-sans text-[13.5px] font-semibold text-ink outline-none focus:border-deep-hover"
+              onChange={(event) => setYear(event.target.value)}
+              value={year}
+            >
+              <option value="all">All years</option>
+              {years.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <button
+              className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:pointer-events-none disabled:bg-shell disabled:text-sand-500"
+              disabled={invoices.length === 0}
+              onClick={downloadVisible}
+              type="button"
+            >
+              <Download size={15} /> Download all
+            </button>
           </div>
           {invoices.length === 0 ? (
             <EmptyState title="No invoices for this filter." />
           ) : (
-            <div className="compact-list">
-              {invoices.map((booking) => (
-                <Card className="compact-list__item" key={booking.id}>
-                  <FileText size={20} />
-                  <div>
-                    <strong>NST-{booking.checkIn.slice(0, 4)}-{booking.id.slice(0, 8).toUpperCase()}</strong>
-                    <span>{booking.propertyTitle ?? booking.propertyId} - {booking.checkIn} to {booking.checkOut}</span>
-                  </div>
-                  <Badge tone={booking.paymentStatus === "REFUNDED" ? "coral" : booking.paymentStatus === "CAPTURED" ? "green" : "sun"}>{booking.paymentStatus}</Badge>
+            <div className="overflow-hidden rounded-card border border-sand-border bg-cream">
+              <div className={`grid ${gridCols} gap-3 bg-shell px-5 py-3 text-[11px] font-bold tracking-[0.1em] text-sand-500`}>
+                <span>INVOICE</span><span>PROPERTY</span><span>DATES</span><span>AMOUNT</span><span>STATUS</span><span />
+              </div>
+              {invoices.map((booking, index) => (
+                <div
+                  className={`grid ${gridCols} items-center gap-3 border-b border-shell px-5 py-[13px] text-[13px] last:border-b-0 ${index % 2 === 1 ? "bg-[#FAF6EA]" : ""}`}
+                  key={booking.id}
+                >
+                  <span className="font-mono text-xs">NST-{booking.checkIn.slice(0, 4)}-{booking.id.slice(0, 4).toUpperCase()}</span>
+                  <span>{booking.propertyTitle ?? booking.propertyId}</span>
+                  <span className="text-gray-600">{booking.checkIn} → {booking.checkOut}</span>
                   <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong>
-                  <Button variant="outline" onClick={() => downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token))}>
-                    <Download size={16} /> Invoice
-                  </Button>
-                </Card>
+                  <span><StatusChip value={booking.paymentStatus === "CAPTURED" ? "Paid" : booking.paymentStatus} /></span>
+                  <span className="text-right">
+                    <button
+                      className="inline-flex min-h-11 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[12.5px] font-bold text-deep-hover hover:text-deep"
+                      onClick={() => downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token))}
+                      type="button"
+                    >
+                      <Download size={13} /> Download
+                    </button>
+                  </span>
+                </div>
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </DataGate>
   );
@@ -996,12 +1020,145 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
   );
 }
 
-function ReviewsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
-  async function submit() {
-    await api.submitReview(userId, token, { subjectTitle: "Ocho Rios Verified Villa", propertyId: "11111111-1111-4111-8111-111111111111", rating: 5, text: "Straight! Verified stay and clear check-in." });
-    reload();
+const REVIEW_WINDOW_DAYS = 30;
+
+/** TRAV-PEND (DS v2) — pending reviews from real bookings: completed stays not yet
+ *  reviewed, with the review deadline; submissions go through the reviews API. */
+function ReviewsPanel({ data, view, bookings, userId, token, reload }: { data: TravelerWorkspace; view: string; bookings: Booking[]; userId: string; token: string; reload: () => void }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const reviewedKeys = new Set(data.reviews.flatMap((r) => [r.bookingId, r.propertyId].filter(Boolean) as string[]));
+  const finished = bookings.filter((b) => new Date(b.checkOut).getTime() < Date.now() && !/cancel|reject/i.test(b.status));
+  const pending = finished
+    .filter((b) => !reviewedKeys.has(b.id) && !reviewedKeys.has(b.propertyId))
+    .map((b) => {
+      const deadline = new Date(b.checkOut);
+      deadline.setDate(deadline.getDate() + REVIEW_WINDOW_DAYS);
+      const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86_400_000);
+      return { booking: b, daysLeft, closed: daysLeft <= 0 };
+    });
+  const open = pending.filter((p) => !p.closed);
+  const closed = pending.filter((p) => p.closed);
+
+  async function submit(booking: Booking) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.submitReview(userId, token, {
+        bookingId: booking.id,
+        propertyId: booking.propertyId,
+        subjectTitle: booking.propertyTitle ?? "Jamaican stay",
+        rating,
+        text: text || "Great stay!",
+      });
+      setOpenId(null);
+      setText("");
+      setRating(5);
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Review could not be submitted.");
+    } finally {
+      setBusy(false);
+    }
   }
-  return <><Button onClick={submit}>Submit review</Button><div className="compact-list">{data.reviews.map((review) => <Card className="compact-list__item" key={review.id}><Star size={18} /><div><strong>{review.subjectTitle}</strong><span>{review.text}</span></div><Badge tone="green">{review.rating}/5</Badge></Card>)}</div></>;
+
+  if (view === "reviews-given") {
+    return (
+      <div className="flex flex-col gap-3 font-sans text-ink">
+        {data.reviews.length === 0 && <EmptyState title="No reviews yet" copy="Reviews you write appear here." />}
+        {data.reviews.map((review) => (
+          <div className="flex items-start gap-3.5 rounded-card border border-sand-border bg-cream p-5" key={review.id}>
+            <div className="flex-1">
+              <div className="font-display text-[17px] font-medium">{review.subjectTitle}</div>
+              <p className="m-0 mt-1 text-[13.5px] text-gray-600">{review.text}</p>
+            </div>
+            <StatusChip value={`★ ${review.rating}/5`} className="!bg-success-tint !text-success-text" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 font-sans text-ink">
+      <h2 className="m-0 font-display text-[clamp(24px,2.6vw,32px)] font-normal tracking-[-0.01em]">
+        You have {open.length} pending <em className="italic text-deep-hover">review{open.length === 1 ? "" : "s"}.</em>
+      </h2>
+      {error && <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">{error}</div>}
+      {open.length === 0 && <EmptyState title="Nothing to review" copy="Completed stays show up here for 30 days." />}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
+        {open.map(({ booking, daysLeft }, index) => (
+          <div className="flex flex-col gap-3 rounded-card bg-deep p-[22px]" key={booking.id}>
+            <div className="flex items-center gap-3">
+              <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover" src={getStayImage(index).src} />
+              <div>
+                <div className="font-display text-lg font-medium text-on-dark-heading">{booking.propertyTitle ?? "Jamaican stay"}</div>
+                <div className="text-xs text-on-dark-muted">stayed {booking.checkIn} → {booking.checkOut}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <span className="rounded-pill border border-amber px-3 py-[5px] text-[11px] font-bold tracking-[0.06em] text-yellow">
+                {daysLeft} DAY{daysLeft === 1 ? "" : "S"} LEFT TO REVIEW
+              </span>
+              <button
+                className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-none bg-yellow px-[22px] font-sans text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+                onClick={() => setOpenId(openId === booking.id ? null : booking.id)}
+                type="button"
+              >
+                Write review
+              </button>
+            </div>
+            {openId === booking.id && (
+              <div className="flex flex-col gap-2.5 rounded-field bg-night p-4">
+                <label className="flex items-center gap-2.5 text-[13px] font-semibold text-on-dark-body">
+                  Rating
+                  <select
+                    className="min-h-11 rounded-field border border-on-dark-faint/40 bg-transparent px-3 font-sans text-on-dark-heading outline-none [&>option]:text-ink"
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    value={rating}
+                  >
+                    {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} ★</option>)}
+                  </select>
+                </label>
+                <textarea
+                  className="min-h-[90px] rounded-field border border-on-dark-faint/40 bg-transparent p-3 font-sans text-sm text-on-dark-heading outline-none placeholder:text-on-dark-faint"
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="How was your stay?"
+                  value={text}
+                />
+                <button
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-pill border-none bg-yellow px-5 font-sans text-[13px] font-bold text-deep transition-colors hover:bg-yellow-press disabled:pointer-events-none disabled:opacity-60"
+                  disabled={busy}
+                  onClick={() => submit(booking)}
+                  type="button"
+                >
+                  {busy ? "Submitting…" : "Submit review"}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {closed.map(({ booking }, index) => (
+        <div className="rounded-card border border-sand-border bg-cream p-[22px]" key={booking.id}>
+          <div className="flex items-center gap-3 opacity-60">
+            <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover grayscale-[0.6]" src={getStayImage(index + 2).src} />
+            <div className="flex-1">
+              <div className="font-display text-lg font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>
+              <div className="text-xs text-gray-600">stayed {booking.checkIn} → {booking.checkOut}</div>
+            </div>
+            <span className="rounded-pill bg-shell px-3.5 py-1.5 text-[11px] font-bold tracking-[0.06em] text-sand-500">
+              REVIEW WINDOW CLOSED
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
@@ -1284,21 +1441,98 @@ function resolveMessageAttachmentContentType(file: File) {
   return "application/octet-stream";
 }
 
+/* DIR-02 / DIR-BIZ (DS v2) — directory lists render live api.getDirectoryProviders
+   data (no sample chips needed). Category pills filter client-side. Trades adds
+   the discreet EITA credit (spec); Trusted providers render as featured Deep
+   cards (spec: Trusted = featured placement). */
 export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: string; auth: AuthController }) {
   const list = useAsync(() => kind === "Provider" || kind === "ProviderDashboard" ? Promise.resolve([]) : api.getDirectoryProviders({ kind }), [kind]);
   const detail = useAsync(() => slug ? api.getDirectoryProvider(slug) : Promise.resolve(null), [slug]);
+  const [category, setCategory] = useState("All");
   if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} />}</DataGate>;
   if (kind === "Provider" || kind === "ProviderDashboard") {
     return <RequireSession auth={auth}>{(session) => <ProviderPortal session={session} mode={kind} />}</RequireSession>;
   }
 
+  const isTrades = kind === "Trades";
+  const screenId = kind === "Custodian" ? "DIR-01" : isTrades ? "DIR-02" : kind === "Verification" ? "DIR-06" : "DIR-BIZ";
+
   return (
-    <CompletionShell id={kind === "Custodian" ? "DIR-01" : kind === "Trades" ? "DIR-02" : kind === "Verification" ? "DIR-06" : "DIR-03"} eyebrow="Directory" title={`${kind ?? "Local business"} directory`} copy="Provider cards, filters, platform messaging, onboarding, and persisted profile data.">
-      <section className="product-section">
-        <div className="search-panel"><Button variant="dark"><SlidersHorizontal size={17} /> Filters</Button><AppLink className={buttonClassName("outline")} href="/directory/provider/onboarding">Provider onboarding</AppLink><AppLink className={buttonClassName("ghost")} href="/directory/provider">Provider dashboard</AppLink></div>
-        <DataGate state={list}>{(providers) => <div className="spec-card-grid spec-card-grid--three">{providers.map((provider) => <ProviderCard provider={provider} key={provider.id} />)}</div>}</DataGate>
-      </section>
-    </CompletionShell>
+    <div className="flex flex-col gap-5 font-sans text-ink" id={screenId}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+          {isTrades ? (
+            <>
+              Trades <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : kind === "Custodian" ? (
+            <>
+              Custodian <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : kind === "Verification" ? (
+            <>
+              Verification <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : (
+            <>
+              Local <em className="italic text-deep-hover">businesses</em>
+            </>
+          )}
+        </h1>
+        {isTrades && <span className="text-[11.5px] text-sand-500">Powered by EITA — electricianinthisarea.com</span>}
+      </div>
+
+      <DataGate state={list}>
+        {(providers) => {
+          const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
+          const filtered = providers.filter((provider) => category === "All" || provider.category === category);
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {categories.map((item) => (
+                  <button
+                    className={cx(
+                      "inline-flex min-h-11 cursor-pointer items-center rounded-pill px-[18px] font-sans text-[13px] font-semibold transition-colors",
+                      category === item
+                        ? "border-none bg-deep text-on-dark-heading"
+                        : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink",
+                    )}
+                    key={item}
+                    onClick={() => setCategory(item)}
+                    type="button"
+                  >
+                    {item}
+                  </button>
+                ))}
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <AppLink
+                    className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
+                    href="/directory/provider/onboarding"
+                  >
+                    Provider onboarding
+                  </AppLink>
+                  <AppLink
+                    className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
+                    href="/directory/provider"
+                  >
+                    Provider dashboard
+                  </AppLink>
+                </div>
+              </div>
+              {filtered.length === 0 ? (
+                <EmptyState title="No providers in this category yet." />
+              ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-4">
+                  {filtered.map((provider) => (
+                    <ProviderCard isTrades={isTrades} key={provider.id} provider={provider} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }}
+      </DataGate>
+    </div>
   );
 }
 
@@ -1351,16 +1585,26 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
     }
   }
 
+  /* DIR-PROV (DS v2) — profile form persists via api.upsertDirectoryProvider
+     (live). Incoming-requests and earnings cards are sample data (chipped)
+     until those APIs land. */
   return (
-    <CompletionShell
-      id={mode === "Provider" ? "DIR-04" : "DIR-05"}
-      eyebrow="Provider directory"
-      title={mode === "Provider" ? "Provider onboarding." : "Provider dashboard."}
-      copy="Providers manage profile details, service category, availability, contact mode, active status, badges, and platform-only requests with persisted backend data."
-    >
-      <section className="product-section management-layout">
-        <form className="management-form" onSubmit={save}>
-          <div className="form-grid form-grid--two">
+    <div className="flex flex-col gap-5 font-sans text-ink" id={mode === "Provider" ? "DIR-04" : "DIR-PROV"}>
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        {mode === "Provider" ? (
+          <>
+            Provider <em className="italic text-deep-hover">onboarding</em>
+          </>
+        ) : (
+          <>
+            Your provider <em className="italic text-deep-hover">profile</em>
+          </>
+        )}
+      </h1>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <form className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]" onSubmit={save}>
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Business name"><Input value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
             <Field label="Provider type">
               <Select value={form.kind} onChange={(event) => update("kind", event.target.value)}>
@@ -1379,33 +1623,144 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
               </Select>
             </Field>
             <Field label="Availability"><Input value={form.availabilitySummary} onChange={(event) => update("availabilitySummary", event.target.value)} /></Field>
-            <Field label="Description" className="form-grid__full"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
-            <Field label="Contact mode" className="form-grid__full"><Input value={form.contactMode} onChange={(event) => update("contactMode", event.target.value)} /></Field>
           </div>
+          <Field label="Description"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
+          <Field label="Contact mode"><Input value={form.contactMode} onChange={(event) => update("contactMode", event.target.value)} /></Field>
           <InlineLabel><input checked={form.isActive} type="checkbox" onChange={(event) => update("isActive", event.target.checked)} /> Visible in directory</InlineLabel>
-          <Button type="submit"><BadgeCheck size={17} /> Save provider profile</Button>
-          {notice && <div className="notice-panel">{notice}</div>}
+          <div className="flex flex-wrap gap-2.5">
+            <Button type="submit" variant="dark"><BadgeCheck size={17} /> Save provider profile</Button>
+            <AppLink
+              className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+              href={`/directory/providers/${slug}`}
+            >
+              Preview public listing
+            </AppLink>
+          </div>
+          {notice && (
+            <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] font-semibold text-success-text">{notice}</div>
+          )}
           {error && <ErrorState message={error} />}
         </form>
-        <Card className="settings-card">
-          <CalendarDays size={24} />
-          <h2>Service controls</h2>
-          <p>Availability, active status, badge level, and platform-only contact are stored on the provider profile.</p>
-          <div className="highlight-list">
-            <span>Requests: platform messages</span>
-            <span>Services: {form.category}</span>
-            <span>Status: {form.isActive ? "Active" : "Paused"}</span>
-            <span>Badge: {form.badgeLevel}</span>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <TierBadge level={form.badgeLevel} />
+              <StatusChip value={form.isActive ? "Active" : "Paused"} />
+            </div>
+            <div className="text-xs text-sand-500">
+              Trusted Badge: $120/year or $12/month — identical for all user types.
+            </div>
+            <div className="text-xs text-sand-500">Requests and messages stay in the platform inbox — {form.contactMode}.</div>
           </div>
-          <AppLink className={buttonClassName("outline")} href={`/directory/providers/${slug}`}>Preview public listing</AppLink>
-        </Card>
-      </section>
-    </CompletionShell>
+
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="text-[13px] font-semibold">Incoming requests</div>
+              <SampleDataChip />
+            </div>
+            <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2">
+              <div>
+                <div className="text-[13.5px] font-semibold">Cliffside Retreat — Marcia</div>
+                <div className="text-xs text-gray-600">Generator transfer switch quote</div>
+              </div>
+              <span className="inline-flex items-center rounded-pill bg-amber-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-amber-text">
+                NEW
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2.5 py-2">
+              <div>
+                <div className="text-[13.5px] font-semibold">Ocho Palms PM — S. Chin</div>
+                <div className="text-xs text-gray-600">Unit 12 breaker keeps tripping</div>
+              </div>
+              <span className="inline-flex items-center rounded-pill bg-info-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-info-text">
+                REPLIED
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="text-[11px] font-semibold tracking-[0.16em] text-sand-500">EARNINGS — YTD</div>
+              <SampleDataChip />
+            </div>
+            <div className="font-display text-[32px] font-medium leading-none">$7,420</div>
+            <div className="text-[12.5px] text-success-text">18 completed jobs via NestyStay</div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function ProviderCard({ provider }: { provider: DirectoryProvider }) {
-  return <Card className="spec-card"><Badge tone="green">{provider.badgeLevel}</Badge><h3>{provider.name}</h3><p>{provider.parish} - {provider.category}</p><p>{provider.description}</p><AppLink className={buttonClassName("outline")} href={`/directory/providers/${provider.slug}`}>View provider</AppLink></Card>;
+function ProviderCard({ provider, isTrades }: { provider: DirectoryProvider; isTrades?: boolean }) {
+  if (provider.badgeLevel === "Trusted") {
+    return (
+      <div className="flex flex-col gap-2.5 rounded-card bg-deep p-[22px]">
+        <div className="flex justify-between gap-2.5">
+          <span className="inline-flex items-center rounded-pill bg-yellow/15 px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-yellow">
+            FEATURED
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-yellow px-3 py-1 text-[10.5px] font-bold tracking-[0.1em] text-deep">
+            ★ TRUSTED
+          </span>
+        </div>
+        <div className="font-display text-[19px] font-medium text-on-dark-heading">{provider.name}</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center rounded-pill bg-mint-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-mint-text">
+            {provider.category.toUpperCase()}
+          </span>
+          <span className="text-xs text-on-dark-muted">
+            {provider.parish} · {provider.availabilitySummary}
+          </span>
+        </div>
+        <div className="text-[13px] text-on-dark-muted">{provider.description}</div>
+        <AppLink
+          className="mt-auto inline-flex min-h-[46px] items-center justify-center rounded-pill bg-yellow font-sans text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+          href={`/directory/providers/${provider.slug}`}
+        >
+          View provider
+        </AppLink>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-card border border-sand-border bg-cream p-[22px]">
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="font-display text-[19px] font-medium">{provider.name}</div>
+        {isTrades && provider.badgeLevel === "Verified" && (
+          <span className="inline-flex shrink-0 items-center rounded-pill bg-info-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-info-text">
+            ⚡ EITA VERIFIED
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center rounded-pill bg-mint-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-mint-text">
+          {provider.category.toUpperCase()}
+        </span>
+        <span className="text-xs text-gray-600">
+          {provider.parish} · {provider.availabilitySummary}
+        </span>
+      </div>
+      <div className="text-[13px] text-gray-600">{provider.description}</div>
+      <div className="mt-auto flex items-center justify-between gap-2.5">
+        {provider.badgeLevel === "Free" ? (
+          <span className="text-[11.5px] text-sand-500">Free listing</span>
+        ) : isTrades && provider.badgeLevel === "Verified" ? (
+          <span />
+        ) : (
+          <TierBadge className="!px-2.5 !py-1 !text-[10.5px]" level={provider.badgeLevel} />
+        )}
+        <AppLink
+          className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+          href={`/directory/providers/${provider.slug}`}
+        >
+          View provider
+        </AppLink>
+      </div>
+    </div>
+  );
 }
 
 function ProviderDetail({ provider }: { provider: DirectoryProvider }) {
@@ -1460,7 +1815,7 @@ function HostOpsPanel({ view, data, hostUserId, token, reload }: { view: string;
   if (view === "analytics") return <MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["ADR", formatMoney(data.analytics.averageNightlyRate)], ["Bookings", String(data.analytics.bookingCount)]]} />;
   if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
   if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
-  if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} userId={hostUserId} token={token} reload={reload} />;
+  if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} view="reviews-given" bookings={[]} userId={hostUserId} token={token} reload={reload} />;
   return <MetricCards items={[["Badge progress", "Verified -> Trusted"], ["Exports", "CSV ready"], ["Archived properties", "0"], ["Notifications", "Enabled"]]} />;
 }
 

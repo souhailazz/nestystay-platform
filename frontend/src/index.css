@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* NestyStay Design System v2 tokens (Fraunces/Sora, warm neutrals, brand deep/yellow).
+   Imported after Tailwind so DS v2 tokens win over defaults. Legacy tokens below are
+   pruned as screens migrate to DS v2. */
+@import "./nestystay-theme.css";
 
 @theme {
   --color-nesty-ink: #061f1d;
@@ -8,10 +12,10 @@
 }
 
 :root {
-  color: #102923;
-  background: #f7f3e8;
+  color: #12241f; /* DS v2 ink */
+  background: #faf3e4; /* DS v2 sand */
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Sora", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -47,21 +51,24 @@ body {
   margin: 0;
   min-width: 320px;
   overflow-x: hidden;
-  background: var(--cream);
+  background: var(--color-sand, #faf3e4); /* DS v2 page background */
 }
 
-button,
-a {
-  font: inherit;
-}
+/* Element resets live in the base layer so Tailwind utilities can override them. */
+@layer base {
+  button,
+  a {
+    font: inherit;
+  }
 
-button {
-  border: 0;
-}
+  button {
+    border: 0;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 img,
@@ -77,7 +84,7 @@ svg {
 .app-shell {
   min-height: 100vh;
   overflow: clip;
-  background: var(--cream);
+  background: var(--color-sand, #faf3e4); /* DS v2 page background */
 }
 
 .root-error-page {
@@ -4490,17 +4497,17 @@ svg {
 }
 
 body {
-  color: var(--ref-deep);
-  background: #eef3f0;
+  color: var(--color-ink, #12241f);
+  background: var(--color-sand, #faf3e4); /* DS v2 page background */
 }
 
 .app-shell {
   min-height: 100vh;
-  background: #eef3f0;
+  background: var(--color-sand, #faf3e4); /* DS v2 page background */
 }
 
 .app-shell:not(.app-shell--workspace) {
-  background: var(--ref-page);
+  background: var(--color-sand, #faf3e4);
 }
 
 .site-nav {

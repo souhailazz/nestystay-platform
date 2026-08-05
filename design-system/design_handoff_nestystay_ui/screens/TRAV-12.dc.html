@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+  @keyframes shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
+</style>
+</helmet>
+<!-- TRAV-12 Profile settings · [CORE+SPEC] · session identity · PROMINENT patois toggle card (rule §2.2, default ON) · session expiry · logout → AUTH-LOGOUT -->
+<div data-screen-label="TRAV-12 Profile settings" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55;min-height:100vh;display:grid;grid-template-columns:230px 1fr">
+  <aside style="background:#062B2B;padding:20px 14px;display:flex;flex-direction:column;gap:3px">
+    <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:8px;padding:0 8px 14px"><span style="width:32px;height:32px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:86px;margin:-4px 0 0 -27px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></a>
+    <a href="TRAV-01.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">My trips</a>
+    <a href="TRAV-SUGG.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Suggestions</a>
+    <a href="TRAV-COL.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Collections</a>
+    <a href="TRAV-PEND.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Pending reviews</a>
+    <a href="TRAV-INV.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Invoices</a>
+    <a href="MSG-01.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Messages</a>
+    <a href="TRAV-NOTIF.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Notifications</a>
+    <a href="TRAV-12.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;background:rgba(255,210,31,0.12);color:#FFD21F;font-size:13px;font-weight:600">Settings</a>
+    <a href="AUTH-LOGOUT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#9FB3AC;font-size:13px;font-weight:600;margin-top:auto" style-hover="color:#FBF7EC">Sign out</a>
+  </aside>
+  <div style="display:flex;flex-direction:column;min-height:100vh">
+    <main style="padding:36px clamp(20px,3.5vw,44px);display:flex;flex-direction:column;gap:20px;flex:1;max-width:1060px;box-sizing:border-box;width:100%"><h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,3.4vw,40px);margin:0;letter-spacing:-0.01em">Settings</h1><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+  <span style="width:64px;height:64px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:24px;flex:none">KB</span>
+  <div style="flex:1;min-width:200px"><div style="font-family:'Fraunces',serif;font-weight:500;font-size:20px">Keisha Brown</div><div style="font-size:13px;color:#5A6B63">keisha.b@gmail.com · traveler account</div><div style="font-size:12px;color:#8A7F5E;margin-top:2px">Session expires in 6 days — signing out everywhere resets it.</div></div>
+  <a href="AUTH-LOGOUT.dc.html" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 20px;font-size:13.5px;font-weight:600" style-hover="border-color:#062B2B;color:#12241F">Sign out</a>
+</div></div><!-- prominent patois toggle card — never buried -->
+<div style="background:#062B2B;border-radius:20px;padding:26px;display:flex;align-items:flex-start;gap:18px">
+  <span style="width:64px;height:36px;border-radius:999px;background:#FFD21F;position:relative;flex:none;display:block;margin-top:4px"><span style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:#062B2B;display:block"></span></span>
+  <div style="flex:1">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-family:'Fraunces',serif;font-weight:500;font-size:21px;color:#FBF7EC">Jamaican Patois greetings</span><span style="background:rgba(255,210,31,0.15);color:#FFD21F;font-size:10.5px;font-weight:700;letter-spacing:0.06em;padding:4px 10px;border-radius:999px">ON — DEFAULT</span></div>
+    <div style="color:#9FB3AC;font-size:13.5px;margin-top:4px">Show the island personality across your NestyStay experience.</div>
+    <div style="color:#8FA8A2;font-size:12px;margin-top:8px">When off, greetings switch to plain English — <em style="color:#FFD21F;font-style:italic">Yuh Gud?</em> becomes "Welcome back, Keisha!"</div>
+  </div>
+</div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:13px;font-weight:600">Account</div>
+<div style="display:flex;flex-direction:column"><a href="#" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #F3EAC8;min-height:44px;box-sizing:border-box"><span><span style="font-size:14px;font-weight:600;color:#12241F">Email & password</span><span style="display:block;font-size:12.5px;color:#8A7F5E">Change your login details</span></span><span style="color:#0E4A45">→</span></a><a href="#" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #F3EAC8;min-height:44px;box-sizing:border-box"><span><span style="font-size:14px;font-weight:600;color:#12241F">Payment methods</span><span style="display:block;font-size:12.5px;color:#8A7F5E">Visa ····4242 (default)</span></span><span style="color:#0E4A45">→</span></a><a href="#" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #F3EAC8;min-height:44px;box-sizing:border-box"><span><span style="font-size:14px;font-weight:600;color:#12241F">Notification preferences</span><span style="display:block;font-size:12.5px;color:#8A7F5E">Email + push enabled</span></span><span style="color:#0E4A45">→</span></a><a href="#" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #F3EAC8;min-height:44px;box-sizing:border-box"><span><span style="font-size:14px;font-weight:600;color:#12241F">Identity verification</span><span style="display:block;font-size:12.5px;color:#8A7F5E">Last passed: Dec 2, 2026</span></span><span style="color:#0E4A45">→</span></a></div></div></main>
+    <footer style="background:#052A22;padding:18px 24px;display:flex;justify-content:center"><span style="font-size:13px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></span></footer>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

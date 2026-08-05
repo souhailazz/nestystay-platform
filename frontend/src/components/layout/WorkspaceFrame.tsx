@@ -1,124 +1,93 @@
-import {
-  BadgeCheck,
-  BarChart3,
-  Bell,
-  CalendarDays,
-  CreditCard,
-  FileText,
-  Home,
-  LayoutDashboard,
-  ListChecks,
-  Map,
-  MessageSquare,
-  Settings,
-  ShieldCheck,
-  Wrench,
-} from "lucide-react";
 import type { ReactNode } from "react";
 import { AppLink } from "../AppLink";
+import { EmblemRoundel } from "./PublicShell";
+import { cx } from "../../lib/ui";
 
-type WorkspaceItem = {
-  label: string;
-  href: string;
-  icon: ReactNode;
-  routes: string[];
-};
+/* DS v2 workspace shell — Deep sidebar 230px (emblem + wordmark, 44px nav items
+   radius 12, active = yellow tint bg + Yellow text), sand canvas, and the
+   nestystay.net · 754-248-2435 footer on every page. */
 
-const workspaceItems: WorkspaceItem[] = [
-  {
-    label: "Overview",
-    href: "/guest-dashboard",
-    icon: <LayoutDashboard size={17} />,
-    routes: ["guest-dashboard", "trav-suggestions", "traveler-spec"],
-  },
-  {
-    label: "Wishlist",
-    href: "/traveler/favorites",
-    icon: <BadgeCheck size={17} />,
-    routes: ["trav-favorites", "no-favorites"],
-  },
-  {
-    label: "Payments",
-    href: "/traveler/payment-methods",
-    icon: <CreditCard size={17} />,
-    routes: ["trav-invoices", "payment", "booking-state"],
-  },
-  {
-    label: "Reviews",
-    href: "/traveler/reviews",
-    icon: <FileText size={17} />,
-    routes: ["trav-reviews"],
-  },
-  {
-    label: "Alerts",
-    href: "/traveler/notifications",
-    icon: <Bell size={17} />,
-    routes: ["trav-notifications"],
-  },
-  { label: "Host", href: "/host-dashboard", icon: <Home size={17} />, routes: ["host-dashboard", "host-reports", "host-spec", "host-profile"] },
-  {
-    label: "Properties",
-    href: "/host/properties",
-    icon: <BadgeCheck size={17} />,
-    routes: ["property-management", "host-property-edit"],
-  },
-  {
-    label: "Reservations",
-    href: "/bookings",
-    icon: <ListChecks size={17} />,
-    routes: ["bookings", "no-reservations"],
-  },
-  { label: "Calendar", href: "/calendar", icon: <CalendarDays size={17} />, routes: ["calendar"] },
-  {
-    label: "Wellness",
-    href: "/host/wellness",
-    icon: <ShieldCheck size={17} />,
-    routes: ["host-wellness", "officer-wellness", "officer-directory", "wellness-booking"],
-  },
-  {
-    label: "PM",
-    href: "/pm/gates",
-    icon: <Wrench size={17} />,
-    routes: ["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"],
-  },
-  {
-    label: "Directory",
-    href: "/directory/custodians",
-    icon: <Map size={17} />,
-    routes: ["business-directory", "provider-dashboard", "directory-spec"],
-  },
-  { label: "Messages", href: "/messages", icon: <MessageSquare size={17} />, routes: ["profile", "document-message", "messages"] },
-  {
-    label: "Admin",
-    href: "/admin",
-    icon: <Settings size={17} />,
-    routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset", "admin-ops"],
-  },
-  { label: "Reports", href: "/admin/kpis", icon: <BarChart3 size={17} />, routes: ["admin-kpis", "admin-reports"] },
+type NavItem = { label: string; href: string; routes?: string[] };
+
+const travelerItems: NavItem[] = [
+  { label: "My trips", href: "/guest-dashboard", routes: ["guest-dashboard"] },
+  { label: "Suggestions", href: "/traveler/suggestions", routes: ["trav-suggestions"] },
+  { label: "Collections", href: "/traveler/favorites", routes: ["trav-favorites", "no-favorites"] },
+  { label: "Pending reviews", href: "/traveler/reviews/pending" },
+  { label: "Invoices", href: "/traveler/invoices" },
+  { label: "Messages", href: "/messages", routes: ["messages", "document-message"] },
+  { label: "Notifications", href: "/traveler/notifications", routes: ["trav-notifications"] },
+  { label: "Settings", href: "/profile", routes: ["profile"] },
 ];
 
-export function WorkspaceFrame({ routeName, children }: { routeName: string; children: ReactNode }) {
+const workspaceItems: NavItem[] = [
+  { label: "Host", href: "/host-dashboard", routes: ["host-dashboard", "host-spec", "host-profile", "host-reports"] },
+  { label: "Properties", href: "/host/properties", routes: ["property-management", "host-property-edit"] },
+  { label: "Reservations", href: "/bookings", routes: ["bookings", "no-reservations"] },
+  { label: "Calendar", href: "/calendar", routes: ["calendar"] },
+  { label: "Wellness", href: "/host/wellness", routes: ["host-wellness", "officer-wellness", "officer-directory", "wellness-booking"] },
+  { label: "Property manager", href: "/pm/gates", routes: ["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"] },
+  { label: "Directories", href: "/directory/trades", routes: ["business-directory", "provider-dashboard", "directory-spec"] },
+  { label: "Admin", href: "/admin", routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset", "admin-ops"] },
+];
+
+function isActive(item: NavItem, routeName: string, pathname: string) {
+  if (pathname === item.href) return true;
+  if (routeName === "traveler-spec") return false; // several paths share this route — match by pathname only
+  return Boolean(item.routes?.includes(routeName));
+}
+
+function SidebarLink({ item, routeName, pathname }: { item: NavItem; routeName: string; pathname: string }) {
+  const active = isActive(item, routeName, pathname);
   return (
-    <div className="workspace-frame">
-      <aside className="workspace-sidebar" aria-label="Workspace navigation">
-        <AppLink className="workspace-wordmark" href="/">
-          <img src="/assets/reference/nestystay-logo.png" alt="" />
-          <span>NestyStay</span>
+    <AppLink
+      className={cx(
+        "flex min-h-11 items-center rounded-nav px-3 font-sans text-[13px] font-semibold transition-colors",
+        active ? "bg-yellow/10 text-yellow" : "text-on-dark-nav hover:bg-on-dark-heading/5 hover:text-on-dark-heading",
+      )}
+      href={item.href}
+    >
+      {item.label}
+    </AppLink>
+  );
+}
+
+export function WorkspaceFrame({ routeName, children }: { routeName: string; children: ReactNode }) {
+  const pathname = window.location.pathname;
+  return (
+    <div className="grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink md:grid-cols-[230px_1fr]">
+      <aside aria-label="Workspace navigation" className="flex flex-col gap-[3px] bg-deep p-5 px-3.5">
+        <AppLink className="flex items-center gap-2 px-2 pb-3.5" href="/">
+          <EmblemRoundel size={32} />
+          <span className="text-[11px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
         </AppLink>
-        <nav className="workspace-nav">
-          {workspaceItems.map((item) => (
-            <AppLink
-              key={item.label}
-              className={item.routes.includes(routeName) ? "workspace-nav-item is-active" : "workspace-nav-item"}
-              href={item.href}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </AppLink>
-          ))}
-        </nav>
+        {travelerItems.map((item) => (
+          <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />
+        ))}
+        <div className="mx-3 mb-1 mt-3 border-t border-on-dark-faint/25 pt-3 text-[10px] font-bold tracking-[0.18em] text-on-dark-faint">
+          WORKSPACES
+        </div>
+        {workspaceItems.map((item) => (
+          <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />
+        ))}
+        <AppLink
+          className="mt-auto flex min-h-11 items-center rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-muted transition-colors hover:text-on-dark-heading"
+          href="/logout"
+        >
+          Sign out
+        </AppLink>
       </aside>
-      <main className="workspace-content">{children}</main>
+      <div className="flex min-h-screen min-w-0 flex-col">
+        <main className="w-full max-w-[1060px] flex-1 px-[clamp(20px,3.5vw,44px)] py-9">{children}</main>
+        <footer className="flex justify-center bg-footer px-6 py-[18px]">
+          <span className="text-[13px] text-on-dark-muted">
+            nestystay.net ·{" "}
+            <a className="text-on-dark-muted hover:text-on-dark-body" href="https://wa.me/17542482435">
+              754-248-2435
+            </a>
+          </span>
+        </footer>
+      </div>
     </div>
   );
 }

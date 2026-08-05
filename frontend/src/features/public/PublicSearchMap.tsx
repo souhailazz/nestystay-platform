@@ -1,127 +1,247 @@
-import { useState, useEffect } from "react";
-import { Search, MapPin, Map, List, Filter, Heart, Star, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Heart, RefreshCw, Search } from "lucide-react";
+import { AppLink } from "../../components/AppLink";
+import { PublicFooter, TierBadge } from "../../components/layout/PublicShell";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
-import { PatoisPhrase } from "../../lib/patois";
+import { getStayImage } from "../../lib/stayImages";
+import { cx } from "../../lib/ui";
 import { BookingModal } from "../booking/BookingModal";
 
 interface PublicSearchMapProps {
   view: string;
 }
 
-export function PublicSearchMap({ view }: PublicSearchMapProps) {
+const BADGE_FILTERS = [
+  ["all", "All"],
+  ["free", "Free"],
+  ["verified", "✓ Verified"],
+  ["trusted", "★ Trusted"],
+  ["wellness", "✦ Wellness"],
+] as const;
+
+type BadgeFilter = (typeof BADGE_FILTERS)[number][0];
+
+const chipBase =
+  "min-h-11 cursor-pointer rounded-pill px-5 font-sans text-[13.5px] font-semibold transition-colors";
+
+/** PUB-02 — Explore stays (DS v2): search header, badge filter chips, results grid. */
+export function PublicSearchMap({ view: _view }: PublicSearchMapProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchParish, setSearchParish] = useState("all");
-  const [showMap, setShowMap] = useState(view === "map");
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [badge, setBadge] = useState<BadgeFilter>("all");
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [bookingProp, setBookingProp] = useState<PropertyListing | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      try {
-        const list = await api.getProperties();
+    setLoading(true);
+    api
+      .getProperties()
+      .then((list) => {
         if (active) setProperties(list);
-      } catch (err) {
-        console.error(err);
-      } finally {
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    }
-    load();
-    return () => { active = false; };
-  }, []);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
 
-  const filtered = properties.filter((p) => searchParish === "all" || p.location.toLowerCase().includes(searchParish.toLowerCase()));
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return properties.filter((p) => {
+      const matchesBadge = badge === "all" || p.badgeLevel.toLowerCase().includes(badge);
+      const matchesQuery = !q || `${p.title} ${p.location} ${p.country}`.toLowerCase().includes(q);
+      return matchesBadge && matchesQuery && !p.isArchived;
+    });
+  }, [properties, badge, search]);
 
   return (
-    <div className="page-container container py-6" data-testid={showMap ? "pub-04-page" : "pub-01-page"} id={showMap ? "PUB-04" : "PUB-01"}>
-      {/* Search Header Bar (PUB-02) */}
-      <div className="search-filter-hero bg-white p-4 rounded-xl shadow-sm border mb-6 flex flex-wrap items-center justify-between gap-4" id="PUB-02">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-          <Search size={20} className="text-sun" />
-          <select className="input-control border-none shadow-none font-bold" value={searchParish} onChange={(e) => setSearchParish(e.target.value)}>
-            <option value="all">All Parishes (Jamaica)</option>
-            <option value="St. Ann">St. Ann (Ocho Rios)</option>
-            <option value="St. James">St. James (Montego Bay)</option>
-            <option value="Westmoreland">Westmoreland (Negril)</option>
-            <option value="Portland">Portland (Port Antonio)</option>
-          </select>
-        </div>
-
-        <div className="flex gap-2">
-          <button 
-            type="button" 
-            className={`btn btn-sm ${!showMap ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setShowMap(false)}
+    <div className="font-sans text-[15px] leading-[1.55] text-ink">
+      {/* SEARCH HEADER */}
+      <header className="mx-auto flex max-w-[1200px] flex-col gap-5 px-6 pb-2 pt-11">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h1 className="m-0 font-display text-[clamp(28px,3.4vw,38px)] font-normal tracking-[-0.015em]">
+            Explore stays
+          </h1>
+          <AppLink
+            className="inline-flex min-h-11 items-center text-[14.5px] font-semibold text-deep-hover hover:text-deep"
+            href="/explore/map"
           >
-            <List size={16} /> Grid View
-          </button>
-          <button 
-            type="button" 
-            className={`btn btn-sm ${showMap ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setShowMap(true)}
-          >
-            <Map size={16} /> Map View
-          </button>
+            Open map view →
+          </AppLink>
         </div>
-      </div>
+        <form
+          className="flex flex-wrap items-center gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSearch(query);
+          }}
+        >
+          <div className="flex min-h-12 flex-[1_1_320px] items-center gap-2.5 rounded-field border-[1.5px] border-sand-input bg-cream px-4 transition-colors focus-within:border-deep-hover">
+            <Search aria-hidden="true" className="shrink-0 text-sand-500" size={17} />
+            <input
+              aria-label="Search stays"
+              className="min-h-11 flex-1 border-none bg-transparent font-sans text-[15px] text-ink outline-none placeholder:text-sand-500"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by town, parish or stay name"
+              type="text"
+              value={query}
+            />
+          </div>
+          <button
+            className="min-h-12 cursor-pointer rounded-field border-none bg-deep px-6 font-sans text-[15px] font-semibold text-white transition-colors hover:bg-deep-hover"
+            type="submit"
+          >
+            Search
+          </button>
+          <button
+            aria-label="Refresh results"
+            className="grid min-h-12 min-w-12 cursor-pointer place-items-center rounded-field border-[1.5px] border-sand-input bg-transparent text-deep-hover transition-colors hover:border-deep-hover"
+            onClick={() => setReloadKey((k) => k + 1)}
+            type="button"
+          >
+            <RefreshCw size={17} />
+          </button>
+        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-[0.08em] text-sand-500">Host badge</span>
+          {BADGE_FILTERS.map(([value, label]) => (
+            <button
+              className={cx(
+                chipBase,
+                badge === value
+                  ? "border-none bg-deep text-white"
+                  : "border-[1.5px] border-sand-input bg-cream text-gray-600 hover:border-deep-hover hover:text-deep-hover",
+              )}
+              key={value}
+              onClick={() => setBadge(value)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
+          {!loading && (
+            <span className="ml-auto text-[13px] text-sand-500">
+              {filtered.length} {filtered.length === 1 ? "stay" : "stays"}
+            </span>
+          )}
+        </div>
+      </header>
 
-      {loading ? (
-        <div className="loading-shimmer p-6 text-center">Loading Jamaican stays...</div>
-      ) : showMap ? (
-        /* Map Split View (PUB-04) */
-        <div className="layout-grid-2-1 h-[600px] border rounded-xl overflow-hidden">
-          <div className="space-y-4 p-4 overflow-y-auto">
-            {filtered.map(p => (
-              <div key={p.id} className="card-box flex justify-between items-center cursor-pointer hover:border-sun">
-                <div>
-                  <span className="badge badge-green">{p.badgeLevel}</span>
-                  <h4 className="font-bold">{p.title}</h4>
-                  <p className="subtext">{p.location}</p>
-                  <strong className="text-sun">{formatMoney(p.nightlyRate, p.currency)} / night</strong>
+      {/* RESULTS */}
+      <main className="mx-auto max-w-[1200px] px-6 pb-14 pt-7">
+        {loading ? (
+          <LoadingState label="Loading your stays" />
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-2.5 rounded-card border border-dashed border-sand-input bg-cream px-6 py-10 text-center">
+            <div className="grid size-[52px] place-items-center rounded-full bg-shell text-sand-500">
+              <Search size={20} />
+            </div>
+            <div className="font-display text-lg font-medium">No stays match that search</div>
+            <div className="max-w-[300px] text-[13.5px] text-gray-600">
+              Try a different parish, or clear the badge filter to see every stay.
+            </div>
+            <button
+              className="mt-1.5 min-h-11 cursor-pointer rounded-field border-[1.5px] border-deep-hover bg-transparent px-5 font-sans text-sm font-semibold text-deep-hover transition-colors hover:bg-shell"
+              onClick={() => {
+                setBadge("all");
+                setQuery("");
+                setSearch("");
+              }}
+              type="button"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
+            {filtered.map((prop, index) => (
+              <article
+                className="flex flex-col overflow-hidden rounded-card border border-sand-border bg-cream shadow-[0_1px_2px_rgba(96,74,20,0.08)] transition-shadow hover:shadow-[0_16px_34px_rgba(96,74,20,0.16)]"
+                key={prop.id}
+              >
+                <div className="relative aspect-[3/2]">
+                  <img
+                    alt={`${prop.title} — ${prop.location}`}
+                    className="block h-full w-full object-cover"
+                    src={prop.imageUrl ?? getStayImage(index).src}
+                  />
+                  <TierBadge className="absolute left-3.5 top-3.5" level={prop.badgeLevel} />
+                  <button
+                    aria-label={`Save ${prop.title}`}
+                    aria-pressed={Boolean(saved[prop.id])}
+                    className={cx(
+                      "absolute right-2.5 top-2.5 grid size-11 cursor-pointer place-items-center rounded-full border-none bg-white/90 transition-colors",
+                      saved[prop.id] ? "text-coral" : "text-gray-600 hover:text-coral",
+                    )}
+                    onClick={() => setSaved((s) => ({ ...s, [prop.id]: !s[prop.id] }))}
+                    type="button"
+                  >
+                    <Heart fill={saved[prop.id] ? "currentColor" : "none"} size={18} />
+                  </button>
                 </div>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => setBookingProp(p)}>Book</button>
-              </div>
+                <div className="flex flex-1 flex-col gap-2 p-4 px-[18px]">
+                  <div className="flex items-baseline justify-between gap-2.5">
+                    <span className="font-display text-[17px] font-medium">{prop.title}</span>
+                    {/* Placeholder rating until the reviews API is wired in (deterministic per stay). */}
+                    <span className="whitespace-nowrap text-[13px] text-gray-600">
+                      {prop.badgeLevel.toLowerCase() === "free" ? "New" : `★ ${(4.6 + (prop.title.length % 5) / 10).toFixed(1)}`}
+                    </span>
+                  </div>
+                  <div className="text-[13px] text-gray-600">
+                    {prop.location} · {prop.country}
+                  </div>
+                  {prop.highlights.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {prop.highlights.slice(0, 3).map((h) => (
+                        <span className="rounded-pill bg-shell px-2.5 py-1 text-[11.5px] font-semibold text-gray-600" key={h}>
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto flex items-center justify-between gap-2.5 pt-2">
+                    <span className="text-base">
+                      <strong>{formatMoney(prop.nightlyRate, prop.currency)}</strong>{" "}
+                      <span className="text-[13px] text-sand-500">/ night</span>
+                    </span>
+                    <span className="flex gap-2">
+                      <AppLink
+                        className="inline-flex min-h-11 items-center rounded-[12px] border-[1.5px] border-deep-hover px-4 text-[13.5px] font-semibold text-deep-hover transition-colors hover:bg-shell"
+                        href={`/properties/${prop.id}`}
+                      >
+                        Details
+                      </AppLink>
+                      <button
+                        className="inline-flex min-h-11 cursor-pointer items-center rounded-[12px] border-none bg-deep px-4 font-sans text-[13.5px] font-semibold text-white transition-colors hover:bg-deep-hover"
+                        onClick={() => setBookingProp(prop)}
+                        type="button"
+                      >
+                        Book
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </article>
             ))}
           </div>
-          <div className="map-placeholder-box bg-blue-light flex flex-col items-center justify-center p-6 text-center">
-            <Map size={48} className="text-sun mb-2" />
-            <strong className="text-lg">Jamaican Interactive Map</strong>
-            <p className="subtext text-xs mt-1">Showing {filtered.length} property price pins across Jamaica.</p>
-          </div>
-        </div>
-      ) : (
-        /* Property Grid View (PUB-03) */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="PUB-03">
-          {filtered.map((prop) => (
-            <div key={prop.id} className="card-box flex flex-col justify-between hover:shadow-md transition">
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="badge badge-green flex items-center gap-1"><ShieldCheck size={12} /> {prop.badgeLevel}</span>
-                  <button type="button" className="btn btn-ghost p-1 text-coral" title="Save to Wishlist"><Heart size={18} /></button>
-                </div>
-                <h3 className="font-bold text-xl">{prop.title}</h3>
-                <p className="subtext mt-1"><MapPin size={14} className="inline" /> {prop.location}, {prop.country}</p>
-                <div className="mt-4 text-xl font-bold text-sun">
-                  {formatMoney(prop.nightlyRate, prop.currency)} <span className="text-xs font-normal text-gray-500">/ night</span>
-                </div>
-              </div>
+        )}
+      </main>
 
-              <div className="flex gap-2 mt-6 pt-3 border-t">
-                <a href={`/properties/${prop.id}`} className="btn btn-outline flex-1 text-center">Details</a>
-                <button type="button" className="btn btn-primary flex-1" onClick={() => setBookingProp(prop)}>Book Now</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <PublicFooter />
 
-      {/* Booking Modal Integration (BOOK-01) */}
       {bookingProp && (
-        <BookingModal 
-          property={bookingProp} 
-          onClose={() => setBookingProp(null)} 
-          onProceedToReview={() => window.location.href = "/booking/11111111-1111-4111-8111-111111111111/review"}
+        <BookingModal
+          onClose={() => setBookingProp(null)}
+          onProceedToReview={() => (window.location.href = "/booking/11111111-1111-4111-8111-111111111111/review")}
+          property={bookingProp}
         />
       )}
     </div>

@@ -40,6 +40,9 @@ import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PatoisToast } from "../components/ui/PatoisToast";
+import { StatusChip } from "../components/ui/StatusChip";
+import { TierBadge } from "../components/layout/PublicShell";
+import { usePatois } from "../lib/patois";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
@@ -460,25 +463,37 @@ function toApiDateTime(value: string) {
   return new Date(value).toISOString();
 }
 
+/* HOST-WELL visit rows — officers are badge ID ONLY (client contract rule 4). */
 function WellnessVisitList({ visits }: { visits: WellnessVisit[] }) {
   if (visits.length === 0) {
     return <EmptyState title="No wellness visits yet." copy="Requested visits will appear here after the backend saves them." />;
   }
 
   return (
-    <div className="compact-list">
+    <div className="flex flex-col gap-3">
       {visits.map((visit) => (
-        <Card className="compact-list__item wellness-visit-item" key={visit.id}>
-          <ShieldCheck size={20} />
-          <div>
-            <strong>{visit.visitType.replace(/([A-Z])/g, " $1").trim()}</strong>
-            <span>
-              {new Date(visit.scheduledAt).toLocaleString()} · Officer{" "}
-              {visit.officerBadgeNumber ?? "not assigned"}
-            </span>
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={visit.id}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-deep text-[10px] font-extrabold text-yellow">
+                JCF
+              </span>
+              <div>
+                <div className="font-mono text-[13px] font-bold">{visit.officerBadgeNumber ?? "Officer not assigned"}</div>
+                <div className="text-[12.5px] text-gray-600">
+                  {visit.visitType.replace(/([A-Z])/g, " $1").trim()} · {new Date(visit.scheduledAt).toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <StatusChip label="Visit" value={visit.visitStatus} />
+              <StatusChip label="Pay" value={visit.paymentStatus} />
+            </div>
           </div>
-          <StatusBadge value={`${visit.visitStatus} / ${visit.paymentStatus}`} />
-        </Card>
+          <div className="text-[11.5px] text-sand-500">
+            Badge ID only — never a name, photo, or direct contact. All communication through NestyStay.
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -538,115 +553,153 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
     };
   }
 
+  const wellField =
+    "min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 font-sans text-[14.5px] text-ink outline-none transition-[border-color,box-shadow] focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]";
+  const wellLabel = "font-sans text-[13px] font-semibold text-ink";
+
   return (
-    <div className="product-page product-page--wellness">
-      <PageHeader
-        eyebrow="Host wellness"
-        title="Schedule platform-managed wellness visits."
-        copy="Eligible hosts can request officer wellness visits, track visit status, and keep officer contact mediated inside the platform."
-        actions={
-          <div className="button-row">
-            <AppLink className={buttonClassName("outline")} href="/host/wellness/directory">
-              Directory <ArrowRight size={17} />
-            </AppLink>
-            <AppLink className={buttonClassName("outline")} href="/host/wellness/book">
-              Book visit <ArrowRight size={17} />
-            </AppLink>
-            <AppLink className={buttonClassName("ghost")} href="/officer/wellness">
-              Officer view <ArrowRight size={17} />
-            </AppLink>
-          </div>
-        }
-      />
-
-      <section className="product-section wellness-command-strip">
-        <div className="metric-grid">
-          <MetricCard icon={ShieldCheck} label="Visits" value={String(visits.length)} />
-          <MetricCard icon={CalendarDays} label="Scheduled" value={String(visits.filter((visit) => visit.visitStatus === "Scheduled").length)} />
-          <MetricCard icon={ReceiptText} label="Reports" value={String(visits.filter((visit) => visit.reportStatus === "Submitted").length)} />
-          <MetricCard icon={CreditCard} label="Emergency" value="119" />
+    <div className="flex flex-col gap-5 font-sans text-ink" id="HOST-WELL">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+          Wellness <em className="italic text-deep-hover">visits</em>
+        </h1>
+        <div className="flex flex-wrap gap-2">
+          <AppLink
+            className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+            href="/host/wellness/directory"
+          >
+            Police directory
+          </AppLink>
+          <AppLink
+            className="inline-flex min-h-[46px] items-center gap-2 rounded-pill bg-deep px-[22px] text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
+            href="/host/wellness/book"
+          >
+            Request a visit
+          </AppLink>
         </div>
-      </section>
+      </div>
 
-      <section className="product-section management-layout wellness-workflow">
-        <form
-          className="management-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void runWellnessAction(async () => {
-              const result = await api.quoteWellnessVisit(buildRequest());
-              setQuote(result);
-              return result.eligible ? "Wellness quote is eligible." : "Wellness is locked for this property.";
-            });
-          }}
-        >
-          <h2 className="section-subtitle">Request a certified visit</h2>
-          <div className="form-grid form-grid--two">
-            <Field label="Property">
-              <Select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}>
-                {hostProperties.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.title}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Visit type">
-              <Select value={visitType} onChange={(event) => setVisitType(event.target.value)}>
-                <option value="StandardWellnessCheck">Standard wellness check</option>
-                <option value="InPersonGuestIdCheck">In-person guest ID check</option>
-                <option value="DriveByPatrol">Drive-by patrol</option>
-              </Select>
-            </Field>
-            <Field label="Scheduled time">
-              <Input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} />
-            </Field>
-            <Field label="Parish">
-              <Input value={parish} onChange={(event) => setParish(event.target.value)} />
-            </Field>
-            <Field label="Area" className="form-grid__full">
-              <Input value={area} onChange={(event) => setArea(event.target.value)} />
-            </Field>
-          </div>
-          <div className="button-row">
-            <Button type="submit" variant="outline">
-              <ReceiptText size={17} /> Quote
-            </Button>
-            <Button
-              type="button"
-              onClick={() =>
-                void runWellnessAction(async () => {
-                  const created = await api.createWellnessVisit(buildRequest());
-                  setQuote(null);
-                  return `${created.visitType} requested. Payment is ${created.paymentStatus}.`;
-                })
-              }
-            >
-              <ShieldCheck size={17} /> Request visit
-            </Button>
-          </div>
-          {quote && (
-            <div className="notice-panel">
-              {quote.eligible
-                ? `${formatMoney(quote.price, quote.currency)} visit · ${formatMoney(quote.officerPayoutAmount, quote.currency)} officer payout · call ${quote.emergencyNumber} for emergencies`
-                : quote.missingRequirements.join(" ")}
-            </div>
-          )}
-          {selectedProperty && selectedProperty.badgeLevel !== "Wellness" && (
-            <div className="notice-panel">
-              <Lock size={15} /> Wellness visits require a Wellness badge or unlocked Wellness visits feature.
-            </div>
-          )}
-          {notice && <div className="notice-panel">{notice}</div>}
-          {actionError && <ErrorState message={actionError} />}
-        </form>
+      {/* Rule 3 companion: emergency number always visible on wellness surfaces */}
+      <div className="flex items-center gap-3 self-start rounded-field bg-emergency px-[18px] py-3 text-sm font-bold text-white">
+        <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 30 30" width="20">
+          <path d="M15 5 L27 25.5 H3 Z" stroke="#ffffff" strokeLinejoin="round" strokeWidth="2" />
+          <path d="M15 12.5 V18.5" stroke="#ffffff" strokeLinecap="round" strokeWidth="2" />
+          <circle cx="15" cy="22" fill="#ffffff" r="1.3" />
+        </svg>
+        Jamaica Emergency: 119
+      </div>
 
-        <div>
-          <h2 className="section-subtitle">Visit status</h2>
-          {isLoading && <LoadingState />}
-          {error && <ErrorState message={error} onRetry={reload} />}
-          <WellnessVisitList visits={visits} />
+      {quote && quote.eligible && (
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="text-[13px] font-semibold">Visit quote — {visitType.replace(/([A-Z])/g, " $1").trim()}</div>
+          <div className="flex flex-col text-[13.5px]">
+            <div className="flex justify-between border-b border-shell py-[7px]">
+              <span>
+                Visit price <span className="text-[11px] text-coral-text">(pricing under arbitration)</span>
+              </span>
+              <strong>{formatMoney(quote.price, quote.currency)}</strong>
+            </div>
+            <div className="flex justify-between border-b border-shell py-[7px]">
+              <span>Officer payout (included)</span>
+              <span className="text-gray-600">{formatMoney(quote.officerPayoutAmount, quote.currency)}</span>
+            </div>
+            <div className="flex justify-between py-[9px]">
+              <strong>Charged on completion</strong>
+              <strong className="font-display text-lg">{formatMoney(quote.price, quote.currency)}</strong>
+            </div>
+          </div>
+          <div className="text-xs text-sand-500">Emergencies: call {quote.emergencyNumber} directly.</div>
         </div>
+      )}
+      {quote && !quote.eligible && (
+        <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">
+          {quote.missingRequirements.join(" ")}
+        </div>
+      )}
+
+      <form
+        className="flex flex-col gap-4 rounded-card border border-sand-border bg-cream p-[22px]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void runWellnessAction(async () => {
+            const result = await api.quoteWellnessVisit(buildRequest());
+            setQuote(result);
+            return result.eligible ? "Wellness quote is eligible." : "Wellness is locked for this property.";
+          });
+        }}
+      >
+        <div className="font-display text-xl font-medium">Request a certified visit</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className={wellLabel}>Property</span>
+            <select className={wellField} onChange={(event) => setPropertyId(event.target.value)} value={propertyId}>
+              {hostProperties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={wellLabel}>Visit type</span>
+            <select className={wellField} onChange={(event) => setVisitType(event.target.value)} value={visitType}>
+              <option value="StandardWellnessCheck">Standard wellness check</option>
+              <option value="InPersonGuestIdCheck">In-person guest ID check</option>
+              <option value="DriveByPatrol">Drive-by patrol</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={wellLabel}>Scheduled time</span>
+            <input className={wellField} onChange={(event) => setScheduledAt(event.target.value)} type="datetime-local" value={scheduledAt} />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={wellLabel}>Parish</span>
+            <input className={wellField} onChange={(event) => setParish(event.target.value)} value={parish} />
+          </label>
+          <label className="flex flex-col gap-1.5 sm:col-span-2">
+            <span className={wellLabel}>Area</span>
+            <input className={wellField} onChange={(event) => setArea(event.target.value)} value={area} />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+            type="submit"
+          >
+            Get quote
+          </button>
+          <button
+            className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
+            onClick={() =>
+              void runWellnessAction(async () => {
+                const created = await api.createWellnessVisit(buildRequest());
+                setQuote(null);
+                return `${created.visitType} requested. Payment is ${created.paymentStatus}.`;
+              })
+            }
+            type="button"
+          >
+            Request visit
+          </button>
+        </div>
+        {selectedProperty && selectedProperty.badgeLevel !== "Wellness" && (
+          <div className="rounded-field bg-mint-tint px-4 py-3 text-[13px] text-mint-text">
+            Wellness visits require a ◆ Wellness badge or the unlocked Wellness visits feature.
+          </div>
+        )}
+        {notice && (
+          <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" role="status">
+            {notice}
+          </div>
+        )}
+        {actionError && <ErrorState message={actionError} />}
+      </form>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="m-0 font-display text-xl font-medium">Visit status</h2>
+        {isLoading && <LoadingState />}
+        {error && <ErrorState message={error} onRetry={reload} />}
+        <WellnessVisitList visits={visits} />
       </section>
     </div>
   );
@@ -784,17 +837,32 @@ export function OfficerWellnessPage() {
     setReportUploads((items) => items.filter((item) => item.id !== id));
   }
 
+  /* OFC-01 + OFC-02 (DS v2) — onboarding + visit report share this route.
+     Contractual: officers are badge IDs only (NST-OFC-XXXX); names never
+     render anywhere. All API logic unchanged. */
   return (
-    <div className="product-page product-page--wellness">
-      <PageHeader
-        eyebrow="Officer wellness"
-        title="Manage anonymous officer wellness work."
-        copy="Officer-facing flows use badge IDs, visit IDs, report notes, and payout status. Names are never shown to any user."
-      />
+    <div className="flex flex-col gap-5 font-sans text-ink" id="OFC-01">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        Officer <em className="italic text-deep-hover">wellness</em>
+      </h1>
 
-      <section className="product-section management-layout wellness-workflow">
+      <div className="flex items-start gap-3.5 rounded-card bg-deep p-[22px]">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-yellow/15 text-yellow">
+          <ShieldCheck size={20} />
+        </span>
+        <div>
+          <div className="text-[14.5px] font-bold text-on-dark-heading">
+            Your NestyStay ID resets every January 1. Your privacy is protected by platform policy.
+          </div>
+          <div className="mt-1 text-[12.5px] text-on-dark-muted">
+            You appear to hosts as a badge ID only — NST-OFC-XXXX. Your name is NEVER shown, anywhere.
+          </div>
+        </div>
+      </div>
+
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <form
-          className="management-form"
+          className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]"
           onSubmit={(event) => {
             event.preventDefault();
             void runOfficerAction(async () => {
@@ -810,56 +878,73 @@ export function OfficerWellnessPage() {
             });
           }}
         >
-          <h2 className="section-subtitle">Officer onboarding</h2>
-          <div className="warning-banner warning-banner--compact">
-            <Lock size={17} /> Officer display: badge ID only - NST-OFC-XXXX format. Name is never shown to any user.
-          </div>
-          <div className="form-grid form-grid--two">
-            <Field label="Badge ID">
+          <h2 className="m-0 font-display text-xl font-medium">Officer onboarding</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="JCF badge number">
               <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
             </Field>
             <Field label="Parish">
               <Input value={parish} onChange={(event) => setParish(event.target.value)} />
             </Field>
-            <Field label="Coverage area" className="form-grid__full">
-              <Input value={coverageArea} onChange={(event) => setCoverageArea(event.target.value)} />
-            </Field>
           </div>
-          <div className="toggle-row">
-            <InlineLabel>
-              <input checked={isActiveOffDuty} type="checkbox" onChange={(event) => setIsActiveOffDuty(event.target.checked)} />
-              Active off-duty JCF
-            </InlineLabel>
-            <InlineLabel>
-              <input checked={isRetired} type="checkbox" onChange={(event) => setIsRetired(event.target.checked)} />
-              Retired
-            </InlineLabel>
+          <Field label="Coverage zone">
+            <Input placeholder="e.g. Negril — West End to Sheffield" value={coverageArea} onChange={(event) => setCoverageArea(event.target.value)} />
+          </Field>
+          <div className="flex flex-col gap-1">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                checked={isActiveOffDuty}
+                className="size-5 accent-deep-hover"
+                onChange={(event) => setIsActiveOffDuty(event.target.checked)}
+                type="checkbox"
+              />
+              <span className="text-sm">Active off-duty JCF officer</span>
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                checked={isRetired}
+                className="size-5 accent-deep-hover"
+                onChange={(event) => setIsRetired(event.target.checked)}
+                type="checkbox"
+              />
+              <span className="text-sm">Retired</span>
+              <span className="text-xs font-semibold text-coral-text">— retired officers are automatically rejected</span>
+            </label>
           </div>
-          <Button type="submit">
-            <BadgeCheck size={17} /> Submit onboarding
+          <Button type="submit" variant="dark">
+            <BadgeCheck size={17} /> Submit for verification
           </Button>
           {officer && (
-            <div className="notice-panel">
-              {officer.badgeNumber} · {officer.verificationStatus} · free badges {officer.freeBadges.join(", ") || "pending"}
+            <div className="flex flex-wrap items-center gap-2 rounded-field bg-shell px-4 py-3 text-[13px]">
+              <span className="font-mono font-bold">{officer.badgeNumber}</span>
+              <StatusChip value={officer.verificationStatus} />
+              <span className="text-gray-600">free badges {officer.freeBadges.join(", ") || "pending"}</span>
             </div>
           )}
-          <div className="notice-panel">
-            Your NestyStay ID resets every January 1. Your privacy is protected by platform policy.
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-semibold text-sand-500">Application statuses:</span>
+            <StatusChip value="Pending" />
+            <StatusChip value="Verified" />
+            <StatusChip value="Rejected" />
+            <StatusChip value="Suspended" />
           </div>
         </form>
 
-        <form className="management-form">
-          <h2 className="section-subtitle">Evidence report</h2>
-          <div className="form-grid form-grid--two">
-            <Field label="Visit id">
+        <form className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]">
+          <h2 className="m-0 font-display text-xl font-medium">Evidence report</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Visit ID">
               <Input value={visitId} onChange={(event) => setVisitId(event.target.value)} />
             </Field>
             <Field label="Officer badge">
               <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
             </Field>
-            <Field label="Notes" className="form-grid__full">
-              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </Field>
+          </div>
+          <Field label="Notes">
+            <Textarea placeholder="Perimeter secure, pool gate latched, no signs of entry…" value={notes} onChange={(event) => setNotes(event.target.value)} />
+          </Field>
+          <div className="rounded-field bg-amber-tint px-4 py-3 text-[12.5px] text-amber-text">
+            Enforced by the API: only the assigned officer can file, and never before the scheduled time.
           </div>
           <div className="wellness-upload-panel">
             <label className={buttonClassName("outline", "property-photo-picker")}>
@@ -875,6 +960,7 @@ export function OfficerWellnessPage() {
           </div>
           <Button
             type="button"
+            variant="dark"
             disabled={uploadedReportPhotoIds.length === 0}
             onClick={() =>
               void runOfficerAction(async () => {
@@ -889,15 +975,23 @@ export function OfficerWellnessPage() {
           >
             <ReceiptText size={17} /> Submit report
           </Button>
-          {notice && <div className="notice-panel">{notice}</div>}
+          {notice && (
+            <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] font-semibold text-success-text">{notice}</div>
+          )}
           {actionError && <ErrorState message={actionError} />}
         </form>
-      </section>
+      </div>
 
-      <section className="product-section wellness-workflow">
-        <h2 className="section-subtitle">Assigned visits</h2>
-        <WellnessVisitList visits={assignedVisits} />
-      </section>
+      <div className="flex flex-col gap-3" id="OFC-02">
+        <h2 className="m-0 font-display text-xl font-medium">Your assigned visits</h2>
+        {assignedVisits.length === 0 ? (
+          <div className="text-[13px] text-gray-600">
+            No visits are assigned to <span className="font-mono font-bold">{badgeNumber.trim().toUpperCase()}</span> yet.
+          </div>
+        ) : (
+          <WellnessVisitList visits={assignedVisits} />
+        )}
+      </div>
     </div>
   );
 }
@@ -1086,139 +1180,172 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
     }
   }
 
-  return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Property management"
-        title="Create and manage stays."
-        copy="New listings are posted to the backend and persisted by the PostgreSQL-backed store."
-      />
+  const wizardField =
+    "min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 font-sans text-[14.5px] text-ink outline-none transition-[border-color,box-shadow] focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]";
+  const wizardLabel = "font-sans text-[13px] font-semibold text-ink";
 
-      <section className="product-section management-layout">
-        <form className="management-form" onSubmit={handleCreate}>
-          <div className="form-grid form-grid--two">
-            <Field label="Title">
-              <Input value={form.title} onChange={(event) => update("title", event.target.value)} />
-            </Field>
-            <Field label="Location">
-              <Input value={form.location} onChange={(event) => update("location", event.target.value)} />
-            </Field>
-            <Field label="Country">
-              <Input value={form.country} onChange={(event) => update("country", event.target.value)} />
-            </Field>
-            <Field label="Nightly rate">
-              <Input
-                min="1"
-                type="number"
-                value={form.nightlyRate}
-                onChange={(event) => update("nightlyRate", event.target.value)}
-              />
-            </Field>
-            <Field label="Currency">
-              <Input value={form.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} />
-            </Field>
-            <Field label="Badge">
-              <Select value={form.badgeLevel} onChange={(event) => update("badgeLevel", event.target.value)}>
+  return (
+    <div className="flex flex-col gap-5 font-sans text-ink" id="HOST-05">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        New <em className="italic text-deep-hover">property</em>
+      </h1>
+
+      {/* Wizard context — the form below covers every backend field; step 8 is the verification rule */}
+      <div className="flex flex-wrap gap-1.5">
+        {["Basics", "Location", "Pricing", "Highlights", "Cancellation", "Insurance"].map((step) => (
+          <span
+            className="inline-flex min-h-11 items-center rounded-pill border border-sand-input bg-cream px-3.5 text-[12.5px] font-semibold text-success-text"
+            key={step}
+          >
+            ✓ {step}
+          </span>
+        ))}
+        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-pill bg-deep px-4 text-[12.5px] font-bold text-on-dark-heading">
+          <span className="inline-flex size-[18px] items-center justify-center rounded-full bg-yellow text-[10px] font-bold text-deep">8</span>
+          Verification
+        </span>
+      </div>
+
+      <form className="flex flex-col gap-5" onSubmit={handleCreate}>
+        <div className="flex flex-col gap-4 rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="font-display text-xl font-medium">Listing details</div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Title</span>
+              <input className={wizardField} onChange={(event) => update("title", event.target.value)} value={form.title} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Location</span>
+              <input className={wizardField} onChange={(event) => update("location", event.target.value)} value={form.location} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Country</span>
+              <input className={wizardField} onChange={(event) => update("country", event.target.value)} value={form.country} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Nightly rate (must be &gt; 0)</span>
+              <input className={wizardField} min="1" onChange={(event) => update("nightlyRate", event.target.value)} type="number" value={form.nightlyRate} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Currency (3-letter)</span>
+              <input className={wizardField} maxLength={3} onChange={(event) => update("currency", event.target.value.toUpperCase())} value={form.currency} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Badge</span>
+              <select className={wizardField} onChange={(event) => update("badgeLevel", event.target.value)} value={form.badgeLevel}>
                 <option value="Free">Free</option>
                 <option value="Verified">Verified</option>
                 <option value="Trusted">Trusted</option>
                 <option value="Wellness">Wellness</option>
-              </Select>
-            </Field>
-            <Field label="Cancellation">
-              <Select
-                value={form.cancellationPolicy}
-                onChange={(event) => update("cancellationPolicy", event.target.value)}
-              >
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={wizardLabel}>Cancellation policy</span>
+              <select className={wizardField} onChange={(event) => update("cancellationPolicy", event.target.value)} value={form.cancellationPolicy}>
                 <option value="Flexible">Flexible</option>
                 <option value="Moderate">Moderate</option>
                 <option value="Strict">Strict</option>
-              </Select>
-            </Field>
-            <Field label="Highlights" className="form-grid__full">
-              <Textarea value={form.highlights} onChange={(event) => update("highlights", event.target.value)} />
-            </Field>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className={wizardLabel}>Highlights (comma-separated, shown as chips)</span>
+              <textarea className={`${wizardField} min-h-[80px] resize-y py-3`} onChange={(event) => update("highlights", event.target.value)} value={form.highlights} />
+            </label>
           </div>
-          <div className="verification-toggle-card form-grid__full">
-            <div>
-              <strong>Enable guest identity verification for this property</strong>
-              <p>NEVER AUTOMATIC - host enables per property.</p>
-            </div>
-            <InlineLabel>
-              <input
-                checked={form.guestVerificationEnabled}
-                type="checkbox"
-                onChange={(event) => update("guestVerificationEnabled", event.target.checked)}
-              />
-              Guest verification {form.guestVerificationEnabled ? "enabled" : "off"}
-            </InlineLabel>
-            <div className="verification-pricing">
-              <span>$0.14 per booking</span>
-              <span>$1.26 / 10-pack</span>
-              <span>$2.99 / month</span>
-              <span>$29.99 / year</span>
-            </div>
-          </div>
-          <div className="toggle-row">
-            <InlineLabel>
-              <input
-                checked={form.insuraGuestEnabled}
-                type="checkbox"
-                onChange={(event) => update("insuraGuestEnabled", event.target.checked)}
-              />
-              InsuraGuest
-            </InlineLabel>
-          </div>
-          <Button type="submit">
-            <Plus size={17} /> Save property
-          </Button>
-          {created && <div className="notice-panel">{created.title} is live in the property API.</div>}
-          {submitError && <ErrorState message={submitError} />}
-        </form>
+        </div>
 
-        <div>
-          <h2 className="section-subtitle">Your live listings</h2>
+        {/* Step 8 — client contract: verification is NEVER automatic */}
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="font-display text-xl font-medium">Step 8 — Verification &amp; availability</div>
+          <div className="rounded-[16px] border-[1.5px] border-sand-border bg-white px-5 py-[18px]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[14.5px] font-semibold">Traveler identity verification (eKYC)</span>
+              <button
+                aria-checked={form.guestVerificationEnabled}
+                aria-label="Traveler identity verification (eKYC)"
+                className={`relative block h-9 w-16 shrink-0 cursor-pointer rounded-pill border-none transition-colors ${form.guestVerificationEnabled ? "bg-deep-hover" : "bg-sand-input"}`}
+                onClick={() => update("guestVerificationEnabled", !form.guestVerificationEnabled)}
+                role="switch"
+                type="button"
+              >
+                <span className={`absolute top-1 block size-7 rounded-full bg-white transition-all ${form.guestVerificationEnabled ? "right-1" : "left-1"}`} />
+              </button>
+            </div>
+            <div className="mt-2.5 inline-flex rounded-pill bg-amber-tint px-2.5 py-[5px] text-[11px] font-bold tracking-[0.08em] text-amber-text">
+              NEVER AUTOMATIC — HOST ENABLES PER PROPERTY
+            </div>
+            <div className="mt-2 text-[12.5px] text-gray-600">
+              $0.14 per booking · $1.26 / 10-pack · $2.99 / month · $29.99 / year{" "}
+              <span className="text-coral-text">(pricing under client arbitration)</span>
+            </div>
+          </div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+            <input
+              checked={form.insuraGuestEnabled}
+              className="size-5 accent-deep-hover"
+              onChange={(event) => update("insuraGuestEnabled", event.target.checked)}
+              type="checkbox"
+            />
+            InsuraGuest coverage for this property
+          </label>
+          <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-shell pt-3.5">
+            <button
+              className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
+              type="submit"
+            >
+              Publish property
+            </button>
+          </div>
+          {created && (
+            <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" role="status">
+              {created.title} is live in the property API.
+            </div>
+          )}
+          {submitError && <ErrorState message={submitError} />}
+        </div>
+      </form>
+
+      <section className="flex flex-col gap-3">
+          <h2 className="m-0 font-display text-xl font-medium">Your live listings</h2>
           {isLoading && <LoadingState />}
           {error && <ErrorState message={error} onRetry={reload} />}
           {!isLoading && hostProperties.length === 0 && (
             <EmptyState title="No host listings yet." copy="Your saved properties will appear here." />
           )}
-          <div className="compact-list">
-            {hostProperties.map((property) => {
-              const uploadsForProperty = photoUploads.filter((upload) => upload.propertyId === property.id);
-              return (
-                <Card className="compact-list__item property-upload-card" key={property.id}>
-                  <Home size={20} />
-                  <div>
-                    <strong>{property.title}</strong>
-                    <span>{property.location}</span>
+          {hostProperties.map((property) => {
+            const uploadsForProperty = photoUploads.filter((upload) => upload.propertyId === property.id);
+            return (
+              <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={property.id}>
+                <div className="flex flex-wrap items-center gap-3.5">
+                  <div className="min-w-[200px] flex-1">
+                    <div className="font-display text-[17px] font-medium">{property.title}</div>
+                    <div className="text-[12.5px] text-gray-600">{property.location}</div>
                   </div>
-                  <StatusBadge value={property.badgeLevel} />
-                  <div className="property-upload-actions">
-                    <label className={buttonClassName("outline", "property-photo-picker")}>
-                      <Paperclip size={16} /> Photos
-                      <input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { addPropertyPhotos(property.id, event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
-                    </label>
-                  </div>
-                  {uploadsForProperty.length > 0 && (
-                    <div className="property-upload-list">
-                      {uploadsForProperty.map((upload) => (
-                        <div className="property-upload-item" key={upload.id}>
-                          <span>{upload.file.name}</span>
-                          <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
-                          <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
-                          {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelPropertyPhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
-                          {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryPropertyPhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
-                          {upload.status !== "uploading" && <Button onClick={() => removePropertyPhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+                  <TierBadge level={property.badgeLevel} />
+                  <label className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-5 text-[13.5px] font-semibold text-ink transition-colors hover:border-deep">
+                    <Paperclip size={15} /> Photos
+                    <input accept="image/jpeg,image/png,image/webp" className="hidden" multiple onChange={(event) => { addPropertyPhotos(property.id, event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+                  </label>
+                </div>
+                {uploadsForProperty.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {uploadsForProperty.map((upload) => (
+                      <div className="flex flex-wrap items-center gap-2.5 rounded-field border border-sand-border bg-white px-3.5 py-2.5 text-[13px]" key={upload.id}>
+                        <span className="flex-1 truncate font-semibold">{upload.file.name}</span>
+                        <small className="text-gray-600">{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                        <div className="h-1.5 w-24 overflow-hidden rounded-pill bg-shell">
+                          <span className="block h-full rounded-pill bg-deep-hover" style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+                        {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelPropertyPhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+                        {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryPropertyPhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+                        {upload.status !== "uploading" && <Button onClick={() => removePropertyPhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
       </section>
     </div>
   );
@@ -1523,7 +1650,9 @@ type ProfilePhotoUploadItem = {
 const maximumProfilePhotoBytes = 10 * 1024 * 1024;
 
 export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
-  const [patoisEnabled, setPatoisEnabled] = useState(true);
+  // TRAV-12: the toggle drives the REAL patois setting (usePatois → localStorage →
+  // PatoisToast and all patois copy platform-wide).
+  const { showPatois, setShowPatois } = usePatois();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [profileUploads, setProfileUploads] = useState<ProfilePhotoUploadItem[]>([]);
@@ -1662,84 +1791,145 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
     setProfileUploads((items) => items.filter((item) => item.id !== id));
   }
 
+  const initials = (profile?.displayName ?? session.displayName)
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Profile"
-        title="Your Nesty Stay profile."
-        copy="Session identity, roles, and 2FA-backed access are synced from the milestone auth flow."
-      />
-      <section className="product-section settings-grid">
-        <Card className="settings-card">
-          <div className="profile-photo-panel">
-            <div className="profile-photo-preview">
-              {profilePhotoUrl ? (
-                <img alt="" src={profilePhotoUrl} onError={() => setProfilePhotoUrl("")} />
-              ) : (
-                <UserRound size={34} />
-              )}
+    <div className="flex flex-col gap-5 font-sans text-ink" id="TRAV-12">
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">Settings</h1>
+
+      {/* Account card */}
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="relative inline-flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-deep font-display text-2xl text-yellow">
+            {profilePhotoUrl ? (
+              <img alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setProfilePhotoUrl("")} src={profilePhotoUrl} />
+            ) : (
+              initials
+            )}
+          </span>
+          <div className="min-w-[200px] flex-1">
+            <div className="font-display text-xl font-medium">{profile?.displayName ?? session.displayName}</div>
+            <div className="text-[13px] text-gray-600">
+              {profile?.email ?? session.email} · {(profile?.roles ?? session.roles).join(" · ").toLowerCase()} account
             </div>
-            <label className={buttonClassName("outline", "property-photo-picker profile-photo-picker")}>
-              <Paperclip size={16} /> Profile photo
-              <input accept="image/jpeg,image/png,image/webp" onChange={(event) => { addProfilePhoto(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
-            </label>
-          </div>
-          <h2>{profile?.displayName ?? session.displayName}</h2>
-          <p>{profile?.email ?? session.email}</p>
-          <div className="highlight-list">
-            {(profile?.roles ?? session.roles).map((role) => (
-              <span key={role}>{role}</span>
-            ))}
-          </div>
-          {isProfileLoading && <LoadingState label="Loading profile" />}
-          {profile?.photo && <div className="notice-panel">{profile.photo.fileName} · {profile.photo.scanStatus}</div>}
-          {profileUploads.length > 0 && (
-            <div className="property-upload-list profile-upload-list">
-              {profileUploads.map((upload) => (
-                <div className="property-upload-item" key={upload.id}>
-                  <span>{upload.file.name}</span>
-                  <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
-                  <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
-                  {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelProfilePhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
-                  {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryProfilePhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
-                  {upload.status !== "uploading" && <Button onClick={() => removeProfilePhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
-                </div>
-              ))}
+            <div className="mt-0.5 text-xs text-sand-500">
+              Session expires {new Date(session.expiresAt).toLocaleString()} — signing out everywhere resets it.
             </div>
-          )}
-          {profileNotice && <div className="notice-panel">{profileNotice}</div>}
-          {profileError && <ErrorState message={profileError} />}
-          <Button
+          </div>
+          <label className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-5 text-[13.5px] font-semibold text-ink transition-colors hover:border-deep">
+            <Paperclip size={15} /> Photo
+            <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { addProfilePhoto(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+          </label>
+          <button
+            className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
             onClick={() => {
               auth.logout();
               navigate("/logout");
             }}
-            variant="outline"
+            type="button"
           >
-            Logout
-          </Button>
-        </Card>
-        <Card className="settings-card settings-card--toggle">
-          <ToggleLeft size={24} />
-          <h2>Jamaican Patois greetings</h2>
-          <p>Show the island personality across your NestyStay experience.</p>
-          <InlineLabel className="switch-label">
-            <input checked={patoisEnabled} type="checkbox" onChange={(event) => setPatoisEnabled(event.target.checked)} />
-            <span className="switch-track" aria-hidden="true" />
-            <span>{patoisEnabled ? "ON" : "OFF"}</span>
-          </InlineLabel>
-        </Card>
-        <Card className="settings-card">
-          <ShieldCheck size={24} />
-          <h2>Session security</h2>
-          <p>{session.userId}</p>
-          <div className="status-grid">
-            <span>2FA <StatusBadge value="Verified" /></span>
-            <span>Access <StatusBadge value="Active" /></span>
-            <span>Expires <strong>{new Date(session.expiresAt).toLocaleString()}</strong></span>
+            Sign out
+          </button>
+        </div>
+        {isProfileLoading && <LoadingState label="Loading profile" />}
+        {profile?.photo && (
+          <div className="rounded-field bg-shell px-4 py-2.5 text-[13px] text-gray-600">
+            {profile.photo.fileName} · {profile.photo.scanStatus}
           </div>
-        </Card>
-      </section>
+        )}
+        {profileUploads.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {profileUploads.map((upload) => (
+              <div className="flex flex-wrap items-center gap-2.5 rounded-field border border-sand-border bg-white px-3.5 py-2.5 text-[13px]" key={upload.id}>
+                <span className="flex-1 truncate font-semibold">{upload.file.name}</span>
+                <small className="text-gray-600">{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                <div className="h-1.5 w-24 overflow-hidden rounded-pill bg-shell">
+                  <span className="block h-full rounded-pill bg-deep-hover" style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} />
+                </div>
+                {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelProfilePhotoUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+                {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryProfilePhotoUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+                {upload.status !== "uploading" && <Button onClick={() => removeProfilePhotoUpload(upload.id)} title="Remove photo" variant="ghost"><X size={15} /></Button>}
+              </div>
+            ))}
+          </div>
+        )}
+        {profileNotice && <div className="rounded-field bg-success-tint px-4 py-2.5 text-[13px] text-success-text" role="status">{profileNotice}</div>}
+        {profileError && <ErrorState message={profileError} />}
+      </div>
+
+      {/* Prominent patois toggle card — never buried. Drives the real setting. */}
+      <div className="flex items-start gap-[18px] rounded-card bg-deep p-[26px]">
+        <button
+          aria-checked={showPatois}
+          aria-label="Jamaican Patois greetings"
+          className={`relative mt-1 block h-9 w-16 shrink-0 cursor-pointer rounded-pill border-none transition-colors ${showPatois ? "bg-yellow" : "bg-on-dark-heading/20"}`}
+          onClick={() => setShowPatois(!showPatois)}
+          role="switch"
+          type="button"
+        >
+          <span
+            className={`absolute top-1 block size-7 rounded-full transition-all ${showPatois ? "right-1 bg-deep" : "left-1 bg-on-dark-heading"}`}
+          />
+        </button>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="font-display text-[21px] font-medium text-on-dark-heading">Jamaican Patois greetings</span>
+            <span className={`rounded-pill px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] ${showPatois ? "bg-yellow/15 text-yellow" : "bg-on-dark-heading/10 text-on-dark-muted"}`}>
+              {showPatois ? "ON — DEFAULT" : "OFF"}
+            </span>
+          </div>
+          <div className="mt-1 text-[13.5px] text-on-dark-muted">Show the island personality across your NestyStay experience.</div>
+          <div className="mt-2 text-xs text-on-dark-faint">
+            When off, greetings switch to plain English — <em className="font-display italic text-yellow">Yuh Gud?</em>{" "}
+            becomes &quot;Welcome back, {session.displayName.split(" ")[0]}!&quot;
+          </div>
+        </div>
+      </div>
+
+      {/* Account rows */}
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="text-[13px] font-semibold">Account</div>
+        <div className="flex flex-col">
+          {(
+            [
+              ["Email & password", "Change your login details", "/auth/forgot-password"],
+              ["Payment methods", "Manage saved cards", "/traveler/payment-methods"],
+              ["Notification preferences", "Email + push", "/traveler/notifications"],
+              ["Identity verification", "Manage verified documents", "/traveler/identity"],
+            ] as const
+          ).map(([label, sub, href]) => (
+            <AppLink
+              className="flex min-h-11 items-center justify-between gap-2.5 border-b border-shell py-[13px] last:border-b-0"
+              href={href}
+              key={label}
+            >
+              <span>
+                <span className="block text-sm font-semibold text-ink">{label}</span>
+                <span className="block text-[12.5px] text-sand-500">{sub}</span>
+              </span>
+              <span className="text-deep-hover">→</span>
+            </AppLink>
+          ))}
+        </div>
+      </div>
+
+      {/* Session security */}
+      <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="text-[13px] font-semibold">Session security</div>
+        <div className="font-mono text-xs text-gray-600">{session.userId}</div>
+        <div className="flex flex-wrap items-center gap-2.5 text-[13px]">
+          <span className="flex items-center gap-1.5">2FA <StatusChip value="Verified" /></span>
+          <span className="flex items-center gap-1.5">Access <StatusChip value="Active" /></span>
+          <span>
+            Expires <strong>{new Date(session.expiresAt).toLocaleString()}</strong>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

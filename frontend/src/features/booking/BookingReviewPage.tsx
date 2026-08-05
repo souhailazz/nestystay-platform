@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { ArrowLeft, ShieldCheck, Check, Calendar, Users, MapPin, AlertCircle, Lock } from "lucide-react";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingQuote } from "./types";
-import { PatoisPhrase } from "../../lib/patois";
 import type { AuthController } from "../../hooks/useAuth";
+import {
+  BookingHeading,
+  BookingScaffold,
+  BookingStepper,
+  DEGRESSIVE_NOTE,
+  LineChip,
+  PriceSummary,
+  PropertyMiniHeader,
+  bookingCard,
+  bookingDeepCta,
+  isVerificationLine,
+} from "./BookingShell";
 
 interface BookingReviewPageProps {
   quote: BookingQuote;
@@ -13,6 +23,8 @@ interface BookingReviewPageProps {
   onProceedToCheckout: (bookingId: string, status: string) => void;
 }
 
+/* BOOK-02 (DS v2) — quote review. Booking creation logic unchanged; every fee
+   line comes from the backend quote (degressive tiers computed server-side). */
 export function BookingReviewPage({ quote, details, auth, onBackToModal, onProceedToCheckout }: BookingReviewPageProps) {
   const [billingCountry, setBillingCountry] = useState("JM");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -31,18 +43,21 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
     setLoading(true);
     setError(null);
     try {
-      const created = await api.createBooking({
-        propertyId: quote.property.id,
-        guestUserId: auth.session.userId,
-        checkIn: quote.checkIn,
-        checkOut: quote.checkOut,
-        adults: details.adults,
-        children: details.children,
-        accessibilityNeeds: details.accessibility,
-        protectionPlan: details.protection,
-        billingCountry,
-        termsAccepted: acceptedTerms
-      }, auth.session.accessToken);
+      const created = await api.createBooking(
+        {
+          propertyId: quote.property.id,
+          guestUserId: auth.session.userId,
+          checkIn: quote.checkIn,
+          checkOut: quote.checkOut,
+          adults: details.adults,
+          children: details.children,
+          accessibilityNeeds: details.accessibility,
+          protectionPlan: details.protection,
+          billingCountry,
+          termsAccepted: acceptedTerms,
+        },
+        auth.session.accessToken,
+      );
       onProceedToCheckout(created.id, created.status);
     } catch (err) {
       setError(formatCreateBookingError(err));
@@ -52,129 +67,140 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
   }
 
   return (
-    <div className="page-container container py-6" data-testid="book-02-page" id="BOOK-02">
-      <button type="button" className="btn btn-ghost mb-4" onClick={onBackToModal}>
-        <ArrowLeft size={16} /> Back to Guest Selection
-      </button>
-
-      <div className="layout-grid-2-1">
-        {/* Left Main Review Section */}
-        <div className="review-main-content">
-          <header className="page-header mb-4">
-            <span className="badge badge-sun">BOOK-02</span>
-            <h2>Review Your Booking</h2>
-            <PatoisPhrase phrase="Check Everything Good Good" translation="Double check all your reservation details before paying." />
-          </header>
-
-          {/* Guest Details */}
-          <div className="card-box mb-4">
-            <h3>Guest Details</h3>
-            <div className="info-row">
-              <span className="info-label">Name:</span>
-              <strong>{auth.session?.displayName || "Guest User"}</strong>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Email:</span>
-              <span>{auth.session?.email || "guest@nestystay.local"}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Guests:</span>
-              <span>{details.adults} Adult{details.adults > 1 ? "s" : ""}, {details.children} Child{details.children !== 1 ? "ren" : ""}</span>
-            </div>
-            {details.accessibility && (
-              <div className="info-row">
-                <span className="info-label">Accessibility:</span>
-                <span>{details.accessibility}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Stay & Protection Info */}
-          <div className="card-box mb-4">
-            <h3>Trip Details</h3>
-            <div className="info-row">
-              <span className="info-label"><Calendar size={16} /> Dates:</span>
-              <span>{quote.checkIn} to {quote.checkOut} ({quote.nights} night{quote.nights > 1 ? "s" : ""})</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label"><ShieldCheck size={16} /> Selected Protection:</span>
-              <span className="badge badge-green">{details.protection === "insuraguest" ? "InsuraGuest Full Protection" : "Standard Protection"}</span>
-            </div>
-          </div>
-
-          {/* Billing & Terms */}
-          <div className="card-box mb-4">
-            <h3>Billing Country & Policy Terms</h3>
-            <div className="field-group mb-3">
-              <label className="field-label">Billing Country</label>
-              <select className="input-control" value={billingCountry} onChange={(e) => setBillingCountry(e.target.value)}>
-                <option value="JM">Jamaica 🇯🇲</option>
-                <option value="US">United States 🇺🇸</option>
-                <option value="CA">Canada 🇨🇦</option>
-                <option value="GB">United Kingdom 🇬🇧</option>
-              </select>
-            </div>
-
-            <div className="cancellation-policy-box mb-3">
-              <strong>Cancellation Policy: {quote.property.cancellationPolicy}</strong>
-              <p className="subtext mt-1">
-                Full refund up to 5 days before check-in. Non-refundable platform fees may apply.
-              </p>
-            </div>
-
-            <label className="checkbox-card">
-              <input 
-                type="checkbox" 
-                checked={acceptedTerms} 
-                onChange={(e) => setAcceptedTerms(e.target.checked)} 
-              />
-              <span>
-                I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a>, <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>, and {quote.property.cancellationPolicy} Cancellation Policy.
-              </span>
-            </label>
-          </div>
-
-          {error && (
-            <div className="alert-box alert-error mb-4">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button 
-            type="button" 
-            className="btn btn-primary btn-lg w-full" 
-            disabled={loading || !acceptedTerms} 
-            onClick={handleCreateBooking}
-          >
-            <Lock size={18} /> {loading ? "Creating Reservation..." : "Proceed to Secure Checkout"}
+    <div data-testid="book-02-page" id="BOOK-02">
+    <BookingScaffold
+      aside={
+        <>
+          <PropertyMiniHeader
+            ekycRequired={quote.requiresGuestVerification}
+            subtitle={`${quote.property.location} · ${quote.property.country}`}
+            title={quote.property.title}
+            wellnessHost={(quote.property.badgeLevel ?? "").toLowerCase().includes("well")}
+          />
+          <PriceSummary currency={quote.currency} lines={quote.priceBreakdown ?? []} total={quote.totalAmount} />
+          <div className="text-[11.5px] text-sand-500">{DEGRESSIVE_NOTE}</div>
+          <button className={bookingDeepCta} disabled={loading || !acceptedTerms} onClick={handleCreateBooking} type="button">
+            {loading
+              ? "Creating reservation…"
+              : quote.requiresGuestVerification
+                ? "Continue to identity →"
+                : "Continue to payment →"}
           </button>
-        </div>
+          {!acceptedTerms && (
+            <div className="text-center text-[11.5px] text-sand-500">Accept the terms below to continue.</div>
+          )}
+        </>
+      }
+      stepper={<BookingStepper current={2} />}
+    >
+      <button
+        className="inline-flex min-h-11 cursor-pointer items-center self-start border-none bg-transparent p-0 font-sans text-[13.5px] font-semibold text-deep-hover hover:text-deep"
+        onClick={onBackToModal}
+        type="button"
+      >
+        ← Back to dates
+      </button>
+      <BookingHeading accent="quote" pre="Review your" />
 
-        {/* Right Sidebar: Property & Price Summary */}
-        <div className="review-sidebar">
-          <div className="card-box sticky-top">
-            <div className="property-sidebar-header mb-3">
-              <h3>{quote.property.title}</h3>
-              <p className="subtext"><MapPin size={14} /> {quote.property.location}, {quote.property.country}</p>
+      {/* What's refundable */}
+      <div className={bookingCard}>
+        <div className="text-[13px] font-semibold">What&apos;s refundable</div>
+        <div className="flex flex-col text-sm">
+          {(quote.priceBreakdown ?? []).map((line, idx) => (
+            <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2.5" key={idx}>
+              <span className="flex flex-wrap items-center gap-2">
+                {line.description}
+                {isVerificationLine(line) && line.amount === 0 ? (
+                  <LineChip tone="blue">Required by host</LineChip>
+                ) : line.isRefundable ? (
+                  <LineChip tone="green">Refundable</LineChip>
+                ) : (
+                  <LineChip tone="coral">Non-refundable</LineChip>
+                )}
+              </span>
+              <strong>{formatMoney(line.amount, line.currency)}</strong>
             </div>
-
-            <h4>Price Summary</h4>
-            <ul className="price-line-list">
-              {quote.priceBreakdown.map((line, idx) => (
-                <li key={idx} className="price-line-item">
-                  <span>{line.description}</span>
-                  <span>{formatMoney(line.amount, line.currency)}</span>
-                </li>
-              ))}
-              <li className="price-line-total">
-                <strong>Total Due Now</strong>
-                <strong>{formatMoney(quote.totalAmount, quote.currency)}</strong>
-              </li>
-            </ul>
+          ))}
+          <div className="flex items-center justify-between py-3 text-[15px]">
+            <strong>Total charged at booking</strong>
+            <strong className="font-display text-[22px]">{formatMoney(quote.totalAmount, quote.currency)}</strong>
           </div>
         </div>
       </div>
+
+      {/* Payment schedule */}
+      <div className={bookingCard}>
+        <div className="text-[13px] font-semibold">Payment schedule</div>
+        <div className="text-[13.5px] text-gray-600">
+          Your card is <strong className="text-ink">authorized</strong> now and{" "}
+          <strong className="text-ink">captured</strong> once the host confirms. If verification or the host declines,
+          the authorization is released in full.
+        </div>
+      </div>
+
+      {/* Guest, billing & terms (required by the booking API) */}
+      <div className={bookingCard}>
+        <div className="text-[13px] font-semibold">Guest &amp; billing</div>
+        <div className="flex flex-col gap-1 text-[13.5px] text-gray-600">
+          <div>
+            <span className="font-semibold text-ink">{auth.session?.displayName || "Guest User"}</span> ·{" "}
+            {auth.session?.email || "guest@nestystay.local"}
+          </div>
+          <div>
+            {details.adults} adult{details.adults > 1 ? "s" : ""}, {details.children} child
+            {details.children !== 1 ? "ren" : ""}
+            {details.accessibility ? ` · ${details.accessibility.replaceAll("_", " ")}` : ""}
+          </div>
+          <div>
+            Dates: {quote.checkIn} → {quote.checkOut} ({quote.nights} night{quote.nights > 1 ? "s" : ""})
+          </div>
+        </div>
+        <label className="flex max-w-[280px] flex-col gap-1.5">
+          <span className="text-[13px] font-semibold text-ink">Billing country</span>
+          <select
+            className="min-h-12 rounded-field border-[1.5px] border-sand-input bg-white px-3 font-sans text-[14.5px] text-ink outline-none focus:border-deep-hover"
+            onChange={(e) => setBillingCountry(e.target.value)}
+            value={billingCountry}
+          >
+            <option value="JM">Jamaica</option>
+            <option value="US">United States</option>
+            <option value="CA">Canada</option>
+            <option value="GB">United Kingdom</option>
+          </select>
+        </label>
+        <div className="rounded-field bg-shell px-4 py-3 text-[13px]">
+          <strong>Cancellation policy: {quote.property.cancellationPolicy}</strong>
+          <p className="m-0 mt-1 text-gray-600">
+            Full refund up to 5 days before check-in. Non-refundable platform fees may apply.
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-start gap-2.5 text-[13.5px]">
+          <input
+            checked={acceptedTerms}
+            className="mt-0.5 size-[18px] accent-deep-hover"
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            type="checkbox"
+          />
+          <span>
+            I agree to the{" "}
+            <a className="font-semibold text-deep-hover hover:text-deep" href="/terms" rel="noreferrer" target="_blank">
+              Terms of Service
+            </a>
+            ,{" "}
+            <a className="font-semibold text-deep-hover hover:text-deep" href="/privacy" rel="noreferrer" target="_blank">
+              Privacy Policy
+            </a>
+            , and {quote.property.cancellationPolicy} Cancellation Policy.
+          </span>
+        </label>
+      </div>
+
+      {error && (
+        <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">
+          {error}
+        </div>
+      )}
+    </BookingScaffold>
     </div>
   );
 }

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; }
+  @media (max-width:680px) { .ns-navlink { display:none !important; } }
+  .ns-overlap { margin-top:-150px; }
+  @media (max-width:960px) { .ns-overlap { margin-top:32px; margin-left:0 !important; flex:1 1 320px !important; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .js .ns-rv { opacity:0; transform:translateY(28px); transition:opacity 0.7s ease-out, transform 0.7s ease-out; transition-delay:var(--d,0s); }
+    .js .ns-rv.ns-on { opacity:1; transform:translateY(0); }
+    @keyframes ns-linein { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    .js .ns-line { display:inline-block; background:transparent; opacity:0; animation:ns-linein 0.8s ease-out forwards; animation-delay:var(--d,0s); }
+    @keyframes ns-breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+    .ns-breathe { animation:ns-breathe 6s ease-in-out infinite; }
+    @keyframes ns-b1 { 0%,100% { transform:rotate(-4deg) translateY(0); } 50% { transform:rotate(-4deg) translateY(-6px); } }
+    .ns-b1 { animation:ns-b1 6s ease-in-out infinite; animation-delay:0.9s; }
+    @keyframes ns-b2 { 0%,100% { transform:rotate(3deg) translateY(0); } 50% { transform:rotate(3deg) translateY(-6px); } }
+    .ns-b2 { animation:ns-b2 6s ease-in-out infinite; animation-delay:1.8s; }
+    .ns-zoomimg { transition:transform 0.8s ease-out; }
+    .ns-zoom:hover .ns-zoomimg { transform:scale(1.03); }
+    @keyframes ns-duskpulse { from { opacity:0.7; } to { opacity:1; } }
+    .ns-duskglow { animation:ns-duskpulse 8s ease-in-out infinite alternate; }
+    @keyframes ns-sway { 0%,100% { transform:rotate(-2.5deg); } 50% { transform:rotate(2.5deg); } }
+    .ns-sway { animation:ns-sway 4s ease-in-out infinite; transform-box:view-box; transform-origin:280px 300px; }
+    @keyframes ns-ff { 0%,100% { opacity:0.15; transform:translate(0,0); } 50% { opacity:1; transform:translate(4px,-6px); } }
+    .ns-ff { animation:ns-ff var(--ffd,4s) ease-in-out infinite; animation-delay:var(--ffdel,0s); transform-box:fill-box; }
+    @keyframes ns-twinkle { from { opacity:0.35; } to { opacity:0.9; } }
+    .ns-night { position:relative; }
+    .ns-night::after { content:""; position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle 1px at 22% 14%,rgba(255,255,255,0.6) 0 1px,transparent 2px),radial-gradient(circle 1px at 68% 10%,rgba(255,255,255,0.55) 0 1px,transparent 2px),radial-gradient(circle 1.2px at 86% 20%,rgba(255,255,255,0.5) 0 1px,transparent 2px);background-size:800px 640px; animation:ns-twinkle 6s ease-in-out infinite alternate; }
+    .js .ns-nav { transition:padding 0.3s ease-out, box-shadow 0.3s ease-out; }
+    .js.ns-scrolled .ns-nav { padding:3px 6px 3px 4px; box-shadow:0 18px 44px rgba(4,31,31,0.5); }
+    .ns-arrow { display:inline-block; transition:transform 0.25s ease-out; }
+    .ns-btn:hover .ns-arrow { transform:translateX(4px); }
+    .ns-navlink { position:relative; }
+    .ns-navlink::after { content:""; position:absolute; left:14px; right:14px; bottom:8px; height:1.5px; background:#FFD21F; transform:scaleX(0); transform-origin:left; transition:transform 0.3s ease-out; }
+    .ns-navlink:hover::after { transform:scaleX(1); }
+  }
+</style>
+</helmet>
+<div data-screen-label="PUB-01 Landing" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.6;overflow-x:hidden">
+
+  <!-- FLOATING PILL NAVBAR -->
+  <div style="position:sticky;top:14px;z-index:50;padding:0 clamp(12px,3vw,28px)">
+    <nav class="ns-nav" style="max-width:1140px;margin:0 auto;background:#062B2B;border-radius:999px;box-shadow:0 12px 32px rgba(4,31,31,0.35);display:flex;align-items:center;gap:8px;padding:7px 10px 7px 8px;flex-wrap:wrap">
+      <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:10px;min-height:44px;padding-left:4px">
+        <span style="width:44px;height:44px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none">
+          <img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem — man in a hammock between two coconut palms" style="width:118px;margin:-6px 0 0 -37px;display:block">
+        </span>
+        <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span>
+      </a>
+      <div style="display:flex;gap:2px;flex-wrap:wrap;margin-left:auto;align-items:center">
+        <a href="PUB-02.dc.html" class="ns-navlink" style="color:#C9DAD5;font-size:13.5px;font-weight:600;padding:0 14px;min-height:44px;display:flex;align-items:center;border-radius:999px" style-hover="color:#ffffff">Explore</a>
+        <a href="HOST-01.dc.html" class="ns-navlink" style="color:#C9DAD5;font-size:13.5px;font-weight:600;padding:0 14px;min-height:44px;display:flex;align-items:center;border-radius:999px" style-hover="color:#ffffff">Host</a>
+        <a href="HOST-WELL.dc.html" class="ns-navlink" style="color:#C9DAD5;font-size:13.5px;font-weight:600;padding:0 14px;min-height:44px;display:flex;align-items:center;border-radius:999px" style-hover="color:#ffffff">Wellness</a>
+        <a href="PUB-02.dc.html" class="ns-btn" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:44px;display:flex;align-items:center;padding:0 22px;font-size:13.5px;font-weight:700;margin-left:6px" style-hover="background:#FFDD52;color:#062B2B">Explore stays <span class="ns-arrow" aria-hidden="true">→</span></a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- 01 · GOLDEN HOUR — HERO -->
+  <header style="position:relative;background:#062B2B;margin-top:-72px">
+    <img src="https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?q=80&w=2200&auto=format&fit=crop" alt="Golden light over a lush green river valley in Jamaica" data-depth="0.3" style="position:absolute;left:0;right:0;top:-60px;width:100%;height:calc(100% + 120px);object-fit:cover;opacity:0.78;filter:saturate(1.1) sepia(0.22) contrast(1.04)">
+    <div style="position:absolute;inset:0;background:linear-gradient(178deg,rgba(92,48,10,0.42) 0%,rgba(140,86,20,0.22) 38%,rgba(6,43,43,0.72) 78%,rgba(6,43,43,0.92) 100%)"></div>
+    <div style="position:relative;max-width:1160px;margin:0 auto;padding:clamp(150px,16vw,210px) clamp(20px,3vw,28px) clamp(90px,10vw,130px);display:flex;gap:clamp(28px,5vw,72px);align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 480px;display:flex;flex-direction:column;gap:26px;align-items:flex-start">
+        <div style="display:flex;align-items:center;gap:12px;color:#E9DFC4;font-size:12px;letter-spacing:0.28em;font-weight:600"><span style="width:34px;height:1px;background:#E9DFC4;display:inline-block"></span>01 · GOLDEN HOUR</div>
+        <h1 style="font-family:'Fraunces',serif;font-optical-sizing:auto;font-weight:400;font-size:clamp(52px,8.6vw,116px);line-height:0.98;letter-spacing:-0.015em;color:#FBF7EC;margin:0;text-wrap:balance"><!-- anim: line-by-line reveal on load, 0.8s ease-out, stagger 150ms --><span class="ns-line" style="--d:0s">Touch down.</span><br><span class="ns-line" style="--d:0.15s">Slow down.</span><br><span class="ns-line" style="--d:0.3s">Stay <em style="font-style:italic;color:#FFD21F">golden.</em></span></h1>
+        <p style="color:#DCE6E1;font-size:clamp(15px,1.3vw,17px);max-width:440px;margin:0">Jamaica's own trusted stays platform — verified hosts, wellness security visits, and doors that open like they know you.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="PUB-02.dc.html" class="ns-btn" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:50px;display:flex;align-items:center;gap:10px;padding:0 28px;font-size:15px;font-weight:700" style-hover="background:#FFDD52;color:#062B2B">Explore stays <span class="ns-arrow" aria-hidden="true">→</span></a>
+          <a href="HOST-05.dc.html" style="border:1.5px solid rgba(251,247,236,0.55);color:#FBF7EC;border-radius:999px;min-height:50px;display:flex;align-items:center;padding:0 28px;font-size:15px;font-weight:600" style-hover="border-color:#FBF7EC;color:#FBF7EC">Become a host</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:2px">
+          <div style="display:flex">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop" alt="Traveler portrait" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FBF7EC;display:block">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop" alt="Traveler portrait" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FBF7EC;display:block;margin-left:-10px">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop" alt="Traveler portrait" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FBF7EC;display:block;margin-left:-10px">
+          </div>
+          <div style="font-size:12.5px;color:#DCE6E1"><span style="color:#FFD21F">★★★★★</span> &nbsp;Loved by 2,000+ island travelers</div>
+        </div>
+      </div>
+      <!-- floating featured card -->
+      <div data-depth="0.85" style="flex:0 1 330px;position:relative;transform:rotate(2.5deg);margin:0 auto">
+        <!-- anim: float 6s ease-in-out infinite, translateY ±8px --><div class="ns-breathe" style="background:#FBF7EC;border-radius:22px;box-shadow:0 32px 64px rgba(4,31,31,0.45);overflow:hidden">
+          <div style="position:relative;aspect-ratio:4/3">
+            <img src="https://images.unsplash.com/photo-1416331108676-a22ccb276e35?q=80&w=900&auto=format&fit=crop" alt="Warm-lit villa and pool at dusk above the Negril cliffs" style="width:100%;height:100%;object-fit:cover;display:block">
+            <span style="position:absolute;top:12px;left:12px;background:rgba(6,43,43,0.85);color:#FFD21F;font-size:10px;font-weight:700;letter-spacing:0.18em;padding:6px 12px;border-radius:999px">FEATURED STAY</span>
+          </div>
+          <div style="padding:16px 18px 18px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+            <div>
+              <div style="font-family:'Fraunces',serif;font-weight:500;font-size:19px;color:#12241F">Cliffside Retreat</div>
+              <div style="font-size:12.5px;color:#66705F;margin-top:2px">Negril · Westmoreland parish</div>
+            </div>
+            <div style="font-size:13px;color:#12241F;white-space:nowrap">★ 5.0</div>
+          </div>
+        </div>
+        <!-- anim: float, phase +0.9s --><span data-depth="0.8" style="position:absolute;top:-16px;right:-12px;display:block"><span class="ns-b1" style="display:inline-block;background:#062B2B;color:#FBF7EC;font-size:11.5px;font-weight:600;padding:9px 16px;border-radius:999px;box-shadow:0 10px 24px rgba(4,31,31,0.4);transform:rotate(-4deg)">Dec 12 – 18</span></span>
+        <!-- anim: float, phase +1.8s --><span data-depth="0.9" style="position:absolute;bottom:-26px;left:4px;display:block"><span class="ns-b2" style="display:inline-block;background:#0E4A45;color:#fff;font-size:11.5px;font-weight:700;padding:9px 16px;border-radius:999px;box-shadow:0 10px 24px rgba(4,31,31,0.4);transform:rotate(3deg)">✓ Verified host</span></span>
+      </div>
+    </div>
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:26px;color:#C9DAD5">
+      <span style="font-size:10.5px;letter-spacing:0.3em;font-weight:600">SCROLL</span>
+      <span style="width:1px;height:34px;background:linear-gradient(#C9DAD5,transparent);display:block"></span>
+    </div>
+  </header>
+
+  <!-- 02 · BROAD DAYLIGHT — EXPLORE -->
+  <section style="background:#FAF3E4;padding:clamp(72px,9vw,120px) clamp(20px,3vw,28px) 0">
+    <div style="max-width:1160px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:12px;color:#8A7F5E;font-size:12px;letter-spacing:0.28em;font-weight:600"><span style="width:34px;height:1px;background:#8A7F5E;display:inline-block"></span>02 · BROAD DAYLIGHT</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:18px 0 40px">
+        <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(38px,5.6vw,76px);line-height:1.02;letter-spacing:-0.015em;margin:0;max-width:640px;text-wrap:balance" data-depth="0.92">Four parishes,<br>one <em style="font-style:italic;color:#0E4A45">yard</em> at a time.</h2>
+        <a href="PUB-02.dc.html" style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;font-weight:600;color:#0E4A45" style-hover="color:#062B2B">All stays <span style="width:34px;height:34px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:15px" aria-hidden="true">→</span></a>
+      </div>
+
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:stretch">
+        <!-- large card -->
+        <!-- anim: reveal on viewport entry, stagger 100ms; photo zoom 1.03 on hover --><article class="ns-rv ns-zoom" style="--d:0s;flex:1.7 1 420px;position:relative;border-radius:26px;overflow:hidden;min-height:430px;box-shadow:0 18px 40px rgba(96,74,20,0.16)" style-hover="box-shadow:0 26px 56px rgba(96,74,20,0.24)">
+          <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=1600&auto=format&fit=crop" alt="Villa terrace and pool glowing in warm evening light above the Negril cliffs" class="ns-zoomimg" data-depth="0.9" style="position:absolute;inset:-5% 0;width:100%;height:110%;object-fit:cover">
+          <div style="position:absolute;inset:0;background:linear-gradient(185deg,rgba(6,43,43,0) 40%,rgba(6,43,43,0.82) 100%)"></div>
+          <span style="position:absolute;top:18px;left:18px;display:inline-flex;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#DFF6EF;color:#0E6B57">✦ WELLNESS HOST</span>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:22px 24px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap">
+            <div>
+              <div style="font-family:'Fraunces',serif;font-weight:500;font-size:27px;color:#FBF7EC">Cliffside Retreat</div>
+              <div style="font-size:13px;color:#C9DAD5;margin-top:2px">Negril · Westmoreland</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="color:#FBF7EC;font-size:17px"><strong>$450</strong> <span style="font-size:12.5px;color:#C9DAD5">/ night</span></span>
+              <a href="PUB-04.dc.html" aria-label="Open Cliffside Retreat" style="width:44px;height:44px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:17px" style-hover="background:#0E4A45;color:#FFD21F">→</a>
+            </div>
+          </div>
+        </article>
+        <!-- narrow cards -->
+        <article class="ns-rv ns-zoom" style="--d:0.1s;flex:1 1 260px;position:relative;border-radius:26px;overflow:hidden;min-height:430px;box-shadow:0 18px 40px rgba(96,74,20,0.16)" style-hover="box-shadow:0 26px 56px rgba(96,74,20,0.24)">
+          <img class="ns-zoomimg" src="https://images.unsplash.com/photo-1468413253725-0d5181091126?q=80&w=1000&auto=format&fit=crop" alt="Palm-shaded sandy cove at Treasure Beach" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+          <div style="position:absolute;inset:0;background:linear-gradient(185deg,rgba(6,43,43,0) 40%,rgba(6,43,43,0.82) 100%)"></div>
+          <span style="position:absolute;top:18px;left:18px;display:inline-flex;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#0E4A45;color:#fff">✓ VERIFIED</span>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+            <div>
+              <div style="font-family:'Fraunces',serif;font-weight:500;font-size:21px;color:#FBF7EC">Sea Grape Cottage</div>
+              <div style="font-size:12.5px;color:#C9DAD5;margin-top:2px">Treasure Beach · St. Elizabeth</div>
+              <div style="color:#FBF7EC;font-size:15.5px;margin-top:8px"><strong>$410</strong> <span style="font-size:12px;color:#C9DAD5">/ night</span></div>
+            </div>
+            <a href="PUB-04.dc.html" aria-label="Open Sea Grape Cottage" style="width:44px;height:44px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex:none" style-hover="background:#0E4A45;color:#FFD21F">→</a>
+          </div>
+        </article>
+        <article class="ns-rv ns-zoom" style="--d:0.2s;flex:1 1 260px;position:relative;border-radius:26px;overflow:hidden;min-height:430px;box-shadow:0 18px 40px rgba(96,74,20,0.16)" style-hover="box-shadow:0 26px 56px rgba(96,74,20,0.24)">
+          <img class="ns-zoomimg" src="https://images.unsplash.com/photo-1536376072261-38c75010e6c9?q=80&w=1000&auto=format&fit=crop" alt="Plant-filled creative loft with olive sofa in Kingston" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+          <div style="position:absolute;inset:0;background:linear-gradient(185deg,rgba(6,43,43,0) 40%,rgba(6,43,43,0.82) 100%)"></div>
+          <span style="position:absolute;top:18px;left:18px;display:inline-flex;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#FBF7EC;color:#66705F">FREE HOST</span>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+            <div>
+              <div style="font-family:'Fraunces',serif;font-weight:500;font-size:21px;color:#FBF7EC">Uptown Loft</div>
+              <div style="font-size:12.5px;color:#C9DAD5;margin-top:2px">Kingston · St. Andrew</div>
+              <div style="color:#FBF7EC;font-size:15.5px;margin-top:8px"><strong>$195</strong> <span style="font-size:12px;color:#C9DAD5">/ night</span></div>
+            </div>
+            <a href="PUB-04.dc.html" aria-label="Open Uptown Loft" style="width:44px;height:44px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex:none" style-hover="background:#0E4A45;color:#FFD21F">→</a>
+          </div>
+        </article>
+      </div>
+
+      <!-- overlapping card into HIGH NOON -->
+      <div style="display:flex;justify-content:flex-end;margin-top:18px;position:relative;z-index:5;transform:translateY(84px);margin-bottom:-66px;padding:0 clamp(0px,2vw,24px)">
+        <article style="flex:0 1 460px;display:flex;background:#FBF7EC;border-radius:22px;overflow:hidden;box-shadow:0 26px 56px rgba(60,45,10,0.3)">
+          <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=800&auto=format&fit=crop" alt="Misty ridge in the Blue Mountains" style="width:42%;min-height:150px;object-fit:cover;display:block">
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:4px;justify-content:center">
+            <span style="align-self:flex-start;display:inline-flex;padding:4px 11px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:0.1em;background:#062B2B;color:#FFD21F">★ TRUSTED</span>
+            <div style="font-family:'Fraunces',serif;font-weight:500;font-size:20px;margin-top:4px">Mist Ridge Cabin</div>
+            <div style="font-size:12.5px;color:#66705F">Blue Mountains · St. Andrew</div>
+            <div style="font-size:15px;margin-top:4px"><strong>$230</strong> <span style="font-size:12px;color:#98A08C">/ night</span> <a href="PUB-04.dc.html" style="font-weight:700;font-size:12.5px;margin-left:8px">View →</a></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 · HIGH NOON — YELLOW STATEMENT -->
+  <section style="background:#FFD21F;padding:clamp(120px,14vw,180px) clamp(20px,3vw,28px) clamp(88px,10vw,140px)">
+    <div style="max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:26px">
+      <div style="display:flex;align-items:center;gap:12px;color:#062B2B;font-size:12px;letter-spacing:0.28em;font-weight:700;opacity:0.75"><span style="width:34px;height:1px;background:#062B2B;display:inline-block"></span>03 · HIGH NOON</div>
+      <!-- anim: reveal on viewport entry, 0.7s ease-out --><h2 class="ns-rv" style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(44px,7.4vw,104px);line-height:1;letter-spacing:-0.02em;color:#062B2B;margin:0;max-width:980px;text-wrap:balance">Trust, said in <em style="font-style:italic">broad daylight.</em></h2>
+      <p style="color:#062B2B;font-size:clamp(15px,1.4vw,18px);max-width:540px;margin:0;opacity:0.85">Every host vetted, every visit logged, every message on the record. No fine print, no favors — just the island holding its own standard.</p>
+    </div>
+  </section>
+
+  <!-- 04 · DUSK — SECURITY -->
+  <section style="background:linear-gradient(180deg,#062B2B 0%,#052731 62%,#04222B 100%);padding:0 clamp(20px,3vw,28px) 0;position:relative">
+    <!-- doctor birds — thin distant Vs, dusk sky -->
+    <svg viewBox="0 0 1440 220" aria-hidden="true" data-depth="0.15" style="position:absolute;top:24px;left:0;width:100%;height:220px;pointer-events:none" preserveAspectRatio="xMidYMin slice">
+      <g stroke="#8FA8A2" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.35">
+        <path d="M168 64 Q178 54 188 62 Q198 54 208 64"></path>
+        <path d="M318 128 Q325 121 332 127 Q339 121 346 128"></path>
+        <path d="M520 46 Q528 38 536 44 Q544 38 552 46"></path>
+        <path d="M700 96 Q706 90 712 95 Q718 90 724 96"></path>
+        <path d="M1150 70 Q1159 61 1168 68 Q1177 61 1186 70"></path>
+      </g>
+    </svg>
+    <!-- anim: horizon ember glow, opacity 0.7-1, 8s ease-in-out alternate infinite -->
+    <div class="ns-duskglow" aria-hidden="true" style="position:absolute;left:0;right:0;bottom:-120px;height:260px;background:radial-gradient(ellipse 70% 100% at 50% 100%,rgba(214,110,34,0.28) 0%,rgba(214,110,34,0) 70%);pointer-events:none"></div>
+    <div style="max-width:1160px;margin:0 auto;position:relative">
+      <div style="display:flex;gap:clamp(24px,4vw,56px);flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 420px;display:flex;flex-direction:column;gap:18px;padding-top:clamp(80px,10vw,130px)">
+          <div style="display:flex;align-items:center;gap:12px;color:#8FA8A2;font-size:12px;letter-spacing:0.28em;font-weight:600"><span style="width:34px;height:1px;background:#8FA8A2;display:inline-block"></span>04 · DUSK</div>
+          <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(40px,5.4vw,74px);line-height:1.02;letter-spacing:-0.015em;color:#FBF7EC;margin:0;max-width:600px;text-wrap:balance" data-depth="0.92">While the light goes, someone <em style="font-style:italic;color:#FFD21F">watches.</em></h2>
+          <p style="color:#9FB3AC;font-size:15px;margin:0;max-width:430px">Vetted security professionals keep watch through the night — every visit scheduled, logged and accountable on the platform.</p>
+        </div>
+        <!-- 119 card — overlaps the HIGH NOON boundary above (flows normally at mobile widths) -->
+        <div class="ns-overlap" data-depth="0.88" style="flex:0 1 400px;margin-left:auto;border:1px solid rgba(255,255,255,0.14);border-radius:22px;padding:34px 30px;display:flex;flex-direction:column;gap:18px;background:#04201F;box-shadow:0 34px 70px rgba(2,14,14,0.6);position:relative;z-index:5">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:18px;background:#DC2626;flex:none">
+            <svg width="32" height="32" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+              <path d="M15 5 L27 25.5 H3 Z" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"></path>
+              <path d="M15 12.5 V18.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round"></path>
+              <circle cx="15" cy="22" r="1.3" fill="#ffffff"></circle>
+              <path d="M6.5 4.5 Q4 7 4 10.5 M23.5 4.5 Q26 7 26 10.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"></path>
+            </svg>
+          </span>
+          <div>
+            <div style="color:#FBF7EC;font-family:'Fraunces',serif;font-weight:500;font-size:19px;line-height:1.1;display:flex;align-items:baseline;gap:10px;white-space:nowrap">Jamaica Emergency: <span style="color:#FFD21F;font-weight:600;font-size:52px;letter-spacing:0.01em">119</span></div>
+            <div style="color:#E9DFC4;font-size:12px;letter-spacing:0.16em;font-weight:600;margin-top:8px">POLICE · FIRE · AMBULANCE — ISLAND-WIDE</div>
+          </div>
+          <span style="align-self:flex-start;display:inline-flex;background:#DC2626;color:#fff;font-size:12px;font-weight:700;padding:7px 14px;border-radius:999px;letter-spacing:0.04em">Shown on every property page</span>
+          <p style="color:#E9DFC4;font-size:13.5px;margin:0;opacity:0.92">Under the header, above the gallery, above the fold — on every Jamaican listing, without exception. Never buried in a footer.</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end;margin-top:20px">
+        <!-- anim: reveal on viewport entry, stagger 100ms -->
+        <div class="ns-rv" style="--d:0s;flex:0 1 400px;min-width:250px;border:1px solid rgba(143,168,162,0.35);border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:8px">
+          <div style="color:#FBF7EC;font-family:'Fraunces',serif;font-weight:500;font-size:19px">Badge ID only</div>
+          <p style="color:#9FB3AC;font-size:13px;margin:0">Security professionals are identified by platform badge ID — never by name, photo or direct contact.</p>
+        </div>
+        <div class="ns-rv" style="--d:0.1s;flex:0 1 400px;min-width:250px;border:1px solid rgba(143,168,162,0.35);border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:8px">
+          <div style="color:#FBF7EC;font-family:'Fraunces',serif;font-weight:500;font-size:19px">InsuraGuest protection</div>
+          <p style="color:#9FB3AC;font-size:13px;margin:0">Participating properties carry InsuraGuest coverage for the whole stay — look for the badge on the listing.</p>
+        </div>
+      </div>
+    </div>
+    <!-- dusk horizon: hill + palm silhouettes over a residual ember line, easing into nightfall -->
+    <svg viewBox="0 0 1440 130" preserveAspectRatio="none" aria-hidden="true" data-depth="0.6" style="display:block;width:calc(100% + 2 * clamp(20px,3vw,28px));margin:64px calc(-1 * clamp(20px,3vw,28px)) 0;height:120px">
+      <rect x="0" y="84" width="1440" height="8" fill="#D66E22" opacity="0.12"></rect>
+      <rect x="0" y="89" width="1440" height="3" fill="#D66E22" opacity="0.22"></rect>
+      <path d="M0 130 L0 104 Q180 78 380 96 Q560 110 760 92 Q980 72 1180 94 Q1320 106 1440 98 L1440 130 Z" fill="#041F1F"></path>
+      <g fill="#041F1F">
+        <path d="M292 96 C290 76 286 62 278 52 C288 58 296 70 299 84 C303 70 311 60 322 55 C312 66 306 80 305 96 Z"></path>
+        <path d="M300 52 C292 44 280 40 268 42 C280 46 290 52 296 60 Z M304 52 C312 42 324 38 336 40 C324 45 314 52 308 60 Z"></path>
+        <path d="M1088 98 C1086 80 1082 68 1075 59 C1084 64 1091 75 1094 87 C1097 75 1104 66 1113 62 C1105 71 1100 83 1099 98 Z"></path>
+        <path d="M1096 59 C1089 52 1078 48 1067 50 C1078 53 1087 59 1092 66 Z M1099 59 C1106 51 1117 47 1128 49 C1117 53 1108 59 1103 66 Z"></path>
+      </g>
+    </svg>
+  </section>
+
+  <!-- 05 · NIGHTFALL — THE LOGO COMES ALIVE -->
+  <section id="ns-night" class="ns-night" style="background-color:#041F1F;background-image:radial-gradient(circle 1.1px at 12% 18%,rgba(255,255,255,0.55) 0 1px,transparent 2px),radial-gradient(circle 0.9px at 34% 8%,rgba(255,255,255,0.4) 0 1px,transparent 2px),radial-gradient(circle 1px at 58% 22%,rgba(255,255,255,0.5) 0 1px,transparent 2px),radial-gradient(circle 0.8px at 79% 12%,rgba(255,255,255,0.4) 0 1px,transparent 2px),radial-gradient(circle 1.2px at 91% 28%,rgba(255,255,255,0.45) 0 1px,transparent 2px),radial-gradient(circle 0.9px at 45% 16%,rgba(255,255,255,0.35) 0 1px,transparent 2px);background-size:900px 700px;padding:clamp(84px,10vw,140px) clamp(20px,3vw,28px) 0">
+    <div style="max-width:1160px;margin:0 auto;display:flex;gap:clamp(28px,5vw,72px);align-items:center;flex-wrap:wrap">
+
+      <!-- night scene: the logo, alive -->
+      <div style="flex:1 1 420px;min-width:300px;display:flex;justify-content:center">
+        <svg viewBox="0 0 560 470" style="width:100%;max-width:530px;height:auto;display:block" role="img" aria-label="Night scene of the NestyStay logo — a man resting in a hammock between two coconut palms, fireflies glowing">
+          <defs>
+            <radialGradient id="nsGlow" cx="50%" cy="62%" r="55%">
+              <stop offset="0%" stop-color="#FFD21F" stop-opacity="0.15"></stop>
+              <stop offset="55%" stop-color="#FFD21F" stop-opacity="0.05"></stop>
+              <stop offset="100%" stop-color="#FFD21F" stop-opacity="0"></stop>
+            </radialGradient>
+          </defs>
+          <ellipse cx="280" cy="300" rx="262" ry="215" fill="url(#nsGlow)"></ellipse>
+          <!-- moon (parallax: distant plane) -->
+          <g data-depth="0.1">
+            <circle cx="470" cy="64" r="22" fill="#F3EAC8" opacity="0.85"></circle>
+            <circle cx="479" cy="58" r="19" fill="#041F1F"></circle>
+          </g>
+          <!-- ground -->
+          <ellipse cx="280" cy="424" rx="238" ry="34" fill="#0B332C"></ellipse>
+          <path d="M120 404 q6 -16 10 -2 q6 -14 10 0 Z" fill="#14503F"></path>
+          <path d="M420 406 q6 -16 10 -2 q6 -14 10 0 Z" fill="#14503F"></path>
+          <path d="M268 430 q5 -14 9 -1 q5 -12 9 1 Z" fill="#14503F"></path>
+          <!-- left palm -->
+          <path d="M132 408 C120 330 118 250 138 178 L162 182 C148 254 152 330 164 404 Z" fill="#0C332C"></path>
+          <path d="M150 180 C120 168 88 168 62 186 C96 186 122 192 146 202 Z" fill="#145040"></path>
+          <path d="M150 178 C128 150 100 136 66 138 C98 152 124 166 142 188 Z" fill="#0F4436"></path>
+          <path d="M152 176 C148 144 158 116 182 98 C172 128 168 156 168 184 Z" fill="#145040"></path>
+          <path d="M154 180 C176 154 206 142 240 146 C210 158 186 172 168 192 Z" fill="#0F4436"></path>
+          <path d="M154 184 C184 176 214 180 238 196 C208 194 182 196 162 202 Z" fill="#145040"></path>
+          <path d="M152 182 C142 156 118 140 92 140 C118 154 138 166 148 186 Z" fill="#145040"></path>
+          <path d="M156 178 C168 150 194 132 224 130 C196 146 176 160 166 184 Z" fill="#145040"></path>
+          <path d="M150 186 C124 190 100 202 84 220 C110 208 134 200 156 198 Z" fill="#0F4436"></path>
+          <circle cx="150" cy="196" r="9" fill="#FFD21F"></circle>
+          <circle cx="164" cy="202" r="8" fill="#E8BD12"></circle>
+          <circle cx="140" cy="206" r="8" fill="#E8BD12"></circle>
+          <circle cx="154" cy="210" r="7.5" fill="#FFD21F"></circle>
+          <!-- right palm -->
+          <path d="M428 408 C440 330 442 250 422 178 L398 182 C412 254 408 330 396 404 Z" fill="#0C332C"></path>
+          <path d="M410 180 C440 168 472 168 498 186 C464 186 438 192 414 202 Z" fill="#145040"></path>
+          <path d="M410 178 C432 150 460 136 494 138 C462 152 436 166 418 188 Z" fill="#0F4436"></path>
+          <path d="M408 176 C412 144 402 116 378 98 C388 128 392 156 392 184 Z" fill="#145040"></path>
+          <path d="M406 180 C384 154 354 142 320 146 C350 158 374 172 392 192 Z" fill="#0F4436"></path>
+          <path d="M406 184 C376 176 346 180 322 196 C352 194 378 196 398 202 Z" fill="#145040"></path>
+          <path d="M408 182 C418 156 442 140 468 140 C442 154 422 166 412 186 Z" fill="#145040"></path>
+          <path d="M404 178 C392 150 366 132 336 130 C364 146 384 160 394 184 Z" fill="#145040"></path>
+          <path d="M410 186 C436 190 460 202 476 220 C450 208 426 200 404 198 Z" fill="#0F4436"></path>
+          <circle cx="410" cy="196" r="9" fill="#FFD21F"></circle>
+          <circle cx="396" cy="202" r="8" fill="#E8BD12"></circle>
+          <circle cx="420" cy="206" r="8" fill="#E8BD12"></circle>
+          <circle cx="406" cy="210" r="7.5" fill="#FFD21F"></circle>
+          <!-- anim: hammock sway, rotate ±2.5° about the attachment line, 4s ease-in-out infinite -->
+          <g class="ns-sway">
+          <!-- hammock ropes -->
+          <path d="M158 296 L196 318 M402 296 L364 318" stroke="#0C332C" stroke-width="5" stroke-linecap="round"></path>
+          <!-- hammock -->
+          <path d="M196 318 C240 366 320 366 364 318 C330 396 230 396 196 318 Z" fill="#FFD21F"></path>
+          <path d="M204 326 C244 364 316 364 356 326 C322 380 238 380 204 326 Z" fill="#0E4A45"></path>
+          <!-- hammock rests empty — the yard is waiting -->
+          </g>
+          <!-- anim: fireflies — flicker + slow drift, per-firefly duration 3-6s with phase offsets -->
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:3.2s;--ffdel:0s"><circle cx="98" cy="300" r="6" fill="#FFD21F" opacity="0.16"></circle><circle cx="98" cy="300" r="2" fill="#FFD21F"></circle></g></g>
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:4.1s;--ffdel:0.7s"><circle cx="210" cy="238" r="6" fill="#FFD21F" opacity="0.16"></circle><circle cx="210" cy="238" r="1.8" fill="#FFD21F"></circle></g></g>
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:5.3s;--ffdel:1.4s"><circle cx="352" cy="252" r="6" fill="#FFD21F" opacity="0.16"></circle><circle cx="352" cy="252" r="1.8" fill="#FFD21F"></circle></g></g>
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:3.8s;--ffdel:2.1s"><circle cx="470" cy="316" r="6" fill="#FFD21F" opacity="0.16"></circle><circle cx="470" cy="316" r="2" fill="#FFD21F"></circle></g></g>
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:6s;--ffdel:0.4s"><circle cx="260" cy="398" r="5" fill="#FFD21F" opacity="0.16"></circle><circle cx="260" cy="398" r="1.6" fill="#FFD21F"></circle></g></g>
+          <g data-depth="0.4"><g class="ns-ff" style="--ffd:4.6s;--ffdel:1.9s"><circle cx="430" cy="380" r="5" fill="#FFD21F" opacity="0.16"></circle><circle cx="430" cy="380" r="1.6" fill="#FFD21F"></circle></g></g>
+        </svg>
+      </div>
+
+      <div style="flex:1 1 380px;display:flex;flex-direction:column;gap:24px;align-items:flex-start;padding-bottom:24px">
+        <div style="display:flex;align-items:center;gap:12px;color:#8FA8A2;font-size:12px;letter-spacing:0.28em;font-weight:600"><span style="width:34px;height:1px;background:#8FA8A2;display:inline-block"></span>05 · NIGHTFALL</div>
+        <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(42px,6vw,84px);line-height:1;letter-spacing:-0.015em;color:#FBF7EC;margin:0;text-wrap:balance">Every day ends<br>at your <em style="font-style:italic;color:#FFD21F">yard.</em></h2>
+        <p style="color:#9FB3AC;font-size:clamp(15px,1.3vw,17px);max-width:420px;margin:0">Hammock hung, coconuts heavy, night warm. Your spot is waiting.</p>
+        <a href="PUB-02.dc.html" class="ns-btn" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:50px;display:flex;align-items:center;gap:10px;padding:0 30px;font-size:15px;font-weight:700" style-hover="background:#FFDD52;color:#062B2B">Explore Stays <span class="ns-arrow" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+
+    <!-- FOOTER — the illustration's ground extends full width; thin horizon line -->
+    <footer style="margin:64px calc(-1 * clamp(20px,3vw,28px)) 0;background:#052A22;border-top:1px solid rgba(143,168,162,0.28)">
+      <div style="max-width:1160px;margin:0 auto;padding:34px clamp(20px,3vw,28px) 42px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="width:64px;height:64px;border-radius:50%;background:#F3EAC8;overflow:hidden;display:block;flex:none">
+            <img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem — man in a hammock between two coconut palms" style="width:172px;margin:-10px 0 0 -54px;display:block">
+          </span>
+          <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.22em;color:#F3EAC8">NESTY STAY</span>
+        </div>
+        <div style="font-size:13.5px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></div>
+      </div>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    const doc = document.documentElement;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // static page stays complete
+    doc.classList.add('js');
+    // reveals
+    this._io = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add('ns-on'); this._io.unobserve(e.target); }
+    }), { threshold: 0.15 });
+    // the runtime can replace nodes after mount while streaming/hydrating —
+    // (re-)observe the current .ns-rv nodes now, on load, and after settle delays
+    const vh = () => window.innerHeight;
+    this._observeAll = () => document.querySelectorAll('.ns-rv').forEach((el) => {
+      if (el.classList.contains('ns-on')) return;
+      const r = el.getBoundingClientRect();
+      if (r.top < vh() * 0.9 && r.bottom > 0) { el.classList.add('ns-on'); return; } // already in view
+      this._io.observe(el);
+    });
+    this._observeAll();
+    requestAnimationFrame(this._observeAll);
+    this._t1 = setTimeout(this._observeAll, 600);
+    this._t2 = setTimeout(this._observeAll, 2000);
+    window.addEventListener('load', this._observeAll);
+    // celestial disc: descends with scroll, embers at dusk, gone at nightfall
+    this._onScroll = () => {
+      doc.classList.toggle('ns-scrolled', window.scrollY > 40);
+      // safety net: reveal any .ns-rv at or above the viewport threshold (covers node replacement + jumps)
+      document.querySelectorAll('.ns-rv:not(.ns-on)').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.88) el.classList.add('ns-on');
+      });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+    // ---- parallax: single rAF scroll loop, translateY only, additive to layout ----
+    // disabled at mobile widths and (already) under prefers-reduced-motion
+    this._px = { items: [], raf: 0 };
+    const measure = () => {
+      if (window.innerWidth <= 700) { this._px.items.forEach((it) => { it.el.style.transform = it.base; }); this._px.items = []; return; }
+      this._px.items = Array.from(document.querySelectorAll('[data-depth]')).map((el) => {
+        if (el.dataset.pbase === undefined) el.dataset.pbase = (el.style.transform || '');
+        const prev = el.style.transform; el.style.transform = el.dataset.pbase;
+        const r = el.getBoundingClientRect();
+        el.style.transform = prev;
+        return { el, base: el.dataset.pbase, top: r.top + window.scrollY, h: r.height, depth: parseFloat(el.dataset.depth) || 0.5 };
+      });
+    };
+    const frame = () => {
+      this._px.raf = 0;
+      const vh = window.innerHeight, sy = window.scrollY;
+      for (const it of this._px.items) {
+        const rel = Math.max(-1, Math.min(1, ((it.top + it.h / 2 - sy) - vh / 2) / (vh / 2 + it.h / 2)));
+        const ty = rel * 60 * (1 - it.depth);
+        it.el.style.transform = (it.base ? it.base + ' ' : '') + 'translateY(' + ty.toFixed(1) + 'px)';
+      }
+    };
+    this._pxTick = () => { if (!this._px.raf) this._px.raf = requestAnimationFrame(frame); };
+    this._pxMeasure = () => { measure(); this._pxTick(); };
+    measure(); frame();
+    window.addEventListener('scroll', this._pxTick, { passive: true });
+    window.addEventListener('resize', this._pxMeasure);
+    setTimeout(this._pxMeasure, 800); window.addEventListener('load', this._pxMeasure);
+  }
+  componentWillUnmount() {
+    if (this._io) this._io.disconnect();
+    clearTimeout(this._t1); clearTimeout(this._t2);
+    if (this._observeAll) window.removeEventListener('load', this._observeAll);
+    if (this._onScroll) window.removeEventListener('scroll', this._onScroll);
+    if (this._pxTick) window.removeEventListener('scroll', this._pxTick);
+    if (this._pxMeasure) { window.removeEventListener('resize', this._pxMeasure); window.removeEventListener('load', this._pxMeasure); }
+    if (this._px && this._px.raf) cancelAnimationFrame(this._px.raf);
+  }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

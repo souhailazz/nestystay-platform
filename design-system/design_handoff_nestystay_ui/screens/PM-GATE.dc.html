@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+</style>
+</helmet>
+<!-- PM-GATE Gate guard threads · [VISION — API blueprint] · threads per gate/building · guard messages: visitor name, plate, reason, optional photo · PM replies Approved/Denied · audit log -->
+<div data-screen-label="PM-GATE Gate guard threads" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55;min-height:100vh;display:grid;grid-template-columns:230px 1fr">
+  <aside style="background:#062B2B;padding:20px 14px;display:flex;flex-direction:column;gap:3px">
+    <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:8px;padding:0 8px 14px"><span style="width:32px;height:32px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:86px;margin:-4px 0 0 -27px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></a>
+    <a href="PM-GATE.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;background:rgba(255,210,31,0.12);color:#FFD21F;font-size:13px;font-weight:600">Gate guard</a>
+    <a href="PM-UTIL.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Utilities</a>
+    <a href="PM-VERIFY.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Verification</a>
+    <a href="PM-RPT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Portfolio reports</a>
+    <a href="PM-INS.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">InsuraGuest</a>
+    <a href="AUTH-LOGOUT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#9FB3AC;font-size:13px;font-weight:600;margin-top:auto" style-hover="color:#FBF7EC">Sign out</a>
+  </aside>
+  <div style="display:flex;flex-direction:column;min-height:100vh">
+    <main style="padding:36px clamp(20px,3.5vw,44px);display:flex;flex-direction:column;gap:20px;flex:1;max-width:1060px;box-sizing:border-box;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,3.4vw,40px);margin:0;letter-spacing:-0.01em">Gate <em style="font-style:italic;color:#0E4A45">communications</em></h1><select style="min-height:46px;border:1.5px solid #C7BC9C;border-radius:999px;padding:0 18px;font-size:13.5px;font-family:'Sora',sans-serif;background:#FBF7EC;font-weight:600"><option>All gates</option><option>Main gate — Ocho Palms</option><option>Tower B — Harbour View</option></select></div><div style="display:grid;grid-template-columns:minmax(230px,300px) 1fr;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;overflow:hidden;min-height:460px">
+  <div style="border-right:1px solid #E7DCC2">
+    <a href="#" style="display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-bottom:1px solid #F3EAC8;background:#F3EAC8;"><span style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:13px;color:#12241F">Main gate — Ocho Palms</span><span style="font-size:11px;color:#8A7F5E">2 min</span></span><span style="font-size:12px;color:#5A6B63">Visitor: Andre M. · plate 4821 GT</span></a><a href="#" style="display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-bottom:1px solid #F3EAC8;"><span style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:13px;color:#12241F">Tower B — Harbour View</span><span style="font-size:11px;color:#8A7F5E">48 min</span></span><span style="font-size:12px;color:#5A6B63">Delivery — Island Grocers</span></a>
+  </div>
+  <div style="display:flex;flex-direction:column">
+    <div style="padding:14px 20px;border-bottom:1px solid #F3EAC8;display:flex;justify-content:space-between;gap:10px;align-items:center"><div style="font-weight:700;font-size:14px">Main gate — Ocho Palms</div><span style="background:#E5EDFB;color:#1D4FA8;font-size:10.5px;font-weight:700;letter-spacing:0.06em;padding:4px 10px;border-radius:999px">GUARD ON DUTY</span></div>
+    <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="align-self:flex-start;max-width:75%;background:#F3EAC8;border-radius:16px 16px 16px 4px;padding:12px 16px;font-size:13.5px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:4px">GATE GUARD · 14:02</div>
+        Visitor <strong>Andre M.</strong> · plate <strong>4821 GT</strong> · reason: "pool maintenance, unit 12".
+        <div style="margin-top:8px;width:150px;height:90px;border-radius:10px;background:#E7DCC2;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8A7F5E">photo attached</div>
+      </div>
+      <div style="align-self:flex-end;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div style="background:#062B2B;color:#FBF7EC;border-radius:16px 16px 4px 16px;padding:12px 16px;font-size:13.5px">Approved — expected, unit 12 confirmed.</div>
+        <span style="font-size:11px;color:#8A7F5E">14:04 · logged to audit trail</span>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid #F3EAC8;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="#" style="background:#E3F2E9;color:#135A38;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 22px;font-size:13.5px;font-weight:700">✓ Approve</a>
+      <a href="#" style="background:#FBE7E6;color:#9E2B23;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 22px;font-size:13.5px;font-weight:700">✕ Deny</a>
+      <input type="text" placeholder="Add a note…" style="flex:1;min-width:160px;min-height:46px;border:1.5px solid #C7BC9C;border-radius:999px;padding:0 18px;font-size:13.5px;font-family:'Sora',sans-serif;background:#fff;outline:none">
+    </div>
+  </div>
+</div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:13px;font-weight:600">Audit log</div><div style="font-size:12.5px;color:#5A6B63;font-family:ui-monospace,monospace">14:04 · APPROVED · Andre M. / 4821 GT · by PM S. Chin<br>11:32 · DENIED · unlisted visitor · by PM S. Chin<br>09:15 · APPROVED · Island Grocers delivery · by guard rule</div></div></main>
+    <footer style="background:#052A22;padding:18px 24px;display:flex;justify-content:center"><span style="font-size:13px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></span></footer>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

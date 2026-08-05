@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+  @keyframes ds-shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
+  @keyframes ds-slidein { from { transform:translateX(24px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+</style>
+</helmet>
+<div style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55">
+
+  <!-- HEADER -->
+  <header style="background:#062B2B;padding:72px 48px 64px;position:relative;overflow:hidden">
+    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:100%;pointer-events:none;background-image:linear-gradient(rgba(6,43,43,0) 0%,#062B2B 92%),url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2272%22 height=%2272%22><g fill=%22none%22 stroke=%22white%22 stroke-opacity=%220.05%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2266%22 height=%2266%22/><path d=%22M36 3 L69 36 L36 69 L3 36 Z%22/><path d=%22M3 3 A33 33 0 0 1 36 36 A33 33 0 0 1 69 3%22/><path d=%22M3 69 A33 33 0 0 0 36 36 A33 33 0 0 0 69 69%22/></g></svg>');background-size:100% 100%,72px 72px"></div>
+    <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:48px;height:48px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem" style="width:128px;margin:-6px 0 0 -40px;display:block"></span>
+          <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span>
+        </div>
+        <div style="font-size:12px;color:#8FA8A2;letter-spacing:0.08em">DS-00 · v2.0 · July 2026 · extracted from approved PUB-01</div>
+      </div>
+      <h1 style="font-family:'Fraunces',serif;font-optical-sizing:auto;font-weight:400;font-size:clamp(44px,6vw,76px);line-height:1;color:#FBF7EC;margin:0;letter-spacing:-0.015em;max-width:760px">Design System <em style="font-style:italic;color:#FFD21F">v2</em></h1>
+      <p style="color:#9FB3AC;font-size:15px;margin:0;max-width:640px">Single visual source of truth for the whole platform, extracted from the approved landing page. Every screen — public, guest, host, PM, officer, admin — is built from these tokens and components.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <span style="border:1px solid rgba(143,168,162,0.4);color:#C9DAD5;font-size:12px;padding:8px 14px;border-radius:999px">Fraunces + Sora</span>
+        <span style="border:1px solid rgba(143,168,162,0.4);color:#C9DAD5;font-size:12px;padding:8px 14px;border-radius:999px">WCAG AA</span>
+        <span style="border:1px solid rgba(143,168,162,0.4);color:#C9DAD5;font-size:12px;padding:8px 14px;border-radius:999px">Touch ≥ 44px</span>
+        <span style="border:1px solid rgba(143,168,162,0.4);color:#C9DAD5;font-size:12px;padding:8px 14px;border-radius:999px">Warm sand base</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 01 COLOR -->
+  <section data-screen-label="DS-01 Color" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-01</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Color</h2>
+    <div style="font-size:13px;font-weight:600;color:#5A6B63;margin-bottom:12px">Brand</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:32px">
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:#062B2B"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Nesty Deep</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#062B2B</div><div style="font-size:11.5px;color:#8A7F5E">Brand fields, dark sections, navbar pill</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:#FFD21F"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Nesty Yellow</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#FFD21F</div><div style="font-size:11.5px;color:#8A7F5E">Patois italics, accent CTAs, italic title words — dark grounds ONLY</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:#0E4A45"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Deep Hover</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#0E4A45</div><div style="font-size:11.5px;color:#8A7F5E">Links, hovers, italic accent words on light</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:#DC2626"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Emergency Red</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#DC2626</div><div style="font-size:11.5px;color:#8A7F5E">119 badge exclusively</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:linear-gradient(90deg,#04201F 50%,#041F1F 50%)"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Night greens</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#04201F · #041F1F</div><div style="font-size:11.5px;color:#8A7F5E">Opaque cards on dark, nightfall grounds, footers</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:76px;background:#D66E22"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Ember</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#D66E22</div><div style="font-size:11.5px;color:#8A7F5E">Atmosphere only (horizon glows) — never UI</div></div></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#5A6B63;margin-bottom:12px">Warm neutrals — light surfaces (replaces v1 cool grays)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-bottom:32px">
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#12241F"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Ink</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#12241F</div><div style="font-size:11.5px;color:#8A7F5E">Primary text</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#5A6B63"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Gray 600</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#5A6B63</div><div style="font-size:11.5px;color:#8A7F5E">Secondary text, translations</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#8A7F5E"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Sand 500</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#8A7F5E</div><div style="font-size:11.5px;color:#8A7F5E">Eyebrows, meta on sand</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#E7DCC2"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Sand border</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#E7DCC2</div><div style="font-size:11.5px;color:#8A7F5E">Hairlines, card borders</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#F3EAC8"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Shell</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#F3EAC8</div><div style="font-size:11.5px;color:#8A7F5E">Subtle fills, table headers, skeleton base</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#FAF3E4;border-bottom:1px solid #F3EAC8"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Sand</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#FAF3E4</div><div style="font-size:11.5px;color:#8A7F5E">App & page background</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#FBF7EC;border-bottom:1px solid #F3EAC8"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Cream</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#FBF7EC</div><div style="font-size:11.5px;color:#8A7F5E">Cards, modals, tables, inputs</div></div></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#5A6B63;margin-bottom:12px">On-dark text ramp (over Nesty Deep / Night)</div>
+    <div style="background:#062B2B;border-radius:16px;padding:20px 24px;display:flex;gap:26px;flex-wrap:wrap;margin-bottom:32px">
+      <div><div style="color:#FBF7EC;font-weight:600;font-size:14px">Cream text</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8FA8A2">#FBF7EC · headings</div></div>
+      <div><div style="color:#E9DFC4;font-weight:600;font-size:14px">Warm cream</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8FA8A2">#E9DFC4 · eyebrows, emphasis body</div></div>
+      <div><div style="color:#DCE6E1;font-weight:600;font-size:14px">Body on dark</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8FA8A2">#DCE6E1 · hero paragraphs</div></div>
+      <div><div style="color:#C9DAD5;font-weight:600;font-size:14px">Nav / meta</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8FA8A2">#C9DAD5 · nav links, captions</div></div>
+      <div><div style="color:#9FB3AC;font-weight:600;font-size:14px">Muted</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8FA8A2">#9FB3AC · secondary body on dark</div></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#5A6B63;margin-bottom:12px">Semantic — drives StatusBadge (<a href="#ds-05">DS-05</a>)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px">
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#1B7A4B"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Success green</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#1B7A4B · tint #E3F2E9 · text #135A38</div><div style="font-size:11.5px;color:#8A7F5E">Approved, captured, passed, completed, verified</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#D64F45"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Coral</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#D64F45 · tint #FBE7E6 · text #9E2B23</div><div style="font-size:11.5px;color:#8A7F5E">Rejected, failed, cancelled, form errors — distinct from Emergency Red</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#D9A800"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Amber</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#D9A800 · tint #FBF1CE · text #7A5800</div><div style="font-size:11.5px;color:#8A7F5E">Pending, authorized, requested — the AA-safe "yellow" on light</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#2E6BD6"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Info blue</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#2E6BD6 · tint #E5EDFB · text #1D4FA8</div><div style="font-size:11.5px;color:#8A7F5E">Scheduled, assigned, active</div></div></div>
+      <div style="border:1px solid #E7DCC2;border-radius:16px;overflow:hidden;background:#FBF7EC"><div style="height:60px;background:#2FB893"></div><div style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Mint</div><div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#5A6B63">#2FB893 · tint #DFF6EF · text #0E6B57</div><div style="font-size:11.5px;color:#8A7F5E">Wellness tier & wellness status</div></div></div>
+    </div>
+    <div style="margin-top:20px;background:#F3EAC8;border-radius:16px;padding:14px 18px;font-size:13px;color:#5A6B63"><strong style="color:#12241F">#FFD21F never appears on white or light surfaces</strong> (WCAG AA). On light: patois switches to Nesty Deep italic; "yellow" statuses render as Amber. Deep-on-yellow (statement sections) is the one allowed inversion.</div>
+  </section>
+
+  <!-- 02 TYPOGRAPHY -->
+  <section data-screen-label="DS-02 Typography" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-02</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 8px;letter-spacing:-0.01em">Typography</h2>
+    <p style="color:#5A6B63;font-size:14px;margin:0 0 28px;max-width:680px">Approved on PUB-01: <strong style="color:#12241F">Fraunces</strong> (optical sizing, weight 400–500) for all display — one italic accent word per title, yellow on dark / Deep Hover on light. <strong style="color:#12241F">Sora</strong> for UI and body. Patois lines are Fraunces italic. The giant-display-vs-small-UI contrast is the voice of the product.</p>
+    <div style="display:flex;flex-direction:column;border:1px solid #E7DCC2;border-radius:18px;background:#FBF7EC;overflow:hidden">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:26px;border-bottom:1px solid #F3EAC8"><div style="font-family:'Fraunces',serif;font-weight:400;font-size:64px;letter-spacing:-0.015em;line-height:1">Manage Your <em style="font-style:italic;color:#0E4A45">Yard</em></div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">Display / H1 · Fraunces 400 · 64–116px marketing, 40–48px app · lh 1.0 · one italic accent word</div></div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:22px 26px;border-bottom:1px solid #F3EAC8"><div style="font-family:'Fraunces',serif;font-weight:400;font-size:34px;letter-spacing:-0.01em;line-height:1.05">Trusted stays, island-made</div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">H2 · Fraunces 400 · 30–38/1.05</div></div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:20px 26px;border-bottom:1px solid #F3EAC8"><div style="font-family:'Fraunces',serif;font-weight:500;font-size:21px">Card & section heading</div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">H3 · Fraunces 500 · 19–24/1.15</div></div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:20px 26px;border-bottom:1px solid #F3EAC8"><div style="font-size:15px;max-width:560px">Body — every booking is protected by verified hosts, optional traveler verification, and wellness visits by vetted officers.</div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">Body · Sora 400 · 15/1.55</div></div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:20px 26px;border-bottom:1px solid #F3EAC8"><div style="font-size:13px;color:#5A6B63">Secondary — helper text, table cells, patois translations.</div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">Small · Sora 400 · 13/1.5 · Gray 600</div></div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;padding:20px 26px"><div style="display:flex;align-items:center;gap:12px;color:#8A7F5E;font-size:12px;letter-spacing:0.28em;font-weight:600"><span style="width:34px;height:1px;background:#8A7F5E;display:inline-block"></span>EYEBROW · SECTION NUMBER</div><div style="font-size:12px;color:#8A7F5E;font-family:ui-monospace,monospace">Eyebrow · Sora 600 · 12 · +0.28em · leading dash</div></div>
+    </div>
+  </section>
+
+  <!-- 03 BUTTONS -->
+  <section data-screen-label="DS-03 Buttons" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-03</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Buttons</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch">
+      <div style="flex:1 1 300px;background:#062B2B;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:11px;letter-spacing:0.16em;color:#8FA8A2;font-weight:600">ON DARK</div>
+        <a href="#" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:50px;display:inline-flex;align-items:center;gap:10px;padding:0 28px;font-size:15px;font-weight:700;align-self:flex-start" style-hover="background:#F5C400">Accent CTA <span style="display:inline-block">→</span></a>
+        <a href="#" style="border:1.5px solid rgba(251,247,236,0.55);color:#FBF7EC;border-radius:999px;min-height:50px;display:inline-flex;align-items:center;padding:0 28px;font-size:15px;font-weight:600;align-self:flex-start" style-hover="border-color:#FBF7EC;background:rgba(251,247,236,0.08)">Outlined on dark</a>
+        <div style="font-size:12px;color:#9FB3AC">Yellow CTA = the one accent per view. Arrow slides +4px on hover.</div>
+      </div>
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">ON LIGHT</div>
+        <a href="#" style="background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:48px;display:inline-flex;align-items:center;gap:10px;padding:0 26px;font-size:14.5px;font-weight:600;align-self:flex-start" style-hover="background:#0E4A45">Primary <span>→</span></a>
+        <a href="#" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:48px;display:inline-flex;align-items:center;padding:0 26px;font-size:14.5px;font-weight:600;align-self:flex-start" style-hover="border-color:#062B2B">Secondary outlined</a>
+        <a href="#" style="display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:14px;font-weight:600;color:#0E4A45;align-self:flex-start" style-hover="color:#062B2B">Ghost / link <span style="width:34px;height:34px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:15px">→</span></a>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <span style="background:#FBE7E6;color:#9E2B23;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;padding:0 22px;font-size:13.5px;font-weight:600">Destructive</span>
+          <span style="background:#F3EAC8;color:#8A7F5E;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;padding:0 22px;font-size:13.5px;font-weight:600;cursor:not-allowed">Disabled</span>
+        </div>
+        <div style="font-size:12px;color:#8A7F5E">All pills. Min-height 44px everywhere; 48–50px for primary actions.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 FORMS -->
+  <section data-screen-label="DS-04 Forms" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-04</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Forms</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Text field</span><input type="text" placeholder="e.g. Cliffside Retreat" style="min-height:48px;border:1.5px solid #C7BC9C;border-radius:14px;padding:0 16px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff;color:#12241F;outline:none" style-focus="border-color:#0E4A45;box-shadow:0 0 0 3px rgba(14,74,69,0.12)"><span style="font-size:12px;color:#8A7F5E">Helper text sits here.</span></label>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Error state</span><input type="text" value="nesty@stay" style="min-height:48px;border:1.5px solid #D64F45;border-radius:14px;padding:0 16px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff;color:#12241F;outline:none"><span style="font-size:12.5px;color:#9E2B23">Backend errors verbatim: "Email address is not valid."</span></label>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Select</span><select style="min-height:48px;border:1.5px solid #C7BC9C;border-radius:14px;padding:0 12px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff;color:#12241F"><option>Westmoreland</option><option>St. Elizabeth</option><option>St. Andrew</option><option>Portland</option></select></label>
+        <label style="display:flex;align-items:center;gap:12px;min-height:44px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#0E4A45"><span style="font-size:14px">Checkbox — InsuraGuest coverage</span></label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:13px;font-weight:600">Toggle — 44px track, patois settings card</div>
+          <div style="display:flex;align-items:flex-start;gap:16px;background:#062B2B;border-radius:16px;padding:18px 20px">
+            <span style="width:64px;height:36px;border-radius:999px;background:#FFD21F;position:relative;flex:none;display:block;margin-top:2px"><span style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:#062B2B;display:block"></span></span>
+            <div><div style="color:#FBF7EC;font-weight:600;font-size:14.5px">Jamaican Patois greetings</div><div style="color:#9FB3AC;font-size:12.5px;margin-top:2px">Show the island personality across your NestyStay experience.</div><div style="color:#8FA8A2;font-size:11.5px;margin-top:6px">Default: ON · prominent card in profile settings — never buried</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;min-height:44px">
+            <span style="width:64px;height:36px;border-radius:999px;background:#C7BC9C;position:relative;flex:none;display:block"><span style="position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#fff;display:block"></span></span>
+            <span style="font-size:14px;color:#5A6B63">Off state — neutral track on light</span>
+          </div>
+        </div>
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13px;font-weight:600">Verification toggle — rule 2 lockup</div>
+          <div style="border:1.5px solid #E7DCC2;border-radius:16px;padding:16px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-weight:600;font-size:14.5px">Traveler identity verification (eKYC)</span><span style="width:64px;height:36px;border-radius:999px;background:#C7BC9C;position:relative;flex:none;display:block"><span style="position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#fff"></span></span></div>
+            <div style="display:inline-flex;background:#FBF1CE;color:#7A5800;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:5px 10px;border-radius:999px;margin-top:10px">NEVER AUTOMATIC — HOST ENABLES PER PROPERTY</div>
+            <div style="font-size:12.5px;color:#5A6B63;margin-top:8px">$0.14 per booking · $1.26 / 10-pack · $2.99 / month · $29.99 / year <span style="color:#9E2B23">(pricing under client arbitration §9.2)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 STATUS BADGE -->
+  <section id="ds-05" data-screen-label="DS-05 StatusBadge" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-05</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">StatusBadge</h2>
+    <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#E3F2E9;color:#135A38;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">APPROVED</span>
+        <span style="background:#E3F2E9;color:#135A38;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">CAPTURED</span>
+        <span style="background:#E3F2E9;color:#135A38;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">VERIFIED</span>
+        <span style="background:#FBE7E6;color:#9E2B23;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">REJECTED</span>
+        <span style="background:#FBE7E6;color:#9E2B23;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">CANCELLED</span>
+        <span style="background:#FBF1CE;color:#7A5800;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">PENDING</span>
+        <span style="background:#FBF1CE;color:#7A5800;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">AUTHORIZED</span>
+        <span style="background:#E5EDFB;color:#1D4FA8;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">SCHEDULED</span>
+        <span style="background:#E5EDFB;color:#1D4FA8;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">ASSIGNED</span>
+        <span style="background:#DFF6EF;color:#0E6B57;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:7px 14px;border-radius:999px">WELLNESS</span>
+      </div>
+      <div style="font-size:13px;color:#5A6B63">Mapping preserved from code: <strong style="color:#135A38">green</strong> = APPROVED / CAPTURED / PASSED / COMPLETED / VERIFIED · <strong style="color:#9E2B23">coral</strong> = REJECTED / FAILED / CANCELLED · <strong style="color:#7A5800">amber</strong> = PENDING / AUTHORIZED / REQUESTED · <strong style="color:#1D4FA8">blue</strong> = SCHEDULED / ASSIGNED / ACTIVE · <strong style="color:#0E6B57">mint</strong> = WELLNESS. Uppercase Sora 700, 12px, pill, tint bg + dark text of the same hue.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;background:#062B2B;border-radius:14px;padding:16px 18px;align-items:center"><span style="font-size:12px;color:#9FB3AC;margin-right:6px">On dark:</span><span style="border:1px solid #2FB893;color:#7BE0C3;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:6px 13px;border-radius:999px">WELLNESS</span><span style="border:1px solid #D9A800;color:#FFD21F;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:6px 13px;border-radius:999px">PENDING</span><span style="border:1px solid #4C8A6E;color:#8FE0B3;font-size:12px;font-weight:700;letter-spacing:0.06em;padding:6px 13px;border-radius:999px">VERIFIED</span><span style="font-size:12px;color:#9FB3AC">— outlined variant, same hues</span></div>
+    </div>
+  </section>
+
+  <!-- 06 BADGES -->
+  <section data-screen-label="DS-06 Brand badges" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-06</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">119 badge & host tiers</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1.4 1 380px;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:13px;font-weight:600">Inline 119 badge — property pages, under header, above gallery, above the fold</div>
+          <div style="display:flex;align-items:center;gap:12px;background:#DC2626;color:#fff;border-radius:14px;padding:14px 18px;font-weight:700;font-size:15px">
+            <svg width="22" height="22" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 5 L27 25.5 H3 Z" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"></path><path d="M15 12.5 V18.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round"></path><circle cx="15" cy="22" r="1.3" fill="#ffffff"></circle></svg>
+            Jamaica Emergency: 119
+          </div>
+          <div style="font-size:12px;color:#8A7F5E">Never in a footer. SVG siren icon — no emoji in production UI.</div>
+        </div>
+        <div style="background:#04201F;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 50px rgba(2,14,14,0.35)">
+          <div style="font-size:11px;letter-spacing:0.16em;color:#8FA8A2;font-weight:600">DOMINANT CARD VARIANT — trust sections</div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:16px;background:#DC2626;flex:none"><svg width="28" height="28" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 5 L27 25.5 H3 Z" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"></path><path d="M15 12.5 V18.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round"></path><circle cx="15" cy="22" r="1.3" fill="#ffffff"></circle><path d="M6.5 4.5 Q4 7 4 10.5 M23.5 4.5 Q26 7 26 10.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"></path></svg></span>
+            <div><span style="color:#FBF7EC;font-family:'Fraunces',serif;font-size:21px">Jamaica Emergency: </span><span style="color:#FFD21F;font-family:'Fraunces',serif;font-weight:600;font-size:40px">119</span><div style="color:#E9DFC4;font-size:11px;letter-spacing:0.16em;font-weight:600;margin-top:2px">POLICE · FIRE · AMBULANCE — ISLAND-WIDE</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1 1 340px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:13px;font-weight:600">Host tier badges — photo overlays & profiles</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#F3EAC8;color:#5A6B63;border:1px solid #E7DCC2">FREE HOST</span><span style="font-size:12.5px;color:#8A7F5E">baseline listing</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#E3F2E9;color:#135A38">✓ VERIFIED HOST</span><span style="font-size:12.5px;color:#8A7F5E">identity verified</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#062B2B;color:#FFD21F">★ TRUSTED HOST</span><span style="font-size:12.5px;color:#8A7F5E">$120/year or $12/month — locked copy</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#DFF6EF;color:#0E6B57">◆ WELLNESS HOST</span><span style="font-size:12.5px;color:#8A7F5E">unlocks wellness visits & directory</span></div>
+        </div>
+        <div style="border-top:1px solid #F3EAC8;padding-top:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600">Feature badges</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span style="display:inline-flex;padding:6px 12px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.08em;background:#E5EDFB;color:#1D4FA8">eKYC REQUIRED</span>
+            <span style="display:inline-flex;padding:6px 12px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.08em;background:#E3F2E9;color:#135A38">INSURAGUEST</span>
+            <span style="display:inline-flex;padding:6px 12px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.08em;background:#F3EAC8;color:#8A7F5E">NST-OFC-4821</span>
+          </div>
+          <div style="font-size:12px;color:#8A7F5E">Officers: badge ID pill only — never a name, photo, or contact.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 PATOIS BLOCK -->
+  <section data-screen-label="DS-07 Patois block" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-07</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Patois block</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1 1 320px;background:#062B2B;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-family:'Fraunces',serif;font-style:italic;font-size:30px;color:#FFD21F">Wi Soon Come!</div>
+        <div style="font-size:13.5px;color:#9FB3AC">Coming soon — Jamaica's own trusted stays platform.</div>
+        <div style="font-size:11.5px;color:#8FA8A2;margin-top:14px;border-top:1px solid rgba(143,168,162,0.25);padding-top:12px">On dark: Fraunces italic #FFD21F · translation below, smaller, muted. Never patois alone.</div>
+      </div>
+      <div style="flex:1 1 320px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-family:'Fraunces',serif;font-style:italic;font-size:30px;color:#062B2B">Nuh Fret</div>
+        <div style="font-size:13.5px;color:#5A6B63">Your identity is being verified.</div>
+        <div style="font-size:11.5px;color:#8A7F5E;margin-top:14px;border-top:1px solid #F3EAC8;padding-top:12px">On light: Nesty Deep italic — yellow forbidden here. Translation Gray 600.</div>
+      </div>
+      <div style="flex:1.2 1 360px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Approved lexicon — never invent patois</div>
+        <div style="display:flex;flex-direction:column;font-size:12.5px;color:#5A6B63">
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Yuh Gud?</em><span>post-login toast</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Likkle More</em><span>logout screen</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Wi Soon Come!</em><span>pre-launch</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Nuh Fret</em><span>verification in progress</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Dis page gone a sea</em><span>404</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Tek Time</em><span>loading / skeletons</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #F3EAC8"><em style="color:#062B2B;font-family:'Fraunces',serif">Manage Your Yard</em><span>host portal title</span></div>
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0"><em style="color:#062B2B;font-family:'Fraunces',serif">How wi can help yuh?</em><span>help center</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 CARDS -->
+  <section data-screen-label="DS-08 Cards" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-08</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Cards</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch">
+      <article style="flex:1 1 300px;position:relative;border-radius:26px;overflow:hidden;min-height:380px;box-shadow:0 18px 40px rgba(96,74,20,0.16)">
+        <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=1200&auto=format&fit=crop" alt="Villa terrace and pool in warm evening light" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;background:linear-gradient(185deg,rgba(6,43,43,0) 40%,rgba(6,43,43,0.82) 100%)"></div>
+        <span style="position:absolute;top:18px;left:18px;display:inline-flex;padding:6px 14px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;background:#DFF6EF;color:#0E6B57">◆ WELLNESS HOST</span>
+        <button aria-label="Save to wishlist" style="position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;background:rgba(6,43,43,0.6);color:#FBF7EC;border:none;font-size:17px;cursor:pointer">♡</button>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+          <div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:24px;color:#FBF7EC">Cliffside Retreat</div><div style="font-size:13px;color:#C9DAD5;margin-top:2px">Negril · Westmoreland &nbsp;·&nbsp; ★ 4.9</div></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="color:#FBF7EC;font-size:16px"><strong>$450</strong> <span style="font-size:12px;color:#C9DAD5">/ night</span></span><a href="#" aria-label="Open" style="width:44px;height:44px;border-radius:50%;background:#062B2B;color:#FFD21F;display:inline-flex;align-items:center;justify-content:center;font-size:17px">→</a></div>
+        </div>
+      </article>
+      <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:16px">
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:6px;box-shadow:0 10px 26px rgba(96,74,20,0.08)">
+          <div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">MONTHLY REVENUE</div>
+          <div style="font-family:'Fraunces',serif;font-weight:500;font-size:40px;line-height:1">$12,840</div>
+          <div style="font-size:12.5px;color:#135A38">▲ 12% vs June — MetricCard: overline + Fraunces figure + delta</div>
+        </div>
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px;display:flex;gap:14px;align-items:center;box-shadow:0 10px 26px rgba(96,74,20,0.08)">
+          <img src="https://images.unsplash.com/photo-1468413253725-0d5181091126?q=80&w=300&auto=format&fit=crop" alt="Treasure Beach cove" style="width:76px;height:76px;border-radius:14px;object-fit:cover;flex:none">
+          <div style="flex:1"><div style="font-family:'Fraunces',serif;font-weight:500;font-size:17px">Sea Grape Cottage</div><div style="font-size:12.5px;color:#5A6B63">Treasure Beach · St. Elizabeth</div><div style="display:flex;gap:6px;margin-top:6px"><span style="background:#E3F2E9;color:#135A38;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px">PUBLISHED</span><span style="background:#FBF1CE;color:#7A5800;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px">2 PENDING</span></div></div>
+          <span style="color:#0E4A45;font-size:17px">→</span>
+        </div>
+        <div style="font-size:12.5px;color:#8A7F5E;padding:0 4px">Photo cards: 26px radius, deep-green gradient scrim, warm shadow <span style="font-family:ui-monospace,monospace;font-size:11px">0 18px 40px rgba(96,74,20,0.16)</span>. Workspace cards: Cream, 18px radius, sand border.</div>
+      </div>
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;font-weight:600">Quote panel</div>
+        <div style="display:flex;flex-direction:column;font-size:13.5px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3EAC8"><span>$450 × 6 nights</span><strong>$2,700</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3EAC8"><span>Service fee (10%) <span style="background:#FBE7E6;color:#9E2B23;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:4px">NON-REFUNDABLE</span></span><strong>$270</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3EAC8"><span>eKYC verification</span><strong>$0</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px"><strong>Total (USD)</strong><strong style="font-family:'Fraunces',serif;font-size:20px">$2,970</strong></div>
+        </div>
+        <a href="BOOK-01.dc.html" style="background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:14.5px;font-weight:700" style-hover="background:#0E4A45">Book this stay →</a>
+        <div style="font-size:11.5px;color:#8A7F5E">Quote panel renders on Cream → primary CTA is Nesty Deep. Yellow CTAs only inside dark panels.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 TOAST + MODAL -->
+  <section data-screen-label="DS-09 Toast & modal" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-09</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Toast & modal</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:12px">
+        <!-- anim: slide-in from right 200ms ease-out, auto-dismiss 3s -->
+        <div style="background:#062B2B;border-radius:16px;padding:16px 20px;box-shadow:0 20px 44px rgba(4,31,31,0.35);display:flex;gap:14px;align-items:flex-start;max-width:380px;animation:ds-slidein 0.2s ease-out">
+          <span style="width:40px;height:40px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:106px;margin:-5px 0 0 -33px;display:block"></span>
+          <div><div style="font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:#FFD21F">Yuh Gud?</div><div style="font-size:13px;color:#DCE6E1;margin-top:1px">Are you OK? — Welcome back, Keisha!</div></div>
+        </div>
+        <div style="font-size:12.5px;color:#8A7F5E">Toast: Nesty Deep, top-right, slide-in 200ms ease-out, auto-dismiss 3s. Patois heading + translation. Hidden when patois toggle is OFF (plain "Welcome back, Keisha!").</div>
+      </div>
+      <div style="flex:1.2 1 380px;background:rgba(6,43,43,0.45);border-radius:22px;padding:36px;display:flex;align-items:center;justify-content:center">
+        <div style="background:#FBF7EC;border-radius:22px;padding:28px;max-width:420px;box-shadow:0 40px 90px rgba(4,31,31,0.4);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="font-family:'Fraunces',serif;font-weight:500;font-size:24px">Cancel this booking?</div><button aria-label="Close" style="width:44px;height:44px;border-radius:50%;border:1px solid #E7DCC2;background:none;font-size:16px;color:#5A6B63;cursor:pointer;flex:none">✕</button></div>
+          <p style="font-size:14px;color:#5A6B63;margin:0">The refundable portion ($2,700) returns to your card in 5–10 days. The service fee ($270) is non-refundable.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><a href="#" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 22px;font-size:14px;font-weight:600">Keep booking</a><a href="#" style="background:#D64F45;color:#fff;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 22px;font-size:14px;font-weight:600">Cancel booking</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 TABLE + TIMELINE -->
+  <section data-screen-label="DS-10 Table & timeline" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-10</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Table & timeline</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1.6 1 460px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1.2fr 1.4fr 1fr 0.8fr 0.9fr;gap:12px;padding:12px 18px;background:#F3EAC8;font-size:11px;letter-spacing:0.1em;font-weight:700;color:#8A7F5E">
+          <span>INVOICE</span><span>PROPERTY</span><span>DATES</span><span>AMOUNT</span><span>STATUS</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1.2fr 1.4fr 1fr 0.8fr 0.9fr;gap:12px;padding:14px 18px;border-bottom:1px solid #F3EAC8;font-size:13px;align-items:center"><span style="font-family:ui-monospace,monospace;font-size:12px">NST-2026-0148</span><span>Cliffside Retreat</span><span style="color:#5A6B63">Mar 4–10</span><strong>$2,970</strong><span><span style="background:#E3F2E9;color:#135A38;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px">PAID</span></span></div>
+        <div style="display:grid;grid-template-columns:1.2fr 1.4fr 1fr 0.8fr 0.9fr;gap:12px;padding:14px 18px;border-bottom:1px solid #F3EAC8;font-size:13px;align-items:center;background:#FaF6EA"><span style="font-family:ui-monospace,monospace;font-size:12px">NST-2026-0121</span><span>Sea Grape Cottage</span><span style="color:#5A6B63">Feb 14–17</span><strong>$960</strong><span><span style="background:#E3F2E9;color:#135A38;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px">PAID</span></span></div>
+        <div style="display:grid;grid-template-columns:1.2fr 1.4fr 1fr 0.8fr 0.9fr;gap:12px;padding:14px 18px;font-size:13px;align-items:center"><span style="font-family:ui-monospace,monospace;font-size:12px">NST-2026-0097</span><span>Blue Ridge Cabin</span><span style="color:#5A6B63">Jan 22–26</span><strong>$1,240</strong><span><span style="background:#FBF1CE;color:#7A5800;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px">PENDING</span></span></div>
+        <div style="padding:10px 18px;font-size:12px;color:#8A7F5E;background:#FaF6EA;border-top:1px solid #F3EAC8">Shell header · zebra rows on Cream · row hover lifts to white. Client-side search/filter only (no server pagination).</div>
+      </div>
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:22px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px">Timeline — booking & visit event logs</div>
+        <div style="display:flex;flex-direction:column">
+          <div style="display:grid;grid-template-columns:20px 1fr;gap:14px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:#1B7A4B;margin-top:3px"></span><span style="width:2px;flex:1;background:#E7DCC2"></span></div><div style="padding-bottom:18px"><div style="font-size:13.5px;font-weight:600">Payment captured</div><div style="font-size:12px;color:#8A7F5E">Mar 4, 2026 · 14:02 (local)</div></div></div>
+          <div style="display:grid;grid-template-columns:20px 1fr;gap:14px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:#1B7A4B;margin-top:3px"></span><span style="width:2px;flex:1;background:#E7DCC2"></span></div><div style="padding-bottom:18px"><div style="font-size:13.5px;font-weight:600">Identity verification passed</div><div style="font-size:12px;color:#8A7F5E">Mar 2, 2026 · 09:47</div></div></div>
+          <div style="display:grid;grid-template-columns:20px 1fr;gap:14px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:#D9A800;margin-top:3px"></span></div><div><div style="font-size:13.5px;font-weight:600">Booking requested — hold expires in <strong style="color:#7A5800">42:17</strong></div><div style="font-size:12px;color:#8A7F5E">Mar 2, 2026 · 09:12 · 60-min hold countdown always visible</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 STATES -->
+  <section data-screen-label="DS-11 States" style="max-width:1200px;margin:0 auto;padding:56px 48px;border-bottom:1px solid #E7DCC2">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-11</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Empty · loading · error</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch">
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:32px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="24" stroke="#E7DCC2" stroke-width="2"></circle><path d="M26 34 C20 29 16 25 16 20.5 C16 17 18.6 15 21.5 15 C23.4 15 25 16 26 17.6 C27 16 28.6 15 30.5 15 C33.4 15 36 17 36 20.5 C36 25 32 29 26 34 Z" stroke="#8A7F5E" stroke-width="1.8" fill="none"></path></svg>
+        <div style="font-family:'Fraunces',serif;font-weight:500;font-size:20px">No favorites saved.</div>
+        <div style="font-size:13px;color:#5A6B63">Save a stay to return to it here.</div>
+        <a href="PUB-02.dc.html" style="background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 24px;font-size:14px;font-weight:600;margin-top:6px">Explore NestyStay</a>
+      </div>
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:8px"><em style="font-family:'Fraunces',serif;font-style:italic;color:#062B2B;font-size:17px">Tek Time</em><span style="font-size:12px;color:#8A7F5E">— structured skeleton, never a bare spinner</span></div>
+        <div style="border-radius:14px;overflow:hidden;background:#F3EAC8;height:120px;background-image:linear-gradient(90deg,#F3EAC8 0px,#FaF6EA 200px,#F3EAC8 400px);background-size:800px;animation:ds-shimmer 1.4s linear infinite"></div>
+        <div style="height:16px;width:70%;border-radius:8px;background:#F3EAC8;background-image:linear-gradient(90deg,#F3EAC8 0px,#FaF6EA 200px,#F3EAC8 400px);background-size:800px;animation:ds-shimmer 1.4s linear infinite"></div>
+        <div style="height:12px;width:45%;border-radius:8px;background:#F3EAC8;background-image:linear-gradient(90deg,#F3EAC8 0px,#FaF6EA 200px,#F3EAC8 400px);background-size:800px;animation:ds-shimmer 1.4s linear infinite"></div>
+        <div style="font-size:12px;color:#8A7F5E">Skeleton mirrors real layout (image rect + text lines); layout never shifts on load.</div>
+      </div>
+      <div style="flex:1 1 300px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:#FBE7E6;border-radius:14px;padding:14px 16px;font-size:13px;color:#9E2B23"><strong>Couldn't load your bookings.</strong><br>Backend message shown verbatim here.</div>
+        <a href="#" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;justify-content:center;padding:0 22px;font-size:14px;font-weight:600;align-self:flex-start">↻ Try again</a>
+        <div style="font-size:12px;color:#8A7F5E">Every list ships the trio: empty / loading / error(+retry). On 500-class errors add tappable WhatsApp: <a href="https://wa.me/17542482435" style="color:#0E4A45;font-weight:600">754-248-2435</a>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 SHELLS + MOTION -->
+  <section data-screen-label="DS-12 Shells, texture & motion" style="max-width:1200px;margin:0 auto;padding:56px 48px">
+    <div style="font-size:12px;letter-spacing:0.28em;color:#8A7F5E;font-weight:600">DS-12</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:38px;margin:6px 0 28px;letter-spacing:-0.01em">Shells, texture & motion</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch;margin-bottom:20px">
+      <div style="flex:1.4 1 420px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;font-weight:600">Public shell — floating pill navbar</div>
+        <nav style="background:#062B2B;border-radius:999px;box-shadow:0 12px 32px rgba(4,31,31,0.35);display:flex;align-items:center;gap:8px;padding:7px 10px 7px 8px">
+          <span style="display:flex;align-items:center;gap:10px;min-height:44px;padding-left:4px"><span style="width:40px;height:40px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:106px;margin:-5px 0 0 -33px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></span>
+          <span style="display:flex;gap:2px;margin-left:auto;align-items:center"><a href="PUB-02.dc.html" style="color:#C9DAD5;font-size:13px;font-weight:600;padding:0 12px;min-height:44px;display:inline-flex;align-items:center">Explore</a><a href="HOST-01.dc.html" style="color:#C9DAD5;font-size:13px;font-weight:600;padding:0 12px;min-height:44px;display:inline-flex;align-items:center">Host</a><a href="AUTH-01.dc.html" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;padding:0 20px;font-size:13px;font-weight:700;margin-left:6px">Sign in</a></span>
+        </nav>
+        <div style="font-size:13px;font-weight:600;margin-top:6px">Workspace shell — deep sidebar + sand canvas</div>
+        <div style="border:1px solid #E7DCC2;border-radius:18px;overflow:hidden;display:grid;grid-template-columns:210px 1fr;min-height:230px">
+          <div style="background:#062B2B;padding:18px 14px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:8px;padding:0 8px 12px"><span style="width:30px;height:30px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:80px;margin:-4px 0 0 -25px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></div>
+            <a href="#" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;background:rgba(255,210,31,0.12);color:#FFD21F;font-size:13px;font-weight:600">Dashboard</a>
+            <a href="#" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Properties</a>
+            <a href="#" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Bookings</a>
+            <a href="HOST-WELL.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Wellness</a>
+          </div>
+          <div style="background:#FAF3E4;padding:20px"><div style="font-family:'Fraunces',serif;font-weight:400;font-size:26px">Manage Your <em style="font-style:italic;color:#0E4A45">Yard</em></div><div style="font-size:12.5px;color:#5A6B63;margin-top:4px">Sand canvas · Cream cards · active nav item = yellow-tinted pill (12% yellow on deep).</div></div>
+        </div>
+      </div>
+      <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;font-weight:600">Breeze-block texture — dark sections only</div>
+        <div style="border-radius:18px;background-color:#062B2B;min-height:120px;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2272%22 height=%2272%22><g fill=%22none%22 stroke=%22white%22 stroke-opacity=%220.08%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2266%22 height=%2266%22/><path d=%22M36 3 L69 36 L36 69 L3 36 Z%22/><path d=%22M3 3 A33 33 0 0 1 36 36 A33 33 0 0 1 69 3%22/><path d=%22M3 69 A33 33 0 0 0 36 36 A33 33 0 0 0 69 69%22/></g></svg>');background-size:72px 72px"></div>
+        <div style="font-size:12px;color:#8A7F5E">Geometric claustra SVG, 3–5% strokes in production (shown at 8% here), applied with a fade — never full-bleed at uniform opacity. Doctor-bird V silhouettes (1.6px strokes, 35% opacity) mark dark-section skies.</div>
+        <div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:#5A6B63">
+          <div style="font-size:13px;font-weight:600;color:#12241F">Motion principles (from PUB-01)</div>
+          <div>· Reveals: translateY 24px + fade, 700ms ease-out, 100ms stagger, IntersectionObserver — hidden states only under <span style="font-family:ui-monospace,monospace">html.js</span> (full page without JS)</div>
+          <div>· Loops: slow (4–8s), CSS-only — float ±8px, glow pulses, sways. Nothing nervous.</div>
+          <div>· Parallax: translateY only, data-depth 0.1–0.92, ≤60px amplitude, off ≤700px & reduced-motion</div>
+          <div>· Hovers: arrows slide +4px; photos zoom 1.03; nav underline scaleX yellow</div>
+          <div>· Only transform & opacity animate. Every animation annotated <span style="font-family:ui-monospace,monospace">&lt;!-- anim: … --&gt;</span></div>
+        </div>
+      </div>
+    </div>
+    <footer style="background:#052A22;border-radius:18px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;background:#F3EAC8;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem" style="width:118px;margin:-6px 0 0 -37px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.22em;color:#F3EAC8">NESTY STAY</span></div>
+      <div style="font-size:13.5px;color:#9FB3AC">Standard footer — nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></div>
+    </footer>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>
