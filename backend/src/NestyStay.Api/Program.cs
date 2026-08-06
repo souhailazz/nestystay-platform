@@ -53,10 +53,7 @@ var app = builder.Build();
 
 await app.BootstrapAdministratorAsync();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.MapOpenApi();
 
 app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseProductionSecurityHeaders(app.Environment);

@@ -149,3 +149,4 @@ jobs:
           DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
         run: |
           curl --fail --show-error --silent "http://$DEPLOY_HOST/api/health"
+          curl --fail --show-error --silent "http://$DEPLOY_HOST/openapi/v1.json" | grep '"openapi"'
