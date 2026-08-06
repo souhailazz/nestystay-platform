@@ -3,7 +3,13 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, UserRound, X } from "lucide-react";
 import { AppLink } from "./components/AppLink";
 import { EmblemRoundel } from "./components/layout/PublicShell";
-import { PublicLanding } from "./features/public/LandingPage";
+import FeatureCards from "./components/landing/FeatureCards";
+import FinalCTA from "./components/landing/FinalCTA";
+import Hero3D from "./components/landing/Hero3D";
+import HowItWorks from "./components/landing/HowItWorks";
+import PropertyShowcase from "./components/landing/PropertyShowcase";
+import ScrollStory from "./components/landing/ScrollStory";
+import TrustSection from "./components/landing/TrustSection";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { cx } from "./lib/ui";
 import { useAuth, type AuthController } from "./hooks/useAuth";
@@ -386,7 +392,17 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
 }
 
 function LandingPage() {
-  return <PublicLanding />;
+  return (
+    <>
+      <Hero3D />
+      <ScrollStory />
+      <FeatureCards />
+      <PropertyShowcase />
+      <HowItWorks />
+      <TrustSection />
+      <FinalCTA />
+    </>
+  );
 }
 
 function isWorkspaceRoute(route: Route) {
