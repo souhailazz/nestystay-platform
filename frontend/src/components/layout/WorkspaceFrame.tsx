@@ -42,7 +42,7 @@ function SidebarLink({ item, routeName, pathname }: { item: NavItem; routeName: 
   return (
     <AppLink
       className={cx(
-        "flex min-h-11 items-center rounded-nav px-3 font-sans text-[13px] font-semibold transition-colors",
+        "flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-nav px-3 font-sans text-[13px] font-semibold transition-colors",
         active ? "bg-yellow/10 text-yellow" : "text-on-dark-nav hover:bg-on-dark-heading/5 hover:text-on-dark-heading",
       )}
       href={item.href}
@@ -56,22 +56,27 @@ export function WorkspaceFrame({ routeName, children }: { routeName: string; chi
   const pathname = window.location.pathname;
   return (
     <div className="grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink md:grid-cols-[230px_1fr]">
-      <aside aria-label="Workspace navigation" className="flex flex-col gap-[3px] bg-deep p-5 px-3.5">
-        <AppLink className="flex items-center gap-2 px-2 pb-3.5" href="/">
+      {/* <md: Deep bar with horizontally scrollable nav pills (the 230px stack would
+          fill the whole first screen on a phone). ≥md: the DS v2 230px sidebar. */}
+      <aside
+        aria-label="Workspace navigation"
+        className="flex flex-row items-center gap-[3px] overflow-x-auto bg-deep p-3 md:flex-col md:items-stretch md:overflow-visible md:p-5 md:px-3.5"
+      >
+        <AppLink className="flex shrink-0 items-center gap-2 px-2 md:pb-3.5" href="/">
           <EmblemRoundel size={32} />
-          <span className="text-[11px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
+          <span className="hidden text-[11px] font-bold tracking-[0.14em] text-sand md:inline">NESTY STAY</span>
         </AppLink>
         {travelerItems.map((item) => (
           <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />
         ))}
-        <div className="mx-3 mb-1 mt-3 border-t border-on-dark-faint/25 pt-3 text-[10px] font-bold tracking-[0.18em] text-on-dark-faint">
-          WORKSPACES
+        <div className="mx-3 my-0 h-6 shrink-0 border-l border-on-dark-faint/25 md:mx-3 md:mb-1 md:mt-3 md:h-auto md:border-l-0 md:border-t md:pt-3 md:text-[10px] md:font-bold md:tracking-[0.18em] md:text-on-dark-faint">
+          <span className="hidden md:inline">WORKSPACES</span>
         </div>
         {workspaceItems.map((item) => (
           <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />
         ))}
         <AppLink
-          className="mt-auto flex min-h-11 items-center rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-muted transition-colors hover:text-on-dark-heading"
+          className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-muted transition-colors hover:text-on-dark-heading md:mt-auto"
           href="/logout"
         >
           Sign out

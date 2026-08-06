@@ -189,6 +189,12 @@ export function LoadingStatePage() {
           </div>
         ))}
       </div>
+      <div className="mt-4 text-[13px] text-sand-500">
+        nestystay.net ·{" "}
+        <a className="text-sand-500 hover:text-ink" href="https://wa.me/17542482435">
+          754-248-2435
+        </a>
+      </div>
     </div>
   );
 }
@@ -2471,6 +2477,12 @@ function ErrorTemplate({
       <h1 className="m-0 font-display text-[clamp(32px,4vw,44px)] font-normal">{title}</h1>
       <div className="max-w-[420px] text-[14.5px] text-gray-600">{copy}</div>
       {children}
+      <div className="mt-6 text-[13px] text-sand-500">
+        nestystay.net ·{" "}
+        <a className="text-sand-500 hover:text-ink" href="https://wa.me/17542482435">
+          754-248-2435
+        </a>
+      </div>
     </div>
   );
 }
