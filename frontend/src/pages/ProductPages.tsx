@@ -1797,8 +1797,8 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
               Session expires {new Date(session.expiresAt).toLocaleString()} — signing out everywhere resets it.
             </div>
           </div>
-          <label className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-5 text-[13.5px] font-semibold text-ink transition-colors hover:border-deep">
-            <Paperclip size={15} /> Photo
+          <label className="profile-photo-picker inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-5 text-[13.5px] font-semibold text-ink transition-colors hover:border-deep">
+            <Paperclip size={15} /> Profile photo
             <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { addProfilePhoto(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
           </label>
           <button
