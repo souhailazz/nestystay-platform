@@ -16,8 +16,16 @@ public sealed class SpecCompletionController(
     IConfiguration configuration) : ControllerBase
 {
     [HttpPost("seed")]
-    public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken) =>
-        Ok(await store.EnsureSeededAsync(cancellationToken));
+    public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken)
+    {
+        // Staging/demo convenience only — never available in Production.
+        if (environment.IsProduction())
+        {
+            return NotFound();
+        }
+
+        return Ok(await store.EnsureSeededAsync(cancellationToken));
+    }
 
     [HttpGet("public/pages")]
     public async Task<ActionResult<IReadOnlyList<PublicContentPageDto>>> GetPublicPages(CancellationToken cancellationToken) =>
@@ -411,8 +419,10 @@ public sealed class SpecCompletionController(
     [HttpGet("auth/development/flows/{flowId:guid}")]
     public async Task<ActionResult<DevelopmentAuthFlowSecretDto>> GetDevelopmentAuthFlowSecret(Guid flowId, CancellationToken cancellationToken)
     {
-        if (environment.IsProduction() ||
-            (!environment.IsEnvironment("Testing") && !configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes")))
+        var developmentCodesAllowed =
+            environment.IsEnvironment("Testing") ||
+            (environment.IsDevelopment() && configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes"));
+        if (!developmentCodesAllowed)
         {
             return NotFound();
         }

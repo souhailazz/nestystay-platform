@@ -5,8 +5,8 @@ namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/backend-jobs")]
-public sealed class BackendJobsController : ControllerBase
+public sealed class BackendJobsController(IHostEnvironment environment) : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetJobs() => Ok(BackendJobCatalog.Jobs);
+    public IActionResult GetJobs() => environment.IsProduction() ? NotFound() : Ok(BackendJobCatalog.Jobs);
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppLink } from "../AppLink";
 import { EmblemRoundel } from "./PublicShell";
+import { loadSession } from "../../lib/auth";
 import { cx } from "../../lib/ui";
 
 /* DS v2 workspace shell — Deep sidebar 230px (emblem + wordmark, 44px nav items
@@ -54,6 +55,8 @@ function SidebarLink({ item, routeName, pathname }: { item: NavItem; routeName: 
 
 export function WorkspaceFrame({ routeName, children }: { routeName: string; children: ReactNode }) {
   const pathname = window.location.pathname;
+  const isAdmin = Boolean(loadSession()?.roles.includes("Admin"));
+  const visibleWorkspaceItems = workspaceItems.filter((item) => item.label !== "Admin" || isAdmin);
   return (
     <div className="grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink md:grid-cols-[230px_1fr]">
       {/* <md: Deep bar with horizontally scrollable nav pills (the 230px stack would
@@ -72,7 +75,7 @@ export function WorkspaceFrame({ routeName, children }: { routeName: string; chi
         <div className="mx-3 my-0 h-6 shrink-0 border-l border-on-dark-faint/25 md:mx-3 md:mb-1 md:mt-3 md:h-auto md:border-l-0 md:border-t md:pt-3 md:text-[10px] md:font-bold md:tracking-[0.18em] md:text-on-dark-faint">
           <span className="hidden md:inline">WORKSPACES</span>
         </div>
-        {workspaceItems.map((item) => (
+        {visibleWorkspaceItems.map((item) => (
           <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />
         ))}
         <AppLink

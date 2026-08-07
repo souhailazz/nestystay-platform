@@ -1,0 +1,46 @@
+# NestyStay — reverse proxy + TLS + security headers.
+# 1. Point a real domain's A record at this server, replace nestystay.example below,
+#    then: caddy reload --config /etc/caddy/Caddyfile
+#    Caddy provisions HTTPS automatically and redirects HTTP -> HTTPS by itself.
+# 2. Until a domain exists, the :80 block serves the raw IP over HTTP (no false HTTPS advertised).
+
+(nestystay_common) {
+	encode gzip
+
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# Long cache for hashed build assets only (Vite fingerprints /assets/*)
+	@static path /assets/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:5019
+	}
+	handle /openapi/* {
+		reverse_proxy 127.0.0.1:5019
+	}
+
+	# SPA fallback
+	handle {
+		root * /var/www/nestystay
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# --- Active today: HTTP on the raw IP ---
+:80 {
+	import nestystay_common
+}
+
+# --- Enable once the domain exists (then remove the :80 block or keep it; Caddy adds the HTTP->HTTPS redirect) ---
+# nestystay.example {
+#	import nestystay_common
+# }

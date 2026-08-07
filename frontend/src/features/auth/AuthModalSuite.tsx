@@ -455,14 +455,16 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               >
                 {loading ? "Verifying…" : "Verify code"}
               </button>
-              <button
-                className="inline-flex min-h-11 cursor-pointer items-center border-none bg-transparent font-sans text-[13.5px] font-semibold text-deep-hover hover:text-deep"
-                disabled={loading}
-                onClick={handleLoadDevelopment2FA}
-                type="button"
-              >
-                Use development 2FA code
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  className="inline-flex min-h-11 cursor-pointer items-center border-none bg-transparent font-sans text-[13.5px] font-semibold text-deep-hover hover:text-deep"
+                  disabled={loading}
+                  onClick={handleLoadDevelopment2FA}
+                  type="button"
+                >
+                  Use development 2FA code
+                </button>
+              )}
             </div>
           </form>
         )}

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using NestyStay.Api.Configuration;
 using NestyStay.Application;
 using NestyStay.Application.Abstractions;
@@ -55,9 +56,16 @@ await app.BootstrapAdministratorAsync();
 
 app.MapOpenApi();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseProductionSecurityHeaders(app.Environment);
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue<bool>("Security:EnableHttpsRedirection"))
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("Frontend");
 
 app.UseAuthentication();

@@ -1538,7 +1538,14 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
 
 function ProviderPortal({ session, mode }: { session: NonNullable<AuthController["session"]>; mode: string }) {
   const slug = `provider-${session.userId.slice(0, 8)}`;
-  const provider = useAsync(() => api.getDirectoryProvider(slug).catch(() => null), [slug]);
+  const provider = useAsync(
+    () =>
+      api
+        .getDirectoryProviders({ query: slug })
+        .then((matches) => matches.find((candidate) => candidate.slug === slug) ?? null)
+        .catch(() => null),
+    [slug],
+  );
   const [form, setForm] = useState({
     name: provider.data?.name ?? `${session.displayName} Services`,
     kind: "LocalBusiness",

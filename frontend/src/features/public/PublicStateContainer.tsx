@@ -26,8 +26,11 @@ export function PublicStateContainer({ view, propertyId }: PublicStateContainerP
     return <JournalPage view={view} />;
   }
 
-  if (["about", "trust", "terms", "privacy", "help", "faq"].includes(view)) {
-    return <LegalHelpPages view={view} />;
+  if (
+    ["about", "trust", "terms", "privacy", "help", "faq", "contact", "maintenance"].includes(view) ||
+    view.startsWith("help/")
+  ) {
+    return <LegalHelpPages view={view.startsWith("help/") ? "help" : view} />;
   }
 
   return <PublicSearchMap view={view} />;

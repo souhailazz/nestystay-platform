@@ -25,6 +25,40 @@ export function LegalHelpPages({ view }: LegalHelpPagesProps) {
     }
   ];
 
+  if (view === "contact") {
+    return (
+      <div className="mx-auto flex max-w-[640px] flex-col gap-5 px-6 py-12 font-sans text-ink" id="PUB-CONTACT">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+          How wi can help <em className="italic text-deep-hover">yuh?</em>
+        </h1>
+        <p className="m-0 text-[14.5px] text-gray-600">How can we help you? Reach the NestyStay team directly.</p>
+        <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px] text-[14.5px]">
+          <a
+            className="inline-flex min-h-12 items-center gap-2.5 self-start rounded-pill bg-success-tint px-[22px] font-bold text-success-text"
+            href="https://wa.me/17542482435"
+          >
+            WhatsApp: 754-248-2435
+          </a>
+          <div className="text-gray-600">nestystay.net · support answers within 24 hours.</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "maintenance") {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 py-16 text-center font-sans text-ink" id="PUB-MAINT">
+        <h1 className="m-0 font-display text-[clamp(32px,4vw,44px)] font-normal">
+          Wi Soon Come!
+        </h1>
+        <p className="m-0 max-w-[420px] text-[14.5px] text-gray-600">We'll be right back — NestyStay is down for scheduled maintenance.</p>
+        <a className="inline-flex min-h-11 items-center text-[13.5px] font-semibold text-deep-hover" href="https://wa.me/17542482435">
+          Urgent? WhatsApp 754-248-2435
+        </a>
+      </div>
+    );
+  }
+
   if (view === "help" || view === "faq") {
     return (
       <div className="page-container container py-6" data-testid="pub-12-help" id="PUB-12">

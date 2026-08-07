@@ -7,6 +7,7 @@ namespace NestyStay.Api.Controllers;
 public sealed class HealthController : ControllerBase
 {
     [HttpGet]
+    [HttpHead]
     public IActionResult Get() => Ok(new
     {
         service = "NestyStay API",

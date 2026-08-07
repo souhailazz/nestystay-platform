@@ -82,8 +82,10 @@ public sealed class AuthController(
     [HttpGet("development/challenges/{challengeId}")]
     public async Task<IActionResult> GetDevelopmentChallengeCode(string challengeId, CancellationToken cancellationToken)
     {
-        if (environment.IsProduction() ||
-            (!environment.IsEnvironment("Testing") && !configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes")))
+        var developmentCodesAllowed =
+            environment.IsEnvironment("Testing") ||
+            (environment.IsDevelopment() && configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes"));
+        if (!developmentCodesAllowed)
         {
             return NotFound();
         }
@@ -96,8 +98,10 @@ public sealed class AuthController(
     [HttpGet("development/password-resets/{requestId}")]
     public async Task<IActionResult> GetDevelopmentPasswordResetToken(string requestId, CancellationToken cancellationToken)
     {
-        if (environment.IsProduction() ||
-            (!environment.IsEnvironment("Testing") && !configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes")))
+        var developmentCodesAllowed =
+            environment.IsEnvironment("Testing") ||
+            (environment.IsDevelopment() && configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes"));
+        if (!developmentCodesAllowed)
         {
             return NotFound();
         }
