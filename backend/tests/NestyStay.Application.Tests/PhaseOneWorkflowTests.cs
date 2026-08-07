@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Cryptography;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Domain;
@@ -15,7 +16,7 @@ public sealed class PhaseOneWorkflowTests
             Registration("secure@test.local", "Secure Guest", "254-248-2435"),
             CancellationToken.None);
 
-        Assert.True(registered.RequiresTwoFactor);
+        Assert.False(registered.RequiresTwoFactor);
         Assert.Equal("secure@test.local", registered.Email);
         Assert.Equal("Secure Guest", registered.DisplayName);
 
@@ -47,6 +48,7 @@ public sealed class PhaseOneWorkflowTests
         var registered = await harness.Store.RegisterAsync(
             Registration("secure@test.local", "Secure Guest"),
             CancellationToken.None);
+        await EnableTwoFactorAsync(harness.Store, registered.UserId, clock.GetUtcNow());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.Store.LoginAsync(new LoginRequest("secure@test.local", "wrong-password"), CancellationToken.None));
@@ -100,16 +102,18 @@ public sealed class PhaseOneWorkflowTests
             harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None));
 
         clock.Advance(TimeSpan.FromMinutes(16));
-        var challenge = await harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None);
+        var session = await harness.Store.LoginAsync(new LoginRequest("lockout@test.local", "Password123!"), CancellationToken.None);
 
-        Assert.False(string.IsNullOrWhiteSpace(challenge.ChallengeId));
+        Assert.False(session.RequiresTwoFactor);
+        Assert.False(string.IsNullOrWhiteSpace(session.AccessToken));
     }
 
     [Fact]
     public async Task TwoFactorChallengeIsInvalidatedAfterRepeatedBadCodes()
     {
         var harness = CreateHarness();
-        await harness.Store.RegisterAsync(Registration("attempts@test.local", "Attempts Guest"), CancellationToken.None);
+        var registered = await harness.Store.RegisterAsync(Registration("attempts@test.local", "Attempts Guest"), CancellationToken.None);
+        await EnableTwoFactorAsync(harness.Store, registered.UserId);
         var challenge = await harness.Store.LoginAsync(new LoginRequest("attempts@test.local", "Password123!"), CancellationToken.None);
         Assert.NotNull(challenge.ChallengeId);
         var code = await GetDevelopmentCodeAsync(harness.Store, challenge.ChallengeId);
@@ -130,7 +134,8 @@ public sealed class PhaseOneWorkflowTests
     {
         var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
         var harness = CreateHarness(clock);
-        await harness.Store.RegisterAsync(Registration("replay@test.local", "Replay Guest"), CancellationToken.None);
+        var registered = await harness.Store.RegisterAsync(Registration("replay@test.local", "Replay Guest"), CancellationToken.None);
+        await EnableTwoFactorAsync(harness.Store, registered.UserId, clock.GetUtcNow());
 
         var firstChallenge = await harness.Store.LoginAsync(new LoginRequest("replay@test.local", "Password123!"), CancellationToken.None);
         Assert.NotNull(firstChallenge.ChallengeId);
@@ -163,6 +168,7 @@ public sealed class PhaseOneWorkflowTests
         var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
         var harness = CreateHarness(clock);
         var registered = await harness.Store.RegisterAsync(Registration("disable@test.local", "Disable Guest"), CancellationToken.None);
+        await EnableTwoFactorAsync(harness.Store, registered.UserId, clock.GetUtcNow());
 
         var firstChallenge = await harness.Store.LoginAsync(new LoginRequest("disable@test.local", "Password123!"), CancellationToken.None);
         Assert.True(firstChallenge.RequiresTwoFactor);
@@ -444,6 +450,67 @@ public sealed class PhaseOneWorkflowTests
         var code = await store.GetDevelopmentTwoFactorCodeAsync(challengeId, CancellationToken.None);
         Assert.NotNull(code);
         return code.Code;
+    }
+
+    private static async Task EnableTwoFactorAsync(
+        PhaseOneStore store,
+        Guid userId,
+        DateTimeOffset? timestamp = null)
+    {
+        var enrollment = await store.BeginTwoFactorEnrollmentAsync(userId, CancellationToken.None);
+        var setupCode = GenerateTotpFromManualKey(enrollment.ManualKey, (timestamp ?? DateTimeOffset.UtcNow).AddSeconds(-30));
+        var confirmed = await store.ConfirmTwoFactorEnrollmentAsync(
+            userId,
+            new ConfirmTwoFactorEnrollmentRequest(enrollment.EnrollmentId, setupCode),
+            CancellationToken.None);
+        Assert.True(confirmed.Enabled);
+    }
+
+    private static string GenerateTotpFromManualKey(string manualKey, DateTimeOffset timestamp)
+    {
+        var secret = DecodeBase32(manualKey);
+        var counter = timestamp.ToUnixTimeSeconds() / 30;
+        var counterBytes = BitConverter.GetBytes(counter);
+        if (BitConverter.IsLittleEndian)
+        {
+            Array.Reverse(counterBytes);
+        }
+
+        using var hmac = new HMACSHA1(secret);
+        var hash = hmac.ComputeHash(counterBytes);
+        var offset = hash[^1] & 0x0f;
+        var binaryCode =
+            ((hash[offset] & 0x7f) << 24) |
+            ((hash[offset + 1] & 0xff) << 16) |
+            ((hash[offset + 2] & 0xff) << 8) |
+            (hash[offset + 3] & 0xff);
+        return (binaryCode % 1_000_000).ToString("D6");
+    }
+
+    private static byte[] DecodeBase32(string value)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var bits = 0;
+        var bitCount = 0;
+        var output = new List<byte>();
+        foreach (var character in value.Trim().TrimEnd('=').ToUpperInvariant())
+        {
+            var index = alphabet.IndexOf(character, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Invalid base32 character.");
+            }
+
+            bits = (bits << 5) | index;
+            bitCount += 5;
+            if (bitCount >= 8)
+            {
+                output.Add((byte)((bits >> (bitCount - 8)) & 0xff));
+                bitCount -= 8;
+            }
+        }
+
+        return output.ToArray();
     }
 
     private sealed record PhaseOneHarness(

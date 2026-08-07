@@ -32,6 +32,7 @@ public sealed class MilestonePersistenceTests
             var storedUser = await db.MilestoneUsers.SingleAsync(user => user.Id == registered.UserId);
             Assert.True(providers.SecretProtector.IsProtected(storedUser.TwoFactorSecret));
             Assert.NotEqual(20, storedUser.TwoFactorSecret.Length);
+            Assert.False(storedUser.IsTwoFactorEnabled);
 
             var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
             var booking = await store.CreateBookingAsync(
@@ -47,13 +48,11 @@ public sealed class MilestonePersistenceTests
         {
             var store = CreatePhaseOneStore(db, providers);
             var login = await store.LoginAsync(new LoginRequest("persisted@test.local", "Password123!"), CancellationToken.None);
-            Assert.NotNull(login.ChallengeId);
-            var code = await store.GetDevelopmentTwoFactorCodeAsync(login.ChallengeId, CancellationToken.None);
-            Assert.NotNull(code);
-            var session = await store.VerifyTwoFactorAsync(new VerifyTwoFactorRequest(login.ChallengeId, code.Code), CancellationToken.None);
             var booking = store.GetBooking(bookingId);
 
-            Assert.Equal(userId, session.UserId);
+            Assert.False(login.RequiresTwoFactor);
+            Assert.Equal(userId, login.UserId);
+            Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
             Assert.NotNull(booking);
             Assert.Equal("PENDING", booking.Status);
             Assert.True(booking.DatesHeld);

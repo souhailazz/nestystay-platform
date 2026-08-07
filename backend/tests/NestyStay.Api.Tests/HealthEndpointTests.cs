@@ -84,25 +84,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.OK, register.StatusCode);
 
-        var login = await client.PostAsJsonAsync("/api/auth/login", new
-        {
-            email,
-            password = "Password123!"
-        });
-        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(challenge);
-        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
-            $"/api/auth/development/challenges/{challenge.ChallengeId}");
-        Assert.NotNull(developmentCode);
-        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
-        {
-            challengeId = challenge.ChallengeId,
-            code = developmentCode.Code
-        });
-        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
-        var oldSession = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
-        Assert.NotNull(oldSession);
+        var oldSession = await LoginDirectAsync(client, email);
 
         var unknownReset = await client.PostAsJsonAsync("/api/auth/password-reset/request", new
         {
@@ -195,25 +177,8 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var registered = await register.Content.ReadFromJsonAsync<RegisterResponse>();
         Assert.NotNull(registered);
 
-        var firstLogin = await client.PostAsJsonAsync("/api/auth/login", new
-        {
-            email,
-            password = "Password123!"
-        });
-        Assert.Equal(HttpStatusCode.OK, firstLogin.StatusCode);
-        var firstChallenge = await firstLogin.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(firstChallenge);
-        var firstDevelopmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
-            $"/api/auth/development/challenges/{firstChallenge.ChallengeId}");
-        Assert.NotNull(firstDevelopmentCode);
-        var firstTwoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
-        {
-            challengeId = firstChallenge.ChallengeId,
-            code = firstDevelopmentCode.Code
-        });
-        Assert.Equal(HttpStatusCode.OK, firstTwoFactor.StatusCode);
-        var session = await firstTwoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
-        Assert.NotNull(session);
+        await EnableTwoFactorAsync(client, email);
+        var session = await LoginWithTwoFactorAsync(client, email);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         var recoveryResponse = await client.PostAsync($"/api/spec/auth/{registered.UserId}/recovery-codes", null);
@@ -272,25 +237,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.OK, register.StatusCode);
 
-        var login = await client.PostAsJsonAsync("/api/auth/login", new
-        {
-            email,
-            password = "Password123!"
-        });
-        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(challenge);
-        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
-            $"/api/auth/development/challenges/{challenge.ChallengeId}");
-        Assert.NotNull(developmentCode);
-        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
-        {
-            challengeId = challenge.ChallengeId,
-            code = developmentCode.Code
-        });
-        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
-        var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
-        Assert.NotNull(session);
+        var session = await LoginDirectAsync(client, email);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         var enrollmentResponse = await client.PostAsync("/api/auth/2fa/enrollments", null);
@@ -354,6 +301,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             role = "Guest"
         });
         Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+        await EnableTwoFactorAsync(client, email);
 
         var login = await client.PostAsJsonAsync("/api/auth/login", new
         {
@@ -442,7 +390,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.DoesNotContain("twoFactorCode", await register.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         var registered = await register.Content.ReadFromJsonAsync<RegisterResponse>();
         Assert.NotNull(registered);
-        Assert.True(registered.RequiresTwoFactor);
+        Assert.False(registered.RequiresTwoFactor);
 
         var duplicateRegister = await client.PostAsJsonAsync("/api/auth/register", new
         {
@@ -483,27 +431,10 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         Assert.DoesNotContain("twoFactorCode", await login.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
-        var challenge = await login.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(challenge);
-        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
-            $"/api/auth/development/challenges/{challenge.ChallengeId}");
-        Assert.NotNull(developmentCode);
-
-        var badTwoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
-        {
-            challengeId = challenge.ChallengeId,
-            code = "000000"
-        });
-        Assert.Equal(HttpStatusCode.BadRequest, badTwoFactor.StatusCode);
-
-        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
-        {
-            challengeId = challenge.ChallengeId,
-            code = developmentCode.Code
-        });
-        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
-        var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        var session = await login.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(session);
+        Assert.False(session.RequiresTwoFactor);
+        Assert.False(string.IsNullOrWhiteSpace(session.AccessToken));
         Assert.Equal(registered.UserId, session.UserId);
 
         var unauthenticatedProfile = await client.GetAsync("/api/auth/profile");
@@ -1002,7 +933,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record RegisterResponse(Guid UserId, bool RequiresTwoFactor);
 
-    private sealed record LoginResponse(string? ChallengeId, bool RequiresTwoFactor = true, string? AccessToken = null);
+    private sealed record LoginResponse(Guid UserId, string? ChallengeId, bool RequiresTwoFactor = true, string? AccessToken = null);
 
     private sealed record DevelopmentAuthCodeResponse(string Code);
 
@@ -1064,10 +995,85 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         string? PreviousStateJson,
         string? NewStateJson);
 
-    private static string GenerateTotpFromManualKey(string manualKey)
+    private static async Task<LoginResponse> LoginDirectAsync(
+        HttpClient client,
+        string email,
+        string password = "Password123!")
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var session = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(session);
+        Assert.False(session.RequiresTwoFactor);
+        Assert.Null(session.ChallengeId);
+        Assert.False(string.IsNullOrWhiteSpace(session.AccessToken));
+        return session;
+    }
+
+    private static async Task<TwoFactorResponse> LoginWithTwoFactorAsync(
+        HttpClient client,
+        string email,
+        string password = "Password123!")
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var challenge = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(challenge);
+        Assert.True(challenge.RequiresTwoFactor);
+        Assert.False(string.IsNullOrWhiteSpace(challenge.ChallengeId));
+        var developmentCode = await client.GetFromJsonAsync<DevelopmentAuthCodeResponse>(
+            $"/api/auth/development/challenges/{challenge.ChallengeId}");
+        Assert.NotNull(developmentCode);
+
+        var twoFactor = await client.PostAsJsonAsync("/api/auth/2fa/verify", new
+        {
+            challengeId = challenge.ChallengeId,
+            code = developmentCode.Code
+        });
+        Assert.Equal(HttpStatusCode.OK, twoFactor.StatusCode);
+        var session = await twoFactor.Content.ReadFromJsonAsync<TwoFactorResponse>();
+        Assert.NotNull(session);
+        return session;
+    }
+
+    private static async Task<TwoFactorEnrollmentConfirmResponse> EnableTwoFactorAsync(
+        HttpClient client,
+        string email,
+        string password = "Password123!")
+    {
+        var session = await LoginDirectAsync(client, email, password);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var enrollmentResponse = await client.PostAsync("/api/auth/2fa/enrollments", null);
+        Assert.Equal(HttpStatusCode.OK, enrollmentResponse.StatusCode);
+        var enrollment = await enrollmentResponse.Content.ReadFromJsonAsync<TwoFactorEnrollmentResponse>();
+        Assert.NotNull(enrollment);
+
+        var setupCode = GenerateTotpFromManualKey(enrollment.ManualKey, DateTimeOffset.UtcNow.AddSeconds(-30));
+        var confirm = await client.PostAsJsonAsync("/api/auth/2fa/enrollments/confirm", new
+        {
+            enrollmentId = enrollment.EnrollmentId,
+            code = setupCode
+        });
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+        var confirmed = await confirm.Content.ReadFromJsonAsync<TwoFactorEnrollmentConfirmResponse>();
+        Assert.NotNull(confirmed);
+        Assert.True(confirmed.Enabled);
+        client.DefaultRequestHeaders.Authorization = null;
+        return confirmed;
+    }
+
+    private static string GenerateTotpFromManualKey(string manualKey, DateTimeOffset? timestamp = null)
     {
         var secret = DecodeBase32(manualKey);
-        var counter = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30;
+        var counter = (timestamp ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds() / 30;
         var counterBytes = BitConverter.GetBytes(counter);
         if (BitConverter.IsLittleEndian)
         {

@@ -84,7 +84,7 @@ public sealed class EfPhaseOneStore(
             DisplayName = request.DisplayName.Trim(),
             Phone = request.Phone?.Trim(),
             TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
-            IsTwoFactorEnabled = true,
+            IsTwoFactorEnabled = false,
             Status = "Active",
             AdminPermissionsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([]),
             RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([request.Role])
@@ -105,7 +105,7 @@ public sealed class EfPhaseOneStore(
             user.Id,
             user.Email,
             user.DisplayName,
-            true);
+            false);
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -305,7 +305,7 @@ public sealed class EfPhaseOneStore(
                 DisplayName = displayName,
                 Phone = null,
                 TwoFactorSecret = ProtectTotpSecret(GenerateSecret()),
-                IsTwoFactorEnabled = true,
+                IsTwoFactorEnabled = false,
                 Status = "Active",
                 AdminPermissionsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([]),
                 RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([role])

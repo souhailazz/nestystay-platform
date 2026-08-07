@@ -164,7 +164,7 @@ public sealed class PhaseOneStore(
                 request.DisplayName.Trim(),
                 request.Phone?.Trim(),
                 GenerateSecret(),
-                true,
+                false,
                 "Active",
                 [],
                 [request.Role]);
@@ -174,7 +174,7 @@ public sealed class PhaseOneStore(
                 user.Id,
                 user.Email,
                 user.DisplayName,
-                true));
+                false));
         }
     }
 
