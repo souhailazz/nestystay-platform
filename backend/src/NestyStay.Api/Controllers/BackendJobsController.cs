@@ -8,5 +8,8 @@ namespace NestyStay.Api.Controllers;
 public sealed class BackendJobsController(IHostEnvironment environment) : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetJobs() => environment.IsProduction() ? NotFound() : Ok(BackendJobCatalog.Jobs);
+    public IActionResult GetJobs() => IsDevelopmentOrTesting() ? Ok(BackendJobCatalog.Jobs) : NotFound();
+
+    private bool IsDevelopmentOrTesting() =>
+        environment.IsDevelopment() || environment.IsEnvironment("Testing");
 }

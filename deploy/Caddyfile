@@ -2,13 +2,13 @@
 # 1. Point a real domain's A record at this server, replace nestystay.example below,
 #    then: caddy reload --config /etc/caddy/Caddyfile
 #    Caddy provisions HTTPS automatically and redirects HTTP -> HTTPS by itself.
-# 2. Until a domain exists, the :80 block serves the raw IP over HTTP (no false HTTPS advertised).
+# 2. Until a domain exists, the raw-IP block serves HTTP only (no false HTTPS advertised).
 
 (nestystay_common) {
 	encode gzip
 
 	header {
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.stripe.com https://r.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com"
 		X-Frame-Options "DENY"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -26,17 +26,20 @@
 	handle /openapi/* {
 		reverse_proxy 127.0.0.1:5019
 	}
+	handle /swagger/* {
+		reverse_proxy 127.0.0.1:5019
+	}
 
 	# SPA fallback
 	handle {
-		root * /var/www/nestystay
+		root * /var/www/nestystay/current
 		try_files {path} /index.html
 		file_server
 	}
 }
 
 # --- Active today: HTTP on the raw IP ---
-:80 {
+http://167.99.143.25 {
 	import nestystay_common
 }
 

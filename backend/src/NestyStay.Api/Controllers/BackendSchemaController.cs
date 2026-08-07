@@ -9,13 +9,14 @@ namespace NestyStay.Api.Controllers;
 [Route("api/backend-schema")]
 public sealed class BackendSchemaController(IHostEnvironment environment) : ControllerBase
 {
-    private IActionResult? BlockInProduction() => environment.IsProduction() ? NotFound() : null;
+    private IActionResult? BlockOutsideDevelopmentOrTesting() =>
+        environment.IsDevelopment() || environment.IsEnvironment("Testing") ? null : NotFound();
 
     [HttpGet("tables")]
-    public IActionResult GetTables() => BlockInProduction() ?? Ok(SchemaCatalog.Tables);
+    public IActionResult GetTables() => BlockOutsideDevelopmentOrTesting() ?? Ok(SchemaCatalog.Tables);
 
     [HttpGet("rules")]
-    public IActionResult GetRules() => BlockInProduction() ?? Ok(new BackendRuleDto[]
+    public IActionResult GetRules() => BlockOutsideDevelopmentOrTesting() ?? Ok(new BackendRuleDto[]
     {
         new("Bookings", $"Default booking hold is {NestyStayBusinessRules.DefaultBookingHoldMinutes} minutes; legacy PDF {NestyStayBusinessRules.LegacyPdfBookingHoldMinutes} minutes remains configurable."),
         new("Bookings", "Payment capture is allowed only after booking approval."),
@@ -30,5 +31,5 @@ public sealed class BackendSchemaController(IHostEnvironment environment) : Cont
     });
 
     [HttpGet("seed/pricebook")]
-    public IActionResult GetSeedPricebook() => BlockInProduction() ?? Ok(NestyStaySeed.DefaultPricebook());
+    public IActionResult GetSeedPricebook() => BlockOutsideDevelopmentOrTesting() ?? Ok(NestyStaySeed.DefaultPricebook());
 }

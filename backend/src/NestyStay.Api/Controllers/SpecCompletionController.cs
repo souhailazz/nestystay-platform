@@ -18,8 +18,7 @@ public sealed class SpecCompletionController(
     [HttpPost("seed")]
     public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken)
     {
-        // Staging/demo convenience only — never available in Production.
-        if (environment.IsProduction())
+        if (!environment.IsDevelopment() && !environment.IsEnvironment("Testing"))
         {
             return NotFound();
         }
