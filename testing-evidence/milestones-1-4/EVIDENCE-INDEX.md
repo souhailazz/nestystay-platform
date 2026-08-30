@@ -1,6 +1,6 @@
 # NestyStay M1–M4 Evidence Index
 
-Every artifact below records the surface tested and its result. The original implementation/evidence baseline was clean-room validated at `470016e99f4d13be6ae241af199ccef2b168d3b7`; the final QR gate frontend completion and evidence update is `1abeb0fda57d5b090a7be424172f6a06653fa3d6`.
+Every artifact below records the surface tested and its result. The original implementation/evidence baseline was clean-room validated at `470016e99f4d13be6ae241af199ccef2b168d3b7`; the final QR gate frontend completion is source commit `1abeb0fda57d5b090a7be424172f6a06653fa3d6`, with this report/evidence update finalized at `aea8def`.
 
 | Gate | Command | Result |
 |---|---|---|

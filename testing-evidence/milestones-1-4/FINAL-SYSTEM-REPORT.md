@@ -117,4 +117,4 @@ Secret scan covered tracked source, tests, configuration examples and evidence; 
 
 ## Commit state
 
-Final source/evidence commit: `1abeb0fda57d5b090a7be424172f6a06653fa3d6`. The original clean-room baseline remains recorded above; no history rewrite or destructive reset was performed.
+Final source commit: `1abeb0fda57d5b090a7be424172f6a06653fa3d6`; final report/evidence commit: `aea8def`. The original clean-room baseline remains recorded above; no history rewrite or destructive reset was performed.
