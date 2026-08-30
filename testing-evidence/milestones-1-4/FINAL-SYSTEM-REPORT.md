@@ -111,10 +111,10 @@ cd frontend && NESTYSTAY_E2E_ADMIN_TOKEN=<local-admin-token> npm run test:e2e --
 dotnet ef database update --project backend/src/NestyStay.Infrastructure/NestyStay.Infrastructure.csproj --startup-project backend/src/NestyStay.Api/NestyStay.Api.csproj --configuration Release
 ```
 
-Clean-room verification used a detached worktree of implementation commit `470016e99f4d13be6ae241af199ccef2b168d3b7`, a fresh PostgreSQL database `nestystay_verify_final2_20260830`, and a clean checkout after generated test output was restored. The database contains 29 applied migrations, including `20260830160305_M3M4WellnessSubscriptions`, all required M1–M4 tables, and the contract pricebook rows (guest fee 9%, host commission 3%, Verified included, Trusted 49 USD, Wellness 19 USD). The clean-room gates passed: backend 90/0, frontend 25/0, build PASS, lint 0 errors/167 warnings, API smoke 15/0, browser 15/0 and concurrency invariant 1 success/1 expected conflict.
+Clean-room verification used a detached worktree of implementation commit `470016e99f4d13be6ae241af199ccef2b168d3b7`, a fresh PostgreSQL database `nestystay_verify_final2_20260830`, and a clean checkout after generated test output was restored. The database contains 29 applied migrations, including `20260830160305_M3M4WellnessSubscriptions`, all required M1–M4 tables, and the contract pricebook rows (guest fee 9%, host commission 3%, Verified included, Trusted 49 USD, Wellness 19 USD). The clean-room gates passed: backend 90/0, frontend 25/0, build PASS, lint 0 errors/167 warnings, API smoke 15/0, browser 15/0 and concurrency invariant 1 success/1 expected conflict. The post-audit QR gate frontend patch in final commit `1abeb0fda57d5b090a7be424172f6a06653fa3d6` was then verified against that fresh database with frontend 25/0, build PASS, lint 0 errors/165 warnings, route inventory 19/19 across three viewports and QR gate journey 3/3.
 
 Secret scan covered tracked source, tests, configuration examples and evidence; no live credential, bearer token, payment secret or provider secret was committed. Test-only fixtures and documentation placeholders are intentionally non-production values.
 
 ## Commit state
 
-Implementation commit validated in clean checkout: `470016e99f4d13be6ae241af199ccef2b168d3b7`. This report update is documentation-only; no history rewrite or destructive reset was performed.
+Final source/evidence commit: `1abeb0fda57d5b090a7be424172f6a06653fa3d6`. The original clean-room baseline remains recorded above; no history rewrite or destructive reset was performed.
