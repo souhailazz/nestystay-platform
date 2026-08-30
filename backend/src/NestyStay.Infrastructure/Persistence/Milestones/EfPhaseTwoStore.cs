@@ -522,9 +522,15 @@ public sealed class EfPhaseTwoStore(
         var now = timeProvider.GetUtcNow();
         var changed = false;
 
-        if (!db.MilestonePricebookEntries.Any())
-        {
-            db.MilestonePricebookEntries.AddRange(pricebookService.GetDefaultPricebook().Select(item => new MilestonePricebookEntry
+        // Migrations may seed one or more rows (for example the contractual
+        // wellness subscription), so seeding only when the table is empty can
+        // leave a fresh database without the rest of the required pricebook.
+        var existingPricebookKeys = db.MilestonePricebookEntries
+            .Select(item => item.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingPricebook = pricebookService.GetDefaultPricebook()
+            .Where(item => !existingPricebookKeys.Contains(item.Key))
+            .Select(item => new MilestonePricebookEntry
             {
                 Id = Guid.NewGuid(),
                 Key = item.Key,
@@ -536,13 +542,23 @@ public sealed class EfPhaseTwoStore(
                 IsConfigurable = item.IsConfigurable,
                 IsActive = true,
                 ActiveFrom = now
-            }));
+            })
+            .ToList();
+        if (missingPricebook.Count > 0)
+        {
+            db.MilestonePricebookEntries.AddRange(missingPricebook);
             changed = true;
         }
 
-        if (!db.MilestoneBadgeDefinitions.Any())
+        var existingBadgeKeys = db.MilestoneBadgeDefinitions
+            .Select(item => item.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingBadges = DefaultBadgeDefinitions()
+            .Where(item => !existingBadgeKeys.Contains(item.Key))
+            .ToList();
+        if (missingBadges.Count > 0)
         {
-            db.MilestoneBadgeDefinitions.AddRange(DefaultBadgeDefinitions());
+            db.MilestoneBadgeDefinitions.AddRange(missingBadges);
             changed = true;
         }
 
