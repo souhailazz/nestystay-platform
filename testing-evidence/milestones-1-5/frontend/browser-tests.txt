@@ -1,0 +1,5 @@
+2026-08-31
+npx playwright test e2e/m5-property-manager.spec.ts
+Desktop 2/2, tablet 2/2, mobile 2/2 passed; 0 failed.
+npx playwright test e2e/m1-m4-route-inventory.spec.ts --project=desktop-chromium
+19/19 routes passed; 0 failed.

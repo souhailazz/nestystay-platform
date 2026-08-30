@@ -27,7 +27,8 @@ const workspaceItems: NavItem[] = [
   { label: "Reservations", href: "/bookings", routes: ["bookings", "no-reservations"] },
   { label: "Calendar", href: "/calendar", routes: ["calendar"] },
   { label: "Wellness", href: "/host/wellness", routes: ["host-wellness", "officer-wellness", "officer-directory", "wellness-booking"] },
-  { label: "Property manager", href: "/pm/gates", routes: ["pm-gates", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"] },
+  { label: "Property manager", href: "/pm/dashboard", routes: ["pm-gates", "pm-dashboard", "pm-invoices", "pm-maintenance", "pm-governance", "pm-documents", "pm-utilities", "pm-verification", "pm-reports", "pm-insurance"] },
+  { label: "Owner portal", href: "/owner/dashboard", routes: ["owner-dashboard"] },
   { label: "Directories", href: "/directory/trades", routes: ["business-directory", "provider-dashboard", "directory-spec"] },
   { label: "Admin", href: "/admin", routes: ["admin", "admin-kpis", "admin-reports", "officer-id-reset", "admin-ops"] },
 ];

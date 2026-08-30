@@ -9,6 +9,7 @@ using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
 using NestyStay.Application.Wellness;
+using NestyStay.Application.PropertyManager;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
 using System.Globalization;
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IProviderEventStore, EfProviderEventStore>();
         services.AddScoped<IQrAccessStore, EfQrAccessStore>();
         services.AddScoped<IDirectoryModerationStore, EfDirectoryModerationStore>();
+        services.AddScoped<IPropertyManagerStore, EfPropertyManagerStore>();
 
         return services;
     }

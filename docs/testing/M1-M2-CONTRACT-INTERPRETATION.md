@@ -49,3 +49,7 @@ Section 11’s `$600 Phase 2 - Badge System Live` row lists officer onboarding/v
 ## Explicitly separate later phases and providers
 
 The signed agreement places wellness officer onboarding/features in Phase 3 (section 9), directories/guest upsell/QR entry in Phase 4, Property Manager in Phase 5, and mobile apps in Phase 6. Those are not M1/M2 contractual gates except for the contradictory Phase 2 payment row noted above. Real Stripe, real Alibaba, production notifications, hosting/TLS/CDN, insurance, monitoring, backups, retention, and external security review are provider/production statuses, not evidence that the local M1/M2 functional code fails.
+
+## Phase 5 interpretation carried forward
+
+Section 9 places the Property Manager suite in Phase 5: multi-owner dashboard, community board, gate communications, invoicing/statements, owner portal, maintenance, utility tracking, owner/tenant verification, document storage, subscription billing, responsive web and public-launch testing. The client-added governance requirements are implemented as scoped proposals, anonymous ballot hashes/counts, one-vote eligibility and time-bounded proxy grants. Section 9 does not define a fixed PM tier price, so the local profile remains configurable rather than inventing a contractual amount. Native mobile remains Phase 6. See `docs/testing/M1-M5-TRACEABILITY.md` for the consolidated decision.

@@ -160,6 +160,25 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneAdminCase> MilestoneAdminCases => Set<MilestoneAdminCase>();
     public DbSet<MilestoneAdminCaseEvidence> MilestoneAdminCaseEvidenceUploads => Set<MilestoneAdminCaseEvidence>();
     public DbSet<MilestoneAuditEvent> MilestoneAuditEvents => Set<MilestoneAuditEvent>();
+    public DbSet<MilestonePropertyManager> MilestonePropertyManagers => Set<MilestonePropertyManager>();
+    public DbSet<MilestoneManagerOwner> MilestoneManagerOwners => Set<MilestoneManagerOwner>();
+    public DbSet<MilestoneManagerProperty> MilestoneManagerProperties => Set<MilestoneManagerProperty>();
+    public DbSet<MilestoneManagerInvoice> MilestoneManagerInvoices => Set<MilestoneManagerInvoice>();
+    public DbSet<MilestoneManagerInvoiceLine> MilestoneManagerInvoiceLines => Set<MilestoneManagerInvoiceLine>();
+    public DbSet<MilestoneManagerPayment> MilestoneManagerPayments => Set<MilestoneManagerPayment>();
+    public DbSet<MilestoneManagerLedgerEntry> MilestoneManagerLedgerEntries => Set<MilestoneManagerLedgerEntry>();
+    public DbSet<MilestoneManagerUtilityCharge> MilestoneManagerUtilityCharges => Set<MilestoneManagerUtilityCharge>();
+    public DbSet<MilestoneManagerVendor> MilestoneManagerVendors => Set<MilestoneManagerVendor>();
+    public DbSet<MilestoneManagerMaintenance> MilestoneManagerMaintenances => Set<MilestoneManagerMaintenance>();
+    public DbSet<MilestoneManagerNotice> MilestoneManagerNotices => Set<MilestoneManagerNotice>();
+    public DbSet<MilestoneManagerProposal> MilestoneManagerProposals => Set<MilestoneManagerProposal>();
+    public DbSet<MilestoneManagerEligibleVoter> MilestoneManagerEligibleVoters => Set<MilestoneManagerEligibleVoter>();
+    public DbSet<MilestoneManagerVote> MilestoneManagerVotes => Set<MilestoneManagerVote>();
+    public DbSet<MilestoneManagerProxy> MilestoneManagerProxies => Set<MilestoneManagerProxy>();
+    public DbSet<MilestoneManagerDocument> MilestoneManagerDocuments => Set<MilestoneManagerDocument>();
+    public DbSet<MilestoneManagerGateMessage> MilestoneManagerGateMessages => Set<MilestoneManagerGateMessage>();
+    public DbSet<MilestoneManagerQrAccess> MilestoneManagerQrAccesses => Set<MilestoneManagerQrAccess>();
+    public DbSet<MilestoneManagerQrScan> MilestoneManagerQrScans => Set<MilestoneManagerQrScan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -253,6 +272,23 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => evidence.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => new { evidence.CaseId, evidence.Status });
         modelBuilder.Entity<MilestoneAuditEvent>().HasIndex(audit => new { audit.SubjectType, audit.SubjectId, audit.CreatedAt });
+        modelBuilder.Entity<MilestonePropertyManager>().HasIndex(item => item.ManagerUserId).IsUnique();
+        modelBuilder.Entity<MilestoneManagerOwner>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerProperty>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId });
+        modelBuilder.Entity<MilestoneManagerInvoice>().HasIndex(item => new { item.ManagerUserId, item.InvoiceNumber }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerInvoiceLine>().HasIndex(item => item.InvoiceId);
+        modelBuilder.Entity<MilestoneManagerPayment>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerLedgerEntry>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.OccurredOn });
+        modelBuilder.Entity<MilestoneManagerUtilityCharge>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.PropertyId, item.BillingPeriod });
+        modelBuilder.Entity<MilestoneManagerMaintenance>().HasIndex(item => new { item.ManagerUserId, item.Status });
+        modelBuilder.Entity<MilestoneManagerNotice>().HasIndex(item => new { item.ManagerUserId, item.CommunityId, item.PublishAt });
+        modelBuilder.Entity<MilestoneManagerProposal>().HasIndex(item => new { item.ManagerUserId, item.Status });
+        modelBuilder.Entity<MilestoneManagerEligibleVoter>().HasIndex(item => new { item.ProposalId, item.OwnerUserId }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerVote>().HasIndex(item => item.ProposalId);
+        modelBuilder.Entity<MilestoneManagerProxy>().HasIndex(item => new { item.ProposalId, item.OwnerUserId }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerDocument>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.PropertyId });
+        modelBuilder.Entity<MilestoneManagerQrAccess>().HasIndex(item => item.TokenHash).IsUnique();
+        modelBuilder.Entity<MilestoneManagerQrScan>().HasIndex(item => new { item.QrAccessId, item.ScannedAt });
 
         NestyStaySeed.Apply(modelBuilder);
     }

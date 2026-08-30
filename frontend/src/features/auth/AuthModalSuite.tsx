@@ -104,7 +104,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
   const [registerDisplayName, setRegisterDisplayName] = useState("Nesty Guest");
   const [registerPhone, setRegisterPhone] = useState("+18765550123");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("Password123!");
-  const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
+  const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
   const [otpCode, setOtpCode] = useState("");
@@ -130,7 +130,9 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
   function finishSignIn() {
     onClose?.();
     const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
-    if (roles.includes("host")) navigate("/host-dashboard");
+    if (roles.includes("propertymanager")) navigate("/pm/dashboard");
+    else if (roles.includes("owner")) navigate("/owner/dashboard");
+    else if (roles.includes("host")) navigate("/host-dashboard");
     else if (roles.includes("officer")) navigate("/officer/wellness");
     else if (roles.includes("serviceprovider") || roles.includes("localbusiness")) navigate("/directory/provider");
     else navigate("/guest-dashboard");
@@ -519,11 +521,13 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               <span className={labelText}>Account type</span>
               <select
                 className={inputClass}
-                onChange={(e) => setRegisterRole(e.target.value as "Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness")}
+                onChange={(e) => setRegisterRole(e.target.value as "Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness")}
                 value={registerRole}
               >
                 <option value="Guest">Guest</option>
                 <option value="Host">Host</option>
+                <option value="PropertyManager">Property manager</option>
+                <option value="Owner">Property owner</option>
                 <option value="Officer">Wellness officer</option>
                 <option value="ServiceProvider">Service provider</option>
                 <option value="LocalBusiness">Local business</option>

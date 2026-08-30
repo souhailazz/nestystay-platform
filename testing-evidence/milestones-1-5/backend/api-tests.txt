@@ -1,0 +1,4 @@
+2026-08-31
+dotnet test backend/NestyStay.sln --no-restore
+Domain 5 passed; Application 23 passed; Infrastructure 14 passed; API 51 passed; 0 failed.
+Focused PropertyManagerEndpointTests: 3 passed; 0 failed.

@@ -1,6 +1,6 @@
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
 
-export type UserRole = "Guest" | "Host" | "Admin" | "Officer" | "ServiceProvider" | "LocalBusiness" | "PropertyManager";
+export type UserRole = "Guest" | "Host" | "Owner" | "Admin" | "Officer" | "ServiceProvider" | "LocalBusiness" | "PropertyManager";
 
 export type AdminPermission =
   | "super_administration"
@@ -22,7 +22,7 @@ export type RegisterUserRequest = {
   confirmPassword: string;
   acceptedTerms: boolean;
   acceptedPrivacy: boolean;
-  role: Extract<UserRole, "Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness">;
+  role: Extract<UserRole, "Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">;
 };
 
 export type RegisterUserResponse = {
@@ -1068,6 +1068,23 @@ export type DownloadedFile = {
   contentType: string;
 };
 
+export type PropertyManagerOwner = { id: string; ownerUserId: string; displayName: string; email: string; verificationStatus: string; invitationStatus: string; communityId?: string | null };
+export type PropertyManagerProperty = { id: string; ownerUserId: string; communityId?: string | null; title: string; unitNumber: string; address: string; status: string; occupancyStatus: string };
+export type PropertyManagerInvoiceLine = { id: string; description: string; quantity: number; unitAmount: number; amount: number };
+export type PropertyManagerInvoice = { id: string; ownerUserId: string; propertyId?: string | null; invoiceNumber: string; issueDate: string; dueDate: string; subtotal: number; tax: number; total: number; amountPaid: number; balance: number; currency: string; status: string; lines: PropertyManagerInvoiceLine[] };
+export type PropertyManagerUtility = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number; amount: number; invoiceId?: string | null; status: string };
+export type PropertyManagerMaintenance = { id: string; ownerUserId: string; propertyId: string; vendorId?: string | null; title: string; description: string; category: string; urgency: string; status: string; scheduledAt?: string | null; cost: number; notes: string };
+export type PropertyManagerVendor = { id: string; name: string; category: string; contact: string; verificationStatus: string; isActive: boolean; notes: string };
+export type PropertyManagerNotice = { id: string; communityId?: string | null; targetOwnerUserId?: string | null; title: string; body: string; publishAt: string; expiresAt?: string | null; isPinned: boolean; isArchived: boolean };
+export type PropertyManagerProposal = { id: string; communityId?: string | null; title: string; description: string; opensAt: string; closesAt: string; status: string; isAnonymous: boolean; quorum?: number | null; eligibleVoters: number; votesCast: number; results: Record<string, number> };
+export type PropertyManagerDocument = { id: string; ownerUserId?: string | null; propertyId?: string | null; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; accessScope: string; isArchived: boolean; createdAt: string };
+export type PropertyManagerGateMessage = { id: string; communityId?: string | null; propertyId?: string | null; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string };
+export type PropertyManagerDashboard = { manager: { managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }; totalOwners: number; totalProperties: number; outstandingBalance: number; invoicesDue: number; openMaintenance: number; pendingVerification: number; gateActivity: number; owners: PropertyManagerOwner[]; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; maintenance: PropertyManagerMaintenance[]; utilities: PropertyManagerUtility[]; vendors: PropertyManagerVendor[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[]; gateMessages: PropertyManagerGateMessage[] };
+export type PropertyManagerStatement = { ownerUserId: string; from: string; to: string; openingBalance: number; entries: { date: string; type: string; description: string; amount: number; invoiceId?: string | null }[]; closingBalance: number; invoices: PropertyManagerInvoice[]; payments: { id: string; invoiceId: string; amount: number; provider: string; providerReference: string; status: string; createdAt: string }[] };
+export type PropertyManagerOwnerPortal = { ownerUserId: string; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; statement: PropertyManagerStatement; utilities: PropertyManagerUtility[]; maintenance: PropertyManagerMaintenance[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[] };
+export type PropertyManagerQr = { id: string; token: string; subjectType: string; propertyId?: string | null; validFrom: string; validUntil: string };
+export type PropertyManagerQrValidation = { result: string; status: string; propertyId?: string | null; subjectType: string; validUntil?: string | null; qrId?: string | null; message?: string | null };
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
 
@@ -1576,6 +1593,31 @@ export const api = {
   generateRecoveryCodes: (userId: string, token: string) =>
     request<{ code: string; used: boolean }[]>(`/spec/auth/${userId}/recovery-codes`, { method: "POST", token }),
   getSocialAuthConfig: () => request<SocialAuthConfig>("/spec/auth/social-config"),
+  getPropertyManagerDashboard: (token: string) => request<PropertyManagerDashboard>("/property-manager/dashboard", { token }),
+  invitePropertyManagerOwner: (token: string, body: { email: string; displayName: string; ownerUserId?: string; communityId?: string }) => request<PropertyManagerOwner>("/property-manager/owners", { method: "POST", token, body }),
+  reviewPropertyManagerOwner: (token: string, ownerUserId: string, status: string) => request<PropertyManagerOwner>(`/property-manager/owners/${ownerUserId}/verification`, { method: "POST", token, body: { status } }),
+  renewPropertyManagerSubscription: (token: string) => request<{ managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }>("/property-manager/subscription/renew", { method: "POST", token }),
+  addPropertyManagerProperty: (token: string, body: { ownerUserId: string; title: string; unitNumber: string; address: string; communityId?: string }) => request<PropertyManagerProperty>("/property-manager/properties", { method: "POST", token, body }),
+  createPropertyManagerInvoice: (token: string, body: { ownerUserId: string; propertyId?: string; dueDate: string; tax: number; lines: { description: string; quantity: number; unitAmount: number }[] }) => request<PropertyManagerInvoice>("/property-manager/invoices", { method: "POST", token, body }),
+  getPropertyManagerInvoice: (token: string, invoiceId: string) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}`, { token }),
+  payPropertyManagerInvoice: (token: string, invoiceId: string, body: { amount: number; idempotencyKey: string }) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}/payments`, { method: "POST", token, body }),
+  getPropertyManagerStatement: (token: string, ownerUserId: string) => request<PropertyManagerStatement>(`/property-manager/owners/${ownerUserId}/statement`, { token }),
+  createPropertyManagerUtility: (token: string, body: { ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number }) => request<PropertyManagerUtility>("/property-manager/utilities", { method: "POST", token, body }),
+  createPropertyManagerMaintenance: (token: string, body: { ownerUserId: string; propertyId: string; title: string; description: string; category: string; urgency: string }) => request<PropertyManagerMaintenance>("/property-manager/maintenance", { method: "POST", token, body }),
+  updatePropertyManagerMaintenance: (token: string, id: string, body: { status: string; vendorId?: string; scheduledAt?: string; cost: number; notes: string }) => request<PropertyManagerMaintenance>(`/property-manager/maintenance/${id}`, { method: "PATCH", token, body }),
+  createPropertyManagerVendor: (token: string, body: { name: string; category: string; contact: string; notes: string }) => request<PropertyManagerVendor>("/property-manager/vendors", { method: "POST", token, body }),
+  createPropertyManagerNotice: (token: string, body: { communityId?: string; targetOwnerUserId?: string; title: string; body: string; expiresAt?: string; isPinned: boolean }) => request<PropertyManagerNotice>("/property-manager/notices", { method: "POST", token, body }),
+  getPropertyManagerNotices: (token: string) => request<PropertyManagerNotice[]>("/property-manager/notices", { token }),
+  createPropertyManagerProposal: (token: string, body: { communityId?: string; title: string; description: string; opensAt: string; closesAt: string; isAnonymous: boolean; quorum?: number }) => request<PropertyManagerProposal>("/property-manager/governance/proposals", { method: "POST", token, body }),
+  votePropertyManagerProposal: (token: string, proposalId: string, body: { choice: string; proxyId?: string }) => request<PropertyManagerProposal>(`/property-manager/governance/proposals/${proposalId}/votes`, { method: "POST", token, body }),
+  createPropertyManagerProxy: (token: string, body: { proposalId: string; proxyUserId: string; validUntil: string }) => request<{ id: string; proposalId: string; ownerUserId: string; proxyUserId: string; status: string; validUntil: string }>("/property-manager/governance/proxies", { method: "POST", token, body }),
+  getPropertyManagerDocuments: (token: string) => request<PropertyManagerDocument[]>("/property-manager/documents", { token }),
+  addPropertyManagerDocument: (token: string, body: { ownerUserId?: string; propertyId?: string; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; contentBase64?: string }) => request<PropertyManagerDocument>("/property-manager/documents", { method: "POST", token, body }),
+  createPropertyManagerGateMessage: (token: string, body: { communityId?: string; propertyId?: string; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string }) => request<PropertyManagerGateMessage>("/property-manager/gate/messages", { method: "POST", token, body }),
+  issuePropertyManagerQr: (token: string, body: { ownerUserId?: string; propertyId?: string; subjectType: string; validFrom: string; validUntil: string }) => request<PropertyManagerQr>("/property-manager/qr", { method: "POST", token, body }),
+  validatePropertyManagerQr: (body: { token: string; propertyId?: string }) => request<PropertyManagerQrValidation>("/property-manager/qr/validate", { method: "POST", body }),
+  revokePropertyManagerQr: (token: string, qrId: string) => request<PropertyManagerQrValidation>(`/property-manager/qr/${qrId}/revoke`, { method: "POST", token }),
+  getOwnerPortal: (token: string) => request<PropertyManagerOwnerPortal>("/property-manager/owner/portal", { token }),
 };
 
 export function formatMoney(amount: number, currency = "USD") {

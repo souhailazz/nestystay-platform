@@ -31,6 +31,7 @@ import {
   PropertyDetailsPage,
   PropertyManagementPage,
 } from "./pages/ProductPages";
+import { OwnerPortalPage, PropertyManagerDashboardPage, PropertyManagerGatePage } from "./pages/PropertyManagerPages";
 import {
   AdminOpsSpecPage,
   AuthSpecFlowPage,
@@ -67,7 +68,6 @@ import {
   OfficerIdResetPage,
   PendingReviewsPage,
   PoliceDirectoryPage,
-  PropertyManagerGatePage,
   PropertyManagerReportsPage,
   PropertyManagerUtilitiesPage,
   PropertyManagerVerificationPage,
@@ -129,6 +129,13 @@ type Route =
   | { name: "host-property-edit" }
   | { name: "host-reports" }
   | { name: "pm-gates" }
+  | { name: "pm-dashboard" }
+  | { name: "pm-invoices" }
+  | { name: "pm-maintenance" }
+  | { name: "pm-governance" }
+  | { name: "pm-documents" }
+  | { name: "owner-dashboard" }
+  | { name: "pm-gate" }
   | { name: "pm-utilities" }
   | { name: "pm-verification" }
   | { name: "pm-reports" }
@@ -242,6 +249,13 @@ function parseRoute(): Route {
   if (path === "/host/properties/edit") return { name: "host-spec", view: "properties-edit", propertyId: search.get("id") ?? undefined };
   if (path === "/host/reports") return { name: "host-reports" };
   if (path === "/pm/gates") return { name: "pm-gates" };
+  if (path === "/pm/dashboard") return { name: "pm-dashboard" };
+  if (path === "/pm/invoices") return { name: "pm-invoices" };
+  if (path === "/pm/maintenance") return { name: "pm-maintenance" };
+  if (path === "/pm/governance") return { name: "pm-governance" };
+  if (path === "/pm/documents") return { name: "pm-documents" };
+  if (path === "/owner/dashboard") return { name: "owner-dashboard" };
+  if (path === "/gate") return { name: "pm-gate" };
   if (path === "/pm/utilities") return { name: "pm-utilities" };
   if (path === "/pm/verification") return { name: "pm-verification" };
   if (path === "/pm/reports") return { name: "pm-reports" };
@@ -428,6 +442,13 @@ function isWorkspaceRoute(route: Route) {
     "host-property-edit",
     "host-reports",
     "pm-gates",
+    "pm-dashboard",
+    "pm-invoices",
+    "pm-maintenance",
+    "pm-governance",
+    "pm-documents",
+    "owner-dashboard",
+    "pm-gate",
     "pm-utilities",
     "pm-verification",
     "pm-reports",
@@ -776,7 +797,17 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "host-reports":
       return <HostReportsPage />;
     case "pm-gates":
-      return <PropertyManagerGatePage />;
+      return <PropertyManagerDashboardPage auth={auth} />;
+    case "pm-dashboard":
+    case "pm-invoices":
+    case "pm-maintenance":
+    case "pm-governance":
+    case "pm-documents":
+      return <PropertyManagerDashboardPage auth={auth} />;
+    case "owner-dashboard":
+      return <OwnerPortalPage auth={auth} />;
+    case "pm-gate":
+      return <PropertyManagerGatePage auth={auth} />;
     case "pm-utilities":
       return <PropertyManagerUtilitiesPage />;
     case "pm-verification":

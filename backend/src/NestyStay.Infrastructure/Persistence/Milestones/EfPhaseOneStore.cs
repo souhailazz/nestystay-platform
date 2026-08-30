@@ -2012,9 +2012,9 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("Terms of service and privacy policy acceptance are required.");
         }
 
-        if (request.Role is not (UserRole.Guest or UserRole.Host or UserRole.Officer or UserRole.ServiceProvider or UserRole.LocalBusiness))
+        if (request.Role is not (UserRole.Guest or UserRole.Host or UserRole.Owner or UserRole.PropertyManager or UserRole.Officer or UserRole.ServiceProvider or UserRole.LocalBusiness))
         {
-            throw new InvalidOperationException("Only traveler, host, officer, and provider self-service registration is available.");
+            throw new InvalidOperationException("Only traveler, host, owner, property manager, officer, and provider self-service registration is available.");
         }
     }
 
