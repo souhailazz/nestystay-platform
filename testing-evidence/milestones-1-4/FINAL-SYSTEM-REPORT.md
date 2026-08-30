@@ -1,5 +1,3 @@
-# NestyStay Milestones 1–4 Final System Report
-
 | Area | Status |
 |---|---|
 | M1 Core | PASS |
@@ -9,6 +7,8 @@
 | Database verification | PASS |
 | Real provider validation | BLOCKED (external credentials) |
 | Production readiness | NO |
+
+# NestyStay Milestones 1–4 Final System Report
 
 Audit date: 2026-08-30  
 Primary source of truth: [NestyStay signed agreement](../../docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf)  
