@@ -25,6 +25,13 @@ test.beforeAll(async ({ baseURL }) => {
     const login = await api.post("/api/auth/login", { data: { email, password } });
     expect(login.ok(), await login.text()).toBeTruthy();
     const host = await login.json() as { userId: string; accessToken: string };
+    const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
+    if (!adminToken) throw new Error("NESTYSTAY_E2E_ADMIN_TOKEN is required for the clean-room eKYC fixture.");
+    const badge = await api.post("/api/badges-pricing/badges/purchase", {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { subjectType: "Host", subjectId: host.userId, level: "Verified", hostVerificationPassed: true, paymentSucceeded: true },
+    });
+    expect(badge.ok(), await badge.text()).toBeTruthy();
     const property = await api.post("/api/properties", {
       headers: { Authorization: `Bearer ${host.accessToken}` },
       data: {
