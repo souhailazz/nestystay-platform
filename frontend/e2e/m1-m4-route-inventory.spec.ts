@@ -38,6 +38,7 @@ test("M1-M4 route inventory loads contractual routes without browser crashes", a
     { role: "anonymous", route: "/directory/trades" },
     { role: "anonymous", route: "/directory/businesses" },
     { role: "anonymous", route: "/directory/police" },
+    { role: "anonymous", route: "/gate/qr" },
     { role: "guest", route: "/guest-dashboard" },
     { role: "guest", route: "/traveler/reservations" },
     { role: "guest", route: "/traveler/qr" },

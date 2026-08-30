@@ -23,7 +23,7 @@ Primary contractual source: [signed April 2026 agreement](../../docs/contracts/N
 | M4 | Badge-gated directory access: Custodian VERIFIED, Trades TRUSTED, Local Business VERIFIED | Server-side `RequireDirectoryAccess`, direct HTTP bypass tests, host UI lock states | PASS |
 | M4 | Police directory: active off-duty JCF only, badge ID only, no names/contact, platform messaging only, host wellness access | Officer-to-directory projection, privacy-safe Police API and locked anonymous/non-Wellness paths | PASS |
 | M4 | Guest verification upsell reused from M1 per property | Existing eKYC property/booking flow and browser/API evidence | PASS |
-| M4 | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | Hashed token QR issue/validate/revoke endpoints, ownership/booking checks and live/API/browser evidence | PASS |
+| M4 | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | Hashed token QR issue/validate/revoke endpoints, ownership/booking checks, active traveler QR controls, public `/gate/qr` validator and live/API/browser evidence | PASS |
 | M4 | Jamaica emergency number 119 visible on wellness/listing experience | Wellness quote/UI constant and 3-viewport browser evidence | PASS |
 
 ## Provider and production split

@@ -42,6 +42,7 @@ import {
   JournalPage,
   MessagesPage,
   PublicContentRoute,
+  QrGateValidationPage,
   TravelerSpecPage,
 } from "./pages/CompletionPages";
 import {
@@ -103,6 +104,7 @@ type Route =
   | { name: "journal"; slug?: string }
   | { name: "booking-state"; state: string; bookingId?: string }
   | { name: "traveler-spec"; view: string }
+  | { name: "qr-gate" }
   | { name: "messages"; conversationId?: string }
   | { name: "directory-spec"; kind?: string; slug?: string }
   | { name: "host-profile"; slug?: string; edit?: boolean }
@@ -196,6 +198,7 @@ function parseRoute(): Route {
   if (path === "/traveler/reviews/given") return { name: "traveler-spec", view: "reviews-given" };
   if (path === "/traveler/reviews/pending") return { name: "traveler-spec", view: "reviews-pending" };
   if (path.startsWith("/traveler/qr")) return { name: "traveler-spec", view: "qr" };
+  if (path === "/gate/qr" || path === "/qr/validate") return { name: "qr-gate" };
   if (path === "/messages") return { name: "messages" };
   if (path.startsWith("/messages/") && path !== "/messages/document") return { name: "messages", conversationId: path.split("/")[2] };
   if (path === "/directory/custodians") return { name: "directory-spec", kind: "Custodian" };
@@ -465,6 +468,7 @@ function hasPublicNav(route: Route) {
     "not-found",
     "design-system",
     "loading-state",
+    "qr-gate",
   ].includes(route.name);
 }
 
@@ -713,6 +717,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <BookingSpecStatePage auth={auth} bookingId={route.bookingId} state={route.state} />;
     case "traveler-spec":
       return <TravelerSpecPage auth={auth} view={route.view} />;
+    case "qr-gate":
+      return <QrGateValidationPage />;
     case "messages":
       return <MessagesPage auth={auth} conversationId={route.conversationId} />;
     case "directory-spec":

@@ -40,8 +40,9 @@ Checked items are backed by current executable evidence under `testing-evidence/
 - [x] Badge-gated access and direct HTTP bypass protection.
 - [x] Guest verification upsell reused from M1.
 - [x] Secure booking/property/guest QR generation.
+- [x] Active traveler QR controls issue/revoke a persisted pass and encode the frontend gate validator route.
 - [x] QR validation, valid dates, wrong-property rejection, revocation and scan logging.
-- [x] Gate-facing QR verification UI/API.
+- [x] Gate-facing `/gate/qr` verification UI/API with visible valid, wrong-property, revoked, expired and invalid outcomes.
 - [x] Emergency number 119 displayed on wellness/listing surfaces.
 
 ## Explicit external/provider gates

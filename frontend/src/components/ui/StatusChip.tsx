@@ -10,8 +10,8 @@ export type StatusTone = "green" | "coral" | "amber" | "blue" | "mint" | "slate"
 export function statusToneOf(value: string): StatusTone {
   const v = value.toLowerCase();
   if (/wellness/.test(v)) return "mint";
-  if (/reject|fail|declin|cancel|refund|expired|revoked/.test(v)) return "coral";
-  if (/pending|authoriz|progress|await|hold|submitted|queued|requested/.test(v)) return "amber";
+  if (/reject|fail|declin|cancel|refund|expired|revoked|invalid|wrongproperty|bookinginvalid/.test(v)) return "coral";
+  if (/pending|authoriz|progress|await|hold|submitted|queued|requested|notstarted/.test(v)) return "amber";
   if (/schedul|assign/.test(v)) return "blue";
   if (/approve|confirm|captur|pass|verif|paid|active|complete|success|locked/.test(v)) return "green";
   return "slate";

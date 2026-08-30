@@ -20,7 +20,7 @@ export function TravelerStateContainer({ view, auth }: TravelerStateContainerPro
     return <TravelerDashboard userId={userId} token={token} />;
   }
 
-  if (view.startsWith("reservation")) {
+  if (view.startsWith("reservation") || view === "qr") {
     return <TravelerReservations view={view} token={token} />;
   }
 

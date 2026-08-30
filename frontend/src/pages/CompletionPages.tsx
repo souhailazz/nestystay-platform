@@ -705,15 +705,129 @@ function BookingReservationCard({ booking, token }: { booking: Booking; token: s
       setError(caught instanceof Error ? caught.message : "Gate pass could not be revoked.");
     }
   }
+  const gateValidatorUrl = qr
+    ? `/gate/qr?token=${encodeURIComponent(qr.token)}&propertyId=${encodeURIComponent(qr.propertyId)}`
+    : null;
   return <Card className="compact-list__item">
     <CalendarDays size={20} />
     <div><strong>{booking.propertyTitle}</strong><span>{booking.checkIn} - {booking.checkOut}</span></div>
     <Badge tone={booking.status === "APPROVED" || booking.paymentStatus === "Captured" ? "green" : "sun"}>{booking.status}</Badge>
     <AppLink className={buttonClassName("outline")} href={`/booking/${booking.id}/invoice`}>Invoice</AppLink>
     {eligible && !qr && <Button variant="outline" onClick={issue}>Generate gate QR</Button>}
-    {qr && <div className="flex items-center gap-3"><div className="text-xs"><div className="font-semibold">Gate QR active</div><div>Valid through {new Date(qr.expiresAt).toLocaleDateString()}</div><Button variant="outline" onClick={revoke}>Revoke</Button></div>{qrImage && <img alt="Secure booking gate QR" height={110} src={qrImage} width={110} />}</div>}
+    {qr && <div className="flex flex-wrap items-center gap-3"><div className="text-xs"><div className="font-semibold">Gate QR active</div><div>Valid through {new Date(qr.expiresAt).toLocaleDateString()}</div><div className="mt-2 flex flex-wrap gap-2"><AppLink className={buttonClassName("outline")} href={gateValidatorUrl!}>Open gate validator</AppLink><Button variant="outline" onClick={revoke}>Revoke</Button></div></div>{qrImage && <img alt="Secure booking gate QR" height={110} src={qrImage} width={110} />}</div>}
     {error && <span className="text-xs text-error-text">{error}</span>}
   </Card>;
+}
+
+/**
+ * M4 gate-facing QR validation UI. The QR image points here so a property
+ * attendant can scan it and receive a human-readable decision rather than a
+ * raw JSON API response. The same screen also supports manual token entry for
+ * scanners that copy a value instead of opening the encoded URL.
+ */
+export function QrGateValidationPage() {
+  const initialQuery = useMemo(() => {
+    const query = new URLSearchParams(window.location.search);
+    return {
+      token: query.get("token") ?? "",
+      propertyId: query.get("propertyId") ?? "",
+    };
+  }, []);
+  const [token, setToken] = useState(initialQuery.token);
+  const [propertyId, setPropertyId] = useState(initialQuery.propertyId);
+  const [deviceMetadata, setDeviceMetadata] = useState("");
+  const [result, setResult] = useState<import("../lib/api").QrValidationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const autoValidated = useRef(false);
+
+  async function validate(event?: FormEvent) {
+    event?.preventDefault();
+    const nextToken = token.trim();
+    const nextPropertyId = propertyId.trim();
+    if (!nextToken || !nextPropertyId) {
+      setResult(null);
+      setError("Enter the QR token and property ID to validate gate access.");
+      return;
+    }
+
+    setError(null);
+    setResult(null);
+    setIsValidating(true);
+    try {
+      const validation = await api.validateQr(nextToken, nextPropertyId, deviceMetadata.trim() || undefined);
+      setResult(validation);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "QR validation could not be completed.");
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
+  useEffect(() => {
+    if (autoValidated.current || !initialQuery.token || !initialQuery.propertyId) return;
+    autoValidated.current = true;
+    void validate();
+  }, [initialQuery.propertyId, initialQuery.token]);
+
+  const decision = result?.result ?? (result?.valid ? "Valid" : "Invalid");
+  const approved = result?.valid === true;
+
+  return (
+    <CompletionShell
+      id="QR-GATE"
+      eyebrow="Property gate"
+      title="Verify a gate *pass*"
+      copy="Scan a guest QR or enter its token to check the live booking, property, date window, and revocation status."
+    >
+      <section className="product-section" data-testid="qr-gate-page">
+        <form className="management-form" onSubmit={validate}>
+          <div className="form-grid form-grid--two">
+            <Field label="QR token" hint="Paste the token from a scanner or a guest’s gate pass.">
+              <Input aria-label="QR token" onChange={(event) => setToken(event.target.value)} placeholder="Paste QR token" value={token} />
+            </Field>
+            <Field label="Property ID" hint="The property where the guest is requesting entry.">
+              <Input aria-label="Property ID" onChange={(event) => setPropertyId(event.target.value)} placeholder="Property UUID" value={propertyId} />
+            </Field>
+            <Field className="form-grid__full" label="Gate device (optional)">
+              <Input aria-label="Gate device" onChange={(event) => setDeviceMetadata(event.target.value)} placeholder="Gate tablet or scanner ID" value={deviceMetadata} />
+            </Field>
+          </div>
+          <div className="button-row">
+            <Button disabled={isValidating} type="submit">
+              {isValidating ? "Checking gate access…" : "Validate QR access"}
+            </Button>
+            <AppLink className={buttonClassName("outline")} href="/traveler/qr">Guest QR passes</AppLink>
+          </div>
+        </form>
+
+        {error && <ErrorState message={error} />}
+        {result && (
+          <div
+            aria-live="polite"
+            className={approved ? "rounded-card border border-success/30 bg-success-tint p-6" : "rounded-card border border-coral/30 bg-coral-tint p-6"}
+            data-testid="qr-gate-result"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-sand-500">Gate decision</div>
+                <h2 className="m-0 mt-1 font-display text-2xl font-medium">{approved ? "Access approved" : "Access denied"}</h2>
+              </div>
+              <StatusChip value={decision} />
+            </div>
+            <p className="mt-3 mb-0 text-[14px] leading-relaxed text-gray-700">{result.message}</p>
+            <div className="mt-4 grid gap-2 text-[12.5px] text-gray-700 sm:grid-cols-2">
+              <span>Booking: <strong>{result.bookingId ?? "Not disclosed"}</strong></span>
+              <span>Property: <strong>{result.propertyId ?? propertyId}</strong></span>
+              <span>Valid from: <strong>{result.validFrom ? new Date(result.validFrom).toLocaleString() : "—"}</strong></span>
+              <span>Expires: <strong>{result.expiresAt ? new Date(result.expiresAt).toLocaleString() : "—"}</strong></span>
+              <span>Scans recorded: <strong>{result.validationCount}</strong></span>
+            </div>
+          </div>
+        )}
+      </section>
+    </CompletionShell>
+  );
 }
 
 function PaymentHistoryPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {

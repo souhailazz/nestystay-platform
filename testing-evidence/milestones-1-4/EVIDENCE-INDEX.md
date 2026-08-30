@@ -7,9 +7,9 @@ Every artifact below records the surface tested and its result. The implementati
 | Backend | `dotnet test backend/NestyStay.sln --no-restore` | 90 passed / 0 failed |
 | Frontend | `npm test -- --run` | 25 passed / 0 failed |
 | Build | `npm run build` | PASS |
-| Lint | `npm run lint` | 0 errors / 167 warnings |
+| Lint | `npm run lint` | 0 errors / 165 warnings |
 | API smoke | `node testing-evidence/milestones-1-4/api/m3-m4-live-api-smoke.mjs` | 15/15 |
-| Browser | Playwright M1–M4 matrix | 15 passed / 0 failed |
+| Browser | Playwright M1–M4 matrix plus QR gate journey | 18 passed / 0 failed |
 | Concurrency | `node testing-evidence/milestones-1-4/concurrency/m3-m4-concurrency-smoke.mjs` | invariant PASS |
 | Database | PostgreSQL migration/state snapshot query | PASS |
 
@@ -38,6 +38,7 @@ Every artifact below records the surface tested and its result. The implementati
 - [`m3-wellness-lifecycle.spec.ts`](../../frontend/e2e/m3-wellness-lifecycle.spec.ts)
 - [`final-contract-validation.spec.ts`](../../frontend/e2e/final-contract-validation.spec.ts)
 - [`m1-m4-route-inventory.spec.ts`](../../frontend/e2e/m1-m4-route-inventory.spec.ts)
+- [`m4-qr-gate.spec.ts`](../../frontend/e2e/m4-qr-gate.spec.ts) — issue, scan, wrong-property, revoke and invalid UI journey
 - [Route inventory JSON](browser/route-inventory.json)
 - [Wellness lifecycle screenshots](wellness/)
 - [Directory/officer/provider/wellness screenshots](screenshots/)

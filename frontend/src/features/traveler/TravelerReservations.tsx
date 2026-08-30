@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import QRCode from "qrcode";
 import { Calendar, MapPin, QrCode, MessageSquare, Download, RotateCcw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
-import { api, formatMoney, type Booking } from "../../lib/api";
+import { Button } from "../../components/ui/Button";
+import { api, formatMoney, type Booking, type QrIssueResult } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
 interface TravelerReservationsProps {
@@ -12,7 +14,9 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [qrByBooking, setQrByBooking] = useState<Record<string, QrIssueResult | null>>({});
+  const [qrImageByBooking, setQrImageByBooking] = useState<Record<string, string | null>>({});
+  const [qrError, setQrError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -48,12 +52,44 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
   };
   const screenId = screenIdMap[view] || "TRAV-03";
 
+  const selectedQr = selectedBooking ? qrByBooking[selectedBooking.id] ?? null : null;
+  const selectedQrImage = selectedBooking ? qrImageByBooking[selectedBooking.id] ?? null : null;
+  const selectedBookingEligible = selectedBooking
+    ? ["APPROVED", "CONFIRMED", "Approved", "Confirmed"].includes(selectedBooking.status) || selectedBooking.paymentStatus === "CAPTURED"
+    : false;
+
+  async function generateQr() {
+    if (!selectedBooking) return;
+    setQrError(null);
+    try {
+      const issued = await api.issueBookingQr(selectedBooking.id, token);
+      const gateUrl = `${window.location.origin}/gate/qr?token=${encodeURIComponent(issued.token)}&propertyId=${encodeURIComponent(issued.propertyId)}`;
+      const image = await QRCode.toDataURL(gateUrl, { margin: 1, width: 220 });
+      setQrByBooking((current) => ({ ...current, [selectedBooking.id]: issued }));
+      setQrImageByBooking((current) => ({ ...current, [selectedBooking.id]: image }));
+    } catch (caught) {
+      setQrError(caught instanceof Error ? caught.message : "Gate pass could not be issued.");
+    }
+  }
+
+  async function revokeQr() {
+    if (!selectedQr || !selectedBooking) return;
+    setQrError(null);
+    try {
+      await api.revokeBookingQr(selectedQr.id, token);
+      setQrByBooking((current) => ({ ...current, [selectedBooking.id]: null }));
+      setQrImageByBooking((current) => ({ ...current, [selectedBooking.id]: null }));
+    } catch (caught) {
+      setQrError(caught instanceof Error ? caught.message : "Gate pass could not be revoked.");
+    }
+  }
+
   return (
-    <div className="page-container container py-6" data-testid={`${screenId.toLowerCase()}-page`} id={screenId}>
+    <div className="page-container container py-6" data-testid={view === "qr" ? "traveler-qr-page" : `${screenId.toLowerCase()}-page`} id={screenId}>
       <header className="page-header mb-6">
         <span className="badge badge-sun">{screenId}</span>
-        <h2>My Reservations</h2>
-        <PatoisPhrase phrase="Yuh Booking History" translation="Manage all your upcoming, completed, and cancelled trips." />
+        <h2>{view === "qr" ? "Gate QR passes" : "My Reservations"}</h2>
+        <PatoisPhrase phrase={view === "qr" ? "Gate access" : "Yuh Booking History"} translation={view === "qr" ? "Generate or revoke a secure pass for an approved booking." : "Manage all your upcoming, completed, and cancelled trips."} />
       </header>
 
       {/* Filter Tabs */}
@@ -126,11 +162,29 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
               <hr className="my-3" />
 
               {/* QR Gate Pass Access */}
-              <div className="qr-gate-card bg-sun-light p-3 rounded text-center mb-3">
-                <QrCode size={32} className="mx-auto mb-1 text-sun" />
-                <strong className="text-sm">Gate Access Pass</strong>
-                <p className="subtext text-xs mt-1">Show this QR code at property security gate.</p>
-              </div>
+              {view === "qr" && (
+                <div className="qr-gate-card bg-sun-light p-3 rounded text-center mb-3" data-testid="traveler-qr-controls">
+                  <QrCode size={32} className="mx-auto mb-1 text-sun" />
+                  <strong className="text-sm">Gate Access Pass</strong>
+                  <p className="subtext text-xs mt-1">Show this QR code at property security gate. The scan opens the live gate validator.</p>
+                  {!selectedBookingEligible && <p className="subtext text-xs mt-2">QR access becomes available after this booking is approved.</p>}
+                  {selectedBookingEligible && !selectedQr && <Button onClick={() => void generateQr()} variant="outline">Generate gate QR</Button>}
+                  {selectedQr && (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                      {selectedQrImage && <img alt="Secure booking gate QR" height={140} src={selectedQrImage} width={140} />}
+                      <div className="text-left text-xs">
+                        <div className="font-semibold">Gate QR active</div>
+                        <div>Valid through {new Date(selectedQr.expiresAt).toLocaleDateString()}</div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <a className="btn btn-outline" href={`/gate/qr?token=${encodeURIComponent(selectedQr.token)}&propertyId=${encodeURIComponent(selectedQr.propertyId)}`}>Open gate validator</a>
+                          <Button onClick={() => void revokeQr()} variant="outline">Revoke</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {qrError && <p className="mt-2 text-xs text-error-text" role="alert">{qrError}</p>}
+                </div>
+              )}
 
               <div className="action-buttons-group flex flex-col gap-2">
                 <a href="/messages" className="btn btn-primary w-full">

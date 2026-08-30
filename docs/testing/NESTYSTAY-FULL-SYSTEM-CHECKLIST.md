@@ -20,11 +20,11 @@ Audit basis: the complete signed agreement at `docs/contracts/NestyStay-Signed-A
 | Directories | Custodian, Trades, Local Business, Police categories; onboarding, moderation, search and provider dashboard | IMPLEMENTED + VERIFIED | Directory API/UI, provider self-registration, moderation and route inventory |
 | Directories | Contract badge-gated access and direct HTTP bypass protection | IMPLEMENTED + VERIFIED | `RequireDirectoryAccess`, API tests and UI lock states |
 | Police privacy | Active off-duty JCF only, badge/ID-only display, no contact leakage, platform messaging | IMPLEMENTED + VERIFIED | Police DTO/controller tests and browser evidence |
-| QR / Gate access | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | IMPLEMENTED + VERIFIED | Hashed token API, live smoke and browser evidence |
+| QR / Gate access | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | IMPLEMENTED + VERIFIED | Hashed token API, active traveler QR controls, public `/gate/qr` validator, live smoke and browser evidence |
 | Notifications | In-app/event abstraction for contractual transitions | IMPLEMENTED + VERIFIED LOCALLY | Event trail is local; email/SMS/push delivery requires provider credentials |
 | Messaging | Platform-controlled communication and ownership authorization | IMPLEMENTED + VERIFIED | Messaging/API security tests |
 | Database | PostgreSQL persistence, constraints, indexes, migrations and concurrency | IMPLEMENTED + VERIFIED | Migration history, state snapshot and race smoke |
-| Frontend | Contractual routes/forms/dashboards, responsive behavior, accessibility and console/network health | IMPLEMENTED + VERIFIED | 18-route × 3-viewport inventory plus targeted lifecycle suites |
+| Frontend | Contractual routes/forms/dashboards, responsive behavior, accessibility and console/network health | IMPLEMENTED + VERIFIED | 19-route × 3-viewport inventory plus targeted lifecycle suites, including the QR gate journey |
 | Admin | Moderation, officer/provider verification, badges, audits and financial controls | IMPLEMENTED + VERIFIED LOCALLY | Admin/API/browser evidence; external provider actions remain blocked |
 | Deployment | Hosting/TLS/domain/R2/monitoring/backups/compliance | PRODUCTION-ONLY | Outside M1–M4 contractual functional completion |
 | Phase 5/6 | Property Manager and native mobile applications | OUT OF M1–M4 SCOPE | Later agreement phases |

@@ -57,10 +57,10 @@ Contract deliverable roll-up: **M1 — 5 PASS / 0 FAIL / 0 BLOCKED**; **M2 — 5
 | BACKEND | **90 passed / 0 failed** — Domain 5, Application 23, Infrastructure 14, API 48. |
 | FRONTEND | **25 passed / 0 failed** — Vitest unit/component suite. |
 | API + SECURITY | **63 passed / 0 failed** — 48 API tests plus 15 live API smoke checks; security assertions are included in the API suite and all passed. |
-| REAL BROWSER | **15 passed / 0 failed** — M1 contract (6), M3/M4 acceptance (3), wellness lifecycle (3), route inventory (3), all desktop/tablet/mobile projects. |
+| REAL BROWSER | **18 passed / 0 failed** — M1 contract (6), M3/M4 acceptance (3), wellness lifecycle (3), route inventory (3), QR gate journey (3), all desktop/tablet/mobile projects. |
 | CONCURRENCY | **1 passed / 0 failed** — assignment invariant: 1 success and 1 expected conflict for the same officer; booking overlap protection remains covered by the backend suite. |
 | Frontend build | PASS — `npm run build`. |
-| Frontend lint | PASS with 0 errors (167 existing warnings). |
+| Frontend lint | PASS with 0 errors (165 existing warnings). |
 | Backend build | PASS with 0 errors (MSBuild file-lock retry warnings caused by the prior live process). |
 
 Live PostgreSQL snapshot confirms persisted M1–M4 state: 36 badge assignments, 172 bookings, 49 directory providers, 111 properties, 52 wellness officers, 21 wellness visits, 9 reports, 12 report photos, 9 payouts, 8 subscriptions, 8 QR access codes and 16 QR scan logs. The latest applied migration is `20260830160305_M3M4WellnessSubscriptions`.
@@ -76,6 +76,7 @@ Live PostgreSQL snapshot confirms persisted M1–M4 state: 36 badge assignments,
 - Wellness pricing and plan behavior needed contract alignment: enforced $25–$50 visit prices, $19/month with one included visit, idempotent active renewal and expiry handling.
 - Wellness report visibility was incomplete: hosts can retrieve completed reports and verified photo counts; officer/admin ownership remains enforced.
 - Browser route inventory produced avoidable access-console noise: added bearer-aware directory requests and intentional lock states.
+- QR validation was API-only in the prior frontend audit: added active traveler QR generation/revocation controls and a public `/gate/qr` validator that calls the live validation endpoint and displays valid, wrong-property, revoked, expired and invalid outcomes.
 - Live evidence contained transient secrets: smoke artifact now redacts access tokens, payment client secrets and emails.
 
 ## Remaining contractual blockers
@@ -95,7 +96,8 @@ Configure and validate live Stripe/Connect, Alibaba eKYC, payout and notificatio
 - [Live API smoke](api/m3-m4-live-api-smoke.json) — 15/15.
 - [Concurrency smoke](concurrency/m3-m4-concurrency-smoke.json) — invariant true.
 - [PostgreSQL migration/state evidence](database/m3-m4-postgres-state.txt).
-- [Route inventory](reports/ROUTE-INVENTORY-REPORT.md) and `browser/route-inventory.json`.
+- [Route inventory](reports/ROUTE-INVENTORY-REPORT.md) and `browser/route-inventory.json` (19 routes × 3 viewports).
+- [QR gate browser journey](../../frontend/e2e/m4-qr-gate.spec.ts) — 3/3 viewport projects passed.
 - [Security validation](security/SECURITY-VALIDATION.md).
 
 Representative commands:
@@ -105,7 +107,7 @@ dotnet test backend/NestyStay.sln --no-build --logger "trx;LogFileName=m1-m4-fin
 cd frontend && npm test -- --run
 cd frontend && npm run build
 cd frontend && npm run lint
-cd frontend && NESTYSTAY_E2E_ADMIN_TOKEN=<local-admin-token> npm run test:e2e -- e2e/m3-m4-acceptance.spec.ts e2e/m3-wellness-lifecycle.spec.ts e2e/final-contract-validation.spec.ts e2e/m1-m4-route-inventory.spec.ts --reporter=line
+cd frontend && NESTYSTAY_E2E_ADMIN_TOKEN=<local-admin-token> npm run test:e2e -- e2e/m3-m4-acceptance.spec.ts e2e/m3-wellness-lifecycle.spec.ts e2e/final-contract-validation.spec.ts e2e/m1-m4-route-inventory.spec.ts e2e/m4-qr-gate.spec.ts --reporter=line
 dotnet ef database update --project backend/src/NestyStay.Infrastructure/NestyStay.Infrastructure.csproj --startup-project backend/src/NestyStay.Api/NestyStay.Api.csproj --configuration Release
 ```
 
