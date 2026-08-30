@@ -13,6 +13,36 @@ test.beforeAll(async ({ baseURL }) => {
   try {
     const seed = await api.post("/api/spec/seed");
     expect(seed.ok(), await seed.text()).toBeTruthy();
+
+    // The clean-room database is intentionally empty. Create the one public
+    // eKYC-enabled fixture this contract path needs instead of relying on
+    // rows left behind by a developer database or a previous test run.
+    const email = `contract-fixture-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
+    const registration = await api.post("/api/auth/register", {
+      data: { email, password, confirmPassword: password, displayName: "Contract Fixture Host", phone: "+15550102030", acceptedTerms: true, acceptedPrivacy: true, role: "Host" },
+    });
+    expect(registration.ok(), await registration.text()).toBeTruthy();
+    const login = await api.post("/api/auth/login", { data: { email, password } });
+    expect(login.ok(), await login.text()).toBeTruthy();
+    const host = await login.json() as { userId: string; accessToken: string };
+    const property = await api.post("/api/properties", {
+      headers: { Authorization: `Bearer ${host.accessToken}` },
+      data: {
+        hostUserId: host.userId,
+        hostName: "Contract Fixture Host",
+        hostEmail: email,
+        title: "Contract eKYC Fixture",
+        location: "Ocho Rios",
+        country: "Jamaica",
+        nightlyRate: 120,
+        currency: "USD",
+        badgeLevel: "Free",
+        guestVerificationEnabled: true,
+        insuraGuestEnabled: false,
+        cancellationPolicy: "Flexible",
+      },
+    });
+    expect(property.ok(), await property.text()).toBeTruthy();
   } finally {
     await api.dispose();
   }
