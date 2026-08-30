@@ -1,12 +1,20 @@
 | Area | Status |
 |---|---|
 | M1 Core | PASS |
-| M2 Pricing and Trust | PASS |
+| M2 Badges | PASS |
 | M3 Wellness | PASS |
-| M4 Trust and Safety | PASS |
+| M4 Directories + QR | PASS |
+| Backend regression | PASS |
+| Frontend regression | PASS |
+| API/Security | PASS |
+| Browser E2E | PASS |
+| Concurrency | PASS |
 | Database verification | PASS |
-| Real provider validation | BLOCKED (external credentials) |
-| Production readiness | NO |
+| Stripe application | PASS |
+| Real Stripe | BLOCKED |
+| eKYC application | PASS |
+| Real Alibaba | BLOCKED |
+| Production ready | NO |
 
 # NestyStay Milestones 1–4 Final System Report
 
