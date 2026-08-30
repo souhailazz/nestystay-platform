@@ -1,6 +1,6 @@
 # NestyStay M1–M4 Evidence Index
 
-Every artifact below records the surface tested and its result. The implementation/evidence commit SHA is recorded in the final system report after commit; commands used for the principal gates were:
+Every artifact below records the surface tested and its result. The implementation/evidence commit validated in a clean checkout is `470016e99f4d13be6ae241af199ccef2b168d3b7`; commands used for the principal gates were:
 
 | Gate | Command | Result |
 |---|---|---|

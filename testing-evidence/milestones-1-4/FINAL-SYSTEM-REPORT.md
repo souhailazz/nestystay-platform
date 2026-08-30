@@ -98,8 +98,13 @@ cd frontend && npm test -- --run
 cd frontend && npm run build
 cd frontend && npm run lint
 cd frontend && NESTYSTAY_E2E_ADMIN_TOKEN=<local-admin-token> npm run test:e2e -- e2e/m3-m4-acceptance.spec.ts e2e/m3-wellness-lifecycle.spec.ts e2e/final-contract-validation.spec.ts e2e/m1-m4-route-inventory.spec.ts --reporter=line
+dotnet ef database update --project backend/src/NestyStay.Infrastructure/NestyStay.Infrastructure.csproj --startup-project backend/src/NestyStay.Api/NestyStay.Api.csproj --configuration Release
 ```
+
+Clean-room verification used a detached worktree of implementation commit `470016e99f4d13be6ae241af199ccef2b168d3b7`, a fresh PostgreSQL database `nestystay_verify_final2_20260830`, and a clean checkout after generated test output was restored. The database contains 29 applied migrations, including `20260830160305_M3M4WellnessSubscriptions`, all required M1–M4 tables, and the contract pricebook rows (guest fee 9%, host commission 3%, Verified included, Trusted 49 USD, Wellness 19 USD). The clean-room gates passed: backend 90/0, frontend 25/0, build PASS, lint 0 errors/167 warnings, API smoke 15/0, browser 15/0 and concurrency invariant 1 success/1 expected conflict.
+
+Secret scan covered tracked source, tests, configuration examples and evidence; no live credential, bearer token, payment secret or provider secret was committed. Test-only fixtures and documentation placeholders are intentionally non-production values.
 
 ## Commit state
 
-Current repository HEAD at audit close: `e84953b29261a8baf31b556e78ff13631467a774`. The working tree contains the audit implementation, evidence and report updates; no history rewrite or destructive reset was performed.
+Implementation commit validated in clean checkout: `470016e99f4d13be6ae241af199ccef2b168d3b7`. This report update is documentation-only; no history rewrite or destructive reset was performed.
