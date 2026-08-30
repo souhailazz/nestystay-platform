@@ -37,15 +37,15 @@ public static class NestyStaySeed
     [
         Price("host-listing", 0m, "USD", "Always", "Hosts"),
         Price("host-commission-standard", 3m, "PERCENT", "Per booking", "Hosts"),
-        Price("guest-fee-large-long", 8m, "PERCENT", "Per booking", "Guests"),
-        Price("guest-fee-mid", 10m, "PERCENT", "Per booking", "Guests"),
-        Price("guest-fee-single-night", 12m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-large-long", 9m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-mid", 9m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-single-night", 9m, "PERCENT", "Per booking", "Guests"),
         Price("guest-ekyc-first-html", 9.99m, "USD", "Per first check", "Guests"),
         Price("guest-ekyc-return-html", 4.99m, "USD", "Per return check", "Guests"),
         Price("guest-ekyc-host-paid-pdf", 0.14m, "USD", "Per booking", "Hosts"),
         Price("alibaba-ekyc-vendor-cost", 0.14m, "USD", "Per check", "NestyStay"),
-        Price("verified-host-standard-annual", 60m, "USD", "Annual", "Hosts"),
-        Price("trusted-host-standard-annual", 120m, "USD", "Annual", "Hosts"),
+        Price("verified-host-standard-annual", 0m, "USD", "Included", "Hosts"),
+        Price("trusted-host-standard-annual", 49m, "USD", "One time (annual renewal capability)", "Hosts"),
         Price("trusted-host-pdf-campaign", 49m, "USD", "One time", "Hosts"),
         Price("founding-platinum-guest-flat", 29m, "USD", "Per booking lifetime", "Founding properties"),
         Price("founding-gold-guest-flat", 36m, "USD", "Per booking lifetime", "Founding properties"),
@@ -58,12 +58,12 @@ public static class NestyStaySeed
         Price("officer-commission-max", 15m, "PERCENT", "Per completed visit", "Officers")
     ];
 
-    private static IReadOnlyList<BadgeDefinition> DefaultBadges() =>
+    public static IReadOnlyList<BadgeDefinition> DefaultBadges() =>
     [
-        Badge("host-free", BadgeLevel.Free, "Host", ["Listings", "Calendar", "Messaging", "QR", "Stripe", "InsuraGuest", "97% payout"]),
+        Badge("host-free", BadgeLevel.Free, "Host", ["Listings", "Calendar", "Messaging", "QR code access", "97% payout"]),
         Badge("host-verified", BadgeLevel.Verified, "Host", ["Verified badge", "Custodian directory", "Local business directory", "Guest verification upsell"]),
-        Badge("host-trusted", BadgeLevel.Trusted, "Host", ["Trades directory", "Search boost", "Referral program"]),
-        Badge("host-wellness", BadgeLevel.Wellness, "Host", ["Police directory", "Wellness visits", "Wellness badge", "Security verified filter"]),
+        Badge("host-trusted", BadgeLevel.Trusted, "Host", ["Trusted badge", "Trades directory", "Search boost", "Referral program"]),
+        Badge("host-wellness", BadgeLevel.Wellness, "Host", ["Police directory", "Wellness visits", "In-person guest ID check", "Drive-by property patrol", "Wellness badge", "Police Verified filter"]),
         Badge("officer-verified", BadgeLevel.Verified, "Officer", ["Officer onboarding"]),
         Badge("officer-trusted", BadgeLevel.Trusted, "Officer", ["Wellness jobs"]),
         Badge("business-verified", BadgeLevel.Verified, "LocalBusiness", ["Mild search boost"]),

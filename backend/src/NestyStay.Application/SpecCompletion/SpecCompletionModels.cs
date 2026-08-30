@@ -99,8 +99,8 @@ public sealed record ReviewDto(Guid Id, Guid UserId, Guid? PropertyId, Guid? Boo
 public sealed record SaveReviewRequest(Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text);
 public sealed record SaveReviewReplyRequest(string Reply);
 public sealed record TravelerNotificationDto(Guid Id, Guid UserId, string Type, string Title, string Body, string DeepLink, bool IsRead, DateTimeOffset CreatedAt, DateTimeOffset? ReadAt);
-public sealed record DirectoryProviderDto(Guid Id, Guid? OwnerUserId, string Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, decimal Rating, int ReviewCount, bool IsActive);
-public sealed record UpsertDirectoryProviderRequest(string? Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, bool IsActive = true);
+public sealed record DirectoryProviderDto(Guid Id, Guid? OwnerUserId, string Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, decimal Rating, int ReviewCount, bool IsActive, string VerificationStatus = "Verified", string Status = "Published", bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null);
+public sealed record UpsertDirectoryProviderRequest(string? Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, bool IsActive = false, bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null);
 public sealed record MessagingInboxDto(Guid UserId, IReadOnlyList<ConversationSummaryDto> Conversations);
 public sealed record ConversationSummaryDto(Guid Id, string Subject, string ParticipantLabel, string LastMessage, DateTimeOffset UpdatedAt, int UnreadCount, bool IsSupportThread, string OnlineStatus);
 public sealed record ConversationDto(Guid Id, string Subject, Guid? BookingId, bool IsSupportThread, IReadOnlyList<ConversationParticipantDto> Participants, IReadOnlyList<MessageDto> Messages);

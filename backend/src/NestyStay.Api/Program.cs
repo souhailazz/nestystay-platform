@@ -6,6 +6,7 @@ using NestyStay.Application;
 using NestyStay.Application.Abstractions;
 using NestyStay.Api.Middleware;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Services;
 using NestyStay.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +50,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration.GetConnectionString("Postgres"));
+builder.Services.AddHostedService<MilestoneMaintenanceService>();
 
 var app = builder.Build();
 

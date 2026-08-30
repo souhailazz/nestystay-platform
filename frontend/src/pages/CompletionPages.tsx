@@ -128,7 +128,7 @@ function HeroImage({ index = 0, alt = "" }: { index?: number; alt?: string }) {
 }
 
 export function PublicContentRoute({ slug }: { slug: string }) {
-  return <PublicStateContainer view={slug} />;
+  return <PublicStateContainer view={slug} session={null} />;
 }
 
 function ContactForm() {
@@ -634,7 +634,7 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
       <DataGate state={workspace}>
         {(data) => (
           <section className="product-section">
-            {view.includes("reservation") || view === "qr" ? <ReservationPanel bookings={bookings.data ?? []} view={view} /> : null}
+            {view.includes("reservation") || view === "qr" ? <ReservationPanel bookings={bookings.data ?? []} view={view} token={token} /> : null}
             {view === "wishlist" || view === "collections" ? <WishlistPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "payment-methods" ? <PaymentMethodsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "payment-history" ? <PaymentHistoryPanel bookings={bookings} token={token} /> : null}
@@ -667,7 +667,7 @@ type PaymentHistoryRow = {
   canDownloadReceipt: boolean;
 };
 
-function ReservationPanel({ bookings, view }: { bookings: Booking[]; view: string }) {
+function ReservationPanel({ bookings, view, token }: { bookings: Booking[]; view: string; token: string }) {
   const filtered = bookings.filter((booking) =>
     view === "reservations-cancelled" ? booking.status === "REJECTED" :
     view === "reservations-past" ? booking.paymentStatus === "CAPTURED" :
@@ -675,14 +675,45 @@ function ReservationPanel({ bookings, view }: { bookings: Booking[]; view: strin
   );
   return filtered.length === 0 ? <EmptyState title="No reservations found." /> : (
     <div className="compact-list">{filtered.map((booking) => (
-      <Card className="compact-list__item" key={booking.id}>
-        <CalendarDays size={20} />
-        <div><strong>{booking.propertyTitle}</strong><span>{booking.checkIn} - {booking.checkOut}</span></div>
-        <Badge tone={booking.status === "APPROVED" ? "green" : "sun"}>{booking.status}</Badge>
-        <AppLink className={buttonClassName("outline")} href={`/booking/${booking.id}/invoice`}>Invoice</AppLink>
-      </Card>
+      <BookingReservationCard booking={booking} token={token} key={booking.id} />
     ))}</div>
   );
+}
+
+function BookingReservationCard({ booking, token }: { booking: Booking; token: string }) {
+  const [qr, setQr] = useState<import("../lib/api").QrIssueResult | null>(null);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const eligible = ["APPROVED", "Approved", "CONFIRMED", "Confirmed", "PAYMENTCAPTURED", "PaymentCaptured"].includes(booking.status) || booking.paymentStatus === "Captured";
+  async function issue() {
+    setError(null);
+    try {
+      const issued = await api.issueBookingQr(booking.id, token);
+      setQr(issued);
+      setQrImage(await QRCode.toDataURL(issued.validationUrl, { margin: 1, width: 220 }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Gate pass could not be issued.");
+    }
+  }
+  async function revoke() {
+    if (!qr) return;
+    try {
+      await api.revokeBookingQr(qr.id, token);
+      setQr(null);
+      setQrImage(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Gate pass could not be revoked.");
+    }
+  }
+  return <Card className="compact-list__item">
+    <CalendarDays size={20} />
+    <div><strong>{booking.propertyTitle}</strong><span>{booking.checkIn} - {booking.checkOut}</span></div>
+    <Badge tone={booking.status === "APPROVED" || booking.paymentStatus === "Captured" ? "green" : "sun"}>{booking.status}</Badge>
+    <AppLink className={buttonClassName("outline")} href={`/booking/${booking.id}/invoice`}>Invoice</AppLink>
+    {eligible && !qr && <Button variant="outline" onClick={issue}>Generate gate QR</Button>}
+    {qr && <div className="flex items-center gap-3"><div className="text-xs"><div className="font-semibold">Gate QR active</div><div>Valid through {new Date(qr.expiresAt).toLocaleDateString()}</div><Button variant="outline" onClick={revoke}>Revoke</Button></div>{qrImage && <img alt="Secure booking gate QR" height={110} src={qrImage} width={110} />}</div>}
+    {error && <span className="text-xs text-error-text">{error}</span>}
+  </Card>;
 }
 
 function PaymentHistoryPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {
@@ -1446,8 +1477,20 @@ function resolveMessageAttachmentContentType(file: File) {
    the discreet EITA credit (spec); Trusted providers render as featured Deep
    cards (spec: Trusted = featured placement). */
 export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: string; auth: AuthController }) {
-  const list = useAsync(() => kind === "Provider" || kind === "ProviderDashboard" ? Promise.resolve([]) : api.getDirectoryProviders({ kind }), [kind]);
-  const detail = useAsync(() => slug ? api.getDirectoryProvider(slug) : Promise.resolve(null), [slug]);
+  const isM4Directory = kind !== "Verification" && kind !== "Provider" && kind !== "ProviderDashboard";
+  const isHost = auth.session?.roles.some((role) => role.toLowerCase() === "host") ?? false;
+  const requiresBadge = isM4Directory && ["Custodian", "Trades", "LocalBusiness", "Police"].includes(kind ?? "");
+  const badgeAccess = useAsync(() => requiresBadge && auth.session && isHost
+    ? api.getBadgeFeatureAccess("Host", auth.session.userId, auth.session.accessToken)
+    : Promise.resolve(null), [requiresBadge, isHost, auth.session?.userId, auth.session?.accessToken]);
+  const badgeRank: Record<string, number> = { Free: 0, Verified: 1, Trusted: 2, Wellness: 3 };
+  const requiredRank: Record<string, number> = { Custodian: 1, Trades: 2, LocalBusiness: 1, Police: 3 };
+  const badgePending = requiresBadge && isHost && auth.session && badgeAccess.data === null && !badgeAccess.error;
+  const directoryLocked = requiresBadge && (kind === "Police"
+    ? (!auth.session || !isHost || (!!badgeAccess.data && (badgeRank[badgeAccess.data.activeLevel] ?? 0) < (requiredRank[kind] ?? 0)))
+    : (!!auth.session && (!isHost || (!!badgeAccess.data && (badgeRank[badgeAccess.data.activeLevel] ?? 0) < (requiredRank[kind ?? ""] ?? 0)))));
+  const list = useAsync(() => kind === "Provider" || kind === "ProviderDashboard" || directoryLocked || badgePending ? Promise.resolve([]) : isM4Directory ? api.getM4DirectoryProviders({ kind }, auth.session?.accessToken) : api.getDirectoryProviders({ kind }), [kind, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
+  const detail = useAsync(() => slug && !directoryLocked && !badgePending ? (isM4Directory ? api.getM4DirectoryProvider(slug, auth.session?.accessToken) : api.getDirectoryProvider(slug)) : Promise.resolve(null), [slug, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
   const [category, setCategory] = useState("All");
   if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} />}</DataGate>;
   if (kind === "Provider" || kind === "ProviderDashboard") {
@@ -1455,7 +1498,7 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
   }
 
   const isTrades = kind === "Trades";
-  const screenId = kind === "Custodian" ? "DIR-01" : isTrades ? "DIR-02" : kind === "Verification" ? "DIR-06" : "DIR-BIZ";
+  const screenId = kind === "Custodian" ? "DIR-01" : isTrades ? "DIR-02" : kind === "Police" ? "DIR-POLICE" : kind === "Verification" ? "DIR-06" : "DIR-BIZ";
 
   return (
     <div className="flex flex-col gap-5 font-sans text-ink" id={screenId}>
@@ -1468,6 +1511,10 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
           ) : kind === "Custodian" ? (
             <>
               Custodian <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : kind === "Police" ? (
+            <>
+              Police <em className="italic text-deep-hover">wellness directory</em>
             </>
           ) : kind === "Verification" ? (
             <>
@@ -1482,7 +1529,9 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
         {isTrades && <span className="text-[11.5px] text-sand-500">Powered by EITA — electricianinthisarea.com</span>}
       </div>
 
-      <DataGate state={list}>
+      {directoryLocked && <div className="rounded-card border border-sand-border bg-cream p-[22px] text-[13px] text-gray-600">{kind === "Police" ? "Police wellness directory access requires a signed-in host with an active Wellness badge." : `A ${kind === "Trades" ? "Trusted" : "Verified"} badge is required to use this directory.`}</div>}
+
+      {!directoryLocked && !badgePending && <DataGate state={list}>
         {(providers) => {
           const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
           const filtered = providers.filter((provider) => category === "All" || provider.category === category);
@@ -1505,12 +1554,12 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
                   </button>
                 ))}
                 <div className="ml-auto flex flex-wrap gap-2">
-                  <AppLink
+                {kind !== "Police" && <AppLink
                     className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
                     href="/directory/provider/onboarding"
                   >
                     Provider onboarding
-                  </AppLink>
+                </AppLink>}
                   <AppLink
                     className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
                     href="/directory/provider"
@@ -1531,49 +1580,45 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
             </div>
           );
         }}
-      </DataGate>
+      </DataGate>}
     </div>
   );
 }
 
 function ProviderPortal({ session, mode }: { session: NonNullable<AuthController["session"]>; mode: string }) {
   const slug = `provider-${session.userId.slice(0, 8)}`;
-  const provider = useAsync(
-    () =>
-      api
-        .getDirectoryProviders({ query: slug })
-        .then((matches) => matches.find((candidate) => candidate.slug === slug) ?? null)
-        .catch(() => null),
-    [slug],
-  );
+  const mine = useAsync(() => api.getM4DirectoryMine(session.accessToken), [session.accessToken]);
+  const provider = useMemo(() => mine.data?.find((candidate) => candidate.slug === slug) ?? mine.data?.[0] ?? null, [mine.data, slug]);
   const [form, setForm] = useState({
-    name: provider.data?.name ?? `${session.displayName} Services`,
+    name: provider?.name ?? `${session.displayName} Services`,
     kind: "LocalBusiness",
-    category: provider.data?.category ?? "Host services",
-    parish: provider.data?.parish ?? "Kingston",
-    badgeLevel: provider.data?.badgeLevel ?? "Verified",
-    description: provider.data?.description ?? "Platform-approved provider profile with services, availability, requests, and messaging.",
-    availabilitySummary: provider.data?.availabilitySummary ?? "Mon-Fri 8 AM-5 PM",
-    contactMode: provider.data?.contactMode ?? "Platform messaging only",
-    isActive: provider.data?.isActive ?? true,
+    category: provider?.category ?? "Host services",
+    parish: provider?.parish ?? "Kingston",
+    badgeLevel: provider?.badgeLevel ?? "Verified",
+    description: provider?.description ?? "Platform-approved provider profile with services, availability, requests, and messaging.",
+    availabilitySummary: provider?.availabilitySummary ?? "Mon-Fri 8 AM-5 PM",
+    contactMode: provider?.contactMode ?? "Platform messaging only",
+    isActive: provider?.isActive ?? false,
+    isBrickAndMortar: provider?.isBrickAndMortar ?? true,
   });
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!provider.data) return;
+    if (!provider) return;
     setForm({
-      name: provider.data.name,
-      kind: provider.data.kind,
-      category: provider.data.category,
-      parish: provider.data.parish,
-      badgeLevel: provider.data.badgeLevel,
-      description: provider.data.description,
-      availabilitySummary: provider.data.availabilitySummary,
-      contactMode: provider.data.contactMode,
-      isActive: provider.data.isActive,
+      name: provider.name,
+      kind: provider.kind,
+      category: provider.category,
+      parish: provider.parish,
+      badgeLevel: provider.badgeLevel,
+      description: provider.description,
+      availabilitySummary: provider.availabilitySummary,
+      contactMode: provider.contactMode,
+      isActive: provider.isActive,
+      isBrickAndMortar: provider.isBrickAndMortar ?? true,
     });
-  }, [provider.data]);
+  }, [provider]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -1584,17 +1629,15 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
     setNotice(null);
     setError(null);
     try {
-      const saved = await api.upsertDirectoryProvider(session.accessToken, { slug, ...form });
-      setNotice(`${saved.name} is saved and ${saved.isActive ? "visible" : "paused"} in the directory.`);
-      provider.reload();
+      const saved = await api.saveM4DirectoryProvider(session.accessToken, { slug, ...form });
+      setNotice(`${saved.name} is saved for review. ${saved.status ?? "PendingReview"}.`);
+      mine.reload();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Provider profile could not be saved.");
     }
   }
 
-  /* DIR-PROV (DS v2) — profile form persists via api.upsertDirectoryProvider
-     (live). Incoming-requests and earnings cards are sample data (chipped)
-     until those APIs land. */
+  /* DIR-PROV — profile form is persisted by the M4 moderation API. */
   return (
     <div className="flex flex-col gap-5 font-sans text-ink" id={mode === "Provider" ? "DIR-04" : "DIR-PROV"}>
       <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
@@ -1632,8 +1675,8 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
             <Field label="Availability"><Input value={form.availabilitySummary} onChange={(event) => update("availabilitySummary", event.target.value)} /></Field>
           </div>
           <Field label="Description"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
-          <Field label="Contact mode"><Input value={form.contactMode} onChange={(event) => update("contactMode", event.target.value)} /></Field>
-          <InlineLabel><input checked={form.isActive} type="checkbox" onChange={(event) => update("isActive", event.target.checked)} /> Visible in directory</InlineLabel>
+          <InlineLabel><input checked={form.isBrickAndMortar} type="checkbox" onChange={(event) => update("isBrickAndMortar", event.target.checked)} /> Brick-and-mortar location</InlineLabel>
+          <div className="text-xs text-sand-500">Contact is always platform messaging only. New or changed listings remain hidden until admin verification.</div>
           <div className="flex flex-wrap gap-2.5">
             <Button type="submit" variant="dark"><BadgeCheck size={17} /> Save provider profile</Button>
             <AppLink
@@ -1653,46 +1696,18 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
           <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <TierBadge level={form.badgeLevel} />
-              <StatusChip value={form.isActive ? "Active" : "Paused"} />
+              <StatusChip value={provider?.status ?? (form.isActive ? "Published" : "PendingReview")} />
             </div>
             <div className="text-xs text-sand-500">
-              Trusted Badge: $120/year or $12/month — identical for all user types.
+              Required badge: {form.kind === "Trades" ? "Trusted" : "Verified"}. Badge eligibility is enforced server-side.
             </div>
             <div className="text-xs text-sand-500">Requests and messages stay in the platform inbox — {form.contactMode}.</div>
           </div>
 
           <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
-            <div className="flex items-center justify-between gap-2.5">
-              <div className="text-[13px] font-semibold">Incoming requests</div>
-              <SampleDataChip />
-            </div>
-            <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2">
-              <div>
-                <div className="text-[13.5px] font-semibold">Cliffside Retreat — Marcia</div>
-                <div className="text-xs text-gray-600">Generator transfer switch quote</div>
-              </div>
-              <span className="inline-flex items-center rounded-pill bg-amber-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-amber-text">
-                NEW
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2.5 py-2">
-              <div>
-                <div className="text-[13.5px] font-semibold">Ocho Palms PM — S. Chin</div>
-                <div className="text-xs text-gray-600">Unit 12 breaker keeps tripping</div>
-              </div>
-              <span className="inline-flex items-center rounded-pill bg-info-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-info-text">
-                REPLIED
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
-            <div className="flex items-center justify-between gap-2.5">
-              <div className="text-[11px] font-semibold tracking-[0.16em] text-sand-500">EARNINGS — YTD</div>
-              <SampleDataChip />
-            </div>
-            <div className="font-display text-[32px] font-medium leading-none">$7,420</div>
-            <div className="text-[12.5px] text-success-text">18 completed jobs via NestyStay</div>
+            <div className="text-[13px] font-semibold">Requests and earnings</div>
+            <EmptyState title="No provider jobs or earnings are recorded yet." />
+            <div className="text-xs text-sand-500">Requests, messages, and payouts will appear here when a real platform transaction exists.</div>
           </div>
         </div>
       </div>
@@ -1797,8 +1812,8 @@ function HostProfileEditor({ session }: { session: NonNullable<AuthController["s
   return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><Card className="settings-card"><Field label="Display name"><Input defaultValue={session.displayName} /></Field><Field label="Bio"><Textarea defaultValue="Host profile managed by NestyStay." /></Field><InlineLabel><input defaultChecked type="checkbox" /> Public profile visible</InlineLabel><Button onClick={save}>Save profile</Button>{notice && <div className="notice-panel">{notice}</div>}</Card></section></CompletionShell>;
 }
 
-export function HostSpecPage({ view, auth }: { view: string; auth: AuthController }) {
-  return <HostStateContainer view={view} auth={auth} />;
+export function HostSpecPage({ view, auth, propertyId }: { view: string; auth: AuthController; propertyId?: string }) {
+  return <HostStateContainer view={view} auth={auth} propertyId={propertyId} />;
 }
 
 function HostOps({ view, hostUserId, token }: { view: string; hostUserId: string; token: string }) {

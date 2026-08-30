@@ -137,6 +137,32 @@ public sealed class EfPhaseTwoStore(
             .ToList();
     }
 
+    public BadgeMaintenanceResult RunBadgeMaintenance()
+    {
+        EnsureSeeded();
+        var now = timeProvider.GetUtcNow();
+        var active = db.MilestoneBadgeAssignments
+            .Where(item => item.Status == BadgeAssignmentStatus.Active)
+            .ToList();
+        var expired = 0;
+        foreach (var assignment in active.Where(item => item.ExpiresAt <= now))
+        {
+            assignment.Status = BadgeAssignmentStatus.Expired;
+            expired++;
+        }
+
+        var activeIds = active
+            .Where(item => item.Status == BadgeAssignmentStatus.Active)
+            .Select(item => item.Id)
+            .ToHashSet();
+        var remindersDue = db.MilestoneBadgeRenewals.Count(item =>
+            item.PaymentStatus == PaymentStatus.Pending &&
+            item.ReminderDueAt <= now &&
+            activeIds.Contains(item.BadgeAssignmentId));
+        db.SaveChanges();
+        return new BadgeMaintenanceResult(active.Count, expired, remindersDue, now);
+    }
+
     public BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request)
     {
         EnsureSeeded();
@@ -610,11 +636,6 @@ public sealed class EfPhaseTwoStore(
                     missing.Add("Wellness badge requires a property address.");
                 }
 
-                if (!request.HasWellnessSubscription)
-                {
-                    missing.Add("Wellness badge requires an active wellness subscription.");
-                }
-
                 break;
             default:
                 missing.Add("Unsupported badge level.");
@@ -646,9 +667,7 @@ public sealed class EfPhaseTwoStore(
             "Listings",
             "Calendar",
             "Messaging",
-            "QR",
-            "Stripe",
-            "InsuraGuest",
+            "QR code access",
             "97% payout"
         };
 
@@ -659,12 +678,12 @@ public sealed class EfPhaseTwoStore(
 
         if (level >= BadgeLevel.Trusted)
         {
-            features.AddRange(["Trades directory", "Search boost", "Referral program"]);
+            features.AddRange(["Trusted badge", "Trades directory", "Search boost", "Referral program"]);
         }
 
         if (level >= BadgeLevel.Wellness)
         {
-            features.AddRange(["Police directory", "Wellness visits", "Wellness badge", "Security verified filter"]);
+            features.AddRange(["Police directory", "Wellness visits", "In-person guest ID check", "Drive-by property patrol", "Wellness badge", "Police Verified filter"]);
         }
 
         return features.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -767,7 +786,8 @@ public sealed class EfPhaseTwoStore(
             definition.AppliesTo,
             price.Amount,
             price.Currency,
-            MilestoneJson.DeserializeList<string>(definition.UnlocksJson));
+            MilestoneJson.DeserializeList<string>(definition.UnlocksJson),
+            price.Cadence);
     }
 
     private static BadgeAssignmentDto ToDto(MilestoneBadgeAssignment assignment) =>
@@ -821,7 +841,7 @@ public sealed class EfPhaseTwoStore(
             BadgeLevel.Free,
             "Hosts",
             "host-listing",
-            ["Listings", "Calendar", "Messaging", "QR", "Stripe", "InsuraGuest", "97% payout"]),
+            ["Listings", "Calendar", "Messaging", "QR code access", "97% payout"]),
         Badge(
             Guid.Parse("10000000-0000-4000-8000-000000000001"),
             "host-verified",
@@ -835,14 +855,14 @@ public sealed class EfPhaseTwoStore(
             BadgeLevel.Trusted,
             "Hosts",
             "trusted-host-standard-annual",
-            ["Trades directory", "Search boost", "Referral program"]),
+            ["Trusted badge", "Trades directory", "Search boost", "Referral program"]),
         Badge(
             Guid.Parse("10000000-0000-4000-8000-000000000003"),
             "host-wellness",
             BadgeLevel.Wellness,
             "Hosts",
-            "verified-host-standard-annual",
-            ["Police directory", "Wellness visits", "Wellness badge", "Security verified filter"])
+            "wellness-subscription-pdf",
+            ["Police directory", "Wellness visits", "In-person guest ID check", "Drive-by property patrol", "Wellness badge", "Police Verified filter"])
     ];
 
     private static MilestoneBadgeDefinition Badge(

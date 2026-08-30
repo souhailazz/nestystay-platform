@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Upload, Star, ShieldCheck, Camera, Save } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Camera, Save } from "lucide-react";
 import { api } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import type { PropertyWizardData } from "./types";
 
 interface HostPropertyWizardProps {
   token: string;
+  hostUserId: string;
+  hostName: string;
+  hostEmail: string;
   onFinished: () => void;
 }
 
-export function HostPropertyWizard({ token, onFinished }: HostPropertyWizardProps) {
+export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onFinished }: HostPropertyWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSavedToast, setDraftSavedToast] = useState(false);
@@ -35,7 +38,7 @@ export function HostPropertyWizard({ token, onFinished }: HostPropertyWizardProp
       { id: "p1", url: "https://images.unsplash.com/photo-1540555700478-4be289fbecef", isCover: true, sortOrder: 0 }
     ],
     cancellationPolicy: "Flexible",
-    verificationEnabled: true,
+    verificationEnabled: false,
     insuraGuestEnabled: true
   });
 
@@ -58,15 +61,15 @@ export function HostPropertyWizard({ token, onFinished }: HostPropertyWizardProp
     setError(null);
     try {
       await api.createProperty({
-        hostUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        hostName: "Island Villa Hosting",
-        hostEmail: "host-villa@nestystay.local",
+        hostUserId,
+        hostName,
+        hostEmail,
         title: formData.title,
         location: formData.location,
         country: formData.country,
         nightlyRate: formData.nightlyRate,
         currency: formData.currency,
-        badgeLevel: "Verified",
+        badgeLevel: "Free",
         cancellationPolicy: formData.cancellationPolicy,
         guestVerificationEnabled: formData.verificationEnabled,
         insuraGuestEnabled: formData.insuraGuestEnabled,

@@ -57,6 +57,8 @@ public sealed class EfWellnessStore(
         ["image/png"] = [".png"],
         ["image/webp"] = [".webp"]
     };
+    private static readonly SemaphoreSlim SubscriptionGate = new(1, 1);
+    private static readonly SemaphoreSlim AssignmentGate = new(1, 1);
 
     public async Task<WellnessOfficerDto> OnboardOfficerAsync(OnboardOfficerRequest request, CancellationToken cancellationToken)
     {
@@ -133,6 +135,104 @@ public sealed class EfWellnessStore(
             ? ToOfficerDto(officer)
             : null;
 
+    public async Task<WellnessOfficerDto?> GetOfficerForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        await db.MilestoneWellnessOfficers.AsNoTracking().SingleOrDefaultAsync(officer => officer.UserId == userId && !officer.IsDeleted, cancellationToken) is { } officer
+            ? ToOfficerDto(officer)
+            : null;
+
+    public async Task<WellnessSubscriptionDto?> GetSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        var subscription = await db.MilestoneWellnessSubscriptions
+            .Where(item => item.HostUserId == hostUserId && !item.IsDeleted)
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (subscription is null) return null;
+        if (subscription.Status == "Active" && subscription.CurrentPeriodEnd <= now)
+        {
+            subscription.Status = "Expired";
+            subscription.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return ToSubscriptionDto(subscription, now);
+    }
+
+    public async Task<WellnessSubscriptionDto> StartSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        if (hostUserId == Guid.Empty) throw new InvalidOperationException("A host account is required.");
+        await SubscriptionGate.WaitAsync(cancellationToken);
+        try
+        {
+            var now = timeProvider.GetUtcNow();
+            var current = await db.MilestoneWellnessSubscriptions.SingleOrDefaultAsync(item => item.HostUserId == hostUserId && item.Status == "Active" && item.CurrentPeriodEnd > now && !item.IsDeleted, cancellationToken);
+            if (current is not null) return ToSubscriptionDto(current, now);
+            var authorization = await paymentGateway.AuthorizeAsync(new PaymentAuthorizationRequest(Guid.NewGuid(), 19m, "USD", "NestyStay Wellness monthly subscription"), cancellationToken);
+            if (authorization.Status is not (PaymentStatus.Authorized or PaymentStatus.Captured)) throw new InvalidOperationException("Wellness subscription payment authorization failed.");
+            var subscription = new MilestoneWellnessSubscription
+            {
+                Id = Guid.NewGuid(), HostUserId = hostUserId, MonthlyAmount = 19m, Currency = "USD", Status = "Active",
+                CurrentPeriodStart = now, CurrentPeriodEnd = now.AddMonths(1), IncludedVisits = 1, UsedVisits = 0,
+                PaymentProvider = authorization.ProviderName, PaymentReference = authorization.AuthorizationReference,
+                CreatedAt = now, UpdatedAt = now, CreatedByUserId = hostUserId
+            };
+            db.MilestoneWellnessSubscriptions.Add(subscription);
+            await db.SaveChangesAsync(cancellationToken);
+            await QueueEventAsync("Wellness subscription started", $"Host {hostUserId:N} activated the $19 monthly wellness plan.", cancellationToken);
+            return ToSubscriptionDto(subscription, now);
+        }
+        finally { SubscriptionGate.Release(); }
+    }
+
+    public async Task<WellnessSubscriptionDto> RenewSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        if (hostUserId == Guid.Empty) throw new InvalidOperationException("A host account is required.");
+        await SubscriptionGate.WaitAsync(cancellationToken);
+        try
+        {
+            var now = timeProvider.GetUtcNow();
+            var current = await db.MilestoneWellnessSubscriptions
+                .OrderByDescending(item => item.CreatedAt)
+                .FirstOrDefaultAsync(item => item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+            if (current is not null && current.Status == "Active" && current.CurrentPeriodEnd > now)
+            {
+                return ToSubscriptionDto(current, now);
+            }
+
+            if (current is not null && current.Status == "Active")
+            {
+                current.Status = "Expired";
+                current.UpdatedAt = now;
+            }
+            var authorization = await paymentGateway.AuthorizeAsync(new PaymentAuthorizationRequest(Guid.NewGuid(), 19m, "USD", "NestyStay Wellness monthly renewal"), cancellationToken);
+            if (authorization.Status is not (PaymentStatus.Authorized or PaymentStatus.Captured)) throw new InvalidOperationException("Wellness subscription renewal payment authorization failed.");
+            var renewed = new MilestoneWellnessSubscription
+            {
+                Id = Guid.NewGuid(), HostUserId = hostUserId, MonthlyAmount = 19m, Currency = "USD", Status = "Active",
+                CurrentPeriodStart = now, CurrentPeriodEnd = now.AddMonths(1), IncludedVisits = 1, UsedVisits = 0,
+                PaymentProvider = authorization.ProviderName, PaymentReference = authorization.AuthorizationReference,
+                CreatedAt = now, UpdatedAt = now, CreatedByUserId = hostUserId
+            };
+            db.MilestoneWellnessSubscriptions.Add(renewed);
+            await db.SaveChangesAsync(cancellationToken);
+            await QueueEventAsync("Wellness subscription renewed", $"Host {hostUserId:N} renewed the $19 monthly wellness plan.", cancellationToken);
+            return ToSubscriptionDto(renewed, now);
+        }
+        finally { SubscriptionGate.Release(); }
+    }
+
+    public async Task<WellnessSubscriptionDto?> CancelSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        var subscription = await db.MilestoneWellnessSubscriptions.SingleOrDefaultAsync(item => item.HostUserId == hostUserId && item.Status == "Active" && !item.IsDeleted, cancellationToken);
+        if (subscription is null) return null;
+        var now = timeProvider.GetUtcNow();
+        subscription.Status = "Cancelled";
+        subscription.CancelledAt = now;
+        subscription.UpdatedAt = now;
+        await db.SaveChangesAsync(cancellationToken);
+        await QueueEventAsync("Wellness subscription cancelled", $"Host {hostUserId:N} cancelled the wellness subscription.", cancellationToken);
+        return ToSubscriptionDto(subscription, now);
+    }
+
     public async Task<IReadOnlyList<WellnessOfficerDto>> GetAvailableOfficersAsync(string parish, DateTimeOffset scheduledAt, CancellationToken cancellationToken)
     {
         var officers = await db.MilestoneWellnessOfficers
@@ -197,15 +297,13 @@ public sealed class EfWellnessStore(
         }
 
         var visitId = Guid.NewGuid();
-        var authorization = await paymentGateway.AuthorizeAsync(
-            new PaymentAuthorizationRequest(visitId, quote.Price, quote.Currency, $"NestyStay wellness visit {visitId:N}"),
-            cancellationToken);
-        if (authorization.Status is not PaymentStatus.Authorized and not PaymentStatus.Captured)
-        {
-            throw new InvalidOperationException("Wellness visit payment authorization failed.");
-        }
-
         var now = timeProvider.GetUtcNow();
+        var subscription = await db.MilestoneWellnessSubscriptions.SingleOrDefaultAsync(item => item.HostUserId == request.HostUserId && item.Status == "Active" && item.CurrentPeriodEnd > now && item.UsedVisits < item.IncludedVisits && !item.IsDeleted, cancellationToken);
+        var authorization = subscription is null
+            ? await paymentGateway.AuthorizeAsync(new PaymentAuthorizationRequest(visitId, quote.Price, quote.Currency, $"NestyStay wellness visit {visitId:N}"), cancellationToken)
+            : new PaymentAuthorizationResult("NestyStay Wellness Subscription", subscription.PaymentReference, null, PaymentStatus.Captured, subscription.CurrentPeriodEnd);
+        if (authorization.Status is not (PaymentStatus.Authorized or PaymentStatus.Captured)) throw new InvalidOperationException("Wellness visit payment authorization failed.");
+        if (subscription is not null) subscription.UsedVisits++;
         var visit = new MilestoneWellnessVisit
         {
             Id = visitId,
@@ -260,8 +358,17 @@ public sealed class EfWellnessStore(
             ? ToVisitDto(visit)
             : null;
 
+    public async Task<WellnessReportDto?> GetReportAsync(Guid visitId, CancellationToken cancellationToken)
+    {
+        var report = await db.MilestoneWellnessReports.AsNoTracking().SingleOrDefaultAsync(item => item.VisitId == visitId && !item.IsDeleted, cancellationToken);
+        return report is null ? null : new WellnessReportDto(report.Id, report.VisitId, report.OfficerId, report.SubmittedAt, report.ReportStatus, report.Notes, MilestoneJson.DeserializeList<string>(report.PhotosJson));
+    }
+
     public async Task<WellnessVisitDto?> AssignOfficerAsync(Guid visitId, AssignOfficerRequest request, CancellationToken cancellationToken)
     {
+        await AssignmentGate.WaitAsync(cancellationToken);
+        try
+        {
         var visit = await db.MilestoneWellnessVisits.SingleOrDefaultAsync(item => item.Id == visitId, cancellationToken);
         if (visit is null)
         {
@@ -297,6 +404,8 @@ public sealed class EfWellnessStore(
         await QueueEventAsync("Officer assigned", $"Officer {officer.BadgeNumber} was assigned to visit {visit.Id:N}.", cancellationToken);
 
         return ToVisitDto(visit);
+        }
+        finally { AssignmentGate.Release(); }
     }
 
     public async Task<WellnessVisitDto?> CancelVisitAsync(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken)
@@ -860,9 +969,9 @@ public sealed class EfWellnessStore(
     private static VisitPricing ResolveVisitPricing(string visitType) =>
         visitType switch
         {
-            "StandardWellnessCheck" => new VisitPricing(85m, 60),
-            "InPersonGuestIdCheck" => new VisitPricing(125m, 75),
-            "DriveByPatrol" => new VisitPricing(65m, 45),
+            "StandardWellnessCheck" => new VisitPricing(50m, 60),
+            "InPersonGuestIdCheck" => new VisitPricing(50m, 75),
+            "DriveByPatrol" => new VisitPricing(25m, 45),
             _ => throw new InvalidOperationException("Unsupported wellness visit type.")
         };
 
@@ -983,6 +1092,12 @@ public sealed class EfWellnessStore(
             officer.CreatedAt,
             officer.UpdatedAt,
             officer.AdminReviewMetadataJson == "{}" ? null : officer.AdminReviewMetadataJson);
+
+    private static WellnessSubscriptionDto ToSubscriptionDto(MilestoneWellnessSubscription subscription, DateTimeOffset now) =>
+        new(subscription.Id, subscription.HostUserId, subscription.PlanKey, subscription.MonthlyAmount, subscription.Currency,
+            subscription.Status == "Active" && subscription.CurrentPeriodEnd <= now ? "Expired" : subscription.Status,
+            subscription.CurrentPeriodStart, subscription.CurrentPeriodEnd, subscription.IncludedVisits, subscription.UsedVisits,
+            Math.Max(0, subscription.IncludedVisits - subscription.UsedVisits), subscription.PaymentProvider, subscription.PaymentReference);
 
     private static WellnessVisitDto ToVisitDto(MilestoneWellnessVisit visit) =>
         new(

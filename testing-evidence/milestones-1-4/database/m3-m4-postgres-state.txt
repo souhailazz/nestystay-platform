@@ -1,0 +1,31 @@
+PostgreSQL live state snapshot
+=============================
+Database: nestystay_dev (PostgreSQL 18, local)
+Captured: 2026-08-30 after final API/browser validation
+
+entity | rows
+milestone_badge_assignment | 36
+milestone_booking | 172
+milestone_directory_provider | 49
+milestone_property | 111
+milestone_user | 495
+milestone_wellness_officer | 52
+milestone_wellness_payout | 9
+milestone_wellness_report | 9
+milestone_wellness_report_photo | 12
+milestone_wellness_subscription | 8
+milestone_wellness_visit | 21
+qr_access_code | 8
+qr_scan_log | 16
+
+Latest applied EF migrations:
+20260830160305_M3M4WellnessSubscriptions
+20260830154341_M3M4WellnessDirectoriesAndQr
+20260830150405_AlignSignedContractDomainBadgeSeeds
+20260830144204_AlignSignedContractM1M2PricingV2
+20260728235336_AddProviderWebhookEventTracking
+20260728222012_AddMilestoneAdministratorIdentity
+20260728174241_AddMilestoneBookingCreationRateLimit
+20260723205152_AddMilestoneUserProfilePhotos
+
+These are live PostgreSQL query results, not fixture counts.

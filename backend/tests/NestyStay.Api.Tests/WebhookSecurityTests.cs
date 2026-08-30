@@ -209,6 +209,9 @@ public sealed class WebhookSecurityTests
         public Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<LogoutResponse> LogoutAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
             Task.FromResult(true);
 
@@ -230,7 +233,7 @@ public sealed class WebhookSecurityTests
         public Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public IReadOnlyList<PropertyListingDto> GetProperties() =>
+        public IReadOnlyList<PropertyListingDto> GetProperties(Guid? hostUserId = null) =>
             throw new NotSupportedException();
 
         public PropertyListingDto? GetProperty(Guid id) =>

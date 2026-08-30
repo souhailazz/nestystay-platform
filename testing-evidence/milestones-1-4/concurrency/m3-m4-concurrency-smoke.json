@@ -1,0 +1,25 @@
+{
+  "startedAt": "2026-08-30T16:47:08.351Z",
+  "visits": [
+    {
+      "status": 200,
+      "id": "b576343c-8762-407e-a021-60bed7f57ad0"
+    },
+    {
+      "status": 200,
+      "id": "402bc962-ce91-4b7f-84af-6444a5260697"
+    }
+  ],
+  "assignments": [
+    {
+      "status": 400,
+      "message": "Officer is already booked for an overlapping wellness visit."
+    },
+    {
+      "status": 200
+    }
+  ],
+  "passed": 1,
+  "failed": 1,
+  "invariant": true
+}

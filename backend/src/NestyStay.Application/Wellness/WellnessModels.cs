@@ -5,6 +5,11 @@ public interface IWellnessStore
     Task<WellnessOfficerDto> OnboardOfficerAsync(OnboardOfficerRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<WellnessOfficerDto>> GetOfficersAsync(string? status, CancellationToken cancellationToken);
     Task<WellnessOfficerDto?> GetOfficerAsync(Guid officerId, CancellationToken cancellationToken);
+    Task<WellnessOfficerDto?> GetOfficerForUserAsync(Guid userId, CancellationToken cancellationToken);
+    Task<WellnessSubscriptionDto?> GetSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken);
+    Task<WellnessSubscriptionDto> StartSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken);
+    Task<WellnessSubscriptionDto> RenewSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken);
+    Task<WellnessSubscriptionDto?> CancelSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken);
     Task<IReadOnlyList<WellnessOfficerDto>> GetAvailableOfficersAsync(string parish, DateTimeOffset scheduledAt, CancellationToken cancellationToken);
     Task<WellnessOfficerDto?> ApproveOfficerAsync(Guid officerId, AdminOfficerReviewRequest request, CancellationToken cancellationToken);
     Task<WellnessOfficerDto?> RejectOfficerAsync(Guid officerId, AdminOfficerReviewRequest request, CancellationToken cancellationToken);
@@ -14,6 +19,7 @@ public interface IWellnessStore
     Task<WellnessVisitDto> CreateVisitAsync(CreateWellnessVisitRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<WellnessVisitDto>> GetVisitsAsync(Guid? hostUserId, Guid? propertyId, Guid? officerId, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> GetVisitAsync(Guid visitId, CancellationToken cancellationToken);
+    Task<WellnessReportDto?> GetReportAsync(Guid visitId, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> AssignOfficerAsync(Guid visitId, AssignOfficerRequest request, CancellationToken cancellationToken);
     Task<WellnessVisitDto?> CancelVisitAsync(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken);
     Task<WellnessReportPhotoUploadDto> PrepareReportPhotoUploadAsync(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, bool adminOverride, CancellationToken cancellationToken);
@@ -72,6 +78,21 @@ public sealed record WellnessQuoteDto(
     bool Eligible,
     IReadOnlyList<string> MissingRequirements,
     string EmergencyNumber);
+
+public sealed record WellnessSubscriptionDto(
+    Guid Id,
+    Guid HostUserId,
+    string PlanKey,
+    decimal MonthlyAmount,
+    string Currency,
+    string Status,
+    DateTimeOffset CurrentPeriodStart,
+    DateTimeOffset CurrentPeriodEnd,
+    int IncludedVisits,
+    int UsedVisits,
+    int RemainingVisits,
+    string PaymentProvider,
+    string PaymentReference);
 
 public sealed record CreateWellnessVisitRequest(
     Guid HostUserId,

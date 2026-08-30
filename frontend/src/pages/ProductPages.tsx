@@ -80,6 +80,7 @@ import {
   type WellnessAdminDashboard,
   type WellnessOfficer,
   type WellnessQuote,
+  type WellnessReport,
   type WellnessReportPhotoUpload,
   type WellnessVisit,
 } from "../lib/api";
@@ -196,7 +197,7 @@ function RequireAuth({ auth, title }: { auth: AuthController; title: string }) {
 }
 
 export function ExplorePage({ auth }: { auth: AuthController }) {
-  return <PublicStateContainer view="search" />;
+  return <PublicStateContainer view="search" session={auth.session} />;
 }
 
 export function PropertyDetailsPage({
@@ -206,7 +207,7 @@ export function PropertyDetailsPage({
   auth: AuthController;
   propertyId?: string;
 }) {
-  return <PublicStateContainer view="detail" propertyId={propertyId} />;
+  return <PublicStateContainer view="detail" propertyId={propertyId} session={auth.session} />;
 }
 
 export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?: "login" | "register" }) {
@@ -376,7 +377,7 @@ export function HostDashboardPage({ auth }: { auth: AuthController }) {
 }
 
 function HostDashboardContent({ auth }: { auth: AuthController }) {
-  const propertiesState = useProperties();
+  const propertiesState = useProperties(auth.session?.accessToken);
   const bookingsState = useBookings(auth.session?.accessToken);
   const hostProperties = propertiesState.properties.filter(
     (property) => property.hostUserId === auth.session?.userId,
@@ -440,7 +441,7 @@ function toApiDateTime(value: string) {
 }
 
 /* HOST-WELL visit rows — officers are badge ID ONLY (client contract rule 4). */
-function WellnessVisitList({ visits }: { visits: WellnessVisit[] }) {
+function WellnessVisitList({ visits, reports = {} }: { visits: WellnessVisit[]; reports?: Record<string, WellnessReport | null> }) {
   if (visits.length === 0) {
     return <EmptyState title="No wellness visits yet." copy="Requested visits will appear here after the backend saves them." />;
   }
@@ -469,6 +470,11 @@ function WellnessVisitList({ visits }: { visits: WellnessVisit[] }) {
           <div className="text-[11.5px] text-sand-500">
             Badge ID only — never a name, photo, or direct contact. All communication through NestyStay.
           </div>
+          {reports[visit.id] && (
+            <div className="rounded-field bg-success-tint px-4 py-3 text-[12.5px] text-success-text">
+              Report submitted · {reports[visit.id]!.photos.length} verified photo{reports[visit.id]!.photos.length === 1 ? "" : "s"} · {reports[visit.id]!.notes}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -481,7 +487,7 @@ export function HostWellnessPage({ auth }: { auth: AuthController }) {
 }
 
 function HostWellnessContent({ auth }: { auth: AuthController }) {
-  const { properties, isLoading, error, reload } = useProperties();
+  const { properties, isLoading, error, reload } = useProperties(auth.session?.accessToken);
   const hostProperties = properties.filter((property) => property.hostUserId === auth.session?.userId);
   const [propertyId, setPropertyId] = useState("");
   const [visitType, setVisitType] = useState("StandardWellnessCheck");
@@ -490,6 +496,8 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
   const [area, setArea] = useState("Ocho Rios");
   const [quote, setQuote] = useState<WellnessQuote | null>(null);
   const [visits, setVisits] = useState<WellnessVisit[]>([]);
+  const [reports, setReports] = useState<Record<string, WellnessReport | null>>({});
+  const [subscription, setSubscription] = useState<import("../lib/api").WellnessSubscription | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const selectedProperty = hostProperties.find((property) => property.id === propertyId);
@@ -501,8 +509,18 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
   }, [hostProperties, propertyId]);
 
   useEffect(() => {
-    void api.getWellnessVisits({ hostUserId: auth.session?.userId }).then(setVisits).catch(() => undefined);
+    void api.getWellnessVisits({ hostUserId: auth.session?.userId }, auth.session?.accessToken).then(setVisits).catch(() => undefined);
+    if (auth.session) void api.getWellnessSubscription(auth.session.accessToken).then(setSubscription).catch(() => undefined);
   }, [auth.session?.userId]);
+
+  useEffect(() => {
+    if (!auth.session || visits.length === 0) return;
+    const completed = visits.filter((visit) => visit.visitStatus === "Completed" || visit.reportStatus === "Submitted");
+    if (completed.length === 0) return;
+    void Promise.all(completed.map(async (visit) => [visit.id, await api.getWellnessReport(visit.id, auth.session!.accessToken)] as const))
+      .then((entries) => setReports(Object.fromEntries(entries)))
+      .catch(() => undefined);
+  }, [auth.session?.accessToken, visits]);
 
   async function runWellnessAction(action: () => Promise<string>) {
     setActionError(null);
@@ -510,8 +528,9 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
     try {
       const message = await action();
       setNotice(message);
-      const refreshed = await api.getWellnessVisits({ hostUserId: auth.session?.userId });
+      const refreshed = await api.getWellnessVisits({ hostUserId: auth.session?.userId }, auth.session?.accessToken);
       setVisits(refreshed);
+      if (auth.session) setSubscription(await api.getWellnessSubscription(auth.session.accessToken));
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "Wellness action failed.");
     }
@@ -565,13 +584,18 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         Jamaica Emergency: 119
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-sand-border bg-cream p-[18px]">
+        <div><div className="font-semibold">Wellness monthly plan — $19/month</div><div className="text-xs text-gray-600">Includes one visit per billing period. Remaining: {subscription?.remainingVisits ?? 0}.</div></div>
+        {subscription?.status === "Active" ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.cancelWellnessSubscription(auth.session!.accessToken); return "Wellness subscription cancelled."; })}>Cancel subscription</Button> : subscription ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.renewWellnessSubscription(auth.session!.accessToken); return "Wellness subscription renewed."; })}>Renew $19 plan</Button> : <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.startWellnessSubscription(auth.session!.accessToken); return "Wellness subscription started."; })}>Start $19 plan</Button>}
+      </div>
+
       {quote && quote.eligible && (
         <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
           <div className="text-[13px] font-semibold">Visit quote — {visitType.replace(/([A-Z])/g, " $1").trim()}</div>
           <div className="flex flex-col text-[13.5px]">
             <div className="flex justify-between border-b border-shell py-[7px]">
               <span>
-                Visit price <span className="text-[11px] text-coral-text">(pricing under arbitration)</span>
+                Visit price <span className="text-[11px] text-coral-text">($25–$50 per contract visit)</span>
               </span>
               <strong>{formatMoney(quote.price, quote.currency)}</strong>
             </div>
@@ -648,7 +672,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
             className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
             onClick={() =>
               void runWellnessAction(async () => {
-                const created = await api.createWellnessVisit(buildRequest());
+                const created = await api.createWellnessVisit(buildRequest(), auth.session!.accessToken);
                 setQuote(null);
                 return `${created.visitType} requested. Payment is ${created.paymentStatus}.`;
               })
@@ -675,7 +699,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         <h2 className="m-0 font-display text-xl font-medium">Visit status</h2>
         {isLoading && <LoadingState />}
         {error && <ErrorState message={error} onRetry={reload} />}
-        <WellnessVisitList visits={visits} />
+        <WellnessVisitList visits={visits} reports={reports} />
       </section>
     </div>
   );
@@ -695,7 +719,7 @@ type WellnessReportPhotoUploadItem = {
 
 const maximumWellnessReportPhotoBytes = 10 * 1024 * 1024;
 
-export function OfficerWellnessPage() {
+export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
   const [badgeNumber, setBadgeNumber] = useState("NST-OFC-2026");
   const [parish, setParish] = useState("St. Ann");
   const [coverageArea, setCoverageArea] = useState("Ocho Rios");
@@ -715,8 +739,9 @@ export function OfficerWellnessPage() {
     .map((upload) => upload.upload!.id);
 
   useEffect(() => {
-    void api.getWellnessVisits().then(setVisits).catch(() => undefined);
-  }, []);
+    if (!auth.session) return;
+    void api.getWellnessVisits({}, auth.session.accessToken).then(setVisits).catch(() => undefined);
+  }, [auth.session]);
 
   useEffect(() => () => {
     Object.values(reportUploadControllers.current).forEach((controller) => controller.abort());
@@ -728,7 +753,7 @@ export function OfficerWellnessPage() {
     try {
       const message = await action();
       setNotice(message);
-      const refreshed = await api.getWellnessVisits();
+      const refreshed = await api.getWellnessVisits({}, auth.session?.accessToken);
       setVisits(refreshed);
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "Officer wellness action failed.");
@@ -750,14 +775,14 @@ export function OfficerWellnessPage() {
 
     try {
       const contentType = resolveWellnessReportPhotoContentType(file);
-      const prepared = await api.prepareWellnessReportPhotoUpload(targetVisitId, {
+      const prepared = await api.prepareWellnessReportPhotoUpload(targetVisitId, auth.session?.accessToken ?? "", {
         officerBadgeNumber: badgeNumber,
         fileName: file.name,
         contentType,
         sizeBytes: file.size,
       });
       updateReportUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
-      const uploaded = await api.uploadWellnessReportPhotoContent(targetVisitId, prepared.id, badgeNumber, file, {
+      const uploaded = await api.uploadWellnessReportPhotoContent(targetVisitId, prepared.id, badgeNumber, auth.session?.accessToken ?? "", file, {
         signal: controller.signal,
         onProgress: (progress) => updateReportUpload(id, { progress, status: "uploading" }),
       });
@@ -843,6 +868,7 @@ export function OfficerWellnessPage() {
             event.preventDefault();
             void runOfficerAction(async () => {
               const result = await api.onboardWellnessOfficer({
+                userId: auth.session?.userId,
                 badgeNumber,
                 parish,
                 coverageArea,
@@ -940,7 +966,8 @@ export function OfficerWellnessPage() {
             disabled={uploadedReportPhotoIds.length === 0}
             onClick={() =>
               void runOfficerAction(async () => {
-                const result = await api.submitWellnessReport(visitId, {
+                if (!auth.session?.accessToken) throw new Error("Sign in with an approved Officer account before submitting a report.");
+                const result = await api.submitWellnessReport(visitId, auth.session?.accessToken ?? "", {
                   officerBadgeNumber: badgeNumber,
                   notes,
                   photos: uploadedReportPhotoIds,
@@ -1023,14 +1050,14 @@ export function PropertyManagementPage({ auth }: { auth: AuthController }) {
 }
 
 function PropertyManagementContent({ auth }: { auth: AuthController }) {
-  const { properties, isLoading, error, reload } = useProperties();
+  const { properties, isLoading, error, reload } = useProperties(auth.session?.accessToken);
   const [form, setForm] = useState({
     title: "New Tropical Studio",
     location: "Port Antonio, Portland",
     country: "Jamaica",
     nightlyRate: "155",
     currency: "USD",
-    badgeLevel: "Verified",
+    badgeLevel: "Free",
     cancellationPolicy: "Flexible",
     guestVerificationEnabled: false,
     insuraGuestEnabled: true,
@@ -1804,8 +1831,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
           <button
             className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
             onClick={() => {
-              auth.logout();
-              navigate("/logout");
+              void auth.logout().finally(() => navigate("/logout"));
             }}
             type="button"
           >
@@ -1993,8 +2019,8 @@ export function AdminPage({ auth }: { auth: AuthController }) {
       api.getBackendSeedPricebook(),
       api.getBadgePricebook(),
       api.getBadgeDefinitions(),
-      api.getBadgeAssignments(),
-      api.getBadgeRenewals(),
+      api.getBadgeAssignments(adminToken),
+      api.getBadgeRenewals(adminToken),
       api.getCampaigns(),
       api.getProperties(),
       api.getWellnessAdminDashboard(adminToken),
@@ -2523,7 +2549,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               variant="outline"
               onClick={() =>
                 void runAction(async () => {
-                  const result = await api.getBadgeEligibility(buildBadgeRequest());
+                  const result = await api.getBadgeEligibility(buildBadgeRequest(), adminToken);
                   setEligibility(result);
                   return result.eligible ? `${result.level} is eligible.` : `${result.level} is not eligible.`;
                 })
@@ -2535,7 +2561,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               type="button"
               onClick={() =>
                 void runAction(async () => {
-                  const result = await api.purchaseBadge(buildBadgeRequest());
+                  const result = await api.purchaseBadge(buildBadgeRequest(), adminToken);
                   return `${result.level} badge purchased.`;
                 })
               }
@@ -2547,7 +2573,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               variant="ghost"
               onClick={() =>
                 void runAction(async () => {
-                  const result = await api.getBadgeFeatureAccess(subjectType, subjectId);
+                  const result = await api.getBadgeFeatureAccess(subjectType, subjectId, adminToken);
                   setFeatureAccess(result);
                   return `${result.activeLevel} feature access loaded.`;
                 })
@@ -2617,7 +2643,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               onClick={() =>
                 void runAction(async () => {
                   if (!selectedAssignment) throw new Error("No assignment is available.");
-                  await api.payBadgeRenewal(selectedAssignment.id);
+                  await api.payBadgeRenewal(selectedAssignment.id, adminToken);
                   return "Renewal paid.";
                 })
               }
@@ -2727,7 +2753,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               variant="outline"
               onClick={() =>
                 void runAction(async () => {
-                  const enrollment = await api.enrollCampaign(selectedCampaignKey, subjectType, subjectId);
+                  const enrollment = await api.enrollCampaign(selectedCampaignKey, subjectType, subjectId, adminToken);
                   return `${enrollment.campaignKey} enrollment saved.`;
                 })
               }
@@ -2829,7 +2855,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               variant="outline"
               onClick={() =>
                 void runAction(async () => {
-                  const result = await api.getFoundingBenefit(foundingPropertyId);
+                  const result = await api.getFoundingBenefit(foundingPropertyId, adminToken);
                   setFoundingBenefit(result);
                   return `${result.tier} founding benefit loaded.`;
                 })

@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
+using NestyStay.Application.Access;
+using NestyStay.Application.Directories;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.SpecCompletion;
@@ -44,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<ISpecCompletionStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
         services.AddScoped<IPrivilegedAuditStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
         services.AddScoped<IProviderEventStore, EfProviderEventStore>();
+        services.AddScoped<IQrAccessStore, EfQrAccessStore>();
+        services.AddScoped<IDirectoryModerationStore, EfDirectoryModerationStore>();
 
         return services;
     }

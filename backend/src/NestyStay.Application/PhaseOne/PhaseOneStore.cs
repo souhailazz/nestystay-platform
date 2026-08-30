@@ -22,6 +22,7 @@ public interface IPhaseOneStore
     Task<PasswordResetRequestResponse> RequestPasswordResetAsync(PasswordResetRequest request, CancellationToken cancellationToken);
     Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken);
     Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken);
+    Task<LogoutResponse> LogoutAsync(Guid userId, CancellationToken cancellationToken);
     Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
     Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
     Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken);
@@ -29,7 +30,7 @@ public interface IPhaseOneStore
     Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken);
     Task<ProfilePhotoUploadDto> UploadProfilePhotoContentAsync(Guid userId, Guid photoId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken);
     Task<ProfilePhotoDownloadDto> GetProfilePhotoDownloadAsync(Guid userId, Guid photoId, CancellationToken cancellationToken);
-    IReadOnlyList<PropertyListingDto> GetProperties();
+    IReadOnlyList<PropertyListingDto> GetProperties(Guid? hostUserId = null);
     PropertyListingDto? GetProperty(Guid id);
     Task<PropertyListingDto> CreatePropertyAsync(CreatePropertyRequest request, CancellationToken cancellationToken);
     Task<PropertyListingDto> UpdatePropertyAsync(Guid hostUserId, Guid propertyId, UpdatePropertyRequest request, CancellationToken cancellationToken);
@@ -604,6 +605,19 @@ public sealed class PhaseOneStore(
         }
     }
 
+    public Task<LogoutResponse> LogoutAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new InvalidOperationException("User account not found.");
+            var now = timeProvider.GetUtcNow();
+            user.SessionInvalidatedAt = now;
+            _challenges.RemoveAll(item => item.UserId == userId);
+            return Task.FromResult(new LogoutResponse(true, now));
+        }
+    }
+
     public Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
     {
         lock (_gate)
@@ -781,8 +795,14 @@ public sealed class PhaseOneStore(
         }
     }
 
-    public IReadOnlyList<PropertyListingDto> GetProperties() =>
-        _properties.Where(property => !property.IsDeleted && !property.IsArchived).Select(ToListingDto).ToList();
+    public IReadOnlyList<PropertyListingDto> GetProperties(Guid? hostUserId = null) =>
+        _properties
+            .Where(property =>
+                !property.IsDeleted &&
+                !property.IsArchived &&
+                (hostUserId is null || property.HostUserId == hostUserId))
+            .Select(ToListingDto)
+            .ToList();
 
     public PropertyListingDto? GetProperty(Guid id) =>
         _properties.SingleOrDefault(property => property.Id == id && !property.IsDeleted && !property.IsArchived) is { } property ? ToListingDto(property) : null;
@@ -1600,6 +1620,7 @@ public sealed class PhaseOneStore(
             user.Email,
             user.DisplayName,
             user.Roles,
+            user.IsTwoFactorEnabled,
             photo is null
                 ? null
                 : new UserProfilePhotoDto(
@@ -1724,9 +1745,9 @@ public sealed class PhaseOneStore(
             throw new InvalidOperationException("Terms of service and privacy policy acceptance are required.");
         }
 
-        if (request.Role is not (UserRole.Guest or UserRole.Host))
+        if (request.Role is not (UserRole.Guest or UserRole.Host or UserRole.Officer or UserRole.ServiceProvider or UserRole.LocalBusiness))
         {
-            throw new InvalidOperationException("Only traveler and host self-service registration is available.");
+            throw new InvalidOperationException("Only traveler, host, officer, and provider self-service registration is available.");
         }
     }
 

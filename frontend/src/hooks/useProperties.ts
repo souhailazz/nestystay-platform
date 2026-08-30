@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type PropertyListing } from "../lib/api";
 
-export function useProperties() {
+export function useProperties(token?: string) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,13 +10,13 @@ export function useProperties() {
     setIsLoading(true);
     setError(null);
     try {
-      setProperties(await api.getProperties());
+      setProperties(token ? await api.getOwnedProperties(token) : await api.getProperties());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Properties could not be loaded.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     void reload();

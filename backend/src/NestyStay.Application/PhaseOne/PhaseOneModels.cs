@@ -87,9 +87,17 @@ public sealed record CompletePasswordResetRequest(string RequestId, string Token
 
 public sealed record CompletePasswordResetResponse(string Status, bool PasswordChanged);
 
+public sealed record LogoutResponse(bool LoggedOut, DateTimeOffset InvalidatedAt);
+
 public sealed record DevelopmentPasswordResetTokenResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
 
-public sealed record UserProfileDto(Guid UserId, string Email, string DisplayName, IReadOnlyList<UserRole> Roles, UserProfilePhotoDto? Photo);
+public sealed record UserProfileDto(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    IReadOnlyList<UserRole> Roles,
+    bool IsTwoFactorEnabled,
+    UserProfilePhotoDto? Photo);
 
 public sealed record UserProfilePhotoDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash = null);
 

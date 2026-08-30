@@ -17,7 +17,7 @@ type PropertyListing = {
 };
 
 const repoRoot = path.resolve(process.cwd(), "..");
-const evidenceRoot = path.join(repoRoot, "artifacts", "m1-m2-visual");
+const evidenceRoot = process.env.NESTYSTAY_EVIDENCE_ROOT ?? path.join(repoRoot, "artifacts", "m1-m2-visual");
 
 test.beforeAll(async ({ baseURL }) => {
   const api = await playwrightRequest.newContext({ baseURL });
@@ -128,6 +128,9 @@ async function createSession(api: APIRequestContext, role: string): Promise<Auth
 
   const login = await api.post("/api/auth/login", { data: { email, password } });
   const loginBody = await login.json();
+  if (!loginBody.requiresTwoFactor) {
+    return { userId: loginBody.userId, email, displayName: "Test", accessToken: loginBody.accessToken, expiresAt: loginBody.expiresAt, roles: loginBody.roles, permissions: loginBody.permissions ?? [] };
+  }
   const challenge = await api.get(`/api/auth/development/challenges/${loginBody.challengeId}`);
   const challengeBody = await challenge.json();
   const verified = await api.post("/api/auth/2fa/verify", {

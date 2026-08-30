@@ -248,8 +248,8 @@ public sealed class PhaseOneWorkflowTests
         Assert.True(quote.DatesAvailable);
         Assert.Equal(3, quote.Nights);
         Assert.Equal(555m, quote.StaySubtotal);
-        Assert.Equal(55.5m, quote.GuestPlatformFee);
-        Assert.Equal(610.5m, quote.TotalAmount);
+        Assert.Equal(49.95m, quote.GuestPlatformFee);
+        Assert.Equal(604.95m, quote.TotalAmount);
         Assert.Contains(quote.PriceBreakdown, line => line.Code == "guest-verification" && line.Amount == 0m);
 
         var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 6, 10), new DateOnly(2026, 6, 13)), CancellationToken.None);
@@ -315,6 +315,39 @@ public sealed class PhaseOneWorkflowTests
 
         var replacement = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 4)), CancellationToken.None);
         Assert.Equal("PENDING", replacement.Status);
+    }
+
+    [Fact]
+    public async Task PendingHoldExpiryRejectsBookingReleasesDatesAndAllowsImmediateReplacement()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 6, 21, 12, 0, 0, TimeSpan.Zero));
+        var harness = CreateHarness(clock);
+        var user = await harness.Store.RegisterAsync(Registration("expiry@test.local", "Expiry Guest"), CancellationToken.None);
+        var property = harness.Store.GetProperties().First(item => item.GuestVerificationEnabled);
+        var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(
+            property.Id,
+            user.UserId,
+            new DateOnly(2026, 6, 22),
+            new DateOnly(2026, 6, 25)), CancellationToken.None);
+
+        Assert.Equal("PENDING", booking.Status);
+        Assert.True(booking.DatesHeld);
+
+        clock.Advance(TimeSpan.FromMinutes(61));
+        var expired = harness.Store.GetBooking(booking.Id);
+        Assert.NotNull(expired);
+        Assert.Equal("REJECTED", expired.Status);
+        Assert.Equal("EXPIRED", expired.VerificationStatus);
+        Assert.Equal("CANCELLED", expired.PaymentStatus);
+        Assert.False(expired.DatesHeld);
+
+        var replacement = await harness.Store.CreateBookingAsync(new CreateBookingRequest(
+            property.Id,
+            user.UserId,
+            new DateOnly(2026, 6, 22),
+            new DateOnly(2026, 6, 25)), CancellationToken.None);
+        Assert.Equal("PENDING", replacement.Status);
+        Assert.True(replacement.DatesHeld);
     }
 
     [Fact]

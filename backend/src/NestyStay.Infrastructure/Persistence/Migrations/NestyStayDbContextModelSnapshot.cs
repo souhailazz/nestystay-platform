@@ -29,6 +29,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
                     b.Property<string>("CodeHash")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -47,6 +51,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<Guid>("GuestUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("guest_user_id");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -54,6 +62,18 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean")
                         .HasColumnName("is_revoked");
+
+                    b.Property<DateTimeOffset?>("LastValidatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_validated_at");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid")
@@ -73,10 +93,22 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by_user_id");
 
+                    b.Property<DateTimeOffset>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<int>("ValidationCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("validation_count");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CodeHash")
                         .IsUnique();
+
+                    b.HasIndex("PropertyId", "ExpiresAt");
+
+                    b.HasIndex("BookingId", "IsRevoked", "ExpiresAt");
 
                     b.ToTable("qr_access_code");
                 });
@@ -109,6 +141,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
                     b.Property<Guid>("QrAccessCodeId")
                         .HasColumnType("uuid")
                         .HasColumnName("qr_access_code_id");
@@ -132,6 +168,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("QrAccessCodeId", "ScannedAt");
 
                     b.ToTable("qr_scan_log");
                 });
@@ -944,7 +982,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                             IsDeleted = false,
                             Key = "host-free",
                             Level = "Free",
-                            UnlocksJson = "[\"Listings\",\"Calendar\",\"Messaging\",\"QR\",\"Stripe\",\"InsuraGuest\",\"97% payout\"]",
+                            UnlocksJson = "[\"Listings\",\"Calendar\",\"Messaging\",\"QR code access\",\"97% payout\"]",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -966,7 +1004,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                             IsDeleted = false,
                             Key = "host-trusted",
                             Level = "Trusted",
-                            UnlocksJson = "[\"Trades directory\",\"Search boost\",\"Referral program\"]",
+                            UnlocksJson = "[\"Trusted badge\",\"Trades directory\",\"Search boost\",\"Referral program\"]",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -977,7 +1015,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                             IsDeleted = false,
                             Key = "host-wellness",
                             Level = "Wellness",
-                            UnlocksJson = "[\"Police directory\",\"Wellness visits\",\"Wellness badge\",\"Security verified filter\"]",
+                            UnlocksJson = "[\"Police directory\",\"Wellness visits\",\"In-person guest ID check\",\"Drive-by property patrol\",\"Wellness badge\",\"Police Verified filter\"]",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -3627,7 +3665,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("59d4c1d5-9e48-a929-56d5-96eb67d1feb0"),
-                            Amount = 8m,
+                            Amount = 9m,
                             AppliesTo = "Guests",
                             Cadence = "Per booking",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
@@ -3641,7 +3679,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("0cce0a0c-73a8-85dc-17bb-5b4b8ab355f9"),
-                            Amount = 10m,
+                            Amount = 9m,
                             AppliesTo = "Guests",
                             Cadence = "Per booking",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
@@ -3655,7 +3693,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("8c5b02ff-6832-3fe3-d13d-434e74947d1c"),
-                            Amount = 12m,
+                            Amount = 9m,
                             AppliesTo = "Guests",
                             Cadence = "Per booking",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
@@ -3725,9 +3763,9 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("818cd436-df71-3b5e-6095-601ee9a6370d"),
-                            Amount = 60m,
+                            Amount = 0m,
                             AppliesTo = "Hosts",
-                            Cadence = "Annual",
+                            Cadence = "Included",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CurrencyOrUnit = "USD",
                             IsConfigurable = true,
@@ -3739,9 +3777,9 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a633594e-c72f-9093-a9c4-a224ff6b5d1e"),
-                            Amount = 120m,
+                            Amount = 49m,
                             AppliesTo = "Hosts",
-                            Cadence = "Annual",
+                            Cadence = "One time (annual renewal capability)",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CurrencyOrUnit = "USD",
                             IsConfigurable = true,
@@ -6781,6 +6819,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsBrickAndMortar")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_brick_and_mortar");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -6807,6 +6849,11 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("parish");
 
+                    b.Property<string>("PoliceBadgeNumber")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("police_badge_number");
+
                     b.Property<decimal>("Rating")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -6822,6 +6869,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("slug");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -6829,6 +6882,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("UpdatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("verification_status");
 
                     b.HasKey("Id");
 
@@ -6838,6 +6897,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Kind", "Category", "Parish");
+
+                    b.HasIndex("Status", "VerificationStatus", "IsActive");
 
                     b.ToTable("milestone_directory_provider");
                 });
@@ -9248,6 +9309,99 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("VisitId", "OfficerId", "Status");
 
                     b.ToTable("milestone_wellness_report_photo");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWellnessSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset>("CurrentPeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_period_end");
+
+                    b.Property<DateTimeOffset>("CurrentPeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_period_start");
+
+                    b.Property<Guid>("HostUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("host_user_id");
+
+                    b.Property<int>("IncludedVisits")
+                        .HasColumnType("integer")
+                        .HasColumnName("included_visits");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<decimal>("MonthlyAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("monthly_amount");
+
+                    b.Property<string>("PaymentProvider")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("payment_provider");
+
+                    b.Property<string>("PaymentReference")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("payment_reference");
+
+                    b.Property<string>("PlanKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("plan_key");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<int>("UsedVisits")
+                        .HasColumnType("integer")
+                        .HasColumnName("used_visits");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HostUserId", "Status", "CurrentPeriodEnd");
+
+                    b.ToTable("milestone_wellness_subscription");
                 });
 
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWellnessVisit", b =>

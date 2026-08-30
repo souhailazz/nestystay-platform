@@ -11,9 +11,10 @@ import { HostReviewsBadgesSettings } from "./HostReviewsBadgesSettings";
 interface HostStateContainerProps {
   view: string;
   auth: AuthController;
+  propertyId?: string;
 }
 
-export function HostStateContainer({ view, auth }: HostStateContainerProps) {
+export function HostStateContainer({ view, auth, propertyId }: HostStateContainerProps) {
   const token = auth.session?.accessToken || "";
 
   if (view === "analytics" || view === "dashboard" || view === "metrics") {
@@ -25,11 +26,19 @@ export function HostStateContainer({ view, auth }: HostStateContainerProps) {
   }
 
   if (view === "properties-new" || view === "wizard" || view === "new") {
-    return <HostPropertyWizard token={token} onFinished={() => window.location.href = "/host/properties"} />;
+    return (
+      <HostPropertyWizard
+        token={token}
+        hostUserId={auth.session?.userId || ""}
+        hostName={auth.session?.displayName || ""}
+        hostEmail={auth.session?.email || ""}
+        onFinished={() => window.location.href = "/host/properties"}
+      />
+    );
   }
 
   if (view === "properties-edit" || view === "edit") {
-    return <HostPropertyEditor token={token} />;
+    return <HostPropertyEditor token={token} propertyId={propertyId} />;
   }
 
   if (view === "pricing" || view === "promotions" || view === "discounts") {
@@ -45,7 +54,7 @@ export function HostStateContainer({ view, auth }: HostStateContainerProps) {
   }
 
   if (view === "reviews" || view === "badges" || view === "settings") {
-    return <HostReviewsBadgesSettings view={view} token={token} />;
+    return <HostReviewsBadgesSettings view={view} token={token} hostUserId={auth.session?.userId || ""} />;
   }
 
   return <HostAnalytics token={token} />;

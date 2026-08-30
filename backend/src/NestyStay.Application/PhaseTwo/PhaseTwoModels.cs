@@ -29,7 +29,8 @@ public sealed record BadgeDefinitionDto(
     string AppliesTo,
     decimal AnnualPrice,
     string Currency,
-    IReadOnlyList<string> Unlocks);
+    IReadOnlyList<string> Unlocks,
+    string PriceCadence = "Annual");
 
 public sealed record PurchaseBadgeRequest(
     string SubjectType,
@@ -66,6 +67,12 @@ public sealed record BadgeRenewalDto(
     string PaymentStatus,
     decimal AmountDue,
     string Currency);
+
+public sealed record BadgeMaintenanceResult(
+    int AssignmentsReviewed,
+    int AssignmentsExpired,
+    int RenewalRemindersDue,
+    DateTimeOffset CompletedAt);
 
 public sealed record CreateCampaignRequest(
     string Key,

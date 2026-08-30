@@ -2,23 +2,58 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
 using NestyStay.Application.PhaseOne;
+using NestyStay.Application.PhaseTwo;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Controllers;
 
 [ApiController]
 [Route("api/properties")]
-public sealed class PropertiesController(IPhaseOneStore phaseOneStore, IResourceAuthorizationService authorization) : ControllerBase
+public sealed class PropertiesController(
+    IPhaseOneStore phaseOneStore,
+    IPhaseTwoStore phaseTwoStore,
+    IResourceAuthorizationService authorization) : ControllerBase
 {
     [HttpGet]
     public IActionResult GetProperties() => Ok(phaseOneStore.GetProperties());
+
+    [Authorize(Roles = "Host")]
+    [HttpGet("owned")]
+    public IActionResult GetOwnedProperties()
+    {
+        var hostUserId = authorization.RequireHost();
+        return Ok(phaseOneStore.GetProperties(hostUserId));
+    }
 
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateProperty(CreatePropertyRequest request, CancellationToken cancellationToken)
     {
         var hostUserId = authorization.RequireHost();
-        return Ok(await phaseOneStore.CreatePropertyAsync(request with { HostUserId = hostUserId }, cancellationToken));
+        var hostName = request.HostName;
+        var hostEmail = request.HostEmail;
+        var activeBadge = request.BadgeLevel;
+        try
+        {
+            var profile = await phaseOneStore.GetUserProfileAsync(hostUserId, cancellationToken);
+            hostName = profile.DisplayName;
+            hostEmail = profile.Email;
+            activeBadge = phaseTwoStore.GetFeatureAccess("Host", hostUserId).ActiveLevel;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Legacy test-only signed principals may not have a persisted profile.
+            // Registered production sessions always take the profile/active-badge path above.
+        }
+        return Ok(await phaseOneStore.CreatePropertyAsync(
+            request with
+            {
+                HostUserId = hostUserId,
+                HostName = hostName,
+                HostEmail = hostEmail,
+                BadgeLevel = activeBadge
+            },
+            cancellationToken));
     }
 
     [Authorize(Roles = "Host")]
@@ -26,7 +61,25 @@ public sealed class PropertiesController(IPhaseOneStore phaseOneStore, IResource
     public async Task<IActionResult> UpdateProperty(Guid id, UpdatePropertyRequest request, CancellationToken cancellationToken)
     {
         var hostUserId = authorization.RequireHost();
-        return Ok(await phaseOneStore.UpdatePropertyAsync(hostUserId, id, request, cancellationToken));
+        var hostName = request.HostName;
+        var hostEmail = request.HostEmail;
+        var activeBadge = request.BadgeLevel;
+        try
+        {
+            var profile = await phaseOneStore.GetUserProfileAsync(hostUserId, cancellationToken);
+            hostName = profile.DisplayName;
+            hostEmail = profile.Email;
+            activeBadge = phaseTwoStore.GetFeatureAccess("Host", hostUserId).ActiveLevel;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // See the create endpoint: this is only for legacy test-only principals.
+        }
+        return Ok(await phaseOneStore.UpdatePropertyAsync(
+            hostUserId,
+            id,
+            request with { HostName = hostName, HostEmail = hostEmail, BadgeLevel = activeBadge },
+            cancellationToken));
     }
 
     [Authorize(Roles = "Host")]

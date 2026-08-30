@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using NestyStay.Application.Admin;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
@@ -609,6 +610,19 @@ public sealed class EfPhaseOneStore(
         return new CompletePasswordResetResponse(PasswordResetStatusCompleted, true);
     }
 
+    public async Task<LogoutResponse> LogoutAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User account not found.");
+        var now = timeProvider.GetUtcNow();
+        user.SessionInvalidatedAt = now;
+        user.UpdatedAt = now;
+        db.MilestoneTwoFactorChallenges.RemoveRange(
+            db.MilestoneTwoFactorChallenges.Where(item => item.UserId == userId));
+        await db.SaveChangesAsync(cancellationToken);
+        return new LogoutResponse(true, now);
+    }
+
     public async Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
     {
         var user = await db.MilestoneUsers
@@ -796,12 +810,15 @@ public sealed class EfPhaseOneStore(
         return new ProfilePhotoDownloadDto(photo.Id, photo.SafeFileName, photo.ContentType, photo.SizeBytes, url, expiresAt);
     }
 
-    public IReadOnlyList<PropertyListingDto> GetProperties()
+    public IReadOnlyList<PropertyListingDto> GetProperties(Guid? hostUserId = null)
     {
         EnsurePhaseOneSeeded();
         return db.MilestoneProperties
             .AsNoTracking()
-            .Where(property => !property.IsDeleted && !property.IsArchived)
+            .Where(property =>
+                !property.IsDeleted &&
+                !property.IsArchived &&
+                (hostUserId == null || property.HostUserId == hostUserId))
             .OrderBy(property => property.Title)
             .ToList()
             .Select(ToListingDto)
@@ -1066,10 +1083,14 @@ public sealed class EfPhaseOneStore(
                 await transaction.CommitAsync(cancellationToken);
                 return booking;
             }
-            catch (DbUpdateException) when (attempt < BookingCreationPersistenceRetries)
+            catch (Exception exception) when (IsBookingCreationConflict(exception))
             {
                 await transaction.RollbackAsync(cancellationToken);
                 db.ChangeTracker.Clear();
+                if (attempt == BookingCreationPersistenceRetries)
+                {
+                    throw new InvalidOperationException("Booking could not be created because another booking claimed the requested dates.", exception);
+                }
             }
         }
 
@@ -1134,6 +1155,10 @@ public sealed class EfPhaseOneStore(
     private bool SupportsSerializableTransactions() =>
         db.Database.IsRelational() &&
         !string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+
+    private static bool IsBookingCreationConflict(Exception exception) =>
+        exception is DbUpdateException ||
+        exception is PostgresException { SqlState: "40001" };
 
     public async Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken)
     {
@@ -1862,6 +1887,7 @@ public sealed class EfPhaseOneStore(
             user.Email,
             user.DisplayName,
             MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
+            user.IsTwoFactorEnabled,
             photo is null
                 ? null
                 : new UserProfilePhotoDto(
@@ -1986,9 +2012,9 @@ public sealed class EfPhaseOneStore(
             throw new InvalidOperationException("Terms of service and privacy policy acceptance are required.");
         }
 
-        if (request.Role is not (UserRole.Guest or UserRole.Host))
+        if (request.Role is not (UserRole.Guest or UserRole.Host or UserRole.Officer or UserRole.ServiceProvider or UserRole.LocalBusiness))
         {
-            throw new InvalidOperationException("Only traveler and host self-service registration is available.");
+            throw new InvalidOperationException("Only traveler, host, officer, and provider self-service registration is available.");
         }
     }
 

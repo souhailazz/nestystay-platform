@@ -582,6 +582,26 @@ public sealed class MilestoneDirectoryProvider : BaseEntity
     public decimal Rating { get; set; }
     public int ReviewCount { get; set; }
     public bool IsActive { get; set; } = true;
+    public string VerificationStatus { get; set; } = "Pending";
+    public string Status { get; set; } = "PendingReview";
+    public bool IsBrickAndMortar { get; set; }
+    public string? PoliceBadgeNumber { get; set; }
+}
+
+public sealed class MilestoneWellnessSubscription : BaseEntity
+{
+    public Guid HostUserId { get; set; }
+    public string PlanKey { get; set; } = "wellness-monthly";
+    public decimal MonthlyAmount { get; set; } = 19m;
+    public string Currency { get; set; } = "USD";
+    public string Status { get; set; } = "Active";
+    public DateTimeOffset CurrentPeriodStart { get; set; }
+    public DateTimeOffset CurrentPeriodEnd { get; set; }
+    public int IncludedVisits { get; set; } = 1;
+    public int UsedVisits { get; set; }
+    public string PaymentProvider { get; set; } = string.Empty;
+    public string PaymentReference { get; set; } = string.Empty;
+    public DateTimeOffset? CancelledAt { get; set; }
 }
 
 public sealed class MilestoneHostPricingRule : BaseEntity

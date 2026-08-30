@@ -33,3 +33,16 @@ Thumbs.db
 .vs/
 .vscode/
 _to_delete/
+
+# Local audit/runtime output (keep curated reports and machine-readable evidence only)
+artifacts/
+tmp/
+frontend/playwright-report/
+testing-evidence/milestones-1-2/
+testing-evidence/milestones-1-4/browser/playwright-report/
+testing-evidence/milestones-1-4/browser/*-results*/
+testing-evidence/milestones-1-4/browser/*-final/
+testing-evidence/milestones-1-4/browser/*-v*/
+**/trace.zip
+**/error-context.md
+**/test-failed-*.png

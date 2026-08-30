@@ -24,7 +24,7 @@ interface BookingReviewPageProps {
 }
 
 /* BOOK-02 (DS v2) — quote review. Booking creation logic unchanged; every fee
-   line comes from the backend quote (degressive tiers computed server-side). */
+   line comes from the backend quote (the signed 9% platform fee is computed server-side). */
 export function BookingReviewPage({ quote, details, auth, onBackToModal, onProceedToCheckout }: BookingReviewPageProps) {
   const [billingCountry, setBillingCountry] = useState("JM");
   const [acceptedTerms, setAcceptedTerms] = useState(false);

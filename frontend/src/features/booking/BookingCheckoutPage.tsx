@@ -159,7 +159,7 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
   if (!booking) {
     return (
       <div className="mx-auto max-w-[1160px] px-6 py-9" data-testid="book-03-error">
-        <div className={errorPanel}>Booking not found.</div>
+        <div className={errorPanel}>{error ?? "Booking not found."}</div>
       </div>
     );
   }
@@ -169,7 +169,9 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
       <div className="mx-auto max-w-[1160px] px-6 py-9" data-testid="book-03-no-secret">
         <div className={errorPanel}>
           Payment cannot be processed right now.{" "}
-          {booking.status === "PendingVerification" ? "Please complete verification first." : "Payment secret missing."}
+          {["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes((booking.status ?? "").trim().toUpperCase())
+            ? "Please complete verification first."
+            : "Payment secret missing."}
         </div>
       </div>
     );

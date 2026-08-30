@@ -8,9 +8,11 @@ import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
 import { BookingModal } from "../booking/BookingModal";
+import type { AuthSession } from "../../lib/auth";
 
 interface PropertyDetailPageProps {
   propertyId?: string;
+  session: AuthSession | null;
 }
 
 const NIGHTS = 4;
@@ -38,7 +40,7 @@ function isoDatePlus(days: number) {
 
 /** PUB-04 — Property page (DS v2). Emergency 119 badge sits under the header,
  *  ABOVE the gallery, above the fold — never in a footer (client contract). */
-export function PropertyDetailPage({ propertyId }: PropertyDetailPageProps) {
+export function PropertyDetailPage({ propertyId, session }: PropertyDetailPageProps) {
   const [property, setProperty] = useState<PropertyListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export function PropertyDetailPage({ propertyId }: PropertyDetailPageProps) {
 
   const nightly = property.nightlyRate;
   const subtotal = nightly * NIGHTS;
-  const fee = subtotal * 0.1;
+  const fee = subtotal * 0.09;
   const total = subtotal + fee;
   const gallery = [0, 1, 2, 3].map((i) => getStayImage(i));
   const heroImage = property.imageUrl ?? getStayImage(0).src;
@@ -289,7 +291,7 @@ export function PropertyDetailPage({ propertyId }: PropertyDetailPageProps) {
             </div>
             <div className="flex items-center justify-between gap-2 text-gray-600">
               <span>
-                Traveler fee (10%){" "}
+                Traveler fee (9%){" "}
                 <span className="rounded-pill bg-coral-tint px-[7px] py-0.5 text-[10.5px] font-semibold text-coral-text">
                   non-refundable
                 </span>
@@ -326,7 +328,26 @@ export function PropertyDetailPage({ propertyId }: PropertyDetailPageProps) {
       {showModal && (
         <BookingModal
           onClose={() => setShowModal(false)}
-          onProceedToReview={() => (window.location.href = "/booking/11111111-1111-4111-8111-111111111111/review")}
+          onProceedToReview={async (quote, details) => {
+            if (!session) {
+              window.location.href = "/login";
+              return;
+            }
+            const created = await api.createBooking({
+              propertyId: quote.property.id,
+              guestUserId: session.userId,
+              checkIn: quote.checkIn,
+              checkOut: quote.checkOut,
+              adults: details.adults,
+              children: details.children,
+              accessibilityNeeds: details.accessibility,
+              protectionPlan: details.protection,
+              billingCountry: "JM",
+              termsAccepted: true,
+            }, session.accessToken);
+            const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
+            window.location.href = `/booking/${created.id}/${nextStep}`;
+          }}
           property={property}
         />
       )}

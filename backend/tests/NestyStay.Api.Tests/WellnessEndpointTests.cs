@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -145,7 +146,7 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
             parish = "St. Ann",
             area = "Ocho Rios"
         });
-        Assert.Equal(HttpStatusCode.BadRequest, blockedCreate.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, blockedCreate.StatusCode);
 
         var officer = await OnboardOfficerAsync(client, "St. Ann");
         var unverified = await OnboardOfficerAsync(client, "St. Ann");
@@ -327,6 +328,12 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal("Completed", completed.VisitStatus);
         Assert.Equal("Submitted", completed.ReportStatus);
         Assert.Equal("PayoutPending", completed.PaymentStatus);
+
+        var reportRead = await client.GetAsync($"/api/wellness/visits/{visit.Id}/report");
+        Assert.Equal(HttpStatusCode.OK, reportRead.StatusCode);
+        var reportPayload = await reportRead.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Submitted", reportPayload.GetProperty("reportStatus").GetString());
+        Assert.Single(reportPayload.GetProperty("photos").EnumerateArray());
 
         var cancelCompleted = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/cancel", new
         {

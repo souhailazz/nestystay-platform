@@ -50,6 +50,11 @@ public sealed class AuthController(
         Ok(await phaseOneStore.GetUserProfileAsync(RequireUserId(), cancellationToken));
 
     [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.LogoutAsync(RequireUserId(), cancellationToken));
+
+    [Authorize]
     [HttpPost("profile/photo/uploads")]
     public async Task<IActionResult> PrepareProfilePhotoUpload(PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.PrepareProfilePhotoUploadAsync(RequireUserId(), request, cancellationToken));

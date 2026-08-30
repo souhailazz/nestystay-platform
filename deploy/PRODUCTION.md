@@ -18,7 +18,27 @@
 - Serve `frontend/dist` through the Caddyfile here: it adds CSP, X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy, Permissions-Policy and immutable caching for /assets/*.
 
-## Still open before production (needs backend auth design, tracked separately)
-- Ownership/auth/rate-limit rules on mutating business endpoints (badge purchase, campaign
-  enrollment, wellness visit/report actions): these validate signed user tokens manually today;
-  wiring them into a proper authorization policy is a scoped backend task, not a config flip.
+## Still open before production
+- Real Stripe, Alibaba Cloud eKYC, Cloudflare R2, and InsuraGuest credentials plus provider
+  webhook/signature tests must be supplied and verified in staging.
+- The signed milestone agreement is now stored at `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`;
+  complete the separate compliance/retention review before release.
+- The local implementation now enforces ownership and authorization for badge assignment,
+  eligibility, renewal, campaign enrollment, and founding-benefit reads. Keep the API integration
+  and security tests in the release gate when promoting to staging.
+
+## Go-live gates (not M1–M4 contractual blockers)
+
+- [ ] Production hosting, domain, Cloudflare/CDN and TLS certificate validated.
+- [ ] Production PostgreSQL provisioned with least-privilege credentials; migrations applied from a clean baseline.
+- [ ] Cloudflare R2/object storage configured with private buckets, signed URLs and lifecycle rules.
+- [ ] Automated backups configured and a restore test recorded.
+- [ ] Monitoring, alerting, centralized logs, error tracking and rate limiting enabled.
+- [ ] Secret manager configured; no credentials in source, appsettings, evidence or build output.
+- [ ] Stripe live account, PaymentIntents, webhook signing secret and Connect/payout configuration validated in staging.
+- [ ] Alibaba production eKYC credentials, callback signatures and replay protection validated in staging.
+- [ ] Email/SMS/push notification providers configured and delivery/failure tests recorded.
+- [ ] Wellness payout provider configured and payout reconciliation tested.
+- [ ] InsuraGuest configured if required for launch and its webhook path validated.
+- [ ] Privacy, data-retention and compliance review approved; production security/DAST test completed.
+- [ ] Staging smoke passes; production smoke passes after deployment with synthetic/test data.

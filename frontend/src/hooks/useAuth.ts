@@ -33,7 +33,7 @@ export function useAuth() {
         setSession(nextSession);
         setPendingChallenge(null);
       }
-      return registered;
+      return { ...registered, requiresTwoFactor: login.requiresTwoFactor };
     } finally {
       setIsAuthBusy(false);
     }
@@ -98,11 +98,18 @@ export function useAuth() {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    clearSession();
-    setSession(null);
-    setPendingChallenge(null);
-  }, []);
+  const logout = useCallback(async () => {
+    const accessToken = session?.accessToken;
+    try {
+      if (accessToken) {
+        await api.logout(accessToken);
+      }
+    } finally {
+      clearSession();
+      setSession(null);
+      setPendingChallenge(null);
+    }
+  }, [session?.accessToken]);
 
   return useMemo(
     () => ({

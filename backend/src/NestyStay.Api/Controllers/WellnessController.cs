@@ -4,6 +4,7 @@ using NestyStay.Api.Auth;
 using NestyStay.Application.Admin;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Application.Wellness;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Controllers;
 
@@ -14,9 +15,20 @@ public sealed class WellnessController(
     IResourceAuthorizationService authorization,
     IPrivilegedAuditStore auditStore) : ControllerBase
 {
+    [AllowAnonymous]
     [HttpPost("officers")]
-    public async Task<IActionResult> OnboardOfficer(OnboardOfficerRequest request, CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.OnboardOfficerAsync(request, cancellationToken));
+    public async Task<IActionResult> OnboardOfficer(OnboardOfficerRequest request, CancellationToken cancellationToken)
+    {
+        if (request.UserId is { } requestedUserId)
+        {
+            var actor = authorization.TryGetSignedInUser();
+            if (actor != requestedUserId && !authorization.IsInRole(UserRole.Admin))
+            {
+                throw new ForbiddenAccessException("An officer account may only bind its own user identity.");
+            }
+        }
+        return Ok(await wellnessStore.OnboardOfficerAsync(request, cancellationToken));
+    }
 
     [HttpGet("officers")]
     [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
@@ -32,12 +44,18 @@ public sealed class WellnessController(
     }
 
     [HttpGet("officers/available")]
-    [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
+    [Authorize]
     public async Task<IActionResult> GetAvailableOfficers(
         [FromQuery] string parish,
         [FromQuery] DateTimeOffset scheduledAt,
-        CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.GetAvailableOfficersAsync(parish, scheduledAt, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        if (!authorization.IsInRole(UserRole.Admin) && !authorization.IsInRole(UserRole.Host))
+        {
+            throw new ForbiddenAccessException("Host or admin role is required.");
+        }
+        return Ok(await wellnessStore.GetAvailableOfficersAsync(parish, scheduledAt, cancellationToken));
+    }
 
     [HttpPost("officers/{officerId:guid}/approve")]
     [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
@@ -83,23 +101,114 @@ public sealed class WellnessController(
     public async Task<IActionResult> QuoteVisit(WellnessQuoteRequest request, CancellationToken cancellationToken) =>
         Ok(await wellnessStore.QuoteVisitAsync(request, cancellationToken));
 
-    [HttpPost("visits")]
-    public async Task<IActionResult> CreateVisit(CreateWellnessVisitRequest request, CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.CreateVisitAsync(request, cancellationToken));
+    [Authorize]
+    [HttpGet("subscriptions")]
+    public async Task<IActionResult> GetSubscription(CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        if (!authorization.IsInRole(UserRole.Admin) && !authorization.IsInRole(UserRole.Host)) throw new ForbiddenAccessException("Host or admin role is required.");
+        return Ok(await wellnessStore.GetSubscriptionAsync(actor, cancellationToken));
+    }
 
+    [Authorize]
+    [HttpPost("subscriptions")]
+    public async Task<IActionResult> StartSubscription(CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        if (!authorization.IsInRole(UserRole.Admin)) authorization.RequireHostOwner(actor);
+        return Ok(await wellnessStore.StartSubscriptionAsync(actor, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("subscriptions/renew")]
+    public async Task<IActionResult> RenewSubscription(CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        if (!authorization.IsInRole(UserRole.Admin)) authorization.RequireHostOwner(actor);
+        return Ok(await wellnessStore.RenewSubscriptionAsync(actor, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("subscriptions/cancel")]
+    public async Task<IActionResult> CancelSubscription(CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        if (!authorization.IsInRole(UserRole.Admin)) authorization.RequireHostOwner(actor);
+        return await wellnessStore.CancelSubscriptionAsync(actor, cancellationToken) is { } subscription ? Ok(subscription) : NotFound();
+    }
+
+    [Authorize]
+    [HttpPost("visits")]
+    public async Task<IActionResult> CreateVisit(CreateWellnessVisitRequest request, CancellationToken cancellationToken)
+    {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            authorization.RequireHostOwner(request.HostUserId);
+        }
+
+        return Ok(await wellnessStore.CreateVisitAsync(request, cancellationToken));
+    }
+
+    [Authorize]
     [HttpGet("visits")]
     public async Task<IActionResult> GetVisits(
         [FromQuery] Guid? hostUserId,
         [FromQuery] Guid? propertyId,
         [FromQuery] Guid? officerId,
-        CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.GetVisitsAsync(hostUserId, propertyId, officerId, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            if (authorization.IsInRole(UserRole.Host))
+            {
+                hostUserId = authorization.RequireSignedInUser();
+                officerId = null;
+            }
+            else if (authorization.IsInRole(UserRole.Officer))
+            {
+                var officer = await wellnessStore.GetOfficerForUserAsync(authorization.RequireSignedInUser(), cancellationToken)
+                    ?? throw new ForbiddenAccessException("An approved wellness officer profile is required.");
+                officerId = officer.Id;
+                hostUserId = null;
+            }
+            else
+            {
+                throw new ForbiddenAccessException("Host or admin role is required.");
+            }
+        }
 
+        return Ok(await wellnessStore.GetVisitsAsync(hostUserId, propertyId, officerId, cancellationToken));
+    }
+
+    [Authorize]
     [HttpGet("visits/{visitId:guid}")]
     public async Task<IActionResult> GetVisit(Guid visitId, CancellationToken cancellationToken)
     {
         var visit = await wellnessStore.GetVisitAsync(visitId, cancellationToken);
-        return visit is null ? NotFound() : Ok(visit);
+        if (visit is null) return NotFound();
+        if (authorization.IsInRole(UserRole.Admin)) return Ok(visit);
+        if (authorization.IsInRole(UserRole.Officer))
+        {
+            var officer = await wellnessStore.GetOfficerForUserAsync(authorization.RequireSignedInUser(), cancellationToken);
+            return officer?.Id == visit.OfficerId ? Ok(visit) : Forbid();
+        }
+        var actor = authorization.RequireHostOwner(visit.HostUserId);
+        return actor == visit.HostUserId ? Ok(visit) : Forbid();
+    }
+
+    [Authorize]
+    [HttpGet("visits/{visitId:guid}/report")]
+    public async Task<IActionResult> GetReport(Guid visitId, CancellationToken cancellationToken)
+    {
+        var visit = await wellnessStore.GetVisitAsync(visitId, cancellationToken);
+        if (visit is null) return NotFound();
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            var actor = authorization.RequireSignedInUser();
+            var officer = authorization.IsInRole(UserRole.Officer) ? await wellnessStore.GetOfficerForUserAsync(actor, cancellationToken) : null;
+            if (visit.HostUserId != actor && officer?.Id != visit.OfficerId) return Forbid();
+        }
+        return await wellnessStore.GetReportAsync(visitId, cancellationToken) is { } report ? Ok(report) : NotFound();
     }
 
     [HttpPost("visits/{visitId:guid}/assign")]
@@ -112,20 +221,24 @@ public sealed class WellnessController(
         return visit is null ? NotFound() : Ok(visit);
     }
 
+    [Authorize]
     [HttpPost("visits/{visitId:guid}/cancel")]
-    [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
     public async Task<IActionResult> CancelVisit(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken)
     {
         var previous = await wellnessStore.GetVisitAsync(visitId, cancellationToken);
+        if (previous is null) return NotFound();
+        if (!authorization.IsInRole(UserRole.Admin)) authorization.RequireHostOwner(previous.HostUserId);
         var visit = await wellnessStore.CancelVisitAsync(visitId, request, cancellationToken);
         await RecordVisitAuditAsync("WellnessVisitCancelled", visitId, request.Reason ?? "Wellness visit cancelled.", previous, visit, cancellationToken);
         return visit is null ? NotFound() : Ok(visit);
     }
 
+    [Authorize]
     [HttpPost("visits/{visitId:guid}/report/photos/uploads")]
     public async Task<IActionResult> PrepareReportPhotoUpload(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.PrepareReportPhotoUploadAsync(visitId, request, adminOverride: false, cancellationToken));
+        Ok(await PrepareOfficerResultAsync(visitId, request.OfficerBadgeNumber, () => wellnessStore.PrepareReportPhotoUploadAsync(visitId, request, adminOverride: false, cancellationToken), cancellationToken));
 
+    [Authorize]
     [HttpPut("visits/{visitId:guid}/report/photos/{photoId:guid}/content")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadReportPhotoContent(
@@ -133,15 +246,9 @@ public sealed class WellnessController(
         Guid photoId,
         [FromQuery] string officerBadgeNumber,
         CancellationToken cancellationToken) =>
-        Ok(await wellnessStore.UploadReportPhotoContentAsync(
-            visitId,
-            photoId,
-            officerBadgeNumber,
-            Request.ContentType ?? string.Empty,
-            Request.ContentLength ?? 0,
-            Request.Body,
-            adminOverride: false,
-            cancellationToken));
+        Ok(await PrepareOfficerResultAsync(visitId, officerBadgeNumber, () => wellnessStore.UploadReportPhotoContentAsync(
+            visitId, photoId, officerBadgeNumber, Request.ContentType ?? string.Empty, Request.ContentLength ?? 0,
+            Request.Body, adminOverride: false, cancellationToken), cancellationToken));
 
     [HttpPost("visits/{visitId:guid}/complete/photos/uploads")]
     [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
@@ -178,9 +285,11 @@ public sealed class WellnessController(
             null,
             cancellationToken));
 
+    [Authorize]
     [HttpPost("visits/{visitId:guid}/report")]
     public async Task<IActionResult> SubmitReport(Guid visitId, SubmitWellnessReportRequest request, CancellationToken cancellationToken)
     {
+        await RequireOfficerActorAsync(visitId, request.OfficerBadgeNumber, cancellationToken);
         var visit = await wellnessStore.SubmitReportAsync(visitId, request, adminOverride: false, cancellationToken);
         return visit is null ? NotFound() : Ok(visit);
     }
@@ -307,4 +416,23 @@ public sealed class WellnessController(
         "Admin",
         effectivePermission,
         HttpContext.TraceIdentifier);
+
+    private async Task RequireOfficerActorAsync(Guid visitId, string badgeNumber, CancellationToken cancellationToken)
+    {
+        if (authorization.IsInRole(UserRole.Admin)) return;
+        if (!authorization.IsInRole(UserRole.Officer)) throw new ForbiddenAccessException("Only the assigned officer can submit a wellness report.");
+        var actor = authorization.RequireSignedInUser();
+        var officer = await wellnessStore.GetOfficerForUserAsync(actor, cancellationToken);
+        var visit = await wellnessStore.GetVisitAsync(visitId, cancellationToken);
+        if (officer is null || officer.Id != visit?.OfficerId || !string.Equals(officer.BadgeNumber, badgeNumber, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ForbiddenAccessException("Only the assigned officer can submit this wellness report.");
+        }
+    }
+
+    private async Task<T> PrepareOfficerResultAsync<T>(Guid visitId, string badgeNumber, Func<Task<T>> operation, CancellationToken cancellationToken)
+    {
+        await RequireOfficerActorAsync(visitId, badgeNumber, cancellationToken);
+        return await operation();
+    }
 }

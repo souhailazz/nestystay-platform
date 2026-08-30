@@ -104,7 +104,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
   const [registerDisplayName, setRegisterDisplayName] = useState("Nesty Guest");
   const [registerPhone, setRegisterPhone] = useState("+18765550123");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("Password123!");
-  const [registerRole, setRegisterRole] = useState<"Guest" | "Host">("Guest");
+  const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
   const [otpCode, setOtpCode] = useState("");
@@ -129,7 +129,11 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
 
   function finishSignIn() {
     onClose?.();
-    navigate("/guest-dashboard");
+    const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
+    if (roles.includes("host")) navigate("/host-dashboard");
+    else if (roles.includes("officer")) navigate("/officer/wellness");
+    else if (roles.includes("serviceprovider") || roles.includes("localbusiness")) navigate("/directory/provider");
+    else navigate("/guest-dashboard");
   }
 
   async function handleLogin(e: FormEvent) {
@@ -155,7 +159,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     setLoading(true);
     setNotice(null);
     try {
-      await signInWithGoogle(auth.signInWithGoogle, registerRole);
+      await signInWithGoogle(auth.signInWithGoogle, registerRole === "Host" ? "Host" : "Guest");
       finishSignIn();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Google sign-in failed.");
@@ -182,7 +186,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     }
 
     try {
-      await auth.register({
+      const registered = await auth.register({
         email,
         password,
         displayName: registerDisplayName,
@@ -192,8 +196,12 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
         acceptedPrivacy,
         role: registerRole,
       });
-      setMode("2fa-verify");
-      showSuccess("Account created. Enter the 2FA code to finish signing in.");
+      if (registered.requiresTwoFactor) {
+        setMode("2fa-verify");
+        showSuccess("Account created. Enter the 2FA code to finish signing in.");
+      } else {
+        finishSignIn();
+      }
     } catch (err) {
       showError(err instanceof Error ? err.message : "Signup failed.");
     } finally {
@@ -511,11 +519,14 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               <span className={labelText}>Account type</span>
               <select
                 className={inputClass}
-                onChange={(e) => setRegisterRole(e.target.value as "Guest" | "Host")}
+                onChange={(e) => setRegisterRole(e.target.value as "Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness")}
                 value={registerRole}
               >
                 <option value="Guest">Guest</option>
                 <option value="Host">Host</option>
+                <option value="Officer">Wellness officer</option>
+                <option value="ServiceProvider">Service provider</option>
+                <option value="LocalBusiness">Local business</option>
               </select>
             </label>
             <label className="flex flex-col gap-1.5">

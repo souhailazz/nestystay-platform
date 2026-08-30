@@ -54,7 +54,6 @@ import {
   DesignSystemReferencePage,
   DocumentMessagePage,
   FavoritesCollectionsPage,
-  HostPropertyEditPage,
   HostReportsPage,
   InsuraGuestPage,
   LoadingStatePage,
@@ -107,7 +106,7 @@ type Route =
   | { name: "messages"; conversationId?: string }
   | { name: "directory-spec"; kind?: string; slug?: string }
   | { name: "host-profile"; slug?: string; edit?: boolean }
-  | { name: "host-spec"; view: string }
+  | { name: "host-spec"; view: string; propertyId?: string }
   | { name: "admin-ops"; view: string }
   | { name: "property"; propertyId?: string }
   | { name: "login" }
@@ -202,6 +201,7 @@ function parseRoute(): Route {
   if (path === "/directory/custodians") return { name: "directory-spec", kind: "Custodian" };
   if (path === "/directory/trades") return { name: "directory-spec", kind: "Trades" };
   if (path === "/directory/businesses") return { name: "directory-spec", kind: "LocalBusiness" };
+  if (path === "/directory/police") return { name: "directory-spec", kind: "Police" };
   if (path === "/directory/guest-verification") return { name: "directory-spec", kind: "Verification" };
   if (path === "/directory/provider/onboarding") return { name: "directory-spec", kind: "Provider" };
   if (path.startsWith("/directory/providers/")) return { name: "directory-spec", slug: path.split("/")[3] };
@@ -235,7 +235,8 @@ function parseRoute(): Route {
   if (path === "/host/wellness/book") return { name: "wellness-booking" };
   if (path === "/officer/wellness") return { name: "officer-wellness" };
   if (path === "/host/properties") return { name: "property-management" };
-  if (path === "/host/properties/edit") return { name: "host-property-edit" };
+  if (path === "/host/properties/new") return { name: "host-spec", view: "properties-new" };
+  if (path === "/host/properties/edit") return { name: "host-spec", view: "properties-edit", propertyId: search.get("id") ?? undefined };
   if (path === "/host/reports") return { name: "host-reports" };
   if (path === "/pm/gates") return { name: "pm-gates" };
   if (path === "/pm/utilities") return { name: "pm-utilities" };
@@ -469,7 +470,7 @@ function hasPublicNav(route: Route) {
 
 function LogoutRoute({ auth }: { auth: AuthController }) {
   useEffect(() => {
-    auth.logout();
+    void auth.logout();
   }, [auth.logout]);
 
   return <LogoutScreenPage />;
@@ -719,7 +720,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "host-profile":
       return <HostProfileSpecPage auth={auth} edit={route.edit} slug={route.slug} />;
     case "host-spec":
-      return <HostSpecPage auth={auth} view={route.view} />;
+      return <HostSpecPage auth={auth} view={route.view} propertyId={route.propertyId} />;
     case "admin-ops":
       return (
         <AdminRoute auth={auth} permission={adminOpsPermission(route.view)}>
@@ -757,15 +758,15 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "host-wellness":
       return <HostWellnessPage auth={auth} />;
     case "officer-directory":
-      return <PoliceDirectoryPage />;
+      return <DirectorySpecPage auth={auth} kind="Police" />;
     case "wellness-booking":
       return <WellnessBookingPage />;
     case "officer-wellness":
-      return <OfficerWellnessPage />;
+      return <OfficerWellnessPage auth={auth} />;
     case "property-management":
       return <PropertyManagementPage auth={auth} />;
     case "host-property-edit":
-      return <HostPropertyEditPage />;
+      return <HostSpecPage auth={auth} view="properties-edit" />;
     case "host-reports":
       return <HostReportsPage />;
     case "pm-gates":
@@ -779,9 +780,9 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "pm-insurance":
       return <InsuraGuestPage />;
     case "business-directory":
-      return <BusinessDirectoryPage />;
+      return <DirectorySpecPage auth={auth} kind="LocalBusiness" />;
     case "provider-dashboard":
-      return <ProviderDashboardPage />;
+      return <DirectorySpecPage auth={auth} kind="ProviderDashboard" />;
     case "calendar":
       return <CalendarPage auth={auth} />;
     case "bookings":
@@ -848,7 +849,7 @@ export default function App() {
 
   useEffect(() => {
     if (route.name === "logout") {
-      auth.logout();
+      void auth.logout();
     }
   }, [auth.logout, route.name]);
 

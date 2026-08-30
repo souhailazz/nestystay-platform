@@ -87,7 +87,7 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
           onBackToModal={() => { window.location.href = "/explore"; }}
           onProceedToCheckout={(id, status) => {
             setCurrentBookingId(id);
-            if (status === "PendingVerification") {
+            if (isPendingVerificationStatus(status)) {
               // eKYC required: document choice (BOOK-03) before the pending/hold screen.
               window.history.pushState({}, "", `/booking/${id}/identity`);
             } else {
@@ -143,6 +143,10 @@ export function BookingStateContainer({ state, bookingId, auth }: BookingStateCo
     default:
       return <BookingSuccessPage bookingId={activeId} auth={auth} />;
   }
+}
+
+function isPendingVerificationStatus(status: string): boolean {
+  return ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(status.trim().toUpperCase());
 }
 
 function toQuote(booking: BookingDetails): BookingQuote {

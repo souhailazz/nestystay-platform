@@ -132,6 +132,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneCampaignEnrollment> MilestoneCampaignEnrollments => Set<MilestoneCampaignEnrollment>();
     public DbSet<MilestoneFoundingBenefit> MilestoneFoundingBenefits => Set<MilestoneFoundingBenefit>();
     public DbSet<MilestoneWellnessOfficer> MilestoneWellnessOfficers => Set<MilestoneWellnessOfficer>();
+    public DbSet<MilestoneWellnessSubscription> MilestoneWellnessSubscriptions => Set<MilestoneWellnessSubscription>();
     public DbSet<MilestoneWellnessVisit> MilestoneWellnessVisits => Set<MilestoneWellnessVisit>();
     public DbSet<MilestoneWellnessReport> MilestoneWellnessReports => Set<MilestoneWellnessReport>();
     public DbSet<MilestoneWellnessReportPhoto> MilestoneWellnessReportPhotos => Set<MilestoneWellnessReportPhoto>();
@@ -177,6 +178,10 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<PropertyAvailability>().HasIndex(item => new { item.PropertyId, item.StartsOn, item.EndsOn });
         modelBuilder.Entity<Booking>().HasIndex(booking => new { booking.PropertyId, booking.CheckIn, booking.CheckOut });
         modelBuilder.Entity<QrAccessCode>().HasIndex(code => code.CodeHash).IsUnique();
+        modelBuilder.Entity<QrAccessCode>().HasIndex(code => new { code.BookingId, code.IsRevoked, code.ExpiresAt });
+        modelBuilder.Entity<QrAccessCode>().HasIndex(code => new { code.PropertyId, code.ExpiresAt });
+        modelBuilder.Entity<MilestoneWellnessSubscription>().HasIndex(item => new { item.HostUserId, item.Status, item.CurrentPeriodEnd });
+        modelBuilder.Entity<QrScanLog>().HasIndex(log => new { log.QrAccessCodeId, log.ScannedAt });
         modelBuilder.Entity<Officer>().HasIndex(officer => officer.CurrentNestyStayId).IsUnique();
         modelBuilder.Entity<OfficerIdHistory>().HasIndex(item => new { item.OfficerId, item.Year }).IsUnique();
         modelBuilder.Entity<MilestoneUser>().HasIndex(user => user.NormalizedEmail).IsUnique();
@@ -241,6 +246,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.Slug).IsUnique();
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.OwnerUserId);
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Kind, provider.Category, provider.Parish });
+        modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Status, provider.VerificationStatus, provider.IsActive });
         modelBuilder.Entity<MilestoneHostPricingRule>().HasIndex(rule => new { rule.HostUserId, rule.PropertyId, rule.StartsOn, rule.EndsOn });
         modelBuilder.Entity<MilestoneHostPromotion>().HasIndex(promotion => new { promotion.HostUserId, promotion.PropertyId, promotion.IsActive });
         modelBuilder.Entity<MilestoneAdminCase>().HasIndex(adminCase => new { adminCase.CaseType, adminCase.Status });

@@ -3,19 +3,21 @@ import { PropertyDetailPage } from "./PropertyDetailPage";
 import { ExperiencesPage } from "./ExperiencesPage";
 import { JournalPage } from "./JournalPage";
 import { LegalHelpPages } from "./LegalHelpPages";
+import type { AuthSession } from "../../lib/auth";
 
 interface PublicStateContainerProps {
   view: string;
   propertyId?: string;
+  session: AuthSession | null;
 }
 
-export function PublicStateContainer({ view, propertyId }: PublicStateContainerProps) {
+export function PublicStateContainer({ view, propertyId, session }: PublicStateContainerProps) {
   if (view === "search" || view === "map" || view === "grid" || view === "explore") {
-    return <PublicSearchMap view={view} />;
+    return <PublicSearchMap view={view} session={session} />;
   }
 
   if (view === "detail" || view === "property-detail") {
-    return <PropertyDetailPage propertyId={propertyId} />;
+    return <PropertyDetailPage propertyId={propertyId} session={session} />;
   }
 
   if (view === "experiences" || view === "tours") {
@@ -33,5 +35,5 @@ export function PublicStateContainer({ view, propertyId }: PublicStateContainerP
     return <LegalHelpPages view={view.startsWith("help/") ? "help" : view} />;
   }
 
-  return <PublicSearchMap view={view} />;
+  return <PublicSearchMap view={view} session={session} />;
 }

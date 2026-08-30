@@ -4,6 +4,7 @@ using NestyStay.Api.Auth;
 using NestyStay.Application.Admin;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.SpecCompletion;
+using NestyStay.Domain;
 
 namespace NestyStay.Api.Controllers;
 
@@ -38,20 +39,50 @@ public sealed class BadgesPricingController(
     public IActionResult GetBadgeDefinitions() => Ok(phaseTwoStore.GetBadgeDefinitions());
 
     [HttpPost("badges/eligibility")]
+    [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
     public IActionResult GetBadgeEligibility(PurchaseBadgeRequest request) =>
         Ok(phaseTwoStore.GetBadgeEligibility(request));
 
     [HttpPost("badges/purchase")]
-    public IActionResult PurchaseBadge(PurchaseBadgeRequest request) =>
-        Ok(phaseTwoStore.PurchaseBadge(request));
+    [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
+    public async Task<IActionResult> PurchaseBadge(PurchaseBadgeRequest request, CancellationToken cancellationToken)
+    {
+        var assignment = phaseTwoStore.PurchaseBadge(request);
+        await RecordSystemAuditAsync(
+            "BadgeAssignmentCreated",
+            "BadgeAssignment",
+            assignment.Id,
+            $"Administrator assigned {assignment.Level} badge to {assignment.SubjectType} {assignment.SubjectId}.",
+            null,
+            assignment,
+            cancellationToken);
+        return Ok(assignment);
+    }
 
     [HttpGet("badges/assignments")]
-    public IActionResult GetBadgeAssignments([FromQuery] string? subjectType = null, [FromQuery] Guid? subjectId = null) =>
-        Ok(phaseTwoStore.GetBadgeAssignments(subjectType, subjectId));
+    [Authorize]
+    public IActionResult GetBadgeAssignments([FromQuery] string? subjectType = null, [FromQuery] Guid? subjectId = null)
+    {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            if (subjectId is null || string.IsNullOrWhiteSpace(subjectType))
+            {
+                throw new ForbiddenAccessException("Hosts may only read their own badge assignments.");
+            }
+
+            RequireBadgeSubjectAccess(subjectType, subjectId.Value);
+        }
+
+        return Ok(phaseTwoStore.GetBadgeAssignments(subjectType, subjectId));
+    }
 
     [HttpGet("badges/features/{subjectType}/{subjectId:guid}")]
-    public IActionResult GetFeatureAccess(string subjectType, Guid subjectId) =>
-        Ok(phaseTwoStore.GetFeatureAccess(subjectType, subjectId));
+    [Authorize]
+    public IActionResult GetFeatureAccess(string subjectType, Guid subjectId)
+    {
+        RequireBadgeSubjectAccess(subjectType, subjectId);
+        return Ok(phaseTwoStore.GetFeatureAccess(subjectType, subjectId));
+    }
 
     [HttpPost("badges/assignments/{assignmentId:guid}/expire")]
     [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
@@ -74,12 +105,31 @@ public sealed class BadgesPricingController(
     }
 
     [HttpGet("renewals")]
-    public IActionResult GetRenewals([FromQuery] Guid? assignmentId = null) =>
-        Ok(phaseTwoStore.GetRenewals(assignmentId));
+    [Authorize]
+    public IActionResult GetRenewals([FromQuery] Guid? assignmentId = null)
+    {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            if (assignmentId is null)
+            {
+                throw new ForbiddenAccessException("Hosts may only read renewals for their own badge assignment.");
+            }
+
+            RequireAssignmentAccess(assignmentId.Value);
+        }
+
+        return Ok(phaseTwoStore.GetRenewals(assignmentId));
+    }
 
     [HttpPost("renewals/{assignmentId:guid}/pay")]
-    public IActionResult PayRenewal(Guid assignmentId) =>
-        Ok(phaseTwoStore.PayRenewal(assignmentId));
+    [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
+    public async Task<IActionResult> PayRenewal(Guid assignmentId, CancellationToken cancellationToken)
+    {
+        var previous = FindAssignment(assignmentId);
+        var assignment = phaseTwoStore.PayRenewal(assignmentId);
+        await RecordSystemAuditAsync("BadgeRenewalRecorded", "BadgeAssignment", assignmentId, "Administrator recorded a successful badge renewal.", previous, assignment, cancellationToken);
+        return Ok(assignment);
+    }
 
     [HttpGet("campaigns")]
     public IActionResult GetCampaigns() => Ok(phaseTwoStore.GetCampaigns());
@@ -94,8 +144,12 @@ public sealed class BadgesPricingController(
     }
 
     [HttpPost("campaigns/{campaignKey}/enroll")]
-    public IActionResult EnrollCampaign(string campaignKey, EnrollCampaignRequest request) =>
-        Ok(phaseTwoStore.EnrollCampaign(campaignKey, request));
+    [Authorize]
+    public IActionResult EnrollCampaign(string campaignKey, EnrollCampaignRequest request)
+    {
+        RequireBadgeSubjectAccess(request.SubjectType, request.SubjectId);
+        return Ok(phaseTwoStore.EnrollCampaign(campaignKey, request));
+    }
 
     [HttpPost("founding-benefits")]
     [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
@@ -108,8 +162,18 @@ public sealed class BadgesPricingController(
     }
 
     [HttpGet("founding-benefits/{propertyId:guid}")]
+    [Authorize]
     public IActionResult GetFoundingBenefit(Guid propertyId)
     {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            var hostUserId = authorization.RequireHost();
+            if (!authorization.HostOwnsProperty(hostUserId, propertyId))
+            {
+                throw new ForbiddenAccessException("Hosts may only read founding benefits for their own properties.");
+            }
+        }
+
         var benefit = phaseTwoStore.GetFoundingBenefit(propertyId);
         return benefit is null ? NotFound() : Ok(benefit);
     }
@@ -124,6 +188,27 @@ public sealed class BadgesPricingController(
 
     private BadgeAssignmentDto? FindAssignment(Guid assignmentId) =>
         phaseTwoStore.GetBadgeAssignments().FirstOrDefault(item => item.Id == assignmentId);
+
+    private void RequireAssignmentAccess(Guid assignmentId)
+    {
+        var assignment = FindAssignment(assignmentId)
+            ?? throw new InvalidOperationException("Badge assignment not found.");
+        RequireBadgeSubjectAccess(assignment.SubjectType, assignment.SubjectId);
+    }
+
+    private void RequireBadgeSubjectAccess(string subjectType, Guid subjectId)
+    {
+        if (authorization.IsInRole(UserRole.Admin))
+        {
+            return;
+        }
+
+        var hostUserId = authorization.RequireHost();
+        if (!subjectType.Equals("Host", StringComparison.OrdinalIgnoreCase) || subjectId != hostUserId)
+        {
+            throw new ForbiddenAccessException("Hosts may only access badge data assigned to their own host account.");
+        }
+    }
 
     private async Task RecordSystemAuditAsync(
         string action,

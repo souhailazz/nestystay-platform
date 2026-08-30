@@ -26,6 +26,7 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(pricebook);
         Assert.Contains(pricebook, item => item.Key == "verified-host-standard-annual");
         Assert.Contains(pricebook, item => item.Key == "trusted-host-pdf-campaign");
+        Assert.Contains(pricebook, item => item.Key == "wellness-subscription-pdf");
 
         var updatedResponse = await client.PutAsJsonAsync("/api/badges-pricing/pricebook/verified-host-standard-annual", new
         {
@@ -259,6 +260,15 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
             {
                 Content = JsonContent.Create(new { amount = 70, currency = "USD", cadence = "Annual" })
             },
+            new HttpRequestMessage(HttpMethod.Post, "/api/badges-pricing/badges/eligibility")
+            {
+                Content = JsonContent.Create(new { subjectType = "Host", subjectId = Guid.NewGuid(), level = "Verified" })
+            },
+            new HttpRequestMessage(HttpMethod.Post, "/api/badges-pricing/badges/purchase")
+            {
+                Content = JsonContent.Create(new { subjectType = "Host", subjectId = Guid.NewGuid(), level = "Verified", hostVerificationPassed = true })
+            },
+            new HttpRequestMessage(HttpMethod.Post, $"/api/badges-pricing/renewals/{assignmentId}/pay"),
             new HttpRequestMessage(HttpMethod.Post, $"/api/badges-pricing/badges/assignments/{assignmentId}/expire"),
             new HttpRequestMessage(HttpMethod.Post, $"/api/badges-pricing/badges/assignments/{assignmentId}/suspend"),
             new HttpRequestMessage(HttpMethod.Post, "/api/badges-pricing/campaigns")

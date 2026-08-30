@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Archive, RotateCcw, Edit, MapPin, Eye, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Archive, RotateCcw, Edit, MapPin, Eye } from "lucide-react";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
@@ -17,7 +17,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
     let active = true;
     async function load() {
       try {
-        const list = await api.getProperties();
+        const list = await api.getOwnedProperties(token);
         if (active) setProperties(list);
       } catch (err) {
         console.error(err);
@@ -27,7 +27,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [token]);
 
   const isArchivedView = view === "archived";
   const filtered = properties.filter(p => isArchivedView ? p.isArchived : !p.isArchived);

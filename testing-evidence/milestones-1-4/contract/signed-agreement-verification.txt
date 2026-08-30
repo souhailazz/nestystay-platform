@@ -1,0 +1,23 @@
+NestyStay signed agreement verification
+=======================================
+Source: C:\Users\Administrator\Downloads\Nesty Stay Agreement April 2026- Signed.pdf
+Repository copy: docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf
+Source readable: YES
+Repository copy readable: YES
+Pages: 11
+Bytes (source): 785845
+Bytes (repository copy): 785845
+SHA-256 (source and copy): 0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D
+Text extraction: pdftotext -layout completed (245 lines, 1956 words)
+Original contract-source blocker status: CLEARED after read/copy/hash verification.
+
+Reconciled contractual points used by this audit:
+- M1 account/listing/booking/eKYC/payment application boundaries.
+- M2 FREE/VERIFIED/TRUSTED/WELLNESS badge catalog, eligibility and renewal.
+- M3 active off-duty JCF Police wellness, $25-$50 visits, $19/month plan with one visit,
+  report/photo/payout state, badge-ID-only privacy and platform messaging.
+- M4 four directories, badge access (Custodian VERIFIED, Trades TRUSTED,
+  Local Business VERIFIED, Police WELLNESS), provider moderation, guest verification,
+  QR gate access and Jamaica emergency number 119.
+- Real Stripe, Alibaba, payout/Connect and notification delivery are external gates,
+  reported separately from contractual local functional completion.

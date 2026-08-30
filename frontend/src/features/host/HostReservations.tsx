@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, Calendar, Download, Search, ShieldCheck } from "lucide-react";
-import { api, formatMoney, type Booking } from "../../lib/api";
+import { Calendar } from "lucide-react";
+import { api, type Booking } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
 interface HostReservationsProps {
@@ -10,6 +10,7 @@ interface HostReservationsProps {
 export function HostReservations({ token }: HostReservationsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -18,7 +19,7 @@ export function HostReservations({ token }: HostReservationsProps) {
         const list = await api.getBookings(token);
         if (active) setBookings(list);
       } catch (err) {
-        console.error(err);
+        if (active) setNotice(err instanceof Error ? err.message : "Unable to load reservations.");
       } finally {
         if (active) setLoading(false);
       }
@@ -48,6 +49,8 @@ export function HostReservations({ token }: HostReservationsProps) {
           <Calendar size={16} /> iCal Calendar Feed
         </button>
       </header>
+
+      {notice && <div className="notice-panel mb-4" role="alert">{notice}</div>}
 
       {loading ? (
         <div className="loading-shimmer p-6 text-center">Loading reservations...</div>

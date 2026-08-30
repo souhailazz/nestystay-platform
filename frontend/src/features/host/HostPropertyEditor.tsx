@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Edit, Save, History, Check, AlertCircle } from "lucide-react";
-import { api, formatMoney, type PropertyListing } from "../../lib/api";
+import { Save, History } from "lucide-react";
+import { api, type PropertyListing } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
 interface HostPropertyEditorProps {
   token: string;
+  propertyId?: string;
 }
 
-export function HostPropertyEditor({ token }: HostPropertyEditorProps) {
+export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProps) {
   const [property, setProperty] = useState<PropertyListing | null>(null);
   const [title, setTitle] = useState("");
   const [nightlyRate, setNightlyRate] = useState(185);
@@ -19,12 +20,13 @@ export function HostPropertyEditor({ token }: HostPropertyEditorProps) {
     let active = true;
     async function load() {
       try {
-        const list = await api.getProperties();
-        if (active && list.length > 0) {
-          setProperty(list[0]);
-          setTitle(list[0].title);
-          setNightlyRate(list[0].nightlyRate);
-          setPolicy(list[0].cancellationPolicy);
+        const list = await api.getOwnedProperties(token);
+        const selected = propertyId ? list.find((item) => item.id === propertyId) : list[0];
+        if (active && selected) {
+          setProperty(selected);
+          setTitle(selected.title);
+          setNightlyRate(selected.nightlyRate);
+          setPolicy(selected.cancellationPolicy);
         }
       } catch (err) {
         console.error(err);
@@ -32,7 +34,7 @@ export function HostPropertyEditor({ token }: HostPropertyEditorProps) {
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [propertyId, token]);
 
   async function handleSave() {
     if (!property) return;
@@ -41,13 +43,14 @@ export function HostPropertyEditor({ token }: HostPropertyEditorProps) {
     try {
       await api.updateProperty(property.id, token, {
         hostName: property.hostName,
+        // The API rehydrates this from the authenticated profile for registered hosts.
         hostEmail: "host-villa@nestystay.local",
         title,
         location: property.location,
         country: property.country,
         nightlyRate,
         currency: property.currency,
-        badgeLevel: (property.badgeLevel as any) || "Verified",
+        badgeLevel: property.badgeLevel || "Free",
         guestVerificationEnabled: property.guestVerificationEnabled,
         insuraGuestEnabled: property.insuraGuestEnabled,
         cancellationPolicy: policy,

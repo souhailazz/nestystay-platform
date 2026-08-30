@@ -12,7 +12,9 @@ public sealed class PhaseTwoWorkflowTests
         var store = CreateStore();
 
         Assert.Contains(store.GetPricebook(), item => item.Key == "host-listing" && item.Amount == 0m);
-        Assert.Contains(store.GetPricebook(), item => item.Key == "verified-host-standard-annual" && item.Amount == 60m);
+        Assert.Contains(store.GetPricebook(), item => item.Key == "verified-host-standard-annual" && item.Amount == 0m && item.Cadence == "Included");
+        Assert.Contains(store.GetPricebook(), item => item.Key == "trusted-host-standard-annual" && item.Amount == 49m);
+        Assert.Contains(store.GetPricebook(), item => item.Key == "wellness-subscription-pdf" && item.Amount == 19m && item.Cadence == "Monthly");
         Assert.Contains(store.GetPricebook(), item => item.Key == "trusted-host-pdf-campaign" && item.Amount == 49m);
         Assert.Contains(store.GetPricebook(), item => item.Key == "founding-platinum-guest-flat" && item.Amount == 29m);
 
@@ -54,8 +56,7 @@ public sealed class PhaseTwoWorkflowTests
             store.PurchaseBadge(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Trusted, CompletedApprovedBookings: 2)));
 
         var wellnessEligibility = store.GetBadgeEligibility(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Wellness, HasPropertyAddress: true));
-        Assert.False(wellnessEligibility.Eligible);
-        Assert.Contains(wellnessEligibility.MissingRequirements, item => item.Contains("wellness subscription", StringComparison.OrdinalIgnoreCase));
+        Assert.True(wellnessEligibility.Eligible);
     }
 
     [Fact]
@@ -111,6 +112,28 @@ public sealed class PhaseTwoWorkflowTests
         var suspendedVerified = store.SuspendBadge(verified.Id);
         Assert.Equal("Suspended", suspendedVerified.Status);
         Assert.Equal(BadgeLevel.Free, store.GetFeatureAccess("Host", hostId).ActiveLevel);
+    }
+
+    [Fact]
+    public void BadgeMaintenanceAutomaticallyExpiresElapsedAssignmentsAndSurfacesRenewals()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 8, 30, 12, 0, 0, TimeSpan.Zero));
+        var store = new PhaseTwoStore(new PricebookService(), clock);
+        var hostId = Guid.NewGuid();
+        store.PurchaseBadge(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Verified, HostVerificationPassed: true));
+        var trusted = store.PurchaseBadge(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Trusted, CompletedApprovedBookings: 3));
+
+        clock.Advance(TimeSpan.FromDays(336));
+        var reminderRun = store.RunBadgeMaintenance();
+        Assert.Equal(2, reminderRun.AssignmentsReviewed);
+        Assert.Equal(0, reminderRun.AssignmentsExpired);
+        Assert.Equal(1, reminderRun.RenewalRemindersDue);
+
+        clock.Advance(TimeSpan.FromDays(30).Add(TimeSpan.FromSeconds(1)));
+        var expiryRun = store.RunBadgeMaintenance();
+        Assert.Equal(1, expiryRun.AssignmentsExpired);
+        Assert.Equal("Expired", store.GetBadgeAssignments("Host", hostId).Single(item => item.Id == trusted.Id).Status);
+        Assert.Equal(BadgeLevel.Verified, store.GetFeatureAccess("Host", hostId).ActiveLevel);
     }
 
     [Fact]
@@ -185,7 +208,7 @@ public sealed class PhaseTwoWorkflowTests
 
         Assert.Equal(3m, standard.HostCommissionPercent);
         Assert.Equal(30m, standard.HostCommissionAmount);
-        Assert.Equal(100m, standard.GuestFeeAmount);
+        Assert.Equal(90m, standard.GuestFeeAmount);
         Assert.Equal(29m, platinum.GuestFeeAmount);
         Assert.Equal(0m, zero.HostCommissionAmount);
         Assert.Equal(0m, zero.GuestFeeAmount);
@@ -196,4 +219,13 @@ public sealed class PhaseTwoWorkflowTests
     }
 
     private static PhaseTwoStore CreateStore() => new(new PricebookService(), TimeProvider.System);
+
+    private sealed class MutableTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan duration) => _utcNow = _utcNow.Add(duration);
+    }
 }

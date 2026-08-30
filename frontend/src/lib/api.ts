@@ -1,6 +1,6 @@
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
 
-export type UserRole = "Guest" | "Host" | "Admin" | "Officer" | "PropertyManager";
+export type UserRole = "Guest" | "Host" | "Admin" | "Officer" | "ServiceProvider" | "LocalBusiness" | "PropertyManager";
 
 export type AdminPermission =
   | "super_administration"
@@ -22,7 +22,7 @@ export type RegisterUserRequest = {
   confirmPassword: string;
   acceptedTerms: boolean;
   acceptedPrivacy: boolean;
-  role: Extract<UserRole, "Guest" | "Host">;
+  role: Extract<UserRole, "Guest" | "Host" | "Officer" | "ServiceProvider" | "LocalBusiness">;
 };
 
 export type RegisterUserResponse = {
@@ -100,6 +100,7 @@ export type UserProfile = {
   email: string;
   displayName: string;
   roles: UserRole[];
+  isTwoFactorEnabled: boolean;
   photo?: UserProfilePhoto | null;
 };
 
@@ -319,6 +320,7 @@ export type BadgeDefinition = {
   annualPrice: number;
   currency: string;
   unlocks: string[];
+  priceCadence?: string;
 };
 
 export type PurchaseBadgeRequest = {
@@ -748,6 +750,75 @@ export type DirectoryProvider = {
   rating: number;
   reviewCount: number;
   isActive: boolean;
+  ownerUserId?: string | null;
+  verificationStatus?: string;
+  status?: string;
+  isBrickAndMortar?: boolean;
+  policeBadgeNumber?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type WellnessReport = {
+  id: string;
+  visitId: string;
+  officerId: string;
+  submittedAt: string;
+  reportStatus: string;
+  notes: string;
+  photos: string[];
+};
+
+export type WellnessSubscription = {
+  id: string;
+  hostUserId: string;
+  planKey: string;
+  monthlyAmount: number;
+  currency: string;
+  status: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  includedVisits: number;
+  usedVisits: number;
+  remainingVisits: number;
+  paymentProvider: string;
+  paymentReference: string;
+};
+
+export type QrIssueResult = {
+  id: string;
+  bookingId: string;
+  propertyId: string;
+  validFrom: string;
+  expiresAt: string;
+  status: string;
+  token: string;
+  validationUrl: string;
+};
+
+export type QrAccess = {
+  id: string;
+  bookingId: string;
+  propertyId: string;
+  validFrom: string;
+  expiresAt: string;
+  isRevoked: boolean;
+  validationCount: number;
+  lastValidatedAt?: string | null;
+  status: string;
+  token?: string | null;
+  validationUrl?: string | null;
+};
+
+export type QrValidationResult = {
+  valid: boolean;
+  result: string;
+  bookingId?: string | null;
+  propertyId?: string | null;
+  validFrom?: string | null;
+  expiresAt?: string | null;
+  validationCount: number;
+  message: string;
 };
 
 export type MessagingInbox = {
@@ -1182,6 +1253,8 @@ export const api = {
     request<ConfirmTwoFactorEnrollmentResponse>("/auth/2fa/enrollments/confirm", { method: "POST", token, body }),
   disableTwoFactor: (token: string, body: { code: string }) =>
     request<DisableTwoFactorResponse>("/auth/2fa", { method: "DELETE", token, body }),
+  logout: (token: string) =>
+    request<{ loggedOut: boolean; invalidatedAt: string }>("/auth/logout", { method: "POST", token }),
   getProfile: (token: string) => request<UserProfile>("/auth/profile", { token }),
   prepareProfilePhotoUpload: (token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
     request<ProfilePhotoUpload>("/auth/profile/photo/uploads", { method: "POST", token, body }),
@@ -1199,6 +1272,7 @@ export const api = {
   getDevelopmentPasswordResetToken: (requestId: string) =>
     request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
   getProperties: () => request<PropertyListing[]>("/properties"),
+  getOwnedProperties: (token: string) => request<PropertyListing[]>("/properties/owned", { token }),
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
   createProperty: (body: CreatePropertyRequest, token: string) =>
     request<PropertyListing>("/properties", { method: "POST", token, body }),
@@ -1256,17 +1330,19 @@ export const api = {
       token,
     }),
   getBadgeDefinitions: () => request<BadgeDefinition[]>("/badges-pricing/badges"),
-  getBadgeEligibility: (body: PurchaseBadgeRequest) =>
-    request<BadgeEligibility>("/badges-pricing/badges/eligibility", { method: "POST", body }),
-  purchaseBadge: (body: PurchaseBadgeRequest) =>
-    request<BadgeAssignment>("/badges-pricing/badges/purchase", { method: "POST", body }),
-  getBadgeAssignments: (subjectType?: string, subjectId?: string) =>
+  getBadgeEligibility: (body: PurchaseBadgeRequest, token: string) =>
+    request<BadgeEligibility>("/badges-pricing/badges/eligibility", { method: "POST", body, token }),
+  purchaseBadge: (body: PurchaseBadgeRequest, token: string) =>
+    request<BadgeAssignment>("/badges-pricing/badges/purchase", { method: "POST", body, token }),
+  getBadgeAssignments: (token: string, subjectType?: string, subjectId?: string) =>
     request<BadgeAssignment[]>(
       withQuery("/badges-pricing/badges/assignments", { subjectType, subjectId }),
+      { token },
     ),
-  getBadgeFeatureAccess: (subjectType: string, subjectId: string) =>
+  getBadgeFeatureAccess: (subjectType: string, subjectId: string, token: string) =>
     request<BadgeFeatureAccess>(
       `/badges-pricing/badges/features/${encodeURIComponent(subjectType)}/${encodeURIComponent(subjectId)}`,
+      { token },
     ),
   expireBadgeAssignment: (assignmentId: string, token: string) =>
     request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/expire`, {
@@ -1278,22 +1354,23 @@ export const api = {
       method: "POST",
       token,
     }),
-  getBadgeRenewals: (assignmentId?: string) =>
-    request<BadgeRenewal[]>(withQuery("/badges-pricing/renewals", { assignmentId })),
-  payBadgeRenewal: (assignmentId: string) =>
-    request<BadgeRenewal>(`/badges-pricing/renewals/${assignmentId}/pay`, { method: "POST" }),
+  getBadgeRenewals: (token: string, assignmentId?: string) =>
+    request<BadgeRenewal[]>(withQuery("/badges-pricing/renewals", { assignmentId }), { token }),
+  payBadgeRenewal: (assignmentId: string, token: string) =>
+    request<BadgeAssignment>(`/badges-pricing/renewals/${assignmentId}/pay`, { method: "POST", token }),
   getCampaigns: () => request<Campaign[]>("/badges-pricing/campaigns"),
   createCampaign: (body: CreateCampaignRequest, token: string) =>
     request<Campaign>("/badges-pricing/campaigns", { method: "POST", body, token }),
-  enrollCampaign: (campaignKey: string, subjectType: string, subjectId: string) =>
+  enrollCampaign: (campaignKey: string, subjectType: string, subjectId: string, token: string) =>
     request<CampaignEnrollment>(`/badges-pricing/campaigns/${encodeURIComponent(campaignKey)}/enroll`, {
       method: "POST",
       body: { subjectType, subjectId },
+      token,
     }),
   upsertFoundingBenefit: (body: FoundingBenefitRequest, token: string) =>
     request<FoundingBenefit>("/badges-pricing/founding-benefits", { method: "POST", body, token }),
-  getFoundingBenefit: (propertyId: string) =>
-    request<FoundingBenefit>(`/badges-pricing/founding-benefits/${propertyId}`),
+  getFoundingBenefit: (propertyId: string, token: string) =>
+    request<FoundingBenefit>(`/badges-pricing/founding-benefits/${propertyId}`, { token }),
   evaluateFoundingTransfer: (body: FoundingTransferEvaluationRequest) =>
     request<FoundingTransferEvaluation>("/badges-pricing/founding-benefits/transfer-evaluation", {
       method: "POST",
@@ -1327,10 +1404,15 @@ export const api = {
     }),
   quoteWellnessVisit: (body: WellnessQuoteRequest) =>
     request<WellnessQuote>("/wellness/quote", { method: "POST", body }),
-  createWellnessVisit: (body: CreateWellnessVisitRequest) =>
-    request<WellnessVisit>("/wellness/visits", { method: "POST", body }),
-  getWellnessVisits: (params: { hostUserId?: string; propertyId?: string; officerId?: string } = {}) =>
-    request<WellnessVisit[]>("/wellness/visits" + withQuery("", params)),
+  getWellnessSubscription: (token: string) => request<WellnessSubscription | null>("/wellness/subscriptions", { token }),
+  startWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions", { method: "POST", token }),
+  renewWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions/renew", { method: "POST", token }),
+  cancelWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions/cancel", { method: "POST", token }),
+  createWellnessVisit: (body: CreateWellnessVisitRequest, token?: string) =>
+    request<WellnessVisit>("/wellness/visits", { method: "POST", body, token }),
+  getWellnessVisits: (params: { hostUserId?: string; propertyId?: string; officerId?: string } = {}, token?: string) =>
+    request<WellnessVisit[]>("/wellness/visits" + withQuery("", params), { token }),
+  getWellnessReport: (visitId: string, token: string) => request<WellnessReport>(`/wellness/visits/${visitId}/report`, { token }),
   assignWellnessOfficer: (visitId: string, officerId: string, token: string) =>
     request<WellnessVisit>(`/wellness/visits/${visitId}/assign`, {
       method: "POST",
@@ -1343,21 +1425,31 @@ export const api = {
       token,
       body: { reason },
     }),
-  prepareWellnessReportPhotoUpload: (visitId: string, body: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) =>
-    request<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/report/photos/uploads`, { method: "POST", body }),
-  uploadWellnessReportPhotoContent: (visitId: string, photoId: string, officerBadgeNumber: string, file: File, options?: UploadOptions) =>
-    requestUpload<WellnessReportPhotoUpload>(
+  prepareWellnessReportPhotoUpload: (visitId: string, tokenOrBody: string | { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }, bodyMaybe?: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) => {
+    const token = typeof tokenOrBody === "string" ? tokenOrBody : undefined;
+    const body = typeof tokenOrBody === "string" ? bodyMaybe! : tokenOrBody;
+    return request<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/report/photos/uploads`, { method: "POST", body, token });
+  },
+  uploadWellnessReportPhotoContent: (visitId: string, photoId: string, officerBadgeNumber: string, token: string | File, fileOrOptions?: File | UploadOptions, options?: UploadOptions) => {
+    const authToken = typeof token === "string" ? token : undefined;
+    const file = (typeof token === "string" ? fileOrOptions : token) as File;
+    const requestOptions = (typeof token === "string" ? options : fileOrOptions) as UploadOptions | undefined;
+    return requestUpload<WellnessReportPhotoUpload>(
       withQuery(`/wellness/visits/${visitId}/report/photos/${photoId}/content`, { officerBadgeNumber }),
-      undefined,
+      authToken,
       file,
-      options,
-    ),
+      requestOptions,
+    );
+  },
   prepareAdminWellnessReportPhotoUpload: (visitId: string, token: string, body: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) =>
     request<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/complete/photos/uploads`, { method: "POST", token, body }),
   uploadAdminWellnessReportPhotoContent: (visitId: string, photoId: string, token: string, file: File, options?: UploadOptions) =>
     requestUpload<WellnessReportPhotoUpload>(`/wellness/visits/${visitId}/complete/photos/${photoId}/content`, token, file, options),
-  submitWellnessReport: (visitId: string, body: { officerBadgeNumber: string; notes: string; photos?: string[] }) =>
-    request<WellnessVisit>(`/wellness/visits/${visitId}/report`, { method: "POST", body }),
+  submitWellnessReport: (visitId: string, tokenOrBody: string | { officerBadgeNumber: string; notes: string; photos?: string[] }, bodyMaybe?: { officerBadgeNumber: string; notes: string; photos?: string[] }) => {
+    const token = typeof tokenOrBody === "string" ? tokenOrBody : undefined;
+    const body = typeof tokenOrBody === "string" ? bodyMaybe! : tokenOrBody;
+    return request<WellnessVisit>(`/wellness/visits/${visitId}/report`, { method: "POST", body, token });
+  },
   completeWellnessVisit: (
     visitId: string,
     token: string,
@@ -1425,6 +1517,20 @@ export const api = {
   getDirectoryProvider: (slug: string) => request<DirectoryProvider>(`/spec/directories/providers/${slug}`),
   upsertDirectoryProvider: (token: string, body: Partial<DirectoryProvider>) =>
     request<DirectoryProvider>("/spec/directories/providers", { method: "POST", token, body }),
+  getM4DirectoryProviders: (params: { kind?: string; category?: string; parish?: string; query?: string } = {}, token?: string) =>
+    request<DirectoryProvider[]>(withQuery("/directories/providers", params), { token }),
+  getM4DirectoryProvider: (slug: string, token?: string) => request<DirectoryProvider>(`/directories/providers/${slug}`, { token }),
+  getM4DirectoryMine: (token: string) => request<DirectoryProvider[]>("/directories/providers/mine", { token }),
+  saveM4DirectoryProvider: (token: string, body: { slug?: string; kind: string; category: string; name: string; parish: string; badgeLevel?: string; description: string; availabilitySummary: string; contactMode?: string; isBrickAndMortar?: boolean; policeBadgeNumber?: string | null; isActive?: boolean }) =>
+    request<DirectoryProvider>("/directories/providers", { method: "POST", token, body }),
+  moderateM4DirectoryProvider: (slug: string, token: string, status: string, reason?: string) =>
+    request<DirectoryProvider>(`/directories/providers/${slug}/moderate`, { method: "POST", token, body: { status, reason } }),
+  issueBookingQr: (bookingId: string, token: string) =>
+    request<QrIssueResult>(`/access/qr/bookings/${bookingId}`, { method: "POST", token }),
+  getBookingQr: (qrId: string, token: string) => request<QrAccess>(`/access/qr/${qrId}`, { token }),
+  revokeBookingQr: (qrId: string, token: string) => request<QrAccess>(`/access/qr/${qrId}/revoke`, { method: "POST", token }),
+  validateQr: (token: string, propertyId: string, deviceMetadata?: string) =>
+    request<QrValidationResult>("/access/qr/validate", { method: "POST", body: { token, propertyId, deviceMetadata } }),
   getInbox: (userId: string, token: string) =>
     request<MessagingInbox>(withQuery("/spec/messages/inbox", { userId }), { token }),
   getConversation: (conversationId: string, userId: string, token: string) =>

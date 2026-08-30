@@ -11,6 +11,7 @@ public static class NestyStayBusinessRules
     public const int WellnessBadgeValidityYears = 1;
     public const int AssociationMinimumRetentionYears = 7;
     public const string JamaicaEmergencyNumber = "119";
+    public const decimal ContractGuestPlatformFeePercent = 9m;
 
     public static bool CanCapturePayment(BookingStatus status) =>
         status is BookingStatus.Approved or BookingStatus.PaymentCaptured or BookingStatus.Confirmed;
@@ -37,20 +38,8 @@ public static class NestyStayBusinessRules
         return requested;
     }
 
-    public static decimal ResolveStandardGuestFeePercent(decimal bookingValue, int nights)
-    {
-        if (nights >= 7 || bookingValue >= 1500m)
-        {
-            return 8m;
-        }
-
-        if (nights == 1)
-        {
-            return 12m;
-        }
-
-        return 10m;
-    }
+    public static decimal ResolveStandardGuestFeePercent(decimal bookingValue, int nights) =>
+        ContractGuestPlatformFeePercent;
 
     public static decimal ResolveFoundingGuestFlatFee(FoundingTier tier) =>
         tier switch

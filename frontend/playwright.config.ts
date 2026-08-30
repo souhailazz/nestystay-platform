@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
 const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5019/api/health";
+const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? "../artifacts/playwright-results";
+const htmlReportDir = process.env.PLAYWRIGHT_HTML_REPORT ?? "../artifacts/playwright-report";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -15,9 +17,9 @@ export default defineConfig({
   workers: 2,
   reporter: [
     ["line"],
-    ["html", { open: "never", outputFolder: "../artifacts/playwright-report" }],
+    ["html", { open: "never", outputFolder: htmlReportDir }],
   ],
-  outputDir: "../artifacts/playwright-results",
+  outputDir,
   use: {
     baseURL,
     trace: "retain-on-failure",

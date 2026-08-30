@@ -67,6 +67,11 @@ public static class DependencyInjection
         public Task<WellnessOfficerDto> OnboardOfficerAsync(OnboardOfficerRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<IReadOnlyList<WellnessOfficerDto>> GetOfficersAsync(string? status, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessOfficerDto?> GetOfficerAsync(Guid officerId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessOfficerDto?> GetOfficerForUserAsync(Guid userId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessSubscriptionDto?> GetSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessSubscriptionDto> StartSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessSubscriptionDto> RenewSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessSubscriptionDto?> CancelSubscriptionAsync(Guid hostUserId, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<IReadOnlyList<WellnessOfficerDto>> GetAvailableOfficersAsync(string parish, DateTimeOffset scheduledAt, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessOfficerDto?> ApproveOfficerAsync(Guid officerId, AdminOfficerReviewRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessOfficerDto?> RejectOfficerAsync(Guid officerId, AdminOfficerReviewRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
@@ -76,6 +81,7 @@ public static class DependencyInjection
         public Task<WellnessVisitDto> CreateVisitAsync(CreateWellnessVisitRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<IReadOnlyList<WellnessVisitDto>> GetVisitsAsync(Guid? hostUserId, Guid? propertyId, Guid? officerId, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> GetVisitAsync(Guid visitId, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessReportDto?> GetReportAsync(Guid visitId, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> AssignOfficerAsync(Guid visitId, AssignOfficerRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> CancelVisitAsync(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessReportPhotoUploadDto> PrepareReportPhotoUploadAsync(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, bool adminOverride, CancellationToken cancellationToken) => throw MissingInfrastructure();

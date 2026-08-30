@@ -1733,7 +1733,11 @@ public sealed class EfSpecCompletionStore(
         AvailabilitySummary = availability,
         ContactMode = "Platform messaging only",
         Rating = 4.8m,
-        ReviewCount = 18
+        ReviewCount = 18,
+        VerificationStatus = "Verified",
+        Status = "Published",
+        IsActive = true,
+        IsBrickAndMortar = kind.Equals("LocalBusiness", StringComparison.OrdinalIgnoreCase)
     };
 
     private MilestoneTravelerNotification Notification(Guid userId, string type, string title, string body, string link) => new()
@@ -2440,7 +2444,7 @@ public sealed class EfSpecCompletionStore(
     private static IdentityDocumentDto ToDto(MilestoneIdentityDocumentUpload item) => new(item.IdentityDocumentId ?? item.Id, item.UserId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt ?? item.UpdatedAt, string.IsNullOrWhiteSpace(item.IssuingCountry) ? null : item.IssuingCountry, item.ExpiresOn);
     private static ReviewDto ToDto(MilestoneReview item) => new(item.Id, item.UserId, item.PropertyId, item.BookingId, item.SubjectTitle, item.Rating, item.Text, item.Status, item.HostReply, item.CreatedAt, item.EditableUntil);
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
-    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive);
+    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive, item.VerificationStatus, item.Status, item.IsBrickAndMortar, item.Kind.Equals("Police", StringComparison.OrdinalIgnoreCase) ? item.PoliceBadgeNumber : null);
     private static ConversationParticipantDto ToDto(MilestoneConversationParticipant item) => new(item.UserId, item.DisplayName, item.Role, item.LastReadAt, item.OnlineStatus);
     private static AttachmentUploadDto ToUploadDto(MilestoneMessageAttachment item) => new(
         item.Id,

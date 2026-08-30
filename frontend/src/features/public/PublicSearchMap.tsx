@@ -7,9 +7,11 @@ import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
 import { BookingModal } from "../booking/BookingModal";
+import type { AuthSession } from "../../lib/auth";
 
 interface PublicSearchMapProps {
   view: string;
+  session: AuthSession | null;
 }
 
 const BADGE_FILTERS = [
@@ -26,7 +28,7 @@ const chipBase =
   "min-h-11 cursor-pointer rounded-pill px-5 font-sans text-[13.5px] font-semibold transition-colors";
 
 /** PUB-02 — Explore stays (DS v2): search header, badge filter chips, results grid. */
-export function PublicSearchMap({ view: _view }: PublicSearchMapProps) {
+export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -240,7 +242,26 @@ export function PublicSearchMap({ view: _view }: PublicSearchMapProps) {
       {bookingProp && (
         <BookingModal
           onClose={() => setBookingProp(null)}
-          onProceedToReview={() => (window.location.href = "/booking/11111111-1111-4111-8111-111111111111/review")}
+          onProceedToReview={async (quote, details) => {
+            if (!session) {
+              window.location.href = "/login";
+              return;
+            }
+            const created = await api.createBooking({
+              propertyId: quote.property.id,
+              guestUserId: session.userId,
+              checkIn: quote.checkIn,
+              checkOut: quote.checkOut,
+              adults: details.adults,
+              children: details.children,
+              accessibilityNeeds: details.accessibility,
+              protectionPlan: details.protection,
+              billingCountry: "JM",
+              termsAccepted: true,
+            }, session.accessToken);
+            const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
+            window.location.href = `/booking/${created.id}/${nextStep}`;
+          }}
           property={bookingProp}
         />
       )}

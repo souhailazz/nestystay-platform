@@ -15,9 +15,10 @@ type AuthSession = {
 };
 
 const repoRoot = path.resolve(process.cwd(), "..");
-const evidenceRoot = path.join(repoRoot, "artifacts", "m1-m2-visual");
+const evidenceRoot = process.env.NESTYSTAY_EVIDENCE_ROOT ?? path.join(repoRoot, "artifacts", "m1-m2-visual");
 const password = "NestyStay1";
-const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN ?? ["dev", "admin", "token"].join("-");
+const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
+if (!adminToken) throw new Error("NESTYSTAY_E2E_ADMIN_TOKEN is required for this suite.");
 const transparentPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64",
@@ -181,6 +182,18 @@ async function createSession(api: APIRequestContext, role: UserRole): Promise<Au
   });
   expect(login.ok()).toBeTruthy();
   const loginBody = await login.json();
+  if (!loginBody.requiresTwoFactor) {
+    expect(loginBody.accessToken).toBeTruthy();
+    return {
+      userId: loginBody.userId,
+      email,
+      displayName,
+      accessToken: loginBody.accessToken,
+      expiresAt: loginBody.expiresAt,
+      roles: loginBody.roles,
+      permissions: loginBody.permissions ?? [],
+    };
+  }
   expect(loginBody.challengeId).toBeTruthy();
 
   const challenge = await api.get(`/api/auth/development/challenges/${loginBody.challengeId}`);

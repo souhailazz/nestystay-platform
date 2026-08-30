@@ -14,6 +14,7 @@ public interface IPhaseTwoStore
     BadgeFeatureAccessDto GetFeatureAccess(string subjectType, Guid subjectId);
     IReadOnlyList<BadgeAssignmentDto> GetBadgeAssignments(string? subjectType = null, Guid? subjectId = null);
     IReadOnlyList<BadgeRenewalDto> GetRenewals(Guid? assignmentId = null);
+    BadgeMaintenanceResult RunBadgeMaintenance();
     BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request);
     BadgeAssignmentDto PayRenewal(Guid assignmentId);
     BadgeAssignmentDto ExpireBadge(Guid assignmentId);
@@ -69,7 +70,7 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                 BadgeLevel.Free,
                 "Hosts",
                 "host-listing",
-                ["Listings", "Calendar", "Messaging", "QR", "Stripe", "InsuraGuest", "97% payout"]),
+                ["Listings", "Calendar", "Messaging", "QR code access", "97% payout"]),
             new(
                 Guid.Parse("10000000-0000-4000-8000-000000000001"),
                 "host-verified",
@@ -83,14 +84,14 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                 BadgeLevel.Trusted,
                 "Hosts",
                 "trusted-host-standard-annual",
-                ["Trades directory", "Search boost", "Referral program"]),
+                ["Trusted badge", "Trades directory", "Search boost", "Referral program"]),
             new(
                 Guid.Parse("10000000-0000-4000-8000-000000000003"),
                 "host-wellness",
                 BadgeLevel.Wellness,
                 "Hosts",
-                "verified-host-standard-annual",
-                ["Police directory", "Wellness visits", "Wellness badge", "Security verified filter"])
+                "wellness-subscription-pdf",
+                ["Police directory", "Wellness visits", "In-person guest ID check", "Drive-by property patrol", "Wellness badge", "Police Verified filter"])
         ];
 
         _campaigns.Add(new CampaignState(
@@ -217,6 +218,27 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                 .Where(renewal => assignmentId is null || renewal.BadgeAssignmentId == assignmentId)
                 .Select(ToDto)
                 .ToList();
+        }
+    }
+
+    public BadgeMaintenanceResult RunBadgeMaintenance()
+    {
+        lock (_gate)
+        {
+            var now = _timeProvider.GetUtcNow();
+            var active = _assignments.Where(item => item.Status == BadgeAssignmentStatus.Active).ToList();
+            var expired = 0;
+            foreach (var assignment in active.Where(item => item.ExpiresAt <= now))
+            {
+                assignment.Status = BadgeAssignmentStatus.Expired;
+                expired++;
+            }
+
+            var remindersDue = _renewals.Count(item =>
+                item.PaymentStatus == PaymentStatus.Pending &&
+                item.ReminderDueAt <= now &&
+                active.Any(assignment => assignment.Id == item.BadgeAssignmentId && assignment.Status == BadgeAssignmentStatus.Active));
+            return new BadgeMaintenanceResult(active.Count, expired, remindersDue, now);
         }
     }
 
@@ -621,11 +643,6 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                     missing.Add("Wellness badge requires a property address.");
                 }
 
-                if (!request.HasWellnessSubscription)
-                {
-                    missing.Add("Wellness badge requires an active wellness subscription.");
-                }
-
                 break;
             default:
                 missing.Add("Unsupported badge level.");
@@ -651,9 +668,7 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
             "Listings",
             "Calendar",
             "Messaging",
-            "QR",
-            "Stripe",
-            "InsuraGuest",
+            "QR code access",
             "97% payout"
         };
 
@@ -664,12 +679,12 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
 
         if (level >= BadgeLevel.Trusted)
         {
-            features.AddRange(["Trades directory", "Search boost", "Referral program"]);
+            features.AddRange(["Trusted badge", "Trades directory", "Search boost", "Referral program"]);
         }
 
         if (level >= BadgeLevel.Wellness)
         {
-            features.AddRange(["Police directory", "Wellness visits", "Wellness badge", "Security verified filter"]);
+            features.AddRange(["Police directory", "Wellness visits", "In-person guest ID check", "Drive-by property patrol", "Wellness badge", "Police Verified filter"]);
         }
 
         return features.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -761,7 +776,8 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
             definition.AppliesTo,
             price.Amount,
             price.Currency,
-            definition.Unlocks);
+            definition.Unlocks,
+            price.Cadence);
     }
 
     private static BadgeAssignmentDto ToDto(BadgeAssignmentState assignment) =>

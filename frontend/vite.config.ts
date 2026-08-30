@@ -12,10 +12,6 @@ export default defineConfig({
             return;
           }
 
-          if (id.includes("react") || id.includes("scheduler")) {
-            return "react";
-          }
-
           if (id.includes("framer-motion") || id.includes("gsap") || id.includes("motion-dom")) {
             return "motion";
           }

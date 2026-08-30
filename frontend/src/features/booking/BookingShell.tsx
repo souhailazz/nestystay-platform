@@ -153,7 +153,7 @@ export function PropertyMiniHeader({
 }
 
 export const DEGRESSIVE_NOTE =
-  "Degressive service fee: 12% under $1,000 · 10% to $5,000 · 8% above. Refundable vs non-refundable split shown on every quote.";
+  "Contract guest platform fee: 9% per booking. The server-authoritative quote is shown before confirmation.";
 
 export function BookingScaffold({
   stepper,

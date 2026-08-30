@@ -6,9 +6,16 @@ public sealed class QrAccessCode : BaseEntity
 {
     public string SubjectType { get; set; } = string.Empty;
     public Guid SubjectId { get; set; }
+    public Guid BookingId { get; set; }
+    public Guid PropertyId { get; set; }
+    public Guid GuestUserId { get; set; }
     public string CodeHash { get; set; } = string.Empty;
+    public DateTimeOffset ValidFrom { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public bool IsRevoked { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+    public DateTimeOffset? LastValidatedAt { get; set; }
+    public int ValidationCount { get; set; }
 }
 
 public sealed class QrScanLog : BaseEntity
@@ -18,6 +25,7 @@ public sealed class QrScanLog : BaseEntity
     public DateTimeOffset ScannedAt { get; set; } = DateTimeOffset.UtcNow;
     public string Result { get; set; } = string.Empty;
     public string? DeviceMetadataJson { get; set; }
+    public Guid? PropertyId { get; set; }
 }
 
 public sealed class VisitorLog : BaseEntity
