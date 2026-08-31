@@ -729,6 +729,22 @@ public sealed class EfPhaseOneStore(
         return ToProfileDto(user, photo);
     }
 
+    public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.DisplayName) || request.DisplayName.Trim().Length > 120)
+        {
+            throw new InvalidOperationException("Display name must be between 1 and 120 characters.");
+        }
+
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+        user.DisplayName = request.DisplayName.Trim();
+        user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        user.UpdatedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+        return await GetUserProfileAsync(userId, cancellationToken);
+    }
+
     public async Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken)
     {
         _ = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId, cancellationToken)
@@ -1886,6 +1902,7 @@ public sealed class EfPhaseOneStore(
             user.Id,
             user.Email,
             user.DisplayName,
+            user.Phone,
             MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
             user.IsTwoFactorEnabled,
             photo is null

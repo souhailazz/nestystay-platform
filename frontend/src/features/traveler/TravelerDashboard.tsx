@@ -63,6 +63,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
     .filter((b) => /captur|paid/i.test(b.paymentStatus ?? ""))
     .reduce((sum, b) => sum + b.totalAmount, 0);
   const currency = bookings[0]?.currency ?? "USD";
+  const nextTrip = upcoming.slice().sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())[0];
 
   return (
     <div className="flex flex-col gap-5" data-testid="trav-01-page" id="TRAV-01">
@@ -85,6 +86,40 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
           </div>
         ))}
       </div>
+
+      <section aria-labelledby="traveler-shortcuts-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="m-0 font-display text-[19px] font-medium" id="traveler-shortcuts-heading">Your stay hub</h2>
+            <p className="m-0 mt-1 text-[12.5px] text-gray-600">Everything you need before, during, and after a trip.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AppLink className={outlinePill} href="/traveler/reservations/upcoming">Bookings</AppLink>
+            <AppLink className={outlinePill} href="/traveler/invoices">Invoices</AppLink>
+            <AppLink className={outlinePill} href="/traveler/qr">Gate QR</AppLink>
+            <AppLink className={outlinePill} href="/messages">Messages</AppLink>
+            <AppLink className={outlinePill} href="/contact">Support</AppLink>
+          </div>
+        </div>
+      </section>
+
+      {nextTrip && (
+        <section aria-labelledby="traveler-next-trip-heading" className="grid gap-4 rounded-card border border-deep/20 bg-deep p-5 text-on-dark-heading md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <div className="text-[11px] font-semibold tracking-[0.16em] text-on-dark-muted">UP NEXT</div>
+            <h2 className="m-0 mt-1 font-display text-[25px] font-medium" id="traveler-next-trip-heading">{nextTrip.propertyTitle ?? "Your Jamaican stay"}</h2>
+            <p className="m-0 mt-1 text-[13px] text-on-dark-muted">{nextTrip.checkIn} → {nextTrip.checkOut} · {nextTrip.nights} night{nextTrip.nights === 1 ? "" : "s"}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <StatusChip label="Booking" value={nextTrip.status} />
+              <StatusChip label="Verification" value={nextTrip.verificationStatus} />
+              <StatusChip label="Payment" value={nextTrip.paymentStatus} />
+            </div>
+          </div>
+          <AppLink className="inline-flex min-h-[46px] items-center justify-center rounded-pill bg-yellow px-5 font-sans text-[13.5px] font-semibold text-deep transition-colors hover:bg-yellow-press" href={`/booking/${nextTrip.id}/${needsVerification(nextTrip) ? "pending" : "success"}`}>
+            Open trip
+          </AppLink>
+        </section>
+      )}
 
       {/* Booking rows with triple status */}
       {bookings.length === 0 ? (

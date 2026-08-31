@@ -23,6 +23,7 @@ public interface IPhaseOneStore
     Task<DevelopmentPasswordResetTokenResponse?> GetDevelopmentPasswordResetTokenAsync(string requestId, CancellationToken cancellationToken);
     Task<CompletePasswordResetResponse> CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken);
     Task<LogoutResponse> LogoutAsync(Guid userId, CancellationToken cancellationToken);
+    Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request, CancellationToken cancellationToken);
     Task<bool> IsSessionActiveAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
     Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken);
     Task<AdministratorBootstrapResponse> BootstrapAdministratorAsync(AdministratorBootstrapRequest request, CancellationToken cancellationToken);
@@ -699,6 +700,27 @@ public sealed class PhaseOneStore(
         {
             var user = _users.SingleOrDefault(item => item.Id == userId)
                 ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+            var photo = _profilePhotos
+                .Where(item => item.UserId == userId && item.IsCurrent && item.Status == "Uploaded" && item.ScanStatus == "Clean")
+                .OrderByDescending(item => item.UploadedAt)
+                .FirstOrDefault();
+            return Task.FromResult(ToProfileDto(user, photo));
+        }
+    }
+
+    public Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.DisplayName) || request.DisplayName.Trim().Length > 120)
+        {
+            throw new InvalidOperationException("Display name must be between 1 and 120 characters.");
+        }
+
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Profile is not available for this session.");
+            user.DisplayName = request.DisplayName.Trim();
+            user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
             var photo = _profilePhotos
                 .Where(item => item.UserId == userId && item.IsCurrent && item.Status == "Uploaded" && item.ScanStatus == "Clean")
                 .OrderByDescending(item => item.UploadedAt)
@@ -1619,6 +1641,7 @@ public sealed class PhaseOneStore(
             user.Id,
             user.Email,
             user.DisplayName,
+            user.Phone,
             user.Roles,
             user.IsTwoFactorEnabled,
             photo is null
@@ -2414,8 +2437,8 @@ public sealed class PhaseOneStore(
         public Guid Id { get; } = id;
         public string Email { get; } = email;
         public string PasswordHash { get; set; } = passwordHash;
-        public string DisplayName { get; } = displayName;
-        public string? Phone { get; } = phone;
+        public string DisplayName { get; set; } = displayName;
+        public string? Phone { get; set; } = phone;
         public byte[] TwoFactorSecret { get; set; } = twoFactorSecret;
         public bool IsTwoFactorEnabled { get; set; } = isTwoFactorEnabled;
         public string Status { get; set; } = status;

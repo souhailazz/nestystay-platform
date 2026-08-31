@@ -57,28 +57,26 @@ test.describe("M1/M2 booking flow evidence (BOOK-01 to BOOK-10)", () => {
       "tablet-chromium": 21,
       "mobile-chromium": 35,
     }[testInfo.project.name] ?? 49;
-    const runOffsetDays = 90 + Math.floor(Math.random() * 5000);
-    const checkInDate = new Date(Date.now() + (runOffsetDays + projectOffsetDays) * 86400000);
-    const checkOutDate = new Date(checkInDate.getTime() + 3 * 86400000);
-    const checkIn = checkInDate.toISOString().split('T')[0];
-    const checkOut = checkOutDate.toISOString().split('T')[0];
-    
-    const bookingRes = await api.post("/api/bookings", {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-      data: {
-        propertyId,
-        guestUserId: session.userId,
-        checkIn,
-        checkOut,
-        adults: 2,
-        children: 0,
-        billingCountry: "JM",
-        termsAccepted: true
-      }
-    });
-    expect(bookingRes.ok(), await bookingRes.text()).toBeTruthy();
-    const booking = await bookingRes.json();
-    const bookingId = booking.id;
+    let booking: { id: string } | null = null;
+    for (let attempt = 0; attempt < 12 && !booking; attempt += 1) {
+      // Ask the same server-authoritative quote endpoint used by the UI first.
+      // This keeps repeatable evidence runs isolated from prior held dates.
+      const runOffsetDays = 12_000 + Math.floor(Math.random() * 10_000) + attempt * 17;
+      const checkInDate = new Date(Date.now() + (runOffsetDays + projectOffsetDays) * 86400000);
+      const checkOutDate = new Date(checkInDate.getTime() + 3 * 86400000);
+      const checkIn = checkInDate.toISOString().split("T")[0];
+      const checkOut = checkOutDate.toISOString().split("T")[0];
+      const quoteRes = await api.post("/api/bookings/quote", { data: { propertyId, checkIn, checkOut } });
+      if (!quoteRes.ok() || !(await quoteRes.json()).datesAvailable) continue;
+
+      const bookingRes = await api.post("/api/bookings", {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+        data: { propertyId, guestUserId: session.userId, checkIn, checkOut, adults: 2, children: 0, billingCountry: "JM", termsAccepted: true },
+      });
+      if (bookingRes.ok()) booking = await bookingRes.json() as { id: string };
+    }
+    expect(booking).not.toBeNull();
+    const bookingId = booking!.id;
 
     await api.dispose();
 

@@ -37,7 +37,7 @@ export function TravelerStateContainer({ view, auth }: TravelerStateContainerPro
   }
 
   if (view === "profile" || view === "preferences" || view === "identity") {
-    return <TravelerProfileIdentity userId={userId} token={token} />;
+    return <TravelerProfileIdentity userId={userId} token={token} sessionExpiresAt={auth.session?.expiresAt} onLogout={auth.logout} />;
   }
 
   if (view.includes("review") || view === "notifications") {

@@ -95,9 +95,12 @@ public sealed record UserProfileDto(
     Guid UserId,
     string Email,
     string DisplayName,
+    string? Phone,
     IReadOnlyList<UserRole> Roles,
     bool IsTwoFactorEnabled,
     UserProfilePhotoDto? Photo);
+
+public sealed record UpdateUserProfileRequest(string DisplayName, string? Phone);
 
 public sealed record UserProfilePhotoDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash = null);
 

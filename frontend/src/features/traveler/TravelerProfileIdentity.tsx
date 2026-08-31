@@ -7,9 +7,11 @@ import type { TravelerProfile } from "./types";
 interface TravelerProfileIdentityProps {
   userId: string;
   token: string;
+  sessionExpiresAt?: string;
+  onLogout?: () => Promise<void>;
 }
 
-export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdentityProps) {
+export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLogout }: TravelerProfileIdentityProps) {
   const [profile, setProfile] = useState<TravelerProfile>({
     userId,
     displayName: "Traveler Guest",
@@ -28,6 +30,8 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
   const [phone, setPhone] = useState(profile.phone || "");
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -39,6 +43,8 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
           if (active) {
             setDisplayName(u.displayName);
             setEmail(u.email);
+            setPhone(u.phone ?? "");
+            setTwoFactorEnabled(u.isTwoFactorEnabled);
           }
         }
       } catch (err) {
@@ -50,7 +56,18 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
   }, [userId, token]);
 
   async function handleSaveProfile() {
-    setNotice("Profile updated successfully.");
+    if (!token) {
+      setNotice("Sign in to save profile changes.");
+      return;
+    }
+    setNotice(null);
+    try {
+      const updated = await api.updateProfile(token, { displayName, phone: phone || null });
+      setProfile((current) => ({ ...current, displayName: updated.displayName, email: updated.email, phone }));
+      setNotice("Profile updated successfully.");
+    } catch (err) {
+      setNotice(`Profile update failed: ${err instanceof Error ? err.message : "Error"}`);
+    }
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -91,9 +108,10 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
             <div className="flex items-center gap-4 my-4">
               <div className="avatar-preview-box w-20 h-20 bg-sun-light rounded-full flex items-center justify-center border-2 border-sun relative">
                 <User size={40} className="text-sun" />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="absolute bottom-0 right-0 p-1 bg-sun text-white rounded-full shadow"
+                  aria-label="Upload profile photo"
                   onClick={() => fileInputRef.current?.click()}
                   title="Upload profile photo"
                 >
@@ -116,16 +134,17 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
 
             <div className="form-grid">
               <div className="field-group">
-                <label className="field-label">Display Name</label>
-                <input type="text" className="input-control" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+                <label className="field-label" htmlFor="traveler-display-name">Display Name</label>
+                <input id="traveler-display-name" type="text" className="input-control" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
               <div className="field-group">
-                <label className="field-label">Email Address</label>
-                <input type="email" className="input-control" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label className="field-label" htmlFor="traveler-email">Email Address</label>
+                <input id="traveler-email" type="email" className="input-control" readOnly value={email} />
+                <span className="subtext">Email changes require a verified account flow.</span>
               </div>
               <div className="field-group">
-                <label className="field-label">Phone Number (Jamaica default +1-876)</label>
-                <input type="tel" className="input-control" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <label className="field-label" htmlFor="traveler-phone">Phone Number (Jamaica default +1-876)</label>
+                <input id="traveler-phone" type="tel" className="input-control" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
             </div>
 
@@ -157,6 +176,38 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
               </label>
             </div>
           </div>
+
+          <div className="card-box" aria-labelledby="session-security-heading">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 id="session-security-heading">Account security</h3>
+                <p className="subtext">Review this device session before you leave a shared computer.</p>
+              </div>
+              <span className={`badge ${twoFactorEnabled ? "badge-green" : "badge-sun"}`}>{twoFactorEnabled ? "2FA enabled" : "2FA not enabled"}</span>
+            </div>
+            <div className="info-row mt-3">
+              <span>Current session:</span>
+              <span>This device</span>
+            </div>
+            <div className="info-row">
+              <span>Session expires:</span>
+              <span>{sessionExpiresAt ? new Date(sessionExpiresAt).toLocaleString() : "Not available"}</span>
+            </div>
+            {onLogout && (
+              <button
+                className="btn btn-outline mt-4"
+                disabled={loggingOut}
+                onClick={async () => {
+                  if (!confirm("Sign out of this device?")) return;
+                  setLoggingOut(true);
+                  try { await onLogout(); window.location.assign("/"); } finally { setLoggingOut(false); }
+                }}
+                type="button"
+              >
+                {loggingOut ? "Signing out…" : "Sign out this device"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Identity Verification Sidebar (TRAV-13) */}
@@ -179,7 +230,7 @@ export function TravelerProfileIdentity({ userId, token }: TravelerProfileIdenti
 
           <hr className="my-4" />
 
-          <button type="button" className="btn btn-outline w-full" onClick={() => alert("eKYC verification process initiated.")}>
+          <button type="button" className="btn btn-outline w-full" onClick={() => setNotice("Start verification from an eligible booking so the secure eKYC session is tied to that stay.")}>
             <RefreshCw size={16} /> Re-verify Document
           </button>
 

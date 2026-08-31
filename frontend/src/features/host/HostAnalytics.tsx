@@ -15,6 +15,10 @@ const outlinePill =
 const deepPill =
   "inline-flex min-h-[46px] items-center gap-2 rounded-pill bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover";
 
+function isCancelledBooking(booking: Booking) {
+  return /cancel|reject/i.test(booking.status) || /cancel|fail/i.test(booking.paymentStatus ?? "");
+}
+
 /* HOST-01 (DS v2) — "Manage Your Yard" (approved lexicon). Metrics computed
    from the live bookings + properties APIs; logic unchanged. */
 export function HostAnalytics({ token }: HostAnalyticsProps) {
@@ -53,6 +57,35 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
 
   const revenue = bookings.reduce((sum, b) => sum + (/captur|paid/i.test(b.paymentStatus ?? "") ? b.totalAmount : 0), 0);
   const currency = bookings[0]?.currency ?? "USD";
+  const activeBookings = bookings.filter((booking) => !isCancelledBooking(booking));
+  const now = new Date();
+  const horizon = new Date(now);
+  horizon.setDate(horizon.getDate() + 30);
+  const occupiedNights = activeBookings.reduce((sum, booking) => {
+    const start = Math.max(new Date(booking.checkIn).getTime(), now.getTime());
+    const end = Math.min(new Date(booking.checkOut).getTime(), horizon.getTime());
+    return sum + Math.max(0, Math.ceil((end - start) / 86_400_000));
+  }, 0);
+  const occupancy = properties.length > 0 ? Math.min(100, Math.round((occupiedNights / (properties.length * 30)) * 100)) : 0;
+  const listingHealth = properties.length > 0
+    ? Math.round(properties.reduce((sum, property) => {
+      const checks = [property.title, property.location, property.country, property.imageUrl, property.highlights?.length ? "yes" : ""];
+      return sum + (checks.filter(Boolean).length / checks.length) * 100;
+    }, 0) / properties.length)
+    : 0;
+  const revenueBars = Array.from({ length: 6 }, (_, index) => {
+    const month = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const nextMonth = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+    const amount = bookings
+      .filter((booking) => /captur|paid/i.test(booking.paymentStatus ?? ""))
+      .filter((booking) => {
+        const checkIn = new Date(booking.checkIn);
+        return checkIn >= month && checkIn < nextMonth;
+      })
+      .reduce((sum, booking) => sum + booking.totalAmount, 0);
+    return { label: month.toLocaleDateString(undefined, { month: "short" }), amount };
+  });
+  const maxRevenueBar = Math.max(...revenueBars.map((bar) => bar.amount), 1);
   const upcomingByProperty = new Map<string, number>();
   const pendingByProperty = new Map<string, number>();
   for (const b of bookings) {
@@ -84,6 +117,55 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
           </div>
         ))}
       </div>
+
+      <div className="grid gap-3.5 lg:grid-cols-[1fr_1fr]">
+        <section aria-labelledby="host-occupancy-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="m-0 font-display text-[19px] font-medium" id="host-occupancy-heading">Occupancy (next 30 days)</h2>
+            <span className="font-display text-[26px] font-medium text-deep-hover">{occupancy}%</span>
+          </div>
+          <div aria-label={`${occupancy}% occupancy`} className="mt-4 h-3 overflow-hidden rounded-pill bg-shell" role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={occupancy}>
+            <div className="h-full rounded-pill bg-deep transition-[width]" style={{ width: `${occupancy}%` }} />
+          </div>
+          <p className="mt-3 mb-0 text-[12.5px] text-gray-600">Based on accepted, paid, and held bookings across your live listings.</p>
+        </section>
+        <section aria-labelledby="host-revenue-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="m-0 font-display text-[19px] font-medium" id="host-revenue-heading">Revenue trend</h2>
+            <span className="text-[12px] text-gray-600">Last 6 months</span>
+          </div>
+          <div aria-label="Revenue by month" className="mt-4 flex h-28 items-end gap-2" role="img">
+            {revenueBars.map((bar) => (
+              <div className="flex min-w-0 flex-1 flex-col items-center gap-1" key={bar.label}>
+                <span className="text-[10px] text-gray-600">{formatMoney(bar.amount, currency)}</span>
+                <div className="flex h-16 w-full items-end rounded-t-field bg-shell">
+                  <div className="w-full rounded-t-field bg-deep" style={{ height: `${Math.max(4, (bar.amount / maxRevenueBar) * 100)}%` }} />
+                </div>
+                <span className="text-[10px] font-semibold text-sand-500">{bar.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section aria-labelledby="host-actions-heading" className="rounded-card border border-sand-border bg-shell p-[22px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="m-0 font-display text-[19px] font-medium" id="host-actions-heading">Dashboard actions</h2>
+            <p className="m-0 mt-1 text-[12.5px] text-gray-600">Keep your listings and guest requests moving.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AppLink className={deepPill} href="/host/properties/new">+ Create listing</AppLink>
+            <AppLink className={outlinePill} href="/bookings">Review bookings</AppLink>
+            <AppLink className={outlinePill} href="/host/reports">View reports</AppLink>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
+          {pendingByProperty.size > 0 && <StatusChip value={`${Array.from(pendingByProperty.values()).reduce((a, b) => a + b, 0)} booking requests need review`} />}
+          {listingHealth < 100 && <StatusChip value={`Listing health ${listingHealth}%`} />}
+          {pendingByProperty.size === 0 && listingHealth === 100 && <StatusChip value="Everything is up to date" />}
+        </div>
+      </section>
 
       {properties.length === 0 && (
         <div className="flex flex-col items-start gap-3 rounded-card border border-dashed border-sand-input bg-cream p-6">
@@ -123,7 +205,7 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <AppLink className={outlinePill} href="/host/properties/edit">
+                <AppLink className={outlinePill} href={`/host/properties/edit?id=${property.id}`}>
                   Edit
                 </AppLink>
                 <AppLink className={deepPill} href="/bookings">

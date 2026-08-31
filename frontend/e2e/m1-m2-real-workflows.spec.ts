@@ -63,6 +63,11 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
     await expect(page.getByText(/verification|pending/i).first()).toBeVisible();
     await capture(page, testInfo, "guest-booking-pending");
   }
+  await page.goto("/guest-dashboard", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Your stay hub" })).toBeVisible();
+  const stayHub = page.getByRole("region", { name: "Your stay hub" });
+  await expect(stayHub.getByRole("link", { name: "Invoices" })).toBeVisible();
+  await expect(stayHub.getByRole("link", { name: "Gate QR" })).toBeVisible();
 });
 
 test("host badge page renders live ownership-scoped assignment and feature access", async ({ baseURL, page }, testInfo) => {

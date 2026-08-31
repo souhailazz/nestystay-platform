@@ -34,6 +34,14 @@ public sealed class MilestonePersistenceTests
             Assert.NotEqual(20, storedUser.TwoFactorSecret.Length);
             Assert.False(storedUser.IsTwoFactorEnabled);
 
+            var updatedProfile = await store.UpdateUserProfileAsync(
+                registered.UserId,
+                new UpdateUserProfileRequest("Updated Guest", "+18765550123"),
+                CancellationToken.None);
+            Assert.Equal("Updated Guest", updatedProfile.DisplayName);
+            Assert.Equal("+18765550123", updatedProfile.Phone);
+            Assert.Equal("Updated Guest", (await db.MilestoneUsers.SingleAsync(user => user.Id == registered.UserId)).DisplayName);
+
             var property = store.GetProperties().First(item => item.GuestVerificationEnabled);
             var booking = await store.CreateBookingAsync(
                 new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 4)),

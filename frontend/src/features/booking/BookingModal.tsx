@@ -56,24 +56,50 @@ function StepperControl({
 
 export function BookingModal({ property, onClose, onProceedToReview }: BookingModalProps) {
   const { showPatois } = usePatois();
-  const [checkIn, setCheckIn] = useState(() => {
+  const draftKey = `nesty.booking-draft.${property.id}`;
+  function readDraft() {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      return raw ? JSON.parse(raw) as Partial<{ checkIn: string; checkOut: string; adults: number; childrenCount: number; accessibility: string; protection: string }> : null;
+    } catch {
+      return null;
+    }
+  }
+  const draft = readDraft();
+  const [checkIn, setCheckIn] = useState(() => draft?.checkIn ?? (() => {
     const today = new Date();
     today.setDate(today.getDate() + 7);
     return today.toISOString().split("T")[0];
-  });
-  const [checkOut, setCheckOut] = useState(() => {
+  })());
+  const [checkOut, setCheckOut] = useState(() => draft?.checkOut ?? (() => {
     const today = new Date();
     today.setDate(today.getDate() + 10);
     return today.toISOString().split("T")[0];
-  });
-  const [adults, setAdults] = useState(2);
-  const [childrenCount, setChildrenCount] = useState(0);
-  const [accessibility, setAccessibility] = useState("");
-  const [protection, setProtection] = useState("insuraguest");
+  })());
+  const [adults, setAdults] = useState(draft?.adults ?? 2);
+  const [childrenCount, setChildrenCount] = useState(draft?.childrenCount ?? 0);
+  const [accessibility, setAccessibility] = useState(draft?.accessibility ?? "");
+  const [protection, setProtection] = useState(draft?.protection ?? "insuraguest");
+  const [draftSaved, setDraftSaved] = useState(Boolean(draft));
 
   const [quote, setQuote] = useState<BookingQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify({ checkIn, checkOut, adults, childrenCount, accessibility, protection }));
+      setDraftSaved(true);
+    } catch {
+      setDraftSaved(false);
+    }
+  }, [draftKey, checkIn, checkOut, adults, childrenCount, accessibility, protection]);
+
+  function clearDraft() {
+    try { window.localStorage.removeItem(draftKey); } catch { /* local storage may be disabled */ }
+    setDraftSaved(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -152,6 +178,12 @@ export function BookingModal({ property, onClose, onProceedToReview }: BookingMo
               </div>
             </div>
           </div>
+          {draftSaved && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-field bg-info-tint px-4 py-3 text-[12.5px] text-info-text" role="status">
+              <span>Your booking details are saved on this device.</span>
+              <button className="font-semibold underline" onClick={clearDraft} type="button">Clear saved details</button>
+            </div>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -296,7 +328,11 @@ export function BookingModal({ property, onClose, onProceedToReview }: BookingMo
           <button
             className="group inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[26px] font-sans text-[15px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:pointer-events-none disabled:bg-shell disabled:text-sand-500"
             disabled={loading || isMinimumStayViolated || !quote}
-            onClick={() => quote && onProceedToReview(quote, { adults, children: childrenCount, accessibility, protection })}
+            onClick={() => {
+              if (!quote) return;
+              clearDraft();
+              onProceedToReview(quote, { adults, children: childrenCount, accessibility, protection });
+            }}
             type="button"
           >
             Continue to quote{" "}

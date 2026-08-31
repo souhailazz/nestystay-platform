@@ -50,6 +50,11 @@ public sealed class AuthController(
         Ok(await phaseOneStore.GetUserProfileAsync(RequireUserId(), cancellationToken));
 
     [Authorize]
+    [HttpPatch("profile")]
+    public async Task<IActionResult> UpdateProfile(UpdateUserProfileRequest request, CancellationToken cancellationToken) =>
+        Ok(await phaseOneStore.UpdateUserProfileAsync(RequireUserId(), request, cancellationToken));
+
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.LogoutAsync(RequireUserId(), cancellationToken));

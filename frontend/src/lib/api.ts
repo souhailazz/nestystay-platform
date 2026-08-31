@@ -99,6 +99,7 @@ export type UserProfile = {
   userId: string;
   email: string;
   displayName: string;
+  phone?: string | null;
   roles: UserRole[];
   isTwoFactorEnabled: boolean;
   photo?: UserProfilePhoto | null;
@@ -1273,6 +1274,8 @@ export const api = {
   logout: (token: string) =>
     request<{ loggedOut: boolean; invalidatedAt: string }>("/auth/logout", { method: "POST", token }),
   getProfile: (token: string) => request<UserProfile>("/auth/profile", { token }),
+  updateProfile: (token: string, body: { displayName: string; phone?: string | null }) =>
+    request<UserProfile>("/auth/profile", { method: "PATCH", token, body }),
   prepareProfilePhotoUpload: (token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
     request<ProfilePhotoUpload>("/auth/profile/photo/uploads", { method: "POST", token, body }),
   uploadProfilePhotoContent: (token: string, photoId: string, file: File, options?: UploadOptions) =>

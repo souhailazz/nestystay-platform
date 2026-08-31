@@ -224,6 +224,9 @@ public sealed class WebhookSecurityTests
         public Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

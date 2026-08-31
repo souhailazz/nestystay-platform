@@ -32,6 +32,8 @@ test.describe("global usability upgrades", () => {
 
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Quick actions" })).toContainText("Add property");
+    await expect(page.getByRole("heading", { name: "Occupancy (next 30 days)" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Revenue trend" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Go back" })).toBeVisible();
 
     await page.keyboard.press("/");

@@ -65,6 +65,15 @@ test.describe("M1/M2 authenticated traveler and messaging evidence", () => {
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-01", "/guest-dashboard");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-09", "/traveler/payment-methods");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-11", "/traveler/invoices");
+    await page.goto("/traveler/identity", { waitUntil: "domcontentloaded" });
+    await expect(page.getByLabel("Display Name")).toHaveValue("E2E Traveler");
+    await page.getByLabel("Display Name").fill("Updated UI Traveler");
+    await page.getByLabel(/Phone Number/).fill("+18765550123");
+    await page.getByRole("button", { name: "Save Changes" }).click();
+    await expect(page.getByText("Profile updated successfully.")).toBeVisible();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByLabel("Display Name")).toHaveValue("Updated UI Traveler");
+    await expect(page.getByLabel(/Phone Number/)).toHaveValue("+18765550123");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-13", "/traveler/identity");
     await visitAndCapture(page, testInfo, "MSG", "MSG-01", "/messages");
 
