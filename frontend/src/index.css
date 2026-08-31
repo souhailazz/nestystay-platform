@@ -63,6 +63,120 @@ body {
     color: inherit;
     text-decoration: none;
   }
+
+  :focus-visible {
+    outline: 3px solid var(--deep-hover, #0e4a45);
+    outline-offset: 3px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 3px solid var(--deep-hover, #0e4a45);
+    outline-offset: 2px;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 12px;
+  left: 12px;
+  padding: 10px 16px;
+  color: var(--deep);
+  border-radius: 999px;
+  background: var(--sun);
+  font-weight: 800;
+  transform: translateY(-160%);
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.workspace-main:focus {
+  outline: none;
+}
+
+/* Shared legacy surfaces get the same responsive treatment as DS v2 cards. */
+.card-box {
+  border: 1px solid var(--color-sand-border, #e7dcc2);
+  border-radius: var(--radius-card, 20px);
+  background: var(--color-cream, #fbf7ec);
+  box-shadow: var(--shadow-card, 0 10px 26px rgb(96 74 20 / 8%));
+  padding: 1.25rem;
+}
+
+.card-box:has(> table.table-styled) {
+  overflow-x: auto;
+}
+
+.table-styled {
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.table-styled th,
+.table-styled td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table-styled th {
+  background: var(--color-shell, #f3eac8);
+  color: var(--color-sand-500, #8a7f5e);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-styled tbody tr {
+  border-top: 1px solid var(--color-sand-border, #e7dcc2);
+}
+
+.loading-shimmer {
+  min-height: 7rem;
+  border: 1px solid var(--color-sand-border, #e7dcc2);
+  border-radius: var(--radius-card, 20px);
+  background: linear-gradient(90deg, var(--color-cream, #fbf7ec) 0%, var(--color-shell, #f3eac8) 45%, var(--color-cream, #fbf7ec) 90%);
+  background-size: 220% 100%;
+  animation: ns-loading-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes ns-loading-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -20% 0; }
+}
+
+@media (max-width: 767px) {
+  .workspace-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .workspace-main {
+    padding-bottom: 104px;
+  }
+
+  .workspace-mobile-nav a {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+
+  .loading-shimmer {
+    animation: none;
+  }
 }
 img, svg {
   display: block;

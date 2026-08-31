@@ -3,6 +3,7 @@ import { Heart, RefreshCw, Search } from "lucide-react";
 import { AppLink } from "../../components/AppLink";
 import { PublicFooter, TierBadge } from "../../components/layout/PublicShell";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
@@ -31,9 +32,12 @@ const chipBase =
 export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
+  const initialSearch = useMemo(() => new URLSearchParams(window.location.search).get("search") ?? "", []);
+  const [query, setQuery] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [badge, setBadge] = useState<BadgeFilter>("all");
+  const [sort, setSort] = useState("relevance");
+  const [page, setPage] = useState(0);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [bookingProp, setBookingProp] = useState<PropertyListing | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -57,12 +61,22 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return properties.filter((p) => {
+    const results = properties.filter((p) => {
       const matchesBadge = badge === "all" || p.badgeLevel.toLowerCase().includes(badge);
       const matchesQuery = !q || `${p.title} ${p.location} ${p.country}`.toLowerCase().includes(q);
       return matchesBadge && matchesQuery && !p.isArchived;
     });
-  }, [properties, badge, search]);
+    return [...results].sort((left, right) => {
+      if (sort === "price-low") return left.nightlyRate - right.nightlyRate;
+      if (sort === "price-high") return right.nightlyRate - left.nightlyRate;
+      if (sort === "name") return left.title.localeCompare(right.title);
+      return 0;
+    });
+  }, [properties, badge, search, sort]);
+
+  useEffect(() => setPage(0), [badge, search, sort]);
+  const pageSize = 9;
+  const visibleProperties = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="font-sans text-[15px] leading-[1.55] text-ink">
@@ -135,6 +149,20 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
             </span>
           )}
         </div>
+        <ListControls
+          className="mt-3"
+          label="Filter visible stays"
+          onExport={() => downloadCsv("nesty-stays.csv", ["Title", "Location", "Country", "Badge", "Nightly rate"], filtered.map((property) => [property.title, property.location, property.country, property.badgeLevel, property.nightlyRate]))}
+          onPageChange={setPage}
+          onQueryChange={(value) => { setQuery(value); setSearch(value); }}
+          onSortChange={setSort}
+          page={page}
+          pageSize={pageSize}
+          query={query}
+          sort={sort}
+          sortOptions={[{ value: "relevance", label: "Relevance" }, { value: "name", label: "Name" }, { value: "price-low", label: "Price: low to high" }, { value: "price-high", label: "Price: high to low" }]}
+          total={filtered.length}
+        />
       </header>
 
       {/* RESULTS */}
@@ -164,7 +192,7 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
-            {filtered.map((prop, index) => (
+            {visibleProperties.map((prop, index) => (
               <article
                 className="flex flex-col overflow-hidden rounded-card border border-sand-border bg-cream shadow-[0_1px_2px_rgba(96,74,20,0.08)] transition-shadow hover:shadow-[0_16px_34px_rgba(96,74,20,0.16)]"
                 key={prop.id}

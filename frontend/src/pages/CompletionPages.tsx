@@ -30,6 +30,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
+import { ListControls, downloadCsv } from "../components/ui/ListControls";
 import { StatusChip } from "../components/ui/StatusChip";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -1606,6 +1607,10 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
   const list = useAsync(() => kind === "Provider" || kind === "ProviderDashboard" || directoryLocked || badgePending ? Promise.resolve([]) : isM4Directory ? api.getM4DirectoryProviders({ kind }, auth.session?.accessToken) : api.getDirectoryProviders({ kind }), [kind, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
   const detail = useAsync(() => slug && !directoryLocked && !badgePending ? (isM4Directory ? api.getM4DirectoryProvider(slug, auth.session?.accessToken) : api.getDirectoryProvider(slug)) : Promise.resolve(null), [slug, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
   const [category, setCategory] = useState("All");
+  const [directoryQuery, setDirectoryQuery] = useState("");
+  const [directorySort, setDirectorySort] = useState("name");
+  const [directoryPage, setDirectoryPage] = useState(0);
+  useEffect(() => setDirectoryPage(0), [category, directoryQuery, directorySort]);
   if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} />}</DataGate>;
   if (kind === "Provider" || kind === "ProviderDashboard") {
     return <RequireSession auth={auth}>{(session) => <ProviderPortal session={session} mode={kind} />}</RequireSession>;
@@ -1648,7 +1653,12 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
       {!directoryLocked && !badgePending && <DataGate state={list}>
         {(providers) => {
           const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
-          const filtered = providers.filter((provider) => category === "All" || provider.category === category);
+          const filtered = providers
+            .filter((provider) => category === "All" || provider.category === category)
+            .filter((provider) => !directoryQuery.trim() || `${provider.name} ${provider.category} ${provider.parish}`.toLowerCase().includes(directoryQuery.trim().toLowerCase()))
+            .sort((left, right) => directorySort === "category" ? left.category.localeCompare(right.category) : left.name.localeCompare(right.name));
+          const pageSize = 12;
+          const visibleProviders = filtered.slice(directoryPage * pageSize, (directoryPage + 1) * pageSize);
           return (
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -1682,11 +1692,24 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
                   </AppLink>
                 </div>
               </div>
+              <ListControls
+                label="Search providers"
+                onExport={() => downloadCsv("nesty-directory.csv", ["Name", "Category", "Parish", "Badge"], filtered.map((provider) => [provider.name, provider.category, provider.parish, provider.badgeLevel]))}
+                onPageChange={setDirectoryPage}
+                onQueryChange={setDirectoryQuery}
+                onSortChange={setDirectorySort}
+                page={directoryPage}
+                pageSize={pageSize}
+                query={directoryQuery}
+                sort={directorySort}
+                sortOptions={[{ value: "name", label: "Name" }, { value: "category", label: "Category" }]}
+                total={filtered.length}
+              />
               {filtered.length === 0 ? (
                 <EmptyState title="No providers in this category yet." />
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-4">
-                  {filtered.map((provider) => (
+                  {visibleProviders.map((provider) => (
                     <ProviderCard isTrades={isTrades} key={provider.id} provider={provider} />
                   ))}
                 </div>

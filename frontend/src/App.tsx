@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Menu, UserRound, X } from "lucide-react";
-import { AppLink } from "./components/AppLink";
+import { Menu, Search, UserRound, X } from "lucide-react";
+import { AppLink, navigate } from "./components/AppLink";
 import { EmblemRoundel } from "./components/layout/PublicShell";
 import FeatureCards from "./components/landing/FeatureCards";
 import FinalCTA from "./components/landing/FinalCTA";
@@ -297,6 +297,7 @@ function useRoute() {
 function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const isHome = route.name === "home";
   const path = window.location.pathname;
 
@@ -322,6 +323,26 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
         </AppLink>
 
         <div className="ml-auto flex flex-wrap items-center gap-0.5">
+          <form
+            aria-label="Global search"
+            className="mr-1 hidden min-h-11 items-center gap-2 rounded-pill border border-white/15 bg-white/5 px-3 transition-colors focus-within:border-yellow lg:flex"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const query = searchQuery.trim();
+              navigate(query ? `/explore?search=${encodeURIComponent(query)}` : "/explore");
+            }}
+          >
+            <Search aria-hidden="true" className="text-on-dark-faint" size={15} />
+            <input
+              aria-label="Search stays and workspaces"
+              className="w-36 border-none bg-transparent text-[13px] text-white outline-none placeholder:text-on-dark-faint"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search stays…"
+              type="search"
+              value={searchQuery}
+            />
+            <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-on-dark-faint">/</kbd>
+          </form>
           <nav className="hidden items-center gap-0.5 md:flex">
             {navItems.map(([label, href]) => (
               <AppLink
@@ -381,6 +402,26 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
               exit={{ opacity: 0, y: -12 }}
               initial={{ opacity: 0, y: -12 }}
             >
+              <form
+                aria-label="Global search"
+                className="mb-1 flex min-h-11 items-center gap-2 rounded-nav border border-white/15 bg-white/5 px-3 focus-within:border-yellow"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const query = searchQuery.trim();
+                  setMenuOpen(false);
+                  navigate(query ? `/explore?search=${encodeURIComponent(query)}` : "/explore");
+                }}
+              >
+                <Search aria-hidden="true" className="text-on-dark-faint" size={15} />
+                <input
+                  aria-label="Search stays and workspaces"
+                  className="min-h-10 min-w-0 flex-1 border-none bg-transparent text-[13px] text-white outline-none placeholder:text-on-dark-faint"
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search stays or workspaces…"
+                  type="search"
+                  value={searchQuery}
+                />
+              </form>
               {mobileNavItems.map(([label, href]) => (
                 <AppLink
                   className={cx(

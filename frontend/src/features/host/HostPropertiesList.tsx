@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Archive, RotateCcw, Edit, MapPin, Eye } from "lucide-react";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { ListControls, downloadCsv } from "../../components/ui/ListControls";
+import { announceFeedback } from "../../lib/feedback";
 
 interface HostPropertiesListProps {
   view: string;
@@ -12,6 +14,11 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("name");
+  const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [undo, setUndo] = useState<{ id: string; archived: boolean } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -30,21 +37,49 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   }, [token]);
 
   const isArchivedView = view === "archived";
-  const filtered = properties.filter(p => isArchivedView ? p.isArchived : !p.isArchived);
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return properties
+      .filter((p) => (isArchivedView ? p.isArchived : !p.isArchived))
+      .filter((p) => !normalized || `${p.title} ${p.location} ${p.country} ${p.badgeLevel}`.toLowerCase().includes(normalized))
+      .sort((left, right) => sort === "price" ? left.nightlyRate - right.nightlyRate : left.title.localeCompare(right.title));
+  }, [isArchivedView, properties, query, sort]);
+  useEffect(() => setPage(0), [isArchivedView, query, sort]);
+  const pageSize = 6;
+  const visible = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
-  async function handleArchiveToggle(id: string, currentArchived: boolean) {
+  async function handleArchiveToggle(id: string, currentArchived: boolean, skipConfirm = false) {
     setNotice(null);
     try {
+      if (!currentArchived && !skipConfirm && !window.confirm("Archive this property? You can restore it later.")) return;
       if (currentArchived) {
         await api.restoreProperty(id, token);
       } else {
         await api.archiveProperty(id, token);
       }
-      setProperties(properties.map(p => p.id === id ? { ...p, isArchived: !currentArchived } : p));
+      setProperties((items) => items.map(p => p.id === id ? { ...p, isArchived: !currentArchived } : p));
+      setUndo({ id, archived: !currentArchived });
       setNotice(currentArchived ? "Property restored from archive." : "Property archived.");
+      announceFeedback(currentArchived ? "Property restored." : "Property archived.");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Action failed.");
     }
+  }
+
+  async function undoArchive() {
+    if (!undo) return;
+    await handleArchiveToggle(undo.id, undo.archived);
+    setUndo(null);
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
+  }
+
+  async function bulkArchive() {
+    if (selected.length === 0 || !window.confirm(`Archive ${selected.length} selected propert${selected.length === 1 ? "y" : "ies"}?`)) return;
+    await Promise.all(selected.map((id) => handleArchiveToggle(id, false, true)));
+    setSelected([]);
   }
 
   return (
@@ -73,7 +108,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
         </div>
       </header>
 
-      {notice && <div className="notice-panel mb-4">{notice}</div>}
+      {notice && <div className="notice-panel mb-4 flex flex-wrap items-center justify-between gap-2" role="status"><span>{notice}</span>{undo && <button className="btn btn-outline btn-sm" onClick={() => void undoArchive()} type="button">Undo</button>}</div>}
 
       {loading ? (
         <div className="loading-shimmer p-6 text-center">Loading property listings...</div>
@@ -83,10 +118,27 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
           {!isArchivedView && <a href="/host/properties/new" className="btn btn-primary mt-3">Add First Property</a>}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map((prop) => (
+        <>
+          <ListControls
+            className="mb-5"
+            label="Filter properties"
+            onExport={() => downloadCsv("nesty-properties.csv", ["Title", "Location", "Country", "Badge", "Nightly rate", "Archived"], filtered.map((prop) => [prop.title, prop.location, prop.country, prop.badgeLevel, prop.nightlyRate, prop.isArchived ? "Yes" : "No"]))}
+            onPageChange={setPage}
+            onQueryChange={setQuery}
+            onSortChange={setSort}
+            page={page}
+            pageSize={pageSize}
+            query={query}
+            sort={sort}
+            sortOptions={[{ value: "name", label: "Name" }, { value: "price", label: "Nightly price" }]}
+            total={filtered.length}
+          />
+          {!isArchivedView && selected.length > 0 && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-field border border-sand-border bg-shell px-3 py-2 text-sm"><span>{selected.length} selected</span><button className="btn btn-outline btn-sm" onClick={() => void bulkArchive()} type="button"><Archive size={14} /> Archive selected</button></div>}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {visible.map((prop) => (
             <div key={prop.id} className="card-box flex flex-col justify-between">
               <div>
+                {!isArchivedView && <label className="mb-3 inline-flex items-center gap-2 text-xs font-semibold"><input aria-label={`Select ${prop.title}`} checked={selected.includes(prop.id)} onChange={() => toggleSelected(prop.id)} type="checkbox" /> Select property</label>}
                 <div className="flex justify-between items-start mb-2">
                   <span className="badge badge-green">{prop.badgeLevel} Badge</span>
                   <span className="badge badge-sun">{prop.cancellationPolicy}</span>
@@ -118,7 +170,8 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

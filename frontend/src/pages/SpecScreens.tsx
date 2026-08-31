@@ -38,6 +38,7 @@ import { Button, buttonClassName } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
+import { announceFeedback } from "../lib/feedback";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PatoisToast } from "../components/ui/PatoisToast";
 import { EmblemRoundel, TierBadge, deepPatternBackground } from "../components/layout/PublicShell";
@@ -916,6 +917,14 @@ export function NotificationsCenterPage() {
     { id: "n5", icon: "★", iconTone: "bg-shell text-sand-500", title: "Review reminder", body: "12 days left to review Uptown Loft.", category: "Bookings", time: "2 days ago", unread: false },
   ]);
   const [filter, setFilter] = useState("All");
+  const [channels, setChannels] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem("nesty-notification-preferences");
+      return stored ? JSON.parse(stored) as { email: boolean; push: boolean; sms: boolean } : { email: true, push: true, sms: false };
+    } catch {
+      return { email: true, push: true, sms: false };
+    }
+  });
   const unreadCount = items.filter((n) => n.unread).length;
   const visible = items.filter((n) => {
     if (filter === "All") return true;
@@ -982,6 +991,45 @@ export function NotificationsCenterPage() {
           </div>
         ))}
       </div>
+      <section aria-labelledby="notification-preferences-title" className="rounded-card border border-sand-border bg-cream p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="m-0 text-lg font-semibold" id="notification-preferences-title">Notification preferences</h2>
+            <p className="mt-1 text-[13px] text-gray-600">Choose how booking, payment, message, and wellness updates reach you.</p>
+          </div>
+          <Button
+            onClick={() => {
+              window.localStorage.setItem("nesty-notification-preferences", JSON.stringify(channels));
+              announceFeedback("Notification preferences saved.");
+            }}
+            successMessage=""
+            variant="dark"
+          >
+            Save preferences
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {([
+            ["email", "Email notifications", "Booking confirmations, invoices, and account updates."],
+            ["push", "Push notifications", "Fast alerts when you are active in the app."],
+            ["sms", "SMS notifications", "Optional urgent reminders and security alerts."],
+          ] as const).map(([key, label, copy]) => (
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-field border border-sand-border bg-shell p-3" key={key}>
+              <input
+                aria-label={label}
+                checked={channels[key]}
+                className="mt-1 size-4 accent-deep"
+                onChange={(event) => setChannels((current) => ({ ...current, [key]: event.target.checked }))}
+                type="checkbox"
+              />
+              <span>
+                <span className="block text-sm font-semibold">{label}</span>
+                <span className="mt-1 block text-xs text-gray-600">{copy}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

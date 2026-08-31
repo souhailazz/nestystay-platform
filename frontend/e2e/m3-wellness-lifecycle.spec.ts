@@ -69,9 +69,10 @@ test("M3 wellness lifecycle: host request, officer report, completion and payout
   await installSession(page, officerSession);
   await page.goto("/officer/wellness", { waitUntil: "networkidle" });
   await expect(page.getByText(/Officer wellness/i).first()).toBeVisible();
-  const inputs = page.locator('input:not([type="checkbox"]):not([type="file"])');
-  await inputs.nth(3).fill(requested.id);
-  await inputs.nth(4).fill(badgeNumber);
+  // Use accessible labels instead of positional selectors: the global workspace
+  // search input is intentionally present on this route as well.
+  await page.getByRole("textbox", { name: "Visit ID" }).fill(requested.id);
+  await page.getByRole("textbox", { name: "Officer badge" }).fill(badgeNumber);
   await page.locator('input[type="file"]').setInputFiles({ name: "wellness-report.png", mimeType: "image/png", buffer: onePixelPng });
   await expect(page.getByText("Clean", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: /Submit report/i }).click();
