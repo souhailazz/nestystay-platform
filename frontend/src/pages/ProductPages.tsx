@@ -392,7 +392,7 @@ function HostDashboardContent({ auth }: { auth: AuthController }) {
         title="Operate your stays from one calm view."
         copy="Host metrics are computed from live property and booking API records tied to your user id."
         actions={
-          <AppLink className={buttonClassName("sun")} href="/host/properties">
+          <AppLink className={buttonClassName("sun")} href="/host/properties/new">
             <Plus size={17} /> Add property
           </AppLink>
         }
@@ -411,7 +411,7 @@ function HostDashboardContent({ auth }: { auth: AuthController }) {
             title="No properties for this host yet."
             copy="Create your first property and it will persist through the backend property endpoint."
             action={
-              <AppLink className={buttonClassName("sun")} href="/host/properties">
+              <AppLink className={buttonClassName("sun")} href="/host/properties/new">
                 Create property
               </AppLink>
             }

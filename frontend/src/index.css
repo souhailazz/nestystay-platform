@@ -148,6 +148,21 @@ body {
   animation: ns-loading-shimmer 1.6s ease-in-out infinite;
 }
 
+.progress-track {
+  width: 100%;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--slate-soft);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green-light);
+  transition: width 180ms ease;
+}
+
 @keyframes ns-loading-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -20% 0; }

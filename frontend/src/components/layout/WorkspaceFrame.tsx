@@ -165,7 +165,16 @@ export function WorkspaceFrame({ routeName, children }: { routeName: string; chi
         <div className="mx-3 my-0 h-6 shrink-0 border-l border-on-dark-faint/25 md:mx-3 md:mb-1 md:mt-3 md:h-auto md:border-l-0 md:border-t md:pt-3 md:text-[10px] md:font-bold md:tracking-[0.18em] md:text-on-dark-faint"><span className="hidden md:inline">{roleLabels[activeRole]} · WORKSPACES</span></div>
         {visibleWorkspaceItems.map((item) => <SidebarLink item={item} key={item.href} pathname={pathname} routeName={routeName} />)}
         <AppLink aria-label="View notifications" className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-nav transition-colors hover:bg-on-dark-heading/5 hover:text-on-dark-heading" href="/traveler/notifications"><Bell aria-hidden="true" size={15} /> Notifications</AppLink>
-        <AppLink className="mt-auto flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-muted transition-colors hover:text-on-dark-heading" href="/logout">Sign out</AppLink>
+        <AppLink
+          aria-label="Sign out"
+          className="mt-auto flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-nav px-3 font-sans text-[13px] font-semibold text-on-dark-muted transition-colors hover:text-on-dark-heading"
+          href="/logout"
+          onClick={(event) => {
+            if (!window.confirm("Sign out of Nesty Stay on this device?")) event.preventDefault();
+          }}
+        >
+          Sign out
+        </AppLink>
       </aside>
       <div className="flex min-h-screen min-w-0 flex-col">
         <main className="workspace-main w-full max-w-[1120px] flex-1 px-[clamp(20px,3.5vw,44px)] pb-24 pt-6 md:py-9" id="main-content" tabIndex={-1}>

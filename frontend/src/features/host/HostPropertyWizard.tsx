@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Camera, Save } from "lucide-react";
 import { api } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
@@ -12,14 +12,31 @@ interface HostPropertyWizardProps {
   onFinished: () => void;
 }
 
-export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onFinished }: HostPropertyWizardProps) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [draftSavedToast, setDraftSavedToast] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const DRAFT_KEY_PREFIX = "nesty.property-draft.";
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
-  const [formData, setFormData] = useState<PropertyWizardData>({
+function getDraftKey(hostUserId: string) {
+  return `${DRAFT_KEY_PREFIX}${hostUserId}`;
+}
+
+function readDraft(hostUserId: string): { step: number; data: PropertyWizardData } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(getDraftKey(hostUserId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { step?: number; data?: PropertyWizardData };
+    if (!parsed.data || typeof parsed.data.title !== "string") return null;
+    return {
+      step: Math.min(10, Math.max(1, Number(parsed.step) || 1)),
+      data: parsed.data
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getInitialData(hostUserId: string): { step: number; data: PropertyWizardData } {
+  const defaultData: PropertyWizardData = {
     title: "Jamaican Coastal Villa",
     location: "Montego Bay, St. James",
     country: "Jamaica",
@@ -40,20 +57,120 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
     cancellationPolicy: "Flexible",
     verificationEnabled: false,
     insuraGuestEnabled: true
+  };
+  return readDraft(hostUserId) ?? { step: 1, data: defaultData };
+}
+
+function getCompleteness(data: PropertyWizardData) {
+  const checks = [
+    Boolean(data.title.trim()),
+    Boolean(data.location.trim() && data.country.trim()),
+    Boolean(data.propertyType),
+    data.capacityAdults > 0 && data.bedrooms > 0 && data.bathrooms > 0,
+    data.amenities.length > 0,
+    data.photos.length > 0,
+    Boolean(data.description.trim()),
+    data.nightlyRate > 0,
+    Boolean(data.houseRules.trim()),
+    data.minimumNights > 0
+  ];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
+function readImage(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read this image."));
+    reader.readAsDataURL(file);
   });
+}
+
+export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onFinished }: HostPropertyWizardProps) {
+  const initial = getInitialData(hostUserId);
+  const [currentStep, setCurrentStep] = useState(initial.step);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedToast, setDraftSavedToast] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [formData, setFormData] = useState<PropertyWizardData>(initial.data);
+  const completeness = getCompleteness(formData);
 
   const steps = [
     "Basics", "Location", "Type", "Capacity", "Amenities", 
     "Photos", "Description", "Pricing", "Availability", "Verification & Publish"
   ];
 
+  function persistDraft() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(getDraftKey(hostUserId), JSON.stringify({ step: currentStep, data: formData, savedAt: new Date().toISOString() }));
+    } catch {
+      setError("This draft is too large for local storage. Remove a few photos and try again.");
+    }
+  }
+
   function handleAutosave() {
     setSavingDraft(true);
-    setTimeout(() => {
+    persistDraft();
+    window.setTimeout(() => {
       setSavingDraft(false);
       setDraftSavedToast(true);
-      setTimeout(() => setDraftSavedToast(false), 2000);
+      window.setTimeout(() => setDraftSavedToast(false), 2000);
     }, 400);
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(persistDraft, 700);
+    return () => window.clearTimeout(timer);
+  }, [currentStep, formData, hostUserId]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setPreviewOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  async function handlePhotoFiles(files: FileList | File[]) {
+    setPhotoError(null);
+    const accepted = Array.from(files).filter((file) => file.type.startsWith("image/") && file.size <= MAX_PHOTO_SIZE);
+    const rejected = Array.from(files).length - accepted.length;
+    if (rejected > 0) setPhotoError(`${rejected} file${rejected === 1 ? " was" : "s were"} skipped. Use JPG, PNG, or WebP images up to 10MB.`);
+    if (!accepted.length) return;
+    try {
+      const newPhotos = await Promise.all(accepted.map(async (file, index) => ({
+        id: `photo-${Date.now()}-${index}`,
+        url: await readImage(file),
+        isCover: false,
+        sortOrder: formData.photos.length + index
+      })));
+      setFormData((current) => ({
+        ...current,
+        photos: [...current.photos, ...newPhotos]
+      }));
+    } catch {
+      setPhotoError("One or more images could not be read. Please try again.");
+    }
+  }
+
+  function setCoverPhoto(photoId: string) {
+    setFormData((current) => ({
+      ...current,
+      photos: current.photos.map((photo, index) => ({ ...photo, isCover: photo.id === photoId, sortOrder: index }))
+    }));
+  }
+
+  function removePhoto(photoId: string) {
+    setFormData((current) => {
+      const photos = current.photos.filter((photo) => photo.id !== photoId).map((photo, index) => ({ ...photo, sortOrder: index }));
+      if (photos.length > 0 && !photos.some((photo) => photo.isCover)) photos[0] = { ...photos[0], isCover: true };
+      return { ...current, photos };
+    });
   }
 
   async function handlePublish() {
@@ -75,6 +192,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         insuraGuestEnabled: formData.insuraGuestEnabled,
         highlights: formData.amenities
       }, token);
+      if (typeof window !== "undefined") window.localStorage.removeItem(getDraftKey(hostUserId));
       onFinished();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to publish property.");
@@ -91,13 +209,24 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
           <h2>10-Step Property Wizard</h2>
           <PatoisPhrase phrase="Build Yuh Yard Listing Step-by-Step" translation="Complete all 10 required listing steps with draft autosave." />
         </div>
-        <button type="button" className="btn btn-outline" onClick={handleAutosave} disabled={savingDraft}>
-          <Save size={16} /> {savingDraft ? "Saving..." : "Save Draft"}
-        </button>
+        <div className="flex gap-2 flex-wrap justify-end">
+          <button type="button" className="btn btn-ghost" onClick={() => setPreviewOpen(true)} data-testid="preview-listing-button">Preview listing</button>
+          <button type="button" className="btn btn-outline" onClick={handleAutosave} disabled={savingDraft}>
+            <Save size={16} /> {savingDraft ? "Saving..." : "Save Draft"}
+          </button>
+        </div>
       </header>
 
-      {draftSavedToast && <div className="notice-panel mb-4">Draft autosaved to server.</div>}
+      {draftSavedToast && <div className="notice-panel mb-4" role="status">Draft saved on this device. You can safely return to it later.</div>}
       {error && <div className="alert-box alert-error mb-4">{error}</div>}
+
+      <section className="card-box mb-6" aria-label="Listing completeness">
+        <div className="flex justify-between items-center gap-3 mb-2">
+          <div><strong>Listing completeness</strong><span className="subtext ml-2">Finish each section before publishing</span></div>
+          <strong>{completeness}%</strong>
+        </div>
+        <div className="progress-track" aria-hidden="true"><div className="progress-fill" style={{ width: `${completeness}%` }} /></div>
+      </section>
 
       {/* Stepper Progress Bar */}
       <div className="wizard-stepper-bar flex justify-between items-center gap-1 mb-8 overflow-x-auto pb-2">
@@ -106,7 +235,10 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
           const isActive = stepNum === currentStep;
           const isComplete = stepNum < currentStep;
           return (
-            <div 
+            <button
+              type="button"
+              aria-current={isActive ? "step" : undefined}
+              aria-label={`Step ${stepNum}: ${label}`}
               key={label} 
               className={`stepper-pill flex items-center gap-1 text-xs px-3 py-2 rounded-full cursor-pointer transition ${
                 isActive ? "bg-sun text-white font-bold" : isComplete ? "bg-green-light text-green" : "bg-gray-100 text-gray-500"
@@ -115,7 +247,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
             >
               <span>{isComplete ? <Check size={12} /> : stepNum}</span>
               <span className="hidden sm:inline">{label}</span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -127,8 +259,8 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         {currentStep === 1 && (
           <div className="space-y-4">
             <div className="field-group">
-              <label className="field-label">Property Title</label>
-              <input type="text" className="input-control" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+              <label className="field-label" htmlFor="wizard-property-title">Property Title</label>
+              <input id="wizard-property-title" type="text" className="input-control" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
             </div>
           </div>
         )}
@@ -196,10 +328,29 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
 
         {currentStep === 6 && (
           <div>
-            <label className="field-label mb-2">Property Photos & Cover Photo Selection</label>
-            <div className="photo-upload-dropzone p-6 border-2 border-dashed rounded text-center mb-4">
+            <label className="field-label mb-2" htmlFor="property-photo-input">Property Photos & Cover Photo Selection</label>
+            <div
+              className="photo-upload-dropzone p-6 border-2 border-dashed rounded text-center mb-4"
+              data-testid="photo-dropzone"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => { event.preventDefault(); void handlePhotoFiles(event.dataTransfer.files); }}
+            >
               <Camera size={32} className="mx-auto mb-2 text-sun" />
-              <p>Upload photos of your stay (WebP, JPG up to 10MB)</p>
+              <p className="mb-2">Drag and drop photos here, or choose files (JPG, PNG, WebP up to 10MB)</p>
+              <input ref={photoInputRef} id="property-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { if (event.target.files) void handlePhotoFiles(event.target.files); event.target.value = ""; }} />
+              <button type="button" className="btn btn-outline" onClick={() => photoInputRef.current?.click()}>Choose photos</button>
+            </div>
+            {photoError && <div className="alert-box alert-error mb-4" role="alert">{photoError}</div>}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label="Uploaded photos">
+              {formData.photos.map((photo) => (
+                <figure key={photo.id} className={`relative rounded overflow-hidden border ${photo.isCover ? "border-sun" : "border-gray-200"}`}>
+                  <img src={photo.url} alt={photo.isCover ? "Cover photo" : "Property photo"} className="w-full h-28 object-cover" />
+                  <figcaption className="p-2 text-xs flex items-center justify-between gap-1">
+                    <button type="button" className="text-link" onClick={() => setCoverPhoto(photo.id)} disabled={photo.isCover}>{photo.isCover ? "Cover photo" : "Make cover"}</button>
+                    <button type="button" className="text-link text-danger" onClick={() => removePhoto(photo.id)} aria-label={`Remove ${photo.isCover ? "cover " : ""}photo`}>Remove</button>
+                  </figcaption>
+                </figure>
+              ))}
             </div>
           </div>
         )}
@@ -287,6 +438,20 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
           </button>
         )}
       </footer>
+
+      {previewOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewOpen(false); }}>
+          <section className="modal-card max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="listing-preview-title">
+            <div className="flex justify-between items-start gap-3 mb-4">
+              <div><span className="badge badge-sun">Preview</span><h3 id="listing-preview-title">{formData.title || "Untitled listing"}</h3><p className="subtext">{formData.location}, {formData.country}</p></div>
+              <button type="button" className="btn btn-ghost" onClick={() => setPreviewOpen(false)} aria-label="Close listing preview">Close</button>
+            </div>
+            {formData.photos.find((photo) => photo.isCover) && <img src={formData.photos.find((photo) => photo.isCover)?.url} alt="Listing cover preview" className="w-full h-56 object-cover rounded mb-4" />}
+            <div className="grid grid-cols-2 gap-3 text-sm mb-4"><div><strong>From</strong><br />${formData.nightlyRate} {formData.currency} / night</div><div><strong>Guests</strong><br />Up to {formData.capacityAdults + formData.capacityChildren}</div><div><strong>Stay</strong><br />{formData.bedrooms} bedrooms · {formData.bathrooms} bathrooms</div><div><strong>Policy</strong><br />{formData.cancellationPolicy} cancellation</div></div>
+            <p>{formData.description || "Add a description to help guests understand your stay."}</p>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

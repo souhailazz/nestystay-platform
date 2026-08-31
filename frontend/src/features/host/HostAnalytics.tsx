@@ -88,7 +88,7 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
       {properties.length === 0 && (
         <div className="flex flex-col items-start gap-3 rounded-card border border-dashed border-sand-input bg-cream p-6">
           <div className="font-display text-lg font-medium">No properties yet</div>
-          <AppLink className={deepPill} href="/host/properties">
+          <AppLink className={deepPill} href="/host/properties/new">
             + Add your first property
           </AppLink>
         </div>

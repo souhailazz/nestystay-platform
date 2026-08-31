@@ -54,6 +54,36 @@ test.describe("global usability upgrades", () => {
     await expect(page.getByRole("checkbox", { name: "SMS notifications" })).toBeChecked();
   });
 
+  test("host property wizard keeps a real draft and provides listing preview/photo controls", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), hostSession);
+    await page.goto("/host/properties/new", { waitUntil: "domcontentloaded" });
+
+    await expect(page.locator("#HOST-05")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Listing completeness" })).toContainText("100%");
+    const title = page.getByRole("textbox", { name: "Property Title" });
+    await title.fill("Sunset Cove Draft");
+    await page.getByRole("button", { name: "Save Draft" }).click();
+    await expect(page.getByRole("status")).toContainText("Draft saved on this device");
+
+    await page.getByRole("button", { name: "Preview listing" }).click();
+    await expect(page.getByRole("dialog", { name: "Sunset Cove Draft" })).toBeVisible();
+    await page.getByRole("button", { name: "Close listing preview" }).click();
+
+    await page.getByRole("button", { name: "Step 6: Photos" }).click();
+    await expect(page.getByTestId("photo-dropzone")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose photos" })).toBeVisible();
+    await page.locator("#property-photo-input").setInputFiles({
+      name: "villa.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from("test-image-bytes"),
+    });
+    await expect(page.getByAltText("Property photo")).toHaveCount(1);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("textbox", { name: "Property Title" })).toHaveValue("Sunset Cove Draft");
+  });
+
   test("mobile workspace navigation stays visible with large touch targets", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile-chromium", "Mobile navigation is only visible below the md breakpoint.");
     await page.goto("/", { waitUntil: "domcontentloaded" });
