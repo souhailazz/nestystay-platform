@@ -145,4 +145,30 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         Assert.Equal(HttpStatusCode.OK, portal.StatusCode);
         Assert.DoesNotContain(invoiceId.ToString(), await portal.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task ManagerDocumentDownloadIsScopedAndUsesStorageProvider()
+    {
+        using var client = factory.CreateClient();
+        var managerId = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(managerId, UserRole.PropertyManager));
+        var bytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\nstatement\n");
+        var response = await client.PostAsJsonAsync("/api/property-manager/documents", new
+        {
+            title = "Annual statement", category = "Finance", fileName = "statement.pdf", contentType = "application/pdf",
+            sizeBytes = bytes.Length, contentBase64 = Convert.ToBase64String(bytes)
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documentId = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var download = await client.GetAsync($"/api/property-manager/documents/{documentId}/download");
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        var body = await download.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(documentId, body.GetProperty("id").GetGuid());
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("url").GetString()));
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(Guid.NewGuid(), UserRole.Owner));
+        var denied = await client.GetAsync($"/api/property-manager/documents/{documentId}/download");
+        Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
+    }
 }

@@ -157,6 +157,22 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
 
       expect(screen.queryByTestId('stripe-elements')).toBeNull();
     });
+
+    it('renders the deterministic local payment boundary without a Stripe key', async () => {
+      vi.stubEnv('VITE_STRIPE_PUBLIC_KEY', '');
+      vi.mocked(api.getBooking).mockResolvedValue({
+        id: 'b1', totalAmount: 440, currency: 'USD', paymentClientSecret: 'local_client_secret_0123456789abcdef', status: 'Approved'
+      } as any);
+
+      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as any} onSuccess={vi.fn()} onFailure={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-03-page')).toBeDefined();
+      });
+
+      expect(screen.getByText('Local payment test mode')).toBeDefined();
+      expect(screen.queryByTestId('stripe-elements')).toBeNull();
+    });
   });
 
   describe('BOOK-04 to BOOK-10: Post-Booking states', () => {

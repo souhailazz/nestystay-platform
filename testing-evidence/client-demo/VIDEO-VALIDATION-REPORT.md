@@ -4,13 +4,13 @@ All recordings were generated from the local frontend with a 1920×1080 Chromium
 
 | WebM | MP4 | WebM resolution | WebM duration (s) | MP4 resolution | MP4 duration (s) | Valid |
 |---|---|---:|---:|---:|---:|---|
-| Full-System/videos/NestyStay-M1-M5-Full-System-Demo.webm | Full-System/videos/NestyStay-M1-M5-Full-System-Demo.mp4 | 1920×1080 | 101.2 | 1920×1080 | 101.2 | PASS |
+| Full-System/videos/NestyStay-M1-M5-Full-System-Demo.webm | Full-System/videos/NestyStay-M1-M5-Full-System-Demo.mp4 | 1920×1080 | 102.6 | 1920×1080 | 102.6 | PASS |
 | M1-Core/01-Authentication/video/M1-01-authentication-registration-form.webm | M1-Core/01-Authentication/video/M1-01-authentication-registration-form.mp4 | 1920×1080 | 10.4 | 1920×1080 | 10.4 | PASS |
 | M1-Core/02-2FA/video/M1-02-2fa-two-factor-enrollment.webm | M1-Core/02-2FA/video/M1-02-2fa-two-factor-enrollment.mp4 | 1920×1080 | 8.2 | 1920×1080 | 8.2 | PASS |
 | M1-Core/03-Property-Listings/video/M1-03-property-listings-property-listings.webm | M1-Core/03-Property-Listings/video/M1-03-property-listings-property-listings.mp4 | 1920×1080 | 10.6 | 1920×1080 | 10.6 | PASS |
 | M1-Core/04-Booking/video/M1-04-booking-booking-review.webm | M1-Core/04-Booking/video/M1-04-booking-booking-review.mp4 | 1920×1080 | 10.6 | 1920×1080 | 10.6 | PASS |
 | M1-Core/05-eKYC/video/M1-05-ekyc-ekyc-identity.webm | M1-Core/05-eKYC/video/M1-05-ekyc-ekyc-identity.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
-| M1-Core/06-Payments/video/M1-06-payments-stripe-checkout.webm | M1-Core/06-Payments/video/M1-06-payments-stripe-checkout.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
+| M1-Core/06-Payments/video/M1-06-payments-stripe-checkout.webm | M1-Core/06-Payments/video/M1-06-payments-stripe-checkout.mp4 | 1920×1080 | 7.5 | 1920×1080 | 7.5 | PASS |
 | M1-Core/07-Guest-Dashboard/video/M1-07-guest-dashboard-guest-dashboard.webm | M1-Core/07-Guest-Dashboard/video/M1-07-guest-dashboard-guest-dashboard.mp4 | 1920×1080 | 10.5 | 1920×1080 | 10.5 | PASS |
 | M1-Core/08-Host-Dashboard/video/M1-08-host-dashboard-host-dashboard.webm | M1-Core/08-Host-Dashboard/video/M1-08-host-dashboard-host-dashboard.mp4 | 1920×1080 | 9.7 | 1920×1080 | 9.7 | PASS |
 | M2-Badges/01-Free/video/M2-01-free-badge-free.webm | M2-Badges/01-Free/video/M2-01-free-badge-free.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
@@ -38,7 +38,7 @@ All recordings were generated from the local frontend with a 1920×1080 Chromium
 | M4-Directories-QR/04-Police/video/M4-04-police-police-directory.webm | M4-Directories-QR/04-Police/video/M4-04-police-police-directory.mp4 | 1920×1080 | 7.7 | 1920×1080 | 7.7 | PASS |
 | M4-Directories-QR/05-Provider-Registration/video/M4-05-provider-registration-provider-registration.webm | M4-Directories-QR/05-Provider-Registration/video/M4-05-provider-registration-provider-registration.mp4 | 1920×1080 | 9.6 | 1920×1080 | 9.6 | PASS |
 | M4-Directories-QR/06-Provider-Moderation/video/M4-06-provider-moderation-provider-moderation.webm | M4-Directories-QR/06-Provider-Moderation/video/M4-06-provider-moderation-provider-moderation.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
-| M4-Directories-QR/07-Provider-Dashboard/video/M4-07-provider-dashboard-provider-dashboard.webm | M4-Directories-QR/07-Provider-Dashboard/video/M4-07-provider-dashboard-provider-dashboard.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
+| M4-Directories-QR/07-Provider-Dashboard/video/M4-07-provider-dashboard-provider-dashboard.webm | M4-Directories-QR/07-Provider-Dashboard/video/M4-07-provider-dashboard-provider-dashboard.mp4 | 1920×1080 | 7.7 | 1920×1080 | 7.7 | PASS |
 | M4-Directories-QR/08-Directory-Search/video/M4-08-directory-search-directory-search.webm | M4-Directories-QR/08-Directory-Search/video/M4-08-directory-search-directory-search.mp4 | 1920×1080 | 7.6 | 1920×1080 | 7.6 | PASS |
 | M4-Directories-QR/09-Badge-Gating/video/M4-09-badge-gating-directory-badge-gate.webm | M4-Directories-QR/09-Badge-Gating/video/M4-09-badge-gating-directory-badge-gate.mp4 | 1920×1080 | 8.6 | 1920×1080 | 8.6 | PASS |
 | M4-Directories-QR/10-Guest-Verification-Upsell/video/M4-10-guest-verification-upsell-verification-upsell.webm | M4-Directories-QR/10-Guest-Verification-Upsell/video/M4-10-guest-verification-upsell-verification-upsell.mp4 | 1920×1080 | 7.7 | 1920×1080 | 7.7 | PASS |

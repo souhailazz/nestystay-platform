@@ -126,6 +126,44 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task ProviderDocumentsUseScopedStorageAndSafetyValidation()
+    {
+        using var client = _factory.CreateClient();
+        var owner = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(owner, UserRole.ServiceProvider));
+        var providerResponse = await client.PostAsJsonAsync("/api/directories/providers", new
+        {
+            kind = "LocalBusiness", category = "Tours", name = $"Document Provider {owner:N}", parish = "Kingston", badgeLevel = "Free",
+            description = "Provider with a real document vault.", availabilitySummary = "Daily", contactMode = "Platform messaging only", isBrickAndMortar = true
+        });
+        Assert.Equal(HttpStatusCode.OK, providerResponse.StatusCode);
+        var providerId = (await providerResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var bytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\nNestyStay provider document\n");
+        var prepare = await client.PostAsJsonAsync($"/api/spec/directories/providers/{providerId}/documents/uploads", new
+        {
+            documentType = "BUSINESS_LICENSE", fileName = "license.pdf", contentType = "application/pdf", sizeBytes = bytes.Length
+        });
+        Assert.Equal(HttpStatusCode.OK, prepare.StatusCode);
+        var prepared = await prepare.Content.ReadFromJsonAsync<JsonElement>();
+        var documentId = prepared.GetProperty("id").GetGuid();
+
+        using var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        var upload = await client.PutAsync($"/api/spec/directories/providers/{providerId}/documents/{documentId}/content", content);
+        Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
+        Assert.Equal("Uploaded", (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+
+        var documents = await client.GetAsync($"/api/spec/directories/providers/{providerId}/documents");
+        Assert.Equal(HttpStatusCode.OK, documents.StatusCode);
+        Assert.Contains(documentId.ToString(), await documents.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+
+        var download = await client.GetAsync($"/api/spec/directories/providers/{providerId}/documents/{documentId}/download");
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        Assert.Contains("url", await download.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task DirectoryModerationQueueIncludesPendingAndSupportsRequestChanges()
     {
         using var client = _factory.CreateClient();

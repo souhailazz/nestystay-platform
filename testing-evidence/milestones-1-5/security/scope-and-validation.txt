@@ -1,2 +1,2 @@
-2026-08-31
-PM/owner API checks passed: another owner received 404 for a scoped invoice and the owner portal contained no foreign invoice ID. Invalid document/property/QR/gate inputs are rejected by server validation. Anonymous proposal results expose counts and ballot choice only; owner identity is not returned.
+2026-09-01
+54 backend API checks passed: another owner received 404 for a scoped invoice and the owner portal contained no foreign invoice ID. Invalid provider-document MIME/size/magic bytes, property, QR and gate inputs are rejected by server validation. Anonymous proposal results expose counts and ballot choice only; owner identity is not returned. Provider document downloads are owner/provider scoped.

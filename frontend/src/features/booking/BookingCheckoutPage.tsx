@@ -123,6 +123,37 @@ function CheckoutForm({
   );
 }
 
+function LocalCheckoutForm({
+  booking,
+  onSuccess,
+}: {
+  booking: BookingDetails;
+  onSuccess: (id: string) => void;
+}) {
+  const [processing, setProcessing] = useState(false);
+
+  function completeLocalAuthorization(event: React.FormEvent) {
+    event.preventDefault();
+    setProcessing(true);
+    // The deterministic local adapter has already persisted authorization on
+    // booking approval. This action mirrors the provider confirmation step
+    // without pretending that a live card or Stripe account was used.
+    onSuccess(booking.id);
+  }
+
+  return (
+    <form className="flex flex-col gap-3.5" onSubmit={completeLocalAuthorization}>
+      <div className="rounded-field border border-blue/20 bg-info-tint p-4 text-sm text-info-text" role="status">
+        <strong>Local payment test mode</strong>
+        <p className="m-0 mt-1">The application payment adapter has recorded an authorization. No live card details are collected in this environment.</p>
+      </div>
+      <button className={bookingDeepCta} disabled={processing} type="submit">
+        {processing ? "Opening confirmation…" : `Continue with authorization · ${formatMoney(booking.totalAmount, booking.currency)}`}
+      </button>
+    </form>
+  );
+}
+
 export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: BookingCheckoutPageProps) {
   const stripePromise = getStripePromise();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
@@ -177,7 +208,9 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
     );
   }
 
-  if (!stripePromise) {
+  const usesLocalAdapter = booking.paymentClientSecret.startsWith("local_client_secret_");
+
+  if (!stripePromise && !usesLocalAdapter) {
     return (
       <div className="mx-auto max-w-[1160px] px-6 py-9" data-testid="book-03-stripe-config-missing">
         <div className={errorPanel}>Payment cannot be processed right now. Stripe checkout is not configured.</div>
@@ -210,11 +243,9 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
             </span>
           </div>
           <div className="text-[12.5px] text-gray-600">
-            Processed directly via Stripe. NestyStay never stores raw card credentials.
+            {usesLocalAdapter ? "Application test mode — live Stripe credentials are not configured." : "Processed directly via Stripe. NestyStay never stores raw card credentials."}
           </div>
-          <Elements options={{ clientSecret: booking.paymentClientSecret }} stripe={stripePromise}>
-            <CheckoutForm booking={booking} onFailure={onFailure} onSuccess={onSuccess} />
-          </Elements>
+          {usesLocalAdapter ? <LocalCheckoutForm booking={booking} onSuccess={onSuccess} /> : <Elements options={{ clientSecret: booking.paymentClientSecret }} stripe={stripePromise}><CheckoutForm booking={booking} onFailure={onFailure} onSuccess={onSuccess} /></Elements>}
         </div>
       </BookingScaffold>
     </div>

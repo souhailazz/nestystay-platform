@@ -38,6 +38,7 @@ public sealed class EfSpecCompletionStore(
     private const string ScanStatusPending = "PendingScan";
     private const string ScanStatusClean = "Clean";
     private const long MaximumAttachmentBytes = 10 * 1024 * 1024;
+    private const long MaximumProviderDocumentBytes = 25 * 1024 * 1024;
     private static readonly TimeSpan AuthFlowResendCooldown = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan AuthFlowRateLimitWindow = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan AttachmentUploadLifetime = TimeSpan.FromMinutes(15);
@@ -616,6 +617,122 @@ public sealed class EfSpecCompletionStore(
         entity.UpdatedByUserId = actorUserId;
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
+    }
+
+    public async Task<IReadOnlyList<DirectoryProviderDocumentDto>> GetDirectoryProviderDocumentsAsync(Guid providerId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var provider = await db.MilestoneDirectoryProviders.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == providerId && !item.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Provider profile was not found.");
+        if (provider.OwnerUserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Provider documents are private to the provider owner.");
+        }
+
+        return await db.MilestoneDirectoryProviderDocuments.AsNoTracking()
+            .Where(item => item.ProviderId == providerId && item.OwnerUserId == actorUserId && !item.IsDeleted)
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => new DirectoryProviderDocumentDto(item.Id, item.ProviderId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt, item.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DirectoryProviderDocumentUploadDto> PrepareDirectoryProviderDocumentUploadAsync(Guid providerId, Guid actorUserId, PrepareDirectoryProviderDocumentUploadRequest request, CancellationToken cancellationToken)
+    {
+        var provider = await db.MilestoneDirectoryProviders.SingleOrDefaultAsync(item => item.Id == providerId && !item.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Provider profile was not found.");
+        if (provider.OwnerUserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Provider documents are private to the provider owner.");
+        }
+
+        var safeFileName = ValidateProviderDocument(request.FileName, request.ContentType, request.SizeBytes);
+        var documentType = RequireText(request.DocumentType, "Document type");
+        var uploadId = Guid.NewGuid();
+        var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var now = timeProvider.GetUtcNow();
+        var document = new MilestoneDirectoryProviderDocument
+        {
+            Id = uploadId,
+            ProviderId = providerId,
+            OwnerUserId = actorUserId,
+            DocumentType = documentType,
+            OriginalFileName = Path.GetFileName(request.FileName.Trim()),
+            SafeFileName = safeFileName,
+            ContentType = NormalizeContentType(request.ContentType),
+            SizeBytes = request.SizeBytes,
+            ObjectKey = $"directory-providers/{actorUserId:N}/{providerId:N}/{uploadId:N}{extension}",
+            UploadUrl = $"/api/spec/directories/providers/{providerId}/documents/{uploadId}/content",
+            Status = AttachmentStatusPendingUpload,
+            StorageProviderName = storageProvider.ProviderName,
+            ScanStatus = ScanStatusPending,
+            UploadExpiresAt = now.Add(AttachmentUploadLifetime),
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = actorUserId,
+            UpdatedByUserId = actorUserId
+        };
+        db.MilestoneDirectoryProviderDocuments.Add(document);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(document);
+    }
+
+    public async Task<DirectoryProviderDocumentUploadDto> UploadDirectoryProviderDocumentContentAsync(Guid providerId, Guid actorUserId, Guid documentId, string contentType, long sizeBytes, Stream content, CancellationToken cancellationToken)
+    {
+        var document = await db.MilestoneDirectoryProviderDocuments.SingleOrDefaultAsync(item => item.Id == documentId && item.ProviderId == providerId && item.OwnerUserId == actorUserId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Provider document upload is not available to this user.");
+        if (document.Status != AttachmentStatusPendingUpload)
+        {
+            throw new InvalidOperationException("Provider document upload is not pending.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (document.UploadExpiresAt <= now)
+        {
+            document.Status = AttachmentStatusExpired;
+            document.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Provider document upload URL has expired.");
+        }
+
+        ValidateProviderDocumentUploadMetadata(document, contentType, sizeBytes);
+        var stored = await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(document.ObjectKey, document.ContentType, MaximumProviderDocumentBytes), content, cancellationToken);
+        ValidateProviderDocumentUploadMetadata(document, stored.ContentType, stored.SizeBytes);
+        var scan = await fileSafetyScanner.ScanAsync(new FileSafetyScanRequest(document.ObjectKey, document.SafeFileName, stored.ContentType, stored.SizeBytes, stored.Sha256Hash, stored.HeaderBytes), cancellationToken);
+        document.StorageProviderName = stored.ProviderName;
+        document.VerifiedContentType = stored.ContentType;
+        document.UploadedSizeBytes = stored.SizeBytes;
+        document.Sha256Hash = stored.Sha256Hash;
+        document.ScanStatus = scan.Status;
+        document.ScanProviderName = fileSafetyScanner.ProviderName;
+        document.ScanCheckedAt = now;
+        document.UpdatedAt = now;
+        document.UpdatedByUserId = actorUserId;
+        if (!scan.Status.Equals(ScanStatusClean, StringComparison.OrdinalIgnoreCase))
+        {
+            document.Status = AttachmentStatusQuarantined;
+            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(scan.Reason ?? "Provider document failed safety scanning.");
+        }
+
+        document.Status = AttachmentStatusUploaded;
+        document.UploadedAt = now;
+        await AddAuditAsync("DirectoryProviderDocumentUploaded", "DirectoryProviderDocument", document.Id, "Provider uploaded a validated business document.", actorUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToUploadDto(document);
+    }
+
+    public async Task<DirectoryProviderDocumentDownloadDto> GetDirectoryProviderDocumentDownloadAsync(Guid providerId, Guid actorUserId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var document = await db.MilestoneDirectoryProviderDocuments.SingleOrDefaultAsync(item => item.Id == documentId && item.ProviderId == providerId && item.OwnerUserId == actorUserId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Provider document is not available to this user.");
+        if (document.Status != AttachmentStatusUploaded || document.ScanStatus != ScanStatusClean)
+        {
+            throw new InvalidOperationException("Provider document is not available for download until scanning is complete.");
+        }
+
+        var expiresAt = timeProvider.GetUtcNow().Add(AttachmentDownloadLifetime);
+        var url = await storageProvider.CreateDownloadUrlAsync(document.ObjectKey, expiresAt, cancellationToken);
+        return new DirectoryProviderDocumentDownloadDto(document.Id, document.SafeFileName, document.ContentType, document.SizeBytes, url, expiresAt);
     }
 
     public async Task<MessagingInboxDto> GetInboxAsync(Guid userId, CancellationToken cancellationToken)
@@ -1974,6 +2091,59 @@ public sealed class EfSpecCompletionStore(
         return $"{safeStem}{extension}";
     }
 
+    private static string ValidateProviderDocument(string fileName, string contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProviderDocumentBytes)
+        {
+            throw new InvalidOperationException("Provider documents must be 25 MB or smaller.");
+        }
+
+        var normalizedContentType = NormalizeContentType(contentType);
+        if (!AllowedAttachmentExtensions.TryGetValue(normalizedContentType, out var allowedExtensions) ||
+            !new[] { "application/pdf", "image/jpeg", "image/png" }.Contains(normalizedContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Provider documents must be PDF, JPEG, or PNG.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException("Provider document filename is required.");
+        }
+
+        var originalFileName = Path.GetFileName(fileName.Trim());
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Provider document extension does not match the content type.");
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
+        var safeStem = new string(stem.Select(character => IsSafeFileNameCharacter(character) ? character : '-').ToArray());
+        safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeStem)) safeStem = "provider-document";
+        if (safeStem.Length > 80) safeStem = safeStem[..80];
+        return $"{safeStem}{extension}";
+    }
+
+    private static void ValidateProviderDocumentUploadMetadata(MilestoneDirectoryProviderDocument document, string? contentType, long sizeBytes)
+    {
+        if (sizeBytes <= 0 || sizeBytes > MaximumProviderDocumentBytes)
+        {
+            throw new InvalidOperationException("Provider documents must be 25 MB or smaller.");
+        }
+
+        var normalized = NormalizeContentType(contentType);
+        if (!normalized.Equals(document.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Uploaded provider document content type does not match the prepared upload.");
+        }
+
+        if (sizeBytes != document.SizeBytes)
+        {
+            throw new InvalidOperationException("Uploaded provider document size does not match the prepared upload.");
+        }
+    }
+
     private static string ValidateAdminCaseEvidence(string fileName, string contentType, long sizeBytes)
     {
         if (sizeBytes <= 0 || sizeBytes > MaximumAttachmentBytes)
@@ -2474,6 +2644,8 @@ public sealed class EfSpecCompletionStore(
         item.UploadExpiresAt,
         item.Sha256Hash,
         item.IdentityDocumentId);
+    private static DirectoryProviderDocumentDto ToDto(MilestoneDirectoryProviderDocument item) => new(item.Id, item.ProviderId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt, item.CreatedAt);
+    private static DirectoryProviderDocumentUploadDto ToUploadDto(MilestoneDirectoryProviderDocument item) => new(item.Id, item.ProviderId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.ObjectKey, item.UploadUrl, item.Status, item.ScanStatus, item.UploadExpiresAt, item.Sha256Hash);
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);
     private static HostPromotionDto ToDto(MilestoneHostPromotion item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.DiscountPercent, item.StartsOn, item.EndsOn, item.MinimumNights, item.BadgeLevel, item.IsActive);

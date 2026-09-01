@@ -78,7 +78,7 @@ test.describe("Phase 5 property manager UI", () => {
     await setSession(page, session);
     await page.goto(`/gate?token=${encodeURIComponent(qr.token)}`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Validate access" }).click();
-    await expect(page.getByRole("status")).toContainText("ACCESS APPROVED");
+    await expect(page.getByRole("status").filter({ hasText: "ACCESS APPROVED" })).toContainText("ACCESS APPROVED");
     await api.dispose();
   });
 });

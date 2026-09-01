@@ -91,6 +91,14 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     [HttpPost("documents")]
     public async Task<IActionResult> Document(AddDocumentRequest request, CancellationToken cancellationToken) => Ok(await store.AddDocumentAsync(Actor(), request, cancellationToken));
 
+    [Authorize]
+    [HttpGet("documents/{documentId:guid}/download")]
+    public async Task<IActionResult> DownloadDocument(Guid documentId, CancellationToken cancellationToken)
+    {
+        var result = await store.GetDocumentDownloadAsync(Actor(), authorization.IsInRole(NestyStay.Domain.UserRole.Admin), documentId, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("gate/messages")]
     public async Task<IActionResult> GateMessage(CreateGateMessageRequest request, CancellationToken cancellationToken) => Ok(await store.CreateGateMessageAsync(Actor(), request, cancellationToken));

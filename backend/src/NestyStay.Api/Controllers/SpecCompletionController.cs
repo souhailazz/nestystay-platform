@@ -230,6 +230,39 @@ public sealed class SpecCompletionController(
         return Ok(await store.UpsertDirectoryProviderAsync(request, actor, cancellationToken));
     }
 
+    [Authorize]
+    [HttpGet("directories/providers/{providerId:guid}/documents")]
+    public async Task<ActionResult<IReadOnlyList<DirectoryProviderDocumentDto>>> GetDirectoryProviderDocuments(Guid providerId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.GetDirectoryProviderDocumentsAsync(providerId, actor, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("directories/providers/{providerId:guid}/documents/uploads")]
+    public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> PrepareDirectoryProviderDocumentUpload(Guid providerId, PrepareDirectoryProviderDocumentUploadRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.PrepareDirectoryProviderDocumentUploadAsync(providerId, actor, request, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPut("directories/providers/{providerId:guid}/documents/{documentId:guid}/content")]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> UploadDirectoryProviderDocumentContent(Guid providerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.UploadDirectoryProviderDocumentContentAsync(providerId, actor, documentId, Request.ContentType ?? string.Empty, Request.ContentLength ?? 0, Request.Body, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpGet("directories/providers/{providerId:guid}/documents/{documentId:guid}/download")]
+    public async Task<ActionResult<DirectoryProviderDocumentDownloadDto>> GetDirectoryProviderDocumentDownload(Guid providerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.GetDirectoryProviderDocumentDownloadAsync(providerId, actor, documentId, cancellationToken));
+    }
+
     [HttpGet("messages/inbox")]
     public async Task<ActionResult<MessagingInboxDto>> GetInbox([FromQuery] Guid userId, CancellationToken cancellationToken)
     {

@@ -14,12 +14,13 @@ Updated 2026-09-01 from the current repository state. The signed agreement was r
 
 ## Verification totals
 
-- Backend: **94 passed / 0 failed** (5 Domain, 23 Application, 14 Infrastructure, 52 API; includes directory moderation queue coverage and PM endpoint tests).
-- Frontend: **25 passed / 0 failed**; TypeScript/Vite build passed.
-- Real browser: **12 enhancement checks passed / 0 failed** across desktop, tablet and mobile for M4 directory/provider/admin and M5 manager/guard flows; existing M1–M4 route inventory: **19/19 routes passed** on each viewport (the full 90-test matrix recorded 84 pass, 4 expected Stripe-provider blocks and 2 skips).
+- Backend: **96 passed / 0 failed** (5 Domain, 23 Application, 14 Infrastructure, 54 API; includes provider-document storage/scanner/download and PM document-download scope tests).
+- Frontend: **26 passed / 0 failed**; TypeScript/Vite build passed.
+- Real browser: **88 passed / 0 failed / 2 intentional skips** in the full 90-test desktop/tablet/mobile matrix; this includes **18/18 enhancement checks** for M4/M5, **13 usability checks plus 2 intentional mobile skips**, and the existing M1–M4 route inventory (**19/19 routes passed** on each viewport).
 - API + security: **PASS locally** (scope isolation, validation, idempotency, anonymous ballot and QR denial paths).
 - Concurrency: **PASS locally** (two same-key payments returned 200/200, one persisted payment row, correct balance).
 - PostgreSQL: Phase 5 EF migration applied to `nestystay_dev`; live smoke persisted owners, properties, invoices, utility-linked invoice, payment, statement and owner portal data.
+- Lint: **0 errors / 162 existing warnings**; warnings are non-blocking legacy unused imports/parameters.
 
 ## Required separation
 
@@ -40,6 +41,9 @@ Updated 2026-09-01 from the current repository state. The signed agreement was r
 - Several scope edges lacked property/owner validation: fixed for invoices, documents, gate messages and QR issuance.
 - Voting allowed lifecycle/race edge cases: fixed open-window enforcement, result persistence and serialized duplicate protection.
 - Added owner verification controls, maintenance state controls, governance proposal creation, document upload and owner proxy UI.
+- Provider onboarding previously retained only selected document names: fixed with a persisted provider-document vault, validated binary upload, scanner metadata, scoped download and provider UI status/download controls.
+- Manager documents previously had no download action: fixed with a storage-backed, manager-scoped download endpoint and UI action.
+- Gate camera guidance previously required manual entry: fixed with browser QR decoding where supported and an explicit manual/offline fallback.
 
 ## Remaining blockers
 
@@ -48,6 +52,7 @@ Contractual local functionality has no known failing test. Production blockers a
 ## Evidence index
 
 - `browser/m5-property-manager.spec.ts` and `frontend/e2e/m4-m5-enhancements.spec.ts` (source) with Playwright result artifacts.
+- `frontend/e2e/usability-upgrades.spec.ts` and `docs/testing/ACCESSIBILITY-REPORT.md`.
 - `browser/route-inventory.json` (19 routes, no 5xx/console failures).
 - `backend/` API test output and `security/`/`concurrency/` records.
 - `docs/testing/M1-M5-TRACEABILITY.md` and `docs/testing/M5-PROPERTY-MANAGER-ACCEPTANCE.md`.

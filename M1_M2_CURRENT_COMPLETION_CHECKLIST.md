@@ -1,4 +1,6 @@
-# M1/M2 Current Completion Checklist
+# M1/M2 Current Completion Checklist (Historical Snapshot — Superseded)
+
+> This July 2026 working checklist is retained for audit history. Current acceptance is in `docs/testing/NESTYSTAY-FULL-SYSTEM-CHECKLIST.md` and `testing-evidence/final-enhancement-audit/FINAL-ENHANCEMENT-REPORT.md`; do not use the legacy Pending/PARTIAL cells as the current release decision.
 
 Generated: 2026-07-24
 Branch: audit/m1-m2-remediation

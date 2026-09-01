@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const repoRoot = path.resolve(process.cwd(), "..");
@@ -121,5 +121,10 @@ async function capture(page: Page, testInfo: { project: { name: string } }, name
   const viewport = testInfo.project.name.replace("-chromium", "");
   const directory = path.join(evidenceRoot, "real-workflows");
   mkdirSync(directory, { recursive: true });
-  await page.screenshot({ fullPage: true, path: path.join(directory, `${name}-${viewport}.png`) });
+  const target = path.join(directory, `${name}-${viewport}.png`);
+  try {
+    const buffer = await page.screenshot({ fullPage: true });
+    try { writeFileSync(target, buffer); } catch { /* evidence path may be locked by AV */ }
+    try { await testInfo.attach(`${name}-${viewport}.png`, { body: buffer, contentType: "image/png" }); } catch { /* attachment is best effort */ }
+  } catch { /* screenshot evidence must not fail the product-flow assertion */ }
 }

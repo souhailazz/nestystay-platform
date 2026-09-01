@@ -1,4 +1,6 @@
-# M1/M2 Strict Gap Matrix
+# M1/M2 Strict Gap Matrix (Historical Snapshot — Superseded)
+
+> This matrix records the July 2026 baseline before subsequent remediation. Current statuses are maintained in `docs/testing/NESTYSTAY-FULL-SYSTEM-CHECKLIST.md`; historical PARTIAL/FAIL values here are not current acceptance blockers.
 
 Audit date: 2026-07-24
 

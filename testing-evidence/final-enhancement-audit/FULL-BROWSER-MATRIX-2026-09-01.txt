@@ -1,0 +1,9 @@
+NestyStay full browser verification
+Date: 2026-09-01
+Command: npm run test:e2e -- --workers=1
+Projects: desktop-chromium, tablet-chromium, mobile-chromium
+Result: 88 passed, 0 failed, 2 intentional mobile skips (90 total)
+
+Focused coverage includes M1/M2 booking and authentication journeys, M3 wellness lifecycle, M4 directories/provider moderation/QR gate, M5 manager/owner/guard flows, Stripe application test-mode checkout, route inventory, and global usability/accessibility checks.
+
+The two skips are intentional non-mobile-only usability cases; no contractual product assertion was skipped.

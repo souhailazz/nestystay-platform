@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const evidenceRoot = path.resolve(process.cwd(), "..", "testing-evidence", "milestones-1-4", "screenshots");
@@ -45,21 +45,21 @@ test("M3/M4 live browser acceptance: officer, wellness, directories, privacy, QR
   await page.goto("/directory/businesses", { waitUntil: "networkidle" });
   await expect(page.getByText(/Local businesses/i).first()).toBeVisible();
   mkdirSync(evidenceRoot, { recursive: true });
-  await page.screenshot({ path: path.join(evidenceRoot, `m3-m4-directory-${testInfo.project.name}.png`), fullPage: true });
+  await captureEvidence(page, path.join(evidenceRoot, `m3-m4-directory-${testInfo.project.name}.png`), testInfo);
 
   await page.goto("/host/wellness", { waitUntil: "networkidle" });
   await expect(page.getByText(/Wellness visits/i).first()).toBeVisible();
   await expect(page.getByText("Jamaica Emergency: 119", { exact: true })).toBeVisible();
-  await page.screenshot({ path: path.join(evidenceRoot, `m3-m4-wellness-${testInfo.project.name}.png`), fullPage: true });
+  await captureEvidence(page, path.join(evidenceRoot, `m3-m4-wellness-${testInfo.project.name}.png`), testInfo);
 
   await page.goto("/directory/provider", { waitUntil: "networkidle" });
   await expect(page.getByText(/Provider onboarding|Your provider profile/i).first()).toBeVisible();
-  await page.screenshot({ path: path.join(evidenceRoot, `m3-m4-provider-${testInfo.project.name}.png`), fullPage: true });
+  await captureEvidence(page, path.join(evidenceRoot, `m3-m4-provider-${testInfo.project.name}.png`), testInfo);
 
   await page.evaluate((session) => localStorage.setItem("nestyStay.session", JSON.stringify(session)), officerSession);
   await page.goto("/officer/wellness", { waitUntil: "networkidle" });
   await expect(page.getByText(/Officer wellness|Officer onboarding/i).first()).toBeVisible();
-  await page.screenshot({ path: path.join(evidenceRoot, `m3-m4-officer-${testInfo.project.name}.png`), fullPage: true });
+  await captureEvidence(page, path.join(evidenceRoot, `m3-m4-officer-${testInfo.project.name}.png`), testInfo);
   await api.dispose();
 });
 
@@ -71,4 +71,12 @@ async function createSession(api: APIRequestContext, role: "Host" | "Officer", d
   expect(login.ok(), await login.text()).toBeTruthy();
   const body = await login.json();
   return { userId: body.userId as string, email, displayName, accessToken: body.accessToken as string, expiresAt: body.expiresAt, roles: body.roles, permissions: body.permissions ?? [] };
+}
+
+async function captureEvidence(page: import("@playwright/test").Page, target: string, testInfo: import("@playwright/test").TestInfo) {
+  try {
+    const buffer = await page.screenshot({ fullPage: true });
+    try { writeFileSync(target, buffer); } catch { /* evidence path may be locked by AV */ }
+    try { await testInfo.attach(path.basename(target), { body: buffer, contentType: "image/png" }); } catch { /* attachment is best effort */ }
+  } catch { /* screenshot evidence must not fail the product-flow assertion */ }
 }

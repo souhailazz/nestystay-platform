@@ -588,6 +588,34 @@ public sealed class MilestoneDirectoryProvider : BaseEntity
     public string? PoliceBadgeNumber { get; set; }
 }
 
+/// <summary>
+/// Moderation-safe provider documents.  The binary is stored through the
+/// configured IStorageProvider; this row keeps only scoped metadata and the
+/// verification/scan state needed by the provider and admin workflows.
+/// </summary>
+public sealed class MilestoneDirectoryProviderDocument : BaseEntity
+{
+    public Guid ProviderId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public string DocumentType { get; set; } = "BUSINESS_DOCUMENT";
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string SafeFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
+    public string ObjectKey { get; set; } = string.Empty;
+    public string UploadUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "PendingUpload";
+    public string StorageProviderName { get; set; } = string.Empty;
+    public string? VerifiedContentType { get; set; }
+    public long? UploadedSizeBytes { get; set; }
+    public string? Sha256Hash { get; set; }
+    public string ScanStatus { get; set; } = "PendingScan";
+    public string? ScanProviderName { get; set; }
+    public DateTimeOffset? ScanCheckedAt { get; set; }
+    public DateTimeOffset UploadExpiresAt { get; set; }
+    public DateTimeOffset? UploadedAt { get; set; }
+}
+
 public sealed class MilestoneWellnessSubscription : BaseEntity
 {
     public Guid HostUserId { get; set; }

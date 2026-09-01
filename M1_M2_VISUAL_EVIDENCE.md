@@ -1,4 +1,6 @@
-# M1/M2 Visual Evidence
+# M1/M2 Visual Evidence (Historical Snapshot — Superseded)
+
+> Retained as July 2026 audit evidence. Current client-facing evidence is in `testing-evidence/client-demo/`; current acceptance is in `docs/testing/NESTYSTAY-FULL-SYSTEM-CHECKLIST.md`.
 
 Audit date: 2026-07-24
 

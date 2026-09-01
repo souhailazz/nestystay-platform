@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 type Session = { userId: string; email: string; displayName: string; accessToken: string; expiresAt?: string; roles: string[]; permissions: string[] };
@@ -125,5 +125,10 @@ async function installSession(page: Page, session: Session) {
 
 async function capture(page: Page, testInfo: { project: { name: string } }, name: string) {
   mkdirSync(evidenceDir, { recursive: true });
-  await page.screenshot({ fullPage: true, path: path.join(evidenceDir, `${name}-${testInfo.project.name}.png`) });
+  const target = path.join(evidenceDir, `${name}-${testInfo.project.name}.png`);
+  try {
+    const buffer = await page.screenshot({ fullPage: true });
+    try { writeFileSync(target, buffer); } catch { /* evidence path may be locked by AV */ }
+    try { await testInfo.attach(`${name}-${testInfo.project.name}.png`, { body: buffer, contentType: "image/png" }); } catch { /* attachment is best effort */ }
+  } catch { /* screenshot evidence must not fail the product-flow assertion */ }
 }

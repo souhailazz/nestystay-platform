@@ -1,4 +1,6 @@
-# M1/M2 Test Evidence
+# M1/M2 Test Evidence (Historical Snapshot — Superseded)
+
+> Retained as July 2026 audit evidence. Current executable totals and decisions are in `docs/testing/NESTYSTAY-FULL-SYSTEM-CHECKLIST.md` and `testing-evidence/final-enhancement-audit/FINAL-ENHANCEMENT-REPORT.md`.
 
 Audit date: 2026-07-24
 

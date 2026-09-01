@@ -760,6 +760,26 @@ export type DirectoryProvider = {
   updatedAt?: string;
 };
 
+export type DirectoryProviderDocument = {
+  id: string;
+  providerId: string;
+  documentType: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  scanStatus: string;
+  uploadedAt?: string | null;
+  createdAt: string;
+};
+
+export type DirectoryProviderDocumentUpload = DirectoryProviderDocument & {
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  sha256Hash?: string | null;
+};
+
 export type WellnessReport = {
   id: string;
   visitId: string;
@@ -1079,6 +1099,7 @@ export type PropertyManagerVendor = { id: string; name: string; category: string
 export type PropertyManagerNotice = { id: string; communityId?: string | null; targetOwnerUserId?: string | null; title: string; body: string; publishAt: string; expiresAt?: string | null; isPinned: boolean; isArchived: boolean };
 export type PropertyManagerProposal = { id: string; communityId?: string | null; title: string; description: string; opensAt: string; closesAt: string; status: string; isAnonymous: boolean; quorum?: number | null; eligibleVoters: number; votesCast: number; results: Record<string, number> };
 export type PropertyManagerDocument = { id: string; ownerUserId?: string | null; propertyId?: string | null; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; accessScope: string; isArchived: boolean; createdAt: string };
+export type PropertyManagerDocumentDownload = { id: string; fileName: string; contentType: string; sizeBytes: number; url: string; expiresAt: string };
 export type PropertyManagerGateMessage = { id: string; communityId?: string | null; propertyId?: string | null; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string };
 export type PropertyManagerDashboard = { manager: { managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }; totalOwners: number; totalProperties: number; outstandingBalance: number; invoicesDue: number; openMaintenance: number; pendingVerification: number; gateActivity: number; owners: PropertyManagerOwner[]; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; maintenance: PropertyManagerMaintenance[]; utilities: PropertyManagerUtility[]; vendors: PropertyManagerVendor[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[]; gateMessages: PropertyManagerGateMessage[] };
 export type PropertyManagerStatement = { ownerUserId: string; from: string; to: string; openingBalance: number; entries: { date: string; type: string; description: string; amount: number; invoiceId?: string | null }[]; closingBalance: number; invoices: PropertyManagerInvoice[]; payments: { id: string; invoiceId: string; amount: number; provider: string; providerReference: string; status: string; createdAt: string }[] };
@@ -1545,6 +1566,14 @@ export const api = {
   getM4DirectoryMine: (token: string) => request<DirectoryProvider[]>("/directories/providers/mine", { token }),
   saveM4DirectoryProvider: (token: string, body: { slug?: string; kind: string; category: string; name: string; parish: string; badgeLevel?: string; description: string; availabilitySummary: string; contactMode?: string; isBrickAndMortar?: boolean; policeBadgeNumber?: string | null; isActive?: boolean }) =>
     request<DirectoryProvider>("/directories/providers", { method: "POST", token, body }),
+  getM4DirectoryProviderDocuments: (providerId: string, token: string) =>
+    request<DirectoryProviderDocument[]>(`/spec/directories/providers/${providerId}/documents`, { token }),
+  prepareM4DirectoryProviderDocumentUpload: (providerId: string, token: string, body: { documentType: string; fileName: string; contentType: string; sizeBytes: number }) =>
+    request<DirectoryProviderDocumentUpload>(`/spec/directories/providers/${providerId}/documents/uploads`, { method: "POST", token, body }),
+  uploadM4DirectoryProviderDocumentContent: (providerId: string, documentId: string, token: string, file: File, options?: UploadOptions) =>
+    requestUpload<DirectoryProviderDocumentUpload>(`/spec/directories/providers/${providerId}/documents/${documentId}/content`, token, file, options),
+  getM4DirectoryProviderDocumentDownload: (providerId: string, documentId: string, token: string) =>
+    request<{ id: string; fileName: string; contentType: string; sizeBytes: number; url: string; expiresAt: string }>(`/spec/directories/providers/${providerId}/documents/${documentId}/download`, { token }),
   moderateM4DirectoryProvider: (slug: string, token: string, status: string, reason?: string) =>
     request<DirectoryProvider>(`/directories/providers/${slug}/moderate`, { method: "POST", token, body: { status, reason } }),
   issueBookingQr: (bookingId: string, token: string) =>
@@ -1618,6 +1647,7 @@ export const api = {
   createPropertyManagerProxy: (token: string, body: { proposalId: string; proxyUserId: string; validUntil: string }) => request<{ id: string; proposalId: string; ownerUserId: string; proxyUserId: string; status: string; validUntil: string }>("/property-manager/governance/proxies", { method: "POST", token, body }),
   getPropertyManagerDocuments: (token: string) => request<PropertyManagerDocument[]>("/property-manager/documents", { token }),
   addPropertyManagerDocument: (token: string, body: { ownerUserId?: string; propertyId?: string; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; contentBase64?: string }) => request<PropertyManagerDocument>("/property-manager/documents", { method: "POST", token, body }),
+  getPropertyManagerDocumentDownload: (token: string, documentId: string) => request<PropertyManagerDocumentDownload>(`/property-manager/documents/${documentId}/download`, { token }),
   createPropertyManagerGateMessage: (token: string, body: { communityId?: string; propertyId?: string; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string }) => request<PropertyManagerGateMessage>("/property-manager/gate/messages", { method: "POST", token, body }),
   issuePropertyManagerQr: (token: string, body: { ownerUserId?: string; propertyId?: string; subjectType: string; validFrom: string; validUntil: string }) => request<PropertyManagerQr>("/property-manager/qr", { method: "POST", token, body }),
   validatePropertyManagerQr: (body: { token: string; propertyId?: string }) => request<PropertyManagerQrValidation>("/property-manager/qr/validate", { method: "POST", body }),

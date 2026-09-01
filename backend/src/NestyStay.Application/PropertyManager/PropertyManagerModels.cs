@@ -22,6 +22,7 @@ public interface IPropertyManagerStore
     Task<ProxyDto> CreateProxyAsync(Guid ownerUserId, CreateProxyRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<DocumentDto>> GetDocumentsAsync(Guid actorUserId, bool isAdmin, CancellationToken cancellationToken);
     Task<DocumentDto> AddDocumentAsync(Guid managerUserId, AddDocumentRequest request, CancellationToken cancellationToken);
+    Task<DocumentDownloadDto?> GetDocumentDownloadAsync(Guid actorUserId, bool isAdmin, Guid documentId, CancellationToken cancellationToken);
     Task<GateMessageDto> CreateGateMessageAsync(Guid managerUserId, CreateGateMessageRequest request, CancellationToken cancellationToken);
     Task<QrIssueDto> IssueQrAsync(Guid managerUserId, IssueQrRequest request, CancellationToken cancellationToken);
     Task<QrValidationDto> ValidateQrAsync(string token, Guid? propertyId, Guid? gateGuardUserId, CancellationToken cancellationToken);
@@ -80,6 +81,7 @@ public sealed record NoticeDto(Guid Id, Guid? CommunityId, Guid? TargetOwnerUser
 public sealed record ProposalDto(Guid Id, Guid? CommunityId, string Title, string Description, DateTimeOffset OpensAt, DateTimeOffset ClosesAt, string Status, bool IsAnonymous, int? Quorum, int EligibleVoters, int VotesCast, IReadOnlyDictionary<string, int> Results);
 public sealed record ProxyDto(Guid Id, Guid ProposalId, Guid OwnerUserId, Guid ProxyUserId, string Status, DateTimeOffset ValidUntil, DateTimeOffset? AcceptedAt);
 public sealed record DocumentDto(Guid Id, Guid? OwnerUserId, Guid? PropertyId, string Title, string Category, string FileName, string ContentType, long SizeBytes, string AccessScope, bool IsArchived, DateTimeOffset CreatedAt);
+public sealed record DocumentDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
 public sealed record GateMessageDto(Guid Id, Guid? CommunityId, Guid? PropertyId, string Recipient, string Message, string VisitorType, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);
 public sealed record QrIssueDto(Guid Id, string Token, string SubjectType, Guid? PropertyId, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);
 public sealed record QrValidationDto(string Result, string Status, Guid? PropertyId, string SubjectType, DateTimeOffset? ValidUntil, Guid? QrId, string? Message);

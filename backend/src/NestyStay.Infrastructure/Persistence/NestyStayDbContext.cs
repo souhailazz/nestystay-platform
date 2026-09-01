@@ -155,6 +155,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneMessage> MilestoneMessages => Set<MilestoneMessage>();
     public DbSet<MilestoneMessageAttachment> MilestoneMessageAttachments => Set<MilestoneMessageAttachment>();
     public DbSet<MilestoneDirectoryProvider> MilestoneDirectoryProviders => Set<MilestoneDirectoryProvider>();
+    public DbSet<MilestoneDirectoryProviderDocument> MilestoneDirectoryProviderDocuments => Set<MilestoneDirectoryProviderDocument>();
     public DbSet<MilestoneHostPricingRule> MilestoneHostPricingRules => Set<MilestoneHostPricingRule>();
     public DbSet<MilestoneHostPromotion> MilestoneHostPromotions => Set<MilestoneHostPromotion>();
     public DbSet<MilestoneAdminCase> MilestoneAdminCases => Set<MilestoneAdminCase>();
@@ -266,6 +267,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => provider.OwnerUserId);
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Kind, provider.Category, provider.Parish });
         modelBuilder.Entity<MilestoneDirectoryProvider>().HasIndex(provider => new { provider.Status, provider.VerificationStatus, provider.IsActive });
+        modelBuilder.Entity<MilestoneDirectoryProviderDocument>().HasIndex(document => new { document.ProviderId, document.OwnerUserId, document.Status });
+        modelBuilder.Entity<MilestoneDirectoryProviderDocument>().HasIndex(document => document.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestoneHostPricingRule>().HasIndex(rule => new { rule.HostUserId, rule.PropertyId, rule.StartsOn, rule.EndsOn });
         modelBuilder.Entity<MilestoneHostPromotion>().HasIndex(promotion => new { promotion.HostUserId, promotion.PropertyId, promotion.IsActive });
         modelBuilder.Entity<MilestoneAdminCase>().HasIndex(adminCase => new { adminCase.CaseType, adminCase.Status });

@@ -42,7 +42,7 @@ import { StatusChip } from "../components/ui/StatusChip";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
-import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type DirectoryProviderDocument, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
@@ -1791,6 +1791,8 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
   const [error, setError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [documents, setDocuments] = useState<string[]>([]);
+  const [providerDocuments, setProviderDocuments] = useState<DirectoryProviderDocument[]>([]);
+  const [documentUploadBusy, setDocumentUploadBusy] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
   const draftKey = `nestyStay.providerDraft.${session.userId}`;
 
@@ -1820,6 +1822,11 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
     });
   }, [provider]);
 
+  useEffect(() => {
+    if (!provider?.id) return;
+    void api.getM4DirectoryProviderDocuments(provider.id, session.accessToken).then(setProviderDocuments).catch(() => undefined);
+  }, [provider?.id, session.accessToken]);
+
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -1829,10 +1836,29 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
     setNotice("Draft saved. You can return to this application any time.");
   }
 
+  async function uploadProviderDocuments(files: File[]) {
+    if (!provider?.id || files.length === 0) return;
+    setDocumentUploadBusy(true);
+    try {
+      for (const file of files) {
+        const prepared = await api.prepareM4DirectoryProviderDocumentUpload(provider.id, session.accessToken, { documentType: "BUSINESS_DOCUMENT", fileName: file.name, contentType: file.type, sizeBytes: file.size });
+        await api.uploadM4DirectoryProviderDocumentContent(provider.id, prepared.id, session.accessToken, file);
+      }
+      setProviderDocuments(await api.getM4DirectoryProviderDocuments(provider.id, session.accessToken));
+      setNotice("Provider documents uploaded, scanned, and attached to your moderation application.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Provider document upload failed.");
+    } finally {
+      setDocumentUploadBusy(false);
+    }
+  }
+
   function attachDocuments(files: FileList | null) {
     if (!files?.length) return;
-    setDocuments((current) => Array.from(new Set([...current, ...Array.from(files).map((file) => file.name)])));
-    setNotice("Documents attached to this draft. They will be checked during admin review.");
+    const selected = Array.from(files);
+    setDocuments((current) => Array.from(new Set([...current, ...selected.map((file) => file.name)])));
+    if (provider?.id) void uploadProviderDocuments(selected);
+    else setNotice("Documents are attached to this draft. Save the profile once, then upload them to the secure provider document vault.");
   }
 
   async function save(event: FormEvent) {
@@ -1891,8 +1917,9 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
           <Field label="Description"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
           <InlineLabel><input checked={form.isBrickAndMortar} type="checkbox" onChange={(event) => update("isBrickAndMortar", event.target.checked)} /> Brick-and-mortar location</InlineLabel>
           <div className="rounded-field border border-sand-border bg-shell p-3 text-xs text-sand-600"><strong>Application checklist</strong><div className="mt-2 grid gap-1.5 sm:grid-cols-2"><span>{form.name.trim() ? "✓" : "○"} Business identity</span><span>{form.parish.trim() ? "✓" : "○"} Service area</span><span>{form.availabilitySummary.trim() ? "✓" : "○"} Availability</span><span>{documents.length ? "✓" : "○"} Supporting documents</span></div></div>
-          <Field label="Business documents"><Input accept="application/pdf,image/jpeg,image/png" multiple onChange={(event) => { attachDocuments(event.target.files); event.currentTarget.value = ""; }} type="file" /></Field>
+          <Field label="Business documents" hint="PDF, JPEG or PNG; up to 25 MB each. Files are scanned before moderation."><Input accept="application/pdf,image/jpeg,image/png" disabled={documentUploadBusy} multiple onChange={(event) => { attachDocuments(event.target.files); event.currentTarget.value = ""; }} type="file" /></Field>
           {documents.length > 0 && <div className="flex flex-wrap gap-2 text-xs">{documents.map((document) => <span className="rounded-pill bg-mint-tint px-3 py-1.5 text-mint-text" key={document}>{document}</span>)}</div>}
+          {providerDocuments.length > 0 && <div className="grid gap-2 rounded-field border border-sand-border bg-white p-3 text-xs"><strong>Secure document vault</strong>{providerDocuments.map((doc) => <div className="flex flex-wrap items-center justify-between gap-2" key={doc.id}><span>{doc.fileName} · {doc.scanStatus}</span>{doc.status === "Uploaded" && <button className="font-semibold underline" onClick={() => void api.getM4DirectoryProviderDocumentDownload(provider!.id, doc.id, session.accessToken).then((download) => { const link = window.document.createElement("a"); link.href = download.url; link.download = download.fileName; link.rel = "noopener noreferrer"; link.click(); }).catch((caught) => setError(caught instanceof Error ? caught.message : "Document download failed."))} type="button">Download</button>}</div>)}</div>}
           <label className="flex items-start gap-2 text-sm"><input checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} type="checkbox" /><span>I accept the provider terms, privacy notice, and moderation rules.</span></label>
           <div className="text-xs text-sand-500">Contact is always platform messaging only. New or changed listings remain hidden until admin verification.</div>
           <div className="flex flex-wrap gap-2.5">

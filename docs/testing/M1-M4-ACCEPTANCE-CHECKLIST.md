@@ -1,6 +1,6 @@
 # NestyStay M1–M4 Acceptance Checklist (Final)
 
-Checked items are backed by current executable evidence under `testing-evidence/milestones-1-4/` and retained M1–M2 evidence. Provider credentials are listed separately and do not block the local contractual decision.
+Checked items are backed by current executable evidence under `testing-evidence/milestones-1-4/`, retained M1–M2 evidence and the current M1–M5 enhancement audit. Provider credentials are listed separately and do not block the local contractual decision.
 
 ## M1 Core
 
@@ -48,7 +48,7 @@ Checked items are backed by current executable evidence under `testing-evidence/
 - [x] Police emergency/non-emergency separation and tap-to-call 119 guidance.
 - [x] Provider onboarding checklist, draft/resume, document selection, terms acceptance, preview and status timeline.
 - [x] Admin directory moderation queue with search/status filters, review comparison, approve/reject/request-changes actions, reasons and audit record.
-- [x] QR issue templates/expiry presets, preview/download/copy, guard camera/manual fallback, readable status and offline retry guidance.
+- [x] QR issue templates/expiry presets, preview/download/copy, browser camera decode where supported, manual fallback, readable status and offline retry guidance.
 
 ## Explicit external/provider gates
 

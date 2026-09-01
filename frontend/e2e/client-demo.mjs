@@ -80,6 +80,13 @@ async function seed(api) {
   } catch { /* wellness data can still be shown through the real empty state */ }
 
   fixtures.provider = await jsonRequest(api, "post", "/api/directories/providers", { slug: `kingston-plumbing-${sessions.provider.userId.slice(0, 8)}`, kind: "Trades", category: "Plumbing", name: "Kingston Plumbing Services", parish: "Kingston", badgeLevel: "Trusted", description: "Licensed local trade provider for residential repairs.", availabilitySummary: "Mon–Fri · 8:00 AM–5:00 PM", contactMode: "Platform messaging", isBrickAndMortar: true, isActive: true }, bearer(sessions.provider)).catch(() => null);
+  if (fixtures.provider?.id) {
+    try {
+      const prepared = await jsonRequest(api, "post", `/api/spec/directories/providers/${fixtures.provider.id}/documents/uploads`, { fileName: "trade-licence.pdf", documentType: "BUSINESS_LICENCE", contentType: "application/pdf", sizeBytes: 18 }, bearer(sessions.provider));
+      const upload = await api.put(`/api/spec/directories/providers/${fixtures.provider.id}/documents/${prepared.id}/content`, { headers: { Authorization: `Bearer ${sessions.provider.accessToken}`, "Content-Type": "application/pdf" }, data: Buffer.from("%PDF-1.7\nNestyStay demo provider document\n") });
+      if (!upload.ok()) throw new Error(await upload.text());
+    } catch { /* document vault is optional fixture data */ }
+  }
   for (const kind of ["Custodian", "LocalBusiness", "Police"]) {
     try { await jsonRequest(api, "post", "/api/directories/providers", { slug: `demo-${kind.toLowerCase()}-${Date.now()}`, kind, category: kind === "Police" ? "Wellness safety" : "Property services", name: kind === "Police" ? "St. Ann Community Safety" : `Demo ${kind} Partner`, parish: "St. Ann", badgeLevel: kind === "Police" ? "Wellness" : "Verified", description: "Approved directory fixture for client demonstration.", availabilitySummary: "Available through NestyStay", contactMode: "Platform messaging", isBrickAndMortar: true, isActive: true }, adminToken); } catch { /* optional fixture */ }
   }

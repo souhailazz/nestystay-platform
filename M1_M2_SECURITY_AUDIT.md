@@ -1,5 +1,7 @@
 # M1/M2 Security Audit
 
+> Historical July 2026 snapshot — superseded by the signed-agreement reconciliation and current security evidence in `testing-evidence/milestones-1-5/security/`, `testing-evidence/milestones-1-4/security/` and `testing-evidence/final-enhancement-audit/FINAL-ENHANCEMENT-REPORT.md`. Do not use this legacy PARTIAL verdict for current acceptance.
+
 Audit date: 2026-07-24
 
 Branch: `audit/m1-m2-remediation`
