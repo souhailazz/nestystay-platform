@@ -19,11 +19,11 @@ Primary contractual source: [signed April 2026 agreement](../../docs/contracts/N
 | M3 | Photo report upload, magic-byte scan, report submission, completion, 8% pricebook commission and payout state | Officer browser lifecycle, offline draft + compressed multi-photo upload with captions/progress/retry, host report print/save, admin payout desk, report/photo/payout APIs, PostgreSQL state and security tests | PASS |
 | M3 | Badge-ID-only officer privacy and platform-controlled communication | Privacy-safe DTOs, Police restrictions, direct HTTP tests and browser evidence | PASS |
 | M3 | Admin queue, financial inspection and transition event trail | Admin endpoints/dashboard, audit/event persistence and browser/API evidence | PASS |
-| M4 | Custodian, Trades and Local Business directories; provider onboarding, moderation, search and shared provider dashboard | Generic persisted directory model with category rules, self-service registration, admin moderation, filtered UI/API and route inventory | PASS |
+| M4 | Custodian, Trades and Local Business directories; provider onboarding, moderation, search and shared provider dashboard | Generic persisted directory model with category rules, self-service registration, searchable/list-map/favorites/contact UI, admin moderation queue (`/admin/ops/directory`), filtered API and responsive route inventory | PASS |
 | M4 | Badge-gated directory access: Custodian VERIFIED, Trades TRUSTED, Local Business VERIFIED | Server-side `RequireDirectoryAccess`, direct HTTP bypass tests, host UI lock states | PASS |
 | M4 | Police directory: active off-duty JCF only, badge ID only, no names/contact, platform messaging only, host wellness access | Officer-to-directory projection, privacy-safe Police API and locked anonymous/non-Wellness paths | PASS |
 | M4 | Guest verification upsell reused from M1 per property | Existing eKYC property/booking flow and browser/API evidence | PASS |
-| M4 | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | Hashed token QR issue/validate/revoke endpoints, ownership/booking checks, active traveler QR controls, public `/gate/qr` validator and live/API/browser evidence | PASS |
+| M4 | Secure booking/property/guest QR, valid dates, wrong-property rejection, revocation and scan logging | Hashed token QR issue/validate/revoke endpoints, ownership/booking checks, active traveler QR controls, template/expiry/download UI, camera/manual guard fallback, public `/gate/qr` validator and live/API/browser evidence | PASS |
 | M4 | Jamaica emergency number 119 visible on wellness/listing experience | Wellness quote/UI constant and 3-viewport browser evidence | PASS |
 
 ## Provider and production split

@@ -570,6 +570,7 @@ function AdminRoute({
 
 function adminOpsPermission(view: string): AdminPermission {
   if (view === "audit" || view === "logs") return AdminPermissions.auditLogAccess;
+  if (view === "directory" || view === "directories" || view === "providers") return AdminPermissions.propertyModeration;
   if (view === "payments" || view === "refunds" || view === "reports" || view === "wellness") return AdminPermissions.financialReporting;
   if (view === "badges" || view === "badge-management" || view === "badge-assignments" || view === "pricebook" || view === "campaigns" || view === "fees") return AdminPermissions.systemConfiguration;
   return AdminPermissions.userManagement;
@@ -604,6 +605,7 @@ const implementedScreens = [
   ["DIR-02", "Trades directory", "/directory/trades"],
   ["DIR-BIZ", "Business directory", "/directory/businesses"],
   ["DIR-PROV", "Provider profile", "/directory/provider"],
+  ["DIR-ADM", "Directory moderation queue", "/admin/ops/directory"],
   ["HOST-01", "Host dashboard", "/host-dashboard"],
   ["HOST-05", "Host properties", "/host/properties"],
   ["HOST-EDIT", "Host property edit", "/host/properties/edit"],

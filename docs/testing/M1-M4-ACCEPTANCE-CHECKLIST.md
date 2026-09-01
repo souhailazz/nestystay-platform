@@ -44,6 +44,11 @@ Checked items are backed by current executable evidence under `testing-evidence/
 - [x] QR validation, valid dates, wrong-property rejection, revocation and scan logging.
 - [x] Gate-facing `/gate/qr` verification UI/API with visible valid, wrong-property, revoked, expired and invalid outcomes.
 - [x] Emergency number 119 displayed on wellness/listing surfaces.
+- [x] Directory list/map toggle, autocomplete suggestions, availability/parish/category filters, sort, saved searches, favorites, ratings, verified badges, directions and one-click contact.
+- [x] Police emergency/non-emergency separation and tap-to-call 119 guidance.
+- [x] Provider onboarding checklist, draft/resume, document selection, terms acceptance, preview and status timeline.
+- [x] Admin directory moderation queue with search/status filters, review comparison, approve/reject/request-changes actions, reasons and audit record.
+- [x] QR issue templates/expiry presets, preview/download/copy, guard camera/manual fallback, readable status and offline retry guidance.
 
 ## Explicit external/provider gates
 

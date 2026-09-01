@@ -140,6 +140,7 @@ public sealed class EfDirectoryModerationStore(
         {
             "approve" or "approved" or "publish" or "published" => "Published",
             "reject" or "rejected" => "Rejected",
+            "request-changes" or "request_changes" or "changes" => "ChangesRequested",
             "suspend" or "suspended" => "Suspended",
             "reactivate" or "active" => "Published",
             _ => throw new InvalidOperationException("Unsupported provider moderation status.")

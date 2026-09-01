@@ -39,6 +39,24 @@ public sealed class DirectoriesController(
         return Ok(provider);
     }
 
+    // Moderators need the complete queue, including pending and rejected records.
+    // Public directory reads intentionally remain limited to published providers.
+    [Authorize(Policy = AdminAuthorizationPolicies.PropertyModeration)]
+    [HttpGet("providers/moderation")]
+    public async Task<ActionResult<IReadOnlyList<DirectoryProviderRecord>>> ModerationQueue(
+        [FromQuery] string? kind,
+        [FromQuery] string? status,
+        [FromQuery] string? query,
+        CancellationToken cancellationToken)
+    {
+        var records = await directoryStore.GetProvidersAsync(kind, null, null, query, includeUnpublished: true, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            records = records.Where(item => item.Status.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        return Ok(records);
+    }
+
     [Authorize]
     [HttpGet("providers/mine", Order = -10)]
     public async Task<ActionResult<IReadOnlyList<DirectoryProviderRecord>>> Mine(CancellationToken cancellationToken)

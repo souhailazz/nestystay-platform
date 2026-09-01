@@ -11,6 +11,7 @@
 | Documents | PDF/JPEG/PNG file picker, base64 upload, 25 MB/type/name checks and scoped listing | PASS |
 | QR | Secure random token, hashed persistence, public validation, wrong-property/expiry/revoke states and scan log | PASS |
 | Isolation | Cross-owner invoice/portal leakage test and manager portfolio scope checks | PASS |
-| Real browser | Desktop, tablet and mobile PM/owner/gate tests | PASS (6/6) |
+| Real browser | Desktop, tablet and mobile PM/owner/gate tests plus enhancement suite | PASS (18/18 PM/M4 targeted checks) |
+| Usability upgrades | Configurable KPI cards, alert strip, duplicate-owner hint/resend action, invoice templates/tax/recurring reminder, utility usage trend/anomaly guidance, list/Kanban maintenance board with SLA labels, document search, QR templates/expiry presets/download/copy, and guard-first camera/manual validator with offline retry | PASS locally; unsupported persistence is called out in traceability |
 
 The signed agreement does not state a fixed Property Manager price. The local profile uses a configurable Portfolio tier with amount `0` until commercial configuration is supplied.

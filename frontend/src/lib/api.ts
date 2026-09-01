@@ -1539,6 +1539,8 @@ export const api = {
     request<DirectoryProvider>("/spec/directories/providers", { method: "POST", token, body }),
   getM4DirectoryProviders: (params: { kind?: string; category?: string; parish?: string; query?: string } = {}, token?: string) =>
     request<DirectoryProvider[]>(withQuery("/directories/providers", params), { token }),
+  getM4DirectoryModerationQueue: (token: string, params: { kind?: string; status?: string; query?: string } = {}) =>
+    request<DirectoryProvider[]>(withQuery("/directories/providers/moderation", params), { token }),
   getM4DirectoryProvider: (slug: string, token?: string) => request<DirectoryProvider>(`/directories/providers/${slug}`, { token }),
   getM4DirectoryMine: (token: string) => request<DirectoryProvider[]>("/directories/providers/mine", { token }),
   saveM4DirectoryProvider: (token: string, body: { slug?: string; kind: string; category: string; name: string; parish: string; badgeLevel?: string; description: string; availabilitySummary: string; contactMode?: string; isBrickAndMortar?: boolean; policeBadgeNumber?: string | null; isActive?: boolean }) =>
@@ -1604,7 +1606,7 @@ export const api = {
   createPropertyManagerInvoice: (token: string, body: { ownerUserId: string; propertyId?: string; dueDate: string; tax: number; lines: { description: string; quantity: number; unitAmount: number }[] }) => request<PropertyManagerInvoice>("/property-manager/invoices", { method: "POST", token, body }),
   getPropertyManagerInvoice: (token: string, invoiceId: string) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}`, { token }),
   payPropertyManagerInvoice: (token: string, invoiceId: string, body: { amount: number; idempotencyKey: string }) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}/payments`, { method: "POST", token, body }),
-  getPropertyManagerStatement: (token: string, ownerUserId: string) => request<PropertyManagerStatement>(`/property-manager/owners/${ownerUserId}/statement`, { token }),
+  getPropertyManagerStatement: (token: string, ownerUserId: string, from?: string, to?: string) => request<PropertyManagerStatement>(withQuery(`/property-manager/owners/${ownerUserId}/statement`, { from, to }), { token }),
   createPropertyManagerUtility: (token: string, body: { ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number }) => request<PropertyManagerUtility>("/property-manager/utilities", { method: "POST", token, body }),
   createPropertyManagerMaintenance: (token: string, body: { ownerUserId: string; propertyId: string; title: string; description: string; category: string; urgency: string }) => request<PropertyManagerMaintenance>("/property-manager/maintenance", { method: "POST", token, body }),
   updatePropertyManagerMaintenance: (token: string, id: string, body: { status: string; vendorId?: string; scheduledAt?: string; cost: number; notes: string }) => request<PropertyManagerMaintenance>(`/property-manager/maintenance/${id}`, { method: "PATCH", token, body }),

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import QRCode from "qrcode";
 import {
+  ArrowRight,
   BadgeCheck,
   Bell,
   BookOpen,
@@ -9,6 +10,11 @@ import {
   CreditCard,
   Download,
   FileText,
+  Heart,
+  Map,
+  MapPin,
+  Navigation,
+  Phone,
   LayoutDashboard,
   Lock,
   Mail,
@@ -19,6 +25,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Star,
+  TriangleAlert,
   X,
   UserRound,
 } from "lucide-react";
@@ -1610,11 +1617,41 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [directorySort, setDirectorySort] = useState("name");
   const [directoryPage, setDirectoryPage] = useState(0);
-  useEffect(() => setDirectoryPage(0), [category, directoryQuery, directorySort]);
+  const [directoryView, setDirectoryView] = useState<"list" | "map">("list");
+  const [parish, setParish] = useState("All");
+  const [availabilityOnly, setAvailabilityOnly] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [savedSearches, setSavedSearches] = useState<string[]>([]);
+  useEffect(() => setDirectoryPage(0), [category, directoryQuery, directorySort, parish, availabilityOnly]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem("nestyStay.directoryFavorites") ?? "[]") as unknown;
+      if (Array.isArray(stored)) setFavorites(stored.filter((item): item is string => typeof item === "string"));
+      const searches = JSON.parse(window.localStorage.getItem("nestyStay.directorySearches") ?? "[]") as unknown;
+      if (Array.isArray(searches)) setSavedSearches(searches.filter((item): item is string => typeof item === "string"));
+    } catch { /* local storage is optional */ }
+  }, []);
+  function toggleFavorite(slug: string) {
+    setFavorites((current) => {
+      const next = current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug];
+      window.localStorage.setItem("nestyStay.directoryFavorites", JSON.stringify(next));
+      return next;
+    });
+  }
+  function saveSearch() {
+    const value = directoryQuery.trim();
+    if (!value) return;
+    setSavedSearches((current) => {
+      const next = [value, ...current.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 5);
+      window.localStorage.setItem("nestyStay.directorySearches", JSON.stringify(next));
+      return next;
+    });
+  }
   if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} />}</DataGate>;
   if (kind === "Provider" || kind === "ProviderDashboard") {
     return <RequireSession auth={auth}>{(session) => <ProviderPortal session={session} mode={kind} />}</RequireSession>;
   }
+  if (kind === "Verification") return <GuestVerificationUpsell auth={auth} />;
 
   const isTrades = kind === "Trades";
   const screenId = kind === "Custodian" ? "DIR-01" : isTrades ? "DIR-02" : kind === "Police" ? "DIR-POLICE" : kind === "Verification" ? "DIR-06" : "DIR-BIZ";
@@ -1648,20 +1685,24 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
         {isTrades && <span className="text-[11.5px] text-sand-500">Powered by EITA — electricianinthisarea.com</span>}
       </div>
 
-      {directoryLocked && <div className="rounded-card border border-sand-border bg-cream p-[22px] text-[13px] text-gray-600">{kind === "Police" ? "Police wellness directory access requires a signed-in host with an active Wellness badge." : `A ${kind === "Trades" ? "Trusted" : "Verified"} badge is required to use this directory.`}</div>}
+      {kind === "Police" && <div className="rounded-card border border-coral/30 bg-coral-tint p-[18px] text-coral-text" role="region" aria-label="Emergency 119"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="flex items-center gap-2"><TriangleAlert size={18} /> Emergency? Call 119</strong><p className="m-0 mt-1 text-sm">For immediate danger use Jamaica’s emergency line. Share your location and keep this page open for safety guidance.</p></div><a className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-coral px-5 font-semibold text-white" href="tel:119"><Phone size={16} /> Tap to call 119</a></div><div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-pill bg-white/70 px-3 py-1.5">Emergency: 119</span><span className="rounded-pill bg-white/70 px-3 py-1.5">Non-emergency: use the directory contacts</span></div></div>}
+      {directoryLocked && <div className="rounded-card border border-sand-border bg-cream p-[22px] text-[13px] text-gray-600"><strong>{kind === "Police" ? "Wellness badge access" : `${kind === "Trades" ? "Trusted" : "Verified"} badge access`}</strong><p className="m-0 mt-1">{kind === "Police" ? "Police wellness directory access requires a signed-in host with an active Wellness badge." : `A ${kind === "Trades" ? "Trusted" : "Verified"} badge is required to use this directory.`}</p><div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-pill bg-yellow/25 px-3 py-1.5 font-semibold">Upgrade to unlock · from US$49/year</span><AppLink className={buttonClassName("sun")} href="/host/badges">View badge options <ArrowRight size={16} /></AppLink></div></div>}
 
       {!directoryLocked && !badgePending && <DataGate state={list}>
         {(providers) => {
           const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
+          const parishes = ["All", ...Array.from(new Set(providers.map((provider) => provider.parish))).sort()];
           const filtered = providers
             .filter((provider) => category === "All" || provider.category === category)
+            .filter((provider) => parish === "All" || provider.parish === parish)
+            .filter((provider) => !availabilityOnly || /available|open|24|mon|daily/i.test(provider.availabilitySummary))
             .filter((provider) => !directoryQuery.trim() || `${provider.name} ${provider.category} ${provider.parish}`.toLowerCase().includes(directoryQuery.trim().toLowerCase()))
-            .sort((left, right) => directorySort === "category" ? left.category.localeCompare(right.category) : left.name.localeCompare(right.name));
+            .sort((left, right) => directorySort === "rating" ? right.rating - left.rating : directorySort === "category" ? left.category.localeCompare(right.category) : left.name.localeCompare(right.name));
           const pageSize = 12;
           const visibleProviders = filtered.slice(directoryPage * pageSize, (directoryPage + 1) * pageSize);
           return (
             <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2" aria-label="Directory categories">
                 {categories.map((item) => (
                   <button
                     className={cx(
@@ -1692,6 +1733,14 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
                   </AppLink>
                 </div>
               </div>
+              <div className="grid gap-3 rounded-card border border-sand-border bg-cream p-4 md:grid-cols-[1fr_180px_auto_auto_auto] md:items-end">
+                <Field label="Directory search"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 text-sand-500" size={16} /><Input aria-label="Directory search" className="pl-9" list="directory-search-suggestions" onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search providers, services, parish" value={directoryQuery} /><datalist id="directory-search-suggestions">{providers.slice(0, 12).map((provider) => <option key={provider.id} value={provider.name} />)}</datalist></div></Field>
+                <Field label="Parish"><Select value={parish} onChange={(event) => setParish(event.target.value)}>{parishes.map((item) => <option key={item}>{item}</option>)}</Select></Field>
+                <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input checked={availabilityOnly} onChange={(event) => setAvailabilityOnly(event.target.checked)} type="checkbox" /> Available now</label>
+                <div className="flex gap-2"><Button aria-pressed={directoryView === "list"} onClick={() => setDirectoryView("list")} variant={directoryView === "list" ? "dark" : "outline"}>List</Button><Button aria-pressed={directoryView === "map"} onClick={() => setDirectoryView("map")} variant={directoryView === "map" ? "dark" : "outline"}><Map size={15} /> Map</Button></div>
+                <Button onClick={saveSearch} variant="outline">Save search</Button>
+              </div>
+              {savedSearches.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-sand-600"><span>Saved searches:</span>{savedSearches.map((item) => <button className="rounded-pill border border-sand-border px-3 py-1.5 font-semibold hover:border-deep" key={item} onClick={() => setDirectoryQuery(item)} type="button">{item}</button>)}</div>}
               <ListControls
                 label="Search providers"
                 onExport={() => downloadCsv("nesty-directory.csv", ["Name", "Category", "Parish", "Badge"], filtered.map((provider) => [provider.name, provider.category, provider.parish, provider.badgeLevel]))}
@@ -1702,15 +1751,15 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
                 pageSize={pageSize}
                 query={directoryQuery}
                 sort={directorySort}
-                sortOptions={[{ value: "name", label: "Name" }, { value: "category", label: "Category" }]}
+                sortOptions={[{ value: "name", label: "Name" }, { value: "category", label: "Category" }, { value: "rating", label: "Rating" }]}
                 total={filtered.length}
               />
               {filtered.length === 0 ? (
                 <EmptyState title="No providers in this category yet." />
               ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-4">
+                <div className={directoryView === "map" ? "grid min-h-[300px] grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3 rounded-card border border-sand-border bg-[#e4eee8] p-4" : "grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-4"} data-testid={directoryView === "map" ? "directory-map" : "directory-list"}>
                   {visibleProviders.map((provider) => (
-                    <ProviderCard isTrades={isTrades} key={provider.id} provider={provider} />
+                    <ProviderCard isTrades={isTrades} isFavorite={favorites.includes(provider.slug)} key={provider.id} onToggleFavorite={() => toggleFavorite(provider.slug)} provider={provider} />
                   ))}
                 </div>
               )}
@@ -1740,6 +1789,20 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
   });
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [documents, setDocuments] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState(1);
+  const draftKey = `nestyStay.providerDraft.${session.userId}`;
+
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(window.localStorage.getItem(draftKey) ?? "null") as { form?: typeof form; termsAccepted?: boolean; documents?: string[]; activeStep?: number } | null;
+      if (draft?.form) setForm((current) => ({ ...current, ...draft.form }));
+      if (draft?.termsAccepted) setTermsAccepted(true);
+      if (Array.isArray(draft?.documents)) setDocuments(draft.documents);
+      if (draft?.activeStep) setActiveStep(draft.activeStep);
+    } catch { /* draft recovery is best effort */ }
+  }, [draftKey]);
 
   useEffect(() => {
     if (!provider) return;
@@ -1761,13 +1824,26 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function saveDraft() {
+    window.localStorage.setItem(draftKey, JSON.stringify({ form, termsAccepted, documents, activeStep, savedAt: new Date().toISOString() }));
+    setNotice("Draft saved. You can return to this application any time.");
+  }
+
+  function attachDocuments(files: FileList | null) {
+    if (!files?.length) return;
+    setDocuments((current) => Array.from(new Set([...current, ...Array.from(files).map((file) => file.name)])));
+    setNotice("Documents attached to this draft. They will be checked during admin review.");
+  }
+
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (!termsAccepted) { setError("Accept the provider terms before submitting for review."); setActiveStep(3); return; }
     setNotice(null);
     setError(null);
     try {
       const saved = await api.saveM4DirectoryProvider(session.accessToken, { slug, ...form });
       setNotice(`${saved.name} is saved for review. ${saved.status ?? "PendingReview"}.`);
+      window.localStorage.removeItem(draftKey);
       mine.reload();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Provider profile could not be saved.");
@@ -1791,6 +1867,7 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
 
       <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
         <form className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]" onSubmit={save}>
+          <div className="flex flex-wrap items-center gap-2" aria-label="Provider onboarding steps">{["Profile", "Availability", "Documents & terms"].map((step, index) => <button aria-current={activeStep === index + 1 ? "step" : undefined} className={cx("rounded-pill px-3 py-1.5 text-xs font-semibold", activeStep === index + 1 ? "bg-deep text-white" : "bg-shell text-sand-600")} key={step} onClick={() => setActiveStep(index + 1)} type="button">{index + 1}. {step}</button>)}</div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Business name"><Input value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
             <Field label="Provider type">
@@ -1813,9 +1890,14 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
           </div>
           <Field label="Description"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
           <InlineLabel><input checked={form.isBrickAndMortar} type="checkbox" onChange={(event) => update("isBrickAndMortar", event.target.checked)} /> Brick-and-mortar location</InlineLabel>
+          <div className="rounded-field border border-sand-border bg-shell p-3 text-xs text-sand-600"><strong>Application checklist</strong><div className="mt-2 grid gap-1.5 sm:grid-cols-2"><span>{form.name.trim() ? "✓" : "○"} Business identity</span><span>{form.parish.trim() ? "✓" : "○"} Service area</span><span>{form.availabilitySummary.trim() ? "✓" : "○"} Availability</span><span>{documents.length ? "✓" : "○"} Supporting documents</span></div></div>
+          <Field label="Business documents"><Input accept="application/pdf,image/jpeg,image/png" multiple onChange={(event) => { attachDocuments(event.target.files); event.currentTarget.value = ""; }} type="file" /></Field>
+          {documents.length > 0 && <div className="flex flex-wrap gap-2 text-xs">{documents.map((document) => <span className="rounded-pill bg-mint-tint px-3 py-1.5 text-mint-text" key={document}>{document}</span>)}</div>}
+          <label className="flex items-start gap-2 text-sm"><input checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} type="checkbox" /><span>I accept the provider terms, privacy notice, and moderation rules.</span></label>
           <div className="text-xs text-sand-500">Contact is always platform messaging only. New or changed listings remain hidden until admin verification.</div>
           <div className="flex flex-wrap gap-2.5">
             <Button type="submit" variant="dark"><BadgeCheck size={17} /> Save provider profile</Button>
+            <Button onClick={saveDraft} type="button" variant="outline">Save draft</Button>
             <AppLink
               className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
               href={`/directory/providers/${slug}`}
@@ -1839,6 +1921,7 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
               Required badge: {form.kind === "Trades" ? "Trusted" : "Verified"}. Badge eligibility is enforced server-side.
             </div>
             <div className="text-xs text-sand-500">Requests and messages stay in the platform inbox — {form.contactMode}.</div>
+            <div className="rounded-field bg-shell p-3 text-sm"><strong>Application status timeline</strong><div className="mt-2 grid gap-1.5"><span>✓ Profile draft</span><span className={provider?.status === "Published" ? "text-success-text" : "text-yellow-700"}>● {provider?.status === "Published" ? "Published" : "Pending admin review"}</span><span className="text-sand-500">○ Renewal reminder after approval</span></div></div>
           </div>
 
           <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
@@ -1852,7 +1935,7 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
   );
 }
 
-function ProviderCard({ provider, isTrades }: { provider: DirectoryProvider; isTrades?: boolean }) {
+function ProviderCard({ provider, isTrades, isFavorite, onToggleFavorite }: { provider: DirectoryProvider; isTrades?: boolean; isFavorite?: boolean; onToggleFavorite?: () => void }) {
   if (provider.badgeLevel === "Trusted") {
     return (
       <div className="flex flex-col gap-2.5 rounded-card bg-deep p-[22px]">
@@ -1874,12 +1957,16 @@ function ProviderCard({ provider, isTrades }: { provider: DirectoryProvider; isT
           </span>
         </div>
         <div className="text-[13px] text-on-dark-muted">{provider.description}</div>
+        <div className="flex flex-wrap gap-2">
+        {onToggleFavorite && <button aria-label={isFavorite ? `Remove ${provider.name} from favorites` : `Save ${provider.name} to favorites`} aria-pressed={isFavorite} className="inline-flex min-h-[46px] items-center gap-2 rounded-pill border border-yellow/50 px-4 text-sm font-semibold text-yellow hover:bg-yellow/10" onClick={onToggleFavorite} type="button"><Heart fill={isFavorite ? "currentColor" : "none"} size={16} /> {isFavorite ? "Saved" : "Save"}</button>}
         <AppLink
           className="mt-auto inline-flex min-h-[46px] items-center justify-center rounded-pill bg-yellow font-sans text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
           href={`/directory/providers/${provider.slug}`}
         >
           View provider
         </AppLink>
+        <AppLink className="inline-flex min-h-[46px] items-center gap-1 rounded-pill border border-yellow/50 px-4 text-sm font-semibold text-yellow" href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={15} /> Contact</AppLink>
+        </div>
       </div>
     );
   }
@@ -1903,7 +1990,7 @@ function ProviderCard({ provider, isTrades }: { provider: DirectoryProvider; isT
         </span>
       </div>
       <div className="text-[13px] text-gray-600">{provider.description}</div>
-      <div className="mt-auto flex items-center justify-between gap-2.5">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2.5">
         {provider.badgeLevel === "Free" ? (
           <span className="text-[11.5px] text-sand-500">Free listing</span>
         ) : isTrades && provider.badgeLevel === "Verified" ? (
@@ -1911,19 +1998,35 @@ function ProviderCard({ provider, isTrades }: { provider: DirectoryProvider; isT
         ) : (
           <TierBadge className="!px-2.5 !py-1 !text-[10.5px]" level={provider.badgeLevel} />
         )}
+        <div className="flex flex-wrap gap-2">
+        {onToggleFavorite && <button aria-label={isFavorite ? `Remove ${provider.name} from favorites` : `Save ${provider.name} to favorites`} aria-pressed={isFavorite} className="inline-flex min-h-[46px] items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-4 text-sm font-semibold text-ink hover:border-deep" onClick={onToggleFavorite} type="button"><Heart fill={isFavorite ? "currentColor" : "none"} size={16} /> {isFavorite ? "Saved" : "Save"}</button>}
         <AppLink
           className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
           href={`/directory/providers/${provider.slug}`}
         >
           View provider
         </AppLink>
+        <AppLink className="inline-flex min-h-[46px] items-center gap-1 rounded-pill border-[1.5px] border-sand-input px-4 text-sm font-semibold text-ink" href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={15} /> Contact</AppLink>
+        </div>
       </div>
     </div>
   );
 }
 
 function ProviderDetail({ provider }: { provider: DirectoryProvider }) {
-  return <CompletionShell id="DIR-05" eyebrow={provider.kind} title={provider.name} copy={provider.description}><section className="product-section details-layout"><HeroImage index={3} /><Card className="settings-card"><Badge tone="green">{provider.badgeLevel}</Badge><p>{provider.availabilitySummary}</p><p>{provider.contactMode}</p><Button><MessageSquare size={17} /> Connect through platform</Button></Card></section></CompletionShell>;
+  const isPolice = provider.kind === "Police";
+  const isBusiness = provider.kind === "LocalBusiness";
+  return <CompletionShell id="DIR-05" eyebrow={provider.kind} title={provider.name} copy={provider.description}><section className="product-section details-layout"><HeroImage index={3} /><Card className="settings-card"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{provider.badgeLevel} verified</Badge><span className="text-sm text-sand-600"><Star className="mr-1 inline text-yellow" size={15} /> {provider.rating ? provider.rating.toFixed(1) : "New"} ({provider.reviewCount} reviews)</span></div><p className="flex items-center gap-2"><MapPin size={16} /> {provider.parish}</p><p className="flex items-center gap-2"><ClockIcon /> {provider.availabilitySummary}</p>{isBusiness && <div className="rounded-field bg-shell p-3 text-sm"><strong>Local business essentials</strong><div className="mt-1 flex flex-wrap gap-2 text-sand-600"><span>Opening hours shown on request</span><span>Promotions available</span><span>Accessibility information available</span></div><a className="mt-2 inline-flex items-center gap-1 font-semibold underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${provider.name} ${provider.parish}`)}`} rel="noreferrer" target="_blank"><Navigation size={15} /> Get directions</a></div>}{isPolice && <div className="rounded-field bg-coral-tint p-3 text-sm text-coral-text"><strong>Emergency: 119</strong><p className="m-0 mt-1">For immediate danger call <a className="font-bold underline" href="tel:119">119</a>. Use this profile for non-emergency platform contact.</p></div>}<AppLink className={buttonClassName("sun")} href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={17} /> Contact provider</AppLink></Card></section></CompletionShell>;
+}
+
+function ClockIcon() {
+  return <span aria-hidden="true" className="inline-flex size-4 items-center justify-center rounded-full border border-current text-[9px]">◷</span>;
+}
+
+function GuestVerificationUpsell({ auth }: { auth: AuthController }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return <CompletionShell id="DIR-06" eyebrow="Guest verification" title="You can continue without verification." copy="Verification remains available from your guest dashboard whenever you are ready."><AppLink className={buttonClassName("sun")} href="/guest-dashboard">Return to dashboard <ArrowRight size={16} /></AppLink></CompletionShell>;
+  return <CompletionShell id="DIR-06" eyebrow="Guest verification" title="Verify once. Travel with confidence." copy="Identity verification helps hosts protect every stay and unlocks faster, trusted bookings."><section className="product-section grid gap-4 md:grid-cols-3"><Card><Check className="text-success-text" /><h3 className="mt-3 font-display text-xl">What you get</h3><p className="text-sm text-sand-600">A verified profile, clearer booking approvals, and access to badge-gated services.</p></Card><Card><ShieldCheck className="text-deep-hover" /><h3 className="mt-3 font-display text-xl">Private by design</h3><p className="text-sm text-sand-600">Documents are encrypted, role-restricted, and never shown in directory listings.</p></Card><Card><CreditCard className="text-deep-hover" /><h3 className="mt-3 font-display text-xl">Simple pricing</h3><p className="text-sm text-sand-600">Verification is free in local milestone mode. Any live provider fee is shown before payment.</p></Card></section><div className="product-section flex flex-wrap gap-3"><AppLink className={buttonClassName("sun")} href={auth.session ? "/traveler/identity" : "/login"}>Start verification <ArrowRight size={16} /></AppLink><Button onClick={() => setDismissed(true)} variant="outline">Not now</Button></div></CompletionShell>;
 }
 
 export function HostProfileSpecPage({ slug, edit, auth }: { slug?: string; edit?: boolean; auth: AuthController }) {

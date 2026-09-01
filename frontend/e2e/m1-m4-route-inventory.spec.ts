@@ -74,7 +74,10 @@ test("M1-M4 route inventory loads contractual routes without browser crashes", a
   }
   await api.dispose();
   mkdirSync(evidenceDir, { recursive: true });
-  writeFileSync(path.join(evidenceDir, "route-inventory.json"), JSON.stringify({ generatedAt: new Date().toISOString(), routeCount: results.length, results }, null, 2));
+  // Each responsive project runs in parallel; keep evidence files isolated so
+  // tablet/mobile runs cannot truncate the desktop report.
+  const projectFile = `route-inventory-${test.info().project.name}.json`;
+  writeFileSync(path.join(evidenceDir, projectFile), JSON.stringify({ generatedAt: new Date().toISOString(), project: test.info().project.name, routeCount: results.length, results }, null, 2));
   expect(results.filter((result) => result.status >= 500 || result.failedRequests.length > 0 || result.bodyHasServerError)).toEqual([]);
   expect(results).toHaveLength(routes.length);
 });

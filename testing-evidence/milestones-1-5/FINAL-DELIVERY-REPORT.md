@@ -1,6 +1,6 @@
 # NestyStay M1–M5 final delivery report
 
-Generated 2026-08-31 from the current repository state. The signed agreement was read in full and copied to `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`; source and copy are byte-identical (SHA-256 `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`).
+Updated 2026-09-01 from the current repository state. The signed agreement was read in full and copied to `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`; source and copy are byte-identical (SHA-256 `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`).
 
 ## Contractual decision
 
@@ -14,9 +14,9 @@ Generated 2026-08-31 from the current repository state. The signed agreement was
 
 ## Verification totals
 
-- Backend: **93 passed / 0 failed** (5 Domain, 23 Application, 14 Infrastructure, 51 API; includes 3 PM endpoint tests).
+- Backend: **94 passed / 0 failed** (5 Domain, 23 Application, 14 Infrastructure, 52 API; includes directory moderation queue coverage and PM endpoint tests).
 - Frontend: **25 passed / 0 failed**; TypeScript/Vite build passed.
-- Real browser: **6 passed / 0 failed** for PM/owner/gate across desktop, tablet and mobile; existing M1–M4 route inventory: **19/19 routes passed** on desktop.
+- Real browser: **12 enhancement checks passed / 0 failed** across desktop, tablet and mobile for M4 directory/provider/admin and M5 manager/guard flows; existing M1–M4 route inventory: **19/19 routes passed** on each viewport (the full 90-test matrix recorded 84 pass, 4 expected Stripe-provider blocks and 2 skips).
 - API + security: **PASS locally** (scope isolation, validation, idempotency, anonymous ballot and QR denial paths).
 - Concurrency: **PASS locally** (two same-key payments returned 200/200, one persisted payment row, correct balance).
 - PostgreSQL: Phase 5 EF migration applied to `nestystay_dev`; live smoke persisted owners, properties, invoices, utility-linked invoice, payment, statement and owner portal data.
@@ -47,7 +47,7 @@ Contractual local functionality has no known failing test. Production blockers a
 
 ## Evidence index
 
-- `browser/m5-property-manager.spec.ts` (source) and Playwright result artifacts.
+- `browser/m5-property-manager.spec.ts` and `frontend/e2e/m4-m5-enhancements.spec.ts` (source) with Playwright result artifacts.
 - `browser/route-inventory.json` (19 routes, no 5xx/console failures).
 - `backend/` API test output and `security/`/`concurrency/` records.
 - `docs/testing/M1-M5-TRACEABILITY.md` and `docs/testing/M5-PROPERTY-MANAGER-ACCEPTANCE.md`.

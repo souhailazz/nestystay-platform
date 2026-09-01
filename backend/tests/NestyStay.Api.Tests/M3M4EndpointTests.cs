@@ -126,6 +126,31 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task DirectoryModerationQueueIncludesPendingAndSupportsRequestChanges()
+    {
+        using var client = _factory.CreateClient();
+        var owner = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(owner, UserRole.Host));
+        var save = await client.PostAsJsonAsync("/api/directories/providers", new
+        {
+            kind = "Custodian", category = "Cleaning", name = $"Queue Provider {owner:N}", parish = "Kingston",
+            badgeLevel = "Free", description = "Pending moderation queue record", availabilitySummary = "Daily", contactMode = "direct", isBrickAndMortar = false
+        });
+        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        var slug = (await save.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var queue = await client.GetAsync("/api/directories/providers/moderation?status=PendingReview&query=Queue%20Provider");
+        Assert.Equal(HttpStatusCode.OK, queue.StatusCode);
+        var records = await queue.Content.ReadFromJsonAsync<JsonElement[]>();
+        Assert.Contains(records!, item => item.GetProperty("slug").GetString() == slug);
+
+        var review = await client.PostAsJsonAsync($"/api/directories/providers/{slug}/moderate", new { status = "request-changes", reason = "Upload a current business document." });
+        Assert.Equal(HttpStatusCode.OK, review.StatusCode);
+        Assert.Equal("ChangesRequested", (await review.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+    }
+
+    [Fact]
     public async Task WellnessSubscriptionUsesContractPriceAndRenewalIsIdempotentWhileActive()
     {
         using var client = _factory.CreateClient();
