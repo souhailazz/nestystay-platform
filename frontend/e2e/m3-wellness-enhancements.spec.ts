@@ -12,7 +12,7 @@ test("M3 host wellness UX: plan comparison, service comparison, live quote journ
   expect(propertyResponse.ok(), await propertyResponse.text()).toBeTruthy();
   await installSession(page, host);
   await page.goto("/host/wellness", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /Wellness visits/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wellness visits", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Compare plans/i }).click();
   await expect(page.getByTestId("wellness-plan-comparison")).toBeVisible();
   await expect(page.getByText(/Pay as you go/i)).toBeVisible();
@@ -29,7 +29,7 @@ test("M3 officer UX: onboarding wizard saves and resumes a privacy-aware draft",
   const officer = await createSession(api, "Officer", "M3 Wellness UX Officer");
   await installSession(page, officer);
   await page.goto("/officer/wellness", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /Officer wellness/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Officer wellness", exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Coverage zone" }).fill("Montego Bay north");
   await page.getByRole("button", { name: /Continue/i }).click();
   await expect(page.getByText(/Step 2 of 3/i)).toBeVisible();

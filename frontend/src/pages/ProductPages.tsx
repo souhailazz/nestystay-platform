@@ -837,6 +837,8 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [draftReady, setDraftReady] = useState(false);
+  const hasHydratedOnboardingDraft = useRef(false);
   const [visitId, setVisitId] = useState("");
   const [notes, setNotes] = useState("Completed wellness visit. Verified photo evidence attached.");
   const [visits, setVisits] = useState<WellnessVisit[]>([]);
@@ -853,8 +855,10 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
   const onboardingDraftKey = `nestyStay.wellnessOfficerDraft.${auth.session?.userId ?? "anonymous"}`;
 
   useEffect(() => {
+    setDraftReady(false);
+    hasHydratedOnboardingDraft.current = false;
     try {
-      const saved = window.localStorage.getItem(onboardingDraftKey);
+      const saved = window.localStorage.getItem(onboardingDraftKey) ?? window.localStorage.getItem("nestyStay.wellnessOfficerDraft");
       if (!saved) return;
       const draft = JSON.parse(saved) as Partial<{
         badgeNumber: string; parish: string; coverageArea: string; isActiveOffDuty: boolean; isRetired: boolean;
@@ -874,15 +878,19 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
       if (draft.savedAt) setDraftSavedAt(draft.savedAt);
     } catch {
       window.localStorage.removeItem(onboardingDraftKey);
+    } finally {
+      hasHydratedOnboardingDraft.current = true;
+      setDraftReady(true);
     }
   }, [onboardingDraftKey]);
 
   useEffect(() => {
-    if (!auth.session) return;
+    if (!auth.session || !draftReady || !hasHydratedOnboardingDraft.current) return;
     const savedAt = new Date().toISOString();
     window.localStorage.setItem(onboardingDraftKey, JSON.stringify({ badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, step: onboardingStep, savedAt }));
+    window.localStorage.setItem("nestyStay.wellnessOfficerDraft", JSON.stringify({ badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, step: onboardingStep, savedAt }));
     setDraftSavedAt(savedAt);
-  }, [auth.session?.userId, onboardingDraftKey, badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, onboardingStep]);
+  }, [auth.session?.userId, onboardingDraftKey, draftReady, badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, onboardingStep]);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -1047,6 +1055,7 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
               });
               setOfficer(result);
               window.localStorage.removeItem(onboardingDraftKey);
+              window.localStorage.removeItem("nestyStay.wellnessOfficerDraft");
               return `Officer ${result.badgeNumber} onboarding is ${result.onboardingStatus}.`;
             });
           }}
