@@ -44,6 +44,24 @@ test("M3 officer UX: onboarding wizard saves and resumes a privacy-aware draft",
   await api.dispose();
 });
 
+test("M3 admin UX: live wellness operations route exposes review, KPI, and payout controls", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => localStorage.setItem("nestyStay.session", JSON.stringify({
+    userId: "00000000-0000-0000-0000-000000000001",
+    email: "local-admin@nestystay.local",
+    displayName: "Local admin",
+    accessToken: "test-admin-token",
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    roles: ["Admin"],
+    permissions: ["super_administration", "officer_management", "financial_reporting", "system_configuration", "user_management", "audit_log_access"],
+  })));
+  await page.goto("/admin/ops/wellness", { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: "Platform operations", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wellness operations", exact: true })).toBeVisible();
+  await expect(page.getByText("Side-by-side application review", { exact: true })).toBeVisible();
+  await expect(page.getByText("Commission & payout desk", { exact: true })).toBeVisible();
+});
+
 async function createSession(api: APIRequestContext, role: "Host" | "Officer", displayName: string): Promise<Session> {
   const email = `m3-enhancement-${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
   const phone = `+1555${String(Date.now()).slice(-7)}${Math.floor(Math.random() * 10)}`;
