@@ -86,21 +86,21 @@ public sealed class BadgesPricingController(
 
     [HttpPost("badges/assignments/{assignmentId:guid}/expire")]
     [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
-    public async Task<IActionResult> ExpireBadge(Guid assignmentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExpireBadge(Guid assignmentId, [FromQuery] string? reason, CancellationToken cancellationToken)
     {
         var previous = FindAssignment(assignmentId);
         var assignment = phaseTwoStore.ExpireBadge(assignmentId);
-        await RecordSystemAuditAsync("BadgeAssignmentExpired", "BadgeAssignment", assignmentId, "Badge assignment expired by administrator.", previous, assignment, cancellationToken);
+        await RecordSystemAuditAsync("BadgeAssignmentExpired", "BadgeAssignment", assignmentId, string.IsNullOrWhiteSpace(reason) ? "Badge assignment expired by administrator." : reason.Trim(), previous, assignment, cancellationToken);
         return Ok(assignment);
     }
 
     [HttpPost("badges/assignments/{assignmentId:guid}/suspend")]
     [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
-    public async Task<IActionResult> SuspendBadge(Guid assignmentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> SuspendBadge(Guid assignmentId, [FromQuery] string? reason, CancellationToken cancellationToken)
     {
         var previous = FindAssignment(assignmentId);
         var assignment = phaseTwoStore.SuspendBadge(assignmentId);
-        await RecordSystemAuditAsync("BadgeAssignmentSuspended", "BadgeAssignment", assignmentId, "Badge assignment suspended by administrator.", previous, assignment, cancellationToken);
+        await RecordSystemAuditAsync("BadgeAssignmentSuspended", "BadgeAssignment", assignmentId, string.IsNullOrWhiteSpace(reason) ? "Badge assignment suspended by administrator." : reason.Trim(), previous, assignment, cancellationToken);
         return Ok(assignment);
     }
 
@@ -122,12 +122,17 @@ public sealed class BadgesPricingController(
     }
 
     [HttpPost("renewals/{assignmentId:guid}/pay")]
-    [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
+    [Authorize]
     public async Task<IActionResult> PayRenewal(Guid assignmentId, CancellationToken cancellationToken)
     {
+        if (!authorization.IsInRole(UserRole.Admin))
+        {
+            RequireAssignmentAccess(assignmentId);
+        }
+
         var previous = FindAssignment(assignmentId);
         var assignment = phaseTwoStore.PayRenewal(assignmentId);
-        await RecordSystemAuditAsync("BadgeRenewalRecorded", "BadgeAssignment", assignmentId, "Administrator recorded a successful badge renewal.", previous, assignment, cancellationToken);
+        await RecordSystemAuditAsync("BadgeRenewalRecorded", "BadgeAssignment", assignmentId, authorization.IsInRole(UserRole.Admin) ? "Administrator recorded a successful badge renewal." : "Host owner paid a successful badge renewal.", previous, assignment, cancellationToken);
         return Ok(assignment);
     }
 
@@ -231,9 +236,13 @@ public sealed class BadgesPricingController(
             cancellationToken);
     }
 
-    private AuditActorContext AuditActor() => new(
-        authorization.TryGetSignedInUser(),
-        "Admin",
-        AdminPermissionCatalog.SystemConfiguration,
-        HttpContext.TraceIdentifier);
+    private AuditActorContext AuditActor()
+    {
+        var isAdmin = authorization.IsInRole(UserRole.Admin);
+        return new(
+            authorization.TryGetSignedInUser(),
+            isAdmin ? "Admin" : "Host",
+            isAdmin ? AdminPermissionCatalog.SystemConfiguration : null,
+            HttpContext.TraceIdentifier);
+    }
 }

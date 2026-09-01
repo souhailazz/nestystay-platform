@@ -300,6 +300,13 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
   const [searchQuery, setSearchQuery] = useState("");
   const isHome = route.name === "home";
   const path = window.location.pathname;
+  const isAdmin = auth.session?.roles?.includes("Admin") ?? false;
+  const visibleNavItems: readonly (readonly [string, string])[] = isAdmin
+    ? [...navItems, ["Admin", "/admin/ops/badges"]]
+    : navItems;
+  const visibleMobileNavItems: readonly (readonly [string, string])[] = isAdmin
+    ? [...mobileNavItems, ["Admin", "/admin/ops/badges"]]
+    : mobileNavItems;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -344,7 +351,7 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
             <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-on-dark-faint">/</kbd>
           </form>
           <nav className="hidden items-center gap-0.5 md:flex">
-            {navItems.map(([label, href]) => (
+            {visibleNavItems.map(([label, href]) => (
               <AppLink
                 className={cx(
                   "ns-navlink flex min-h-11 items-center rounded-pill px-3.5 text-[13.5px] transition-colors",
@@ -422,7 +429,7 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
                   value={searchQuery}
                 />
               </form>
-              {mobileNavItems.map(([label, href]) => (
+              {visibleMobileNavItems.map(([label, href]) => (
                 <AppLink
                   className={cx(
                     "flex min-h-11 items-center rounded-nav px-3.5 text-[13.5px] font-semibold",
@@ -565,6 +572,7 @@ function AdminRoute({
 function adminOpsPermission(view: string): AdminPermission {
   if (view === "audit" || view === "logs") return AdminPermissions.auditLogAccess;
   if (view === "payments" || view === "refunds" || view === "reports") return AdminPermissions.financialReporting;
+  if (view === "badges" || view === "badge-management" || view === "badge-assignments" || view === "pricebook" || view === "campaigns" || view === "fees") return AdminPermissions.systemConfiguration;
   return AdminPermissions.userManagement;
 }
 
@@ -613,6 +621,7 @@ const implementedScreens = [
   ["PM-RPT", "Portfolio reports", "/pm/reports"],
   ["PM-INS", "Insurance", "/pm/insurance"],
   ["ADM-01", "Admin operations", "/admin/ops/disputes"],
+  ["ADM-BADGES", "Admin badge management", "/admin/ops/badges"],
   ["ADM-KPI", "Admin KPIs", "/admin/kpis"],
   ["ADM-RESET", "Officer ID reset", "/admin/officer-id-reset"],
   ["ADM-RPT", "Admin reports", "/admin/reports"],

@@ -5,6 +5,7 @@ import { AdminProperties } from "./AdminProperties";
 import { AdminFinancials } from "./AdminFinancials";
 import { AdminAuditSystemHealth } from "./AdminAuditSystemHealth";
 import { AdminPricebookCampaigns } from "./AdminPricebookCampaigns";
+import { AdminBadges } from "./AdminBadges";
 
 interface AdminStateContainerProps {
   view: string;
@@ -36,6 +37,10 @@ export function AdminStateContainer({ view, auth }: AdminStateContainerProps) {
 
   if (view === "pricebook" || view === "campaigns" || view === "fees") {
     return <AdminPricebookCampaigns view={view} token={token} />;
+  }
+
+  if (view === "badges" || view === "badge-management" || view === "badge-assignments") {
+    return <AdminBadges token={token} />;
   }
 
   return <AdminOverview token={token} />;

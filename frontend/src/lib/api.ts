@@ -1364,13 +1364,13 @@ export const api = {
       `/badges-pricing/badges/features/${encodeURIComponent(subjectType)}/${encodeURIComponent(subjectId)}`,
       { token },
     ),
-  expireBadgeAssignment: (assignmentId: string, token: string) =>
-    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/expire`, {
+  expireBadgeAssignment: (assignmentId: string, token: string, reason?: string) =>
+    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/expire${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`, {
       method: "POST",
       token,
     }),
-  suspendBadgeAssignment: (assignmentId: string, token: string) =>
-    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/suspend`, {
+  suspendBadgeAssignment: (assignmentId: string, token: string, reason?: string) =>
+    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/suspend${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`, {
       method: "POST",
       token,
     }),

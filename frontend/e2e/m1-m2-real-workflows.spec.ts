@@ -42,8 +42,10 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   console.log("guest: opened booking modal");
   await expect(page.getByRole("heading", { name: "Choose your dates", exact: true })).toBeVisible();
 
-  const baseStayOffset = ({ "desktop-chromium": 2500, "tablet-chromium": 2510, "mobile-chromium": 2520 } as Record<string, number>)[testInfo.project.name] ?? 2500;
-  const stayOffset = baseStayOffset + Math.floor(Math.random() * 1000);
+  // Keep repeatable evidence runs isolated from previously held dates by using
+  // a far-future, randomized window. The quote endpoint remains authoritative.
+  const baseStayOffset = ({ "desktop-chromium": 12_000, "tablet-chromium": 12_010, "mobile-chromium": 12_020 } as Record<string, number>)[testInfo.project.name] ?? 12_000;
+  const stayOffset = baseStayOffset + Math.floor(Math.random() * 10_000);
   const checkIn = new Date(Date.now() + stayOffset * 86_400_000).toISOString().slice(0, 10);
   const checkOut = new Date(Date.now() + (stayOffset + 3) * 86_400_000).toISOString().slice(0, 10);
   const dateInputs = page.locator('input[type="date"]');

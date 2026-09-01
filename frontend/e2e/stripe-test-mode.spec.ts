@@ -26,29 +26,32 @@ test("Stripe test-mode checkout receives a real PaymentIntent client secret", as
   const property = (await properties.json() as Array<{ id: string; guestVerificationEnabled: boolean }>).find((item) => !item.guestVerificationEnabled);
   expect(property).toBeTruthy();
 
-  const offset = 5000 + Math.floor(Math.random() * 1000);
-  const checkInDate = new Date(Date.now() + offset * 86400000);
-  const checkOutDate = new Date(checkInDate.getTime() + 2 * 86400000);
-  const booking = await api.post("/api/bookings", {
-    headers: { Authorization: `Bearer ${session.accessToken}` },
-    data: {
-      propertyId: property!.id,
-      guestUserId: session.userId,
-      checkIn: checkInDate.toISOString().slice(0, 10),
-      checkOut: checkOutDate.toISOString().slice(0, 10),
-    },
-  });
-  expect(booking.ok(), await booking.text()).toBeTruthy();
-  const bookingBody = await booking.json() as { id: string; status: string; paymentProvider?: string; paymentClientSecret?: string };
-  expect(bookingBody.status).toBe("APPROVED");
-  expect(bookingBody.paymentProvider).toBe("Stripe");
-  expect(bookingBody.paymentClientSecret).toMatch(/^pi_[^_]+_secret_/);
+  let bookingBody: { id: string; status: string; paymentProvider?: string; paymentClientSecret?: string } | null = null;
+  for (let attempt = 0; attempt < 12 && !bookingBody; attempt += 1) {
+    const offset = 12_000 + Math.floor(Math.random() * 10_000) + attempt * 17;
+    const checkInDate = new Date(Date.now() + offset * 86400000);
+    const checkOutDate = new Date(checkInDate.getTime() + 2 * 86400000);
+    const checkIn = checkInDate.toISOString().slice(0, 10);
+    const checkOut = checkOutDate.toISOString().slice(0, 10);
+    const quote = await api.post("/api/bookings/quote", { data: { propertyId: property!.id, checkIn, checkOut } });
+    if (!quote.ok() || !(await quote.json()).datesAvailable) continue;
+    const booking = await api.post("/api/bookings", {
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+      data: { propertyId: property!.id, guestUserId: session.userId, checkIn, checkOut },
+    });
+    if (booking.ok()) bookingBody = await booking.json() as { id: string; status: string; paymentProvider?: string; paymentClientSecret?: string };
+  }
+  expect(bookingBody).not.toBeNull();
+  const bookingResult = bookingBody!;
+  expect(bookingResult.status).toBe("APPROVED");
+  expect(bookingResult.paymentProvider).toBe("Stripe");
+  expect(bookingResult.paymentClientSecret).toMatch(/^pi_[^_]+_secret_/);
   await api.dispose();
 
   await page.addInitScript((value) => {
     window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
   }, session);
-  await page.goto(`/booking/${bookingBody.id}/checkout`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/booking/${bookingResult.id}/checkout`, { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("book-03-page")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/Processed directly via Stripe/)).toBeVisible();
   await page.waitForTimeout(3_000);
