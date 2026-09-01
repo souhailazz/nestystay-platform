@@ -75,7 +75,6 @@ import {
   ServerErrorPage,
   SignInRequiredPage,
   TripSuggestionsPage,
-  WellnessBookingPage,
 } from "./pages/SpecScreens";
 
 const navItems = [
@@ -571,7 +570,7 @@ function AdminRoute({
 
 function adminOpsPermission(view: string): AdminPermission {
   if (view === "audit" || view === "logs") return AdminPermissions.auditLogAccess;
-  if (view === "payments" || view === "refunds" || view === "reports") return AdminPermissions.financialReporting;
+  if (view === "payments" || view === "refunds" || view === "reports" || view === "wellness") return AdminPermissions.financialReporting;
   if (view === "badges" || view === "badge-management" || view === "badge-assignments" || view === "pricebook" || view === "campaigns" || view === "fees") return AdminPermissions.systemConfiguration;
   return AdminPermissions.userManagement;
 }
@@ -615,6 +614,7 @@ const implementedScreens = [
   ["OFC-02", "Officer visits", "/officer/wellness"],
   ["OFC-DIR", "Officer directory", "/host/wellness/directory"],
   ["OFC-BOOK", "Wellness booking", "/host/wellness/book"],
+  ["ADM-WELLNESS", "Wellness operations", "/admin/ops/wellness"],
   ["PM-GATE", "Gate communications", "/pm/gates"],
   ["PM-UTIL", "Utility proofing", "/pm/utilities"],
   ["PM-VERIFY", "Tenant verification", "/pm/verification"],
@@ -801,7 +801,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "admin-ops":
       return (
         <AdminRoute auth={auth} permission={adminOpsPermission(route.view)}>
-          <AdminOpsSpecPage auth={auth} view={route.view} />
+          {route.view === "wellness" ? <AdminPage auth={auth} /> : <AdminOpsSpecPage auth={auth} view={route.view} />}
         </AdminRoute>
       );
     case "explore":
@@ -837,7 +837,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "officer-directory":
       return <DirectorySpecPage auth={auth} kind="Police" />;
     case "wellness-booking":
-      return <WellnessBookingPage />;
+      return <HostWellnessPage auth={auth} />;
     case "officer-wellness":
       return <OfficerWellnessPage auth={auth} />;
     case "property-management":

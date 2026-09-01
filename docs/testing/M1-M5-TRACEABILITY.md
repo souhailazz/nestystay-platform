@@ -6,7 +6,7 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 |---|---|---|---|---|---|
 | M1 Core | Auth/2FA, property, booking, payment, eKYC, persisted dashboards | Implemented and regression-tested | Connected routes and workflows | Existing M1–M4 suites plus 19-route inventory | PASS locally |
 | M2 Badges | Four badge levels, pricing/eligibility/renewal and restrictions | Implemented and regression-tested | Connected badge/dashboard surfaces | Existing M1–M4 suites | PASS locally |
-| M3 Wellness | Officer lifecycle, assignment/report, subscription/commission state | Implemented and regression-tested | Connected host/officer/admin routes | Existing wellness lifecycle suite | PASS locally |
+| M3 Wellness | Officer lifecycle, assignment/report, subscription/commission state | Implemented and regression-tested | Connected host/officer/admin routes with guided wizard, live quote/availability, report drafts/photos, privacy controls and payout desk | Existing wellness lifecycle suite plus `frontend/e2e/m3-wellness-enhancements.spec.ts` (DB-backed run requires configured PostgreSQL) | PASS locally |
 | M4 Directories + QR | Four directories, provider moderation, badge gates, QR lifecycle | Implemented and regression-tested | Connected directory/provider/QR routes | Existing M1–M4 suites and route inventory | PASS locally |
 | M5 Property Manager | Multi-owner portfolio, owner portal, finance, maintenance, utilities, governance, documents, gate and subscription | Implemented with manager/owner scope and idempotency | `/pm/*`, `/owner/dashboard`, `/gate` call real API | 3 API tests, 25 Vitest, 6 responsive browser tests | PASS locally |
 
@@ -18,3 +18,10 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 | eKYC | PASS (application boundary) | BLOCKED pending Alibaba credentials and signed callback validation |
 | Security | PASS for local scope and authorization tests | Production review, WAF, secret manager and monitoring required |
 | Launch | Not claimed | NO until deployment checklist is complete |
+
+## M3 usability upgrade coverage
+
+- Host: three-step booking flow (service → schedule → confirm), real quote and available-officer lookup, property selector, subscription comparison/renewal/cancellation, persisted visit timeline, cancellation/rebooking action, report print/save, and explicit local-payment mode copy.
+- Officer: three-step onboarding wizard with autosaved draft/resume, document checklist, coverage preview, availability calendar, consent/privacy copy, assignment timeline, offline report draft, multi-photo upload with progress/retry/cancel, client-side image compression, captions, and secure visibility messaging.
+- Admin: live officer search/status/parish filters, side-by-side review checklist, approval templates, notification/audit messaging, bulk approval/rejection/suspension, SLA/open-report/payout KPIs, assignment and completion controls, and payout desk.
+- Honest boundaries: backend currently exposes no structured map coordinates, report PDF endpoint, reminder scheduler, bank-account/dispute workflow, or live provider payment rail. The UI calls these out rather than presenting mock completion; print/save produces a local report that can be saved as PDF by the browser.

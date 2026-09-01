@@ -4,10 +4,16 @@ import {
   ArrowRight,
   BadgeCheck,
   BedDouble,
+  Bell,
   CalendarDays,
   CalendarRange,
+  CalendarClock,
   Check,
+  CircleAlert,
   CreditCard,
+  Download,
+  Eye,
+  FileCheck2,
   Gauge,
   Heart,
   Home,
@@ -15,7 +21,9 @@ import {
   LayoutDashboard,
   ListChecks,
   Lock,
+  Map,
   MapPin,
+  MessageSquare,
   Paperclip,
   Plus,
   ReceiptText,
@@ -25,9 +33,11 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  SlidersHorizontal,
   TimerReset,
   ToggleLeft,
   UserRound,
+  WifiOff,
   X,
 } from "lucide-react";
 import { AppLink, navigate } from "../components/AppLink";
@@ -441,7 +451,37 @@ function toApiDateTime(value: string) {
 }
 
 /* HOST-WELL visit rows — officers are badge ID ONLY (client contract rule 4). */
-function WellnessVisitList({ visits, reports = {} }: { visits: WellnessVisit[]; reports?: Record<string, WellnessReport | null> }) {
+function downloadWellnessReport(visit: WellnessVisit, report: WellnessReport) {
+  const body = [
+    "NestyStay wellness visit report",
+    `Visit: ${visit.id}`,
+    `Scheduled: ${new Date(visit.scheduledAt).toLocaleString()}`,
+    `Service: ${visit.visitType}`,
+    `Officer: ${visit.officerBadgeNumber ?? "Unassigned"}`,
+    `Status: ${report.reportStatus}`,
+    `Submitted: ${new Date(report.submittedAt).toLocaleString()}`,
+    `Photos: ${report.photos.length}`,
+    "",
+    report.notes,
+  ].join("\n");
+  const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `nestywellness-${visit.id.slice(0, 8)}-report.txt`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function WellnessVisitList({
+  visits,
+  reports = {},
+  onCancel,
+}: {
+  visits: WellnessVisit[];
+  reports?: Record<string, WellnessReport | null>;
+  onCancel?: (visit: WellnessVisit) => void;
+}) {
   if (visits.length === 0) {
     return <EmptyState title="No wellness visits yet." copy="Requested visits will appear here after the backend saves them." />;
   }
@@ -471,8 +511,17 @@ function WellnessVisitList({ visits, reports = {} }: { visits: WellnessVisit[]; 
             Badge ID only — never a name, photo, or direct contact. All communication through NestyStay.
           </div>
           {reports[visit.id] && (
-            <div className="rounded-field bg-success-tint px-4 py-3 text-[12.5px] text-success-text">
-              Report submitted · {reports[visit.id]!.photos.length} verified photo{reports[visit.id]!.photos.length === 1 ? "" : "s"} · {reports[visit.id]!.notes}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-field bg-success-tint px-4 py-3 text-[12.5px] text-success-text">
+              <span>Report submitted · {reports[visit.id]!.photos.length} verified photo{reports[visit.id]!.photos.length === 1 ? "" : "s"} · {reports[visit.id]!.notes}</span>
+              <button className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-success-text/30 px-3 text-xs font-semibold" onClick={() => downloadWellnessReport(visit, reports[visit.id]!)} type="button">
+                <Download size={14} /> Print / save report
+              </button>
+            </div>
+          )}
+          {onCancel && !["Completed", "Cancelled"].includes(visit.visitStatus) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-shell pt-3">
+              <span className="text-xs text-gray-600">Need a different time? Cancel and request a new slot.</span>
+              <Button onClick={() => onCancel(visit)} variant="ghost"><X size={15} /> Cancel visit</Button>
             </div>
           )}
         </div>
@@ -498,6 +547,9 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
   const [visits, setVisits] = useState<WellnessVisit[]>([]);
   const [reports, setReports] = useState<Record<string, WellnessReport | null>>({});
   const [subscription, setSubscription] = useState<import("../lib/api").WellnessSubscription | null>(null);
+  const [availableOfficers, setAvailableOfficers] = useState<WellnessOfficer[]>([]);
+  const [bookingStep, setBookingStep] = useState(1);
+  const [showPlanComparison, setShowPlanComparison] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const selectedProperty = hostProperties.find((property) => property.id === propertyId);
@@ -522,6 +574,16 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
       .catch(() => undefined);
   }, [auth.session?.accessToken, visits]);
 
+  useEffect(() => {
+    if (!auth.session || !parish.trim() || !scheduledAt) return;
+    const timer = window.setTimeout(() => {
+      void api.getAvailableWellnessOfficers(auth.session!.accessToken, parish.trim(), toApiDateTime(scheduledAt))
+        .then(setAvailableOfficers)
+        .catch(() => setAvailableOfficers([]));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [auth.session?.accessToken, parish, scheduledAt]);
+
   async function runWellnessAction(action: () => Promise<string>) {
     setActionError(null);
     setNotice(null);
@@ -534,6 +596,14 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "Wellness action failed.");
     }
+  }
+
+  function cancelVisit(visit: WellnessVisit) {
+    if (!window.confirm("Cancel this wellness visit? The payment will be refunded or released according to its current status.")) return;
+    void runWellnessAction(async () => {
+      await api.cancelWellnessVisit(visit.id, auth.session!.accessToken, "Cancelled by host from wellness dashboard.");
+      return "Visit cancelled. You can request a new time below.";
+    });
   }
 
   function buildRequest() {
@@ -584,10 +654,28 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         Jamaica Emergency: 119
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-sand-border bg-cream p-[18px]">
-        <div><div className="font-semibold">Wellness monthly plan — $19/month</div><div className="text-xs text-gray-600">Includes one visit per billing period. Remaining: {subscription?.remainingVisits ?? 0}.</div></div>
-        {subscription?.status === "Active" ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.cancelWellnessSubscription(auth.session!.accessToken); return "Wellness subscription cancelled."; })}>Cancel subscription</Button> : subscription ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.renewWellnessSubscription(auth.session!.accessToken); return "Wellness subscription renewed."; })}>Renew $19 plan</Button> : <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.startWellnessSubscription(auth.session!.accessToken); return "Wellness subscription started."; })}>Start $19 plan</Button>}
-      </div>
+      <section className="rounded-card border border-sand-border bg-cream p-[22px]" aria-labelledby="wellness-plan-title">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2"><CreditCard size={18} className="text-deep-hover" /><h2 className="m-0 font-display text-xl font-medium" id="wellness-plan-title">Wellness subscription</h2></div>
+            <p className="mt-1 text-[13px] text-gray-600">Simple monthly coverage with one visit included. Payment runs through the configured local adapter in milestone mode.</p>
+          </div>
+          <StatusChip value={subscription?.status ?? "Not started"} />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Card><div className="text-xs text-sand-500">Plan</div><strong>$19 / month</strong><div className="text-xs text-gray-600">1 included visit</div></Card>
+          <Card><div className="text-xs text-sand-500">Billing period</div><strong>{subscription ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "Starts after checkout"}</strong><div className="text-xs text-gray-600">Next renewal date</div></Card>
+          <Card><div className="text-xs text-sand-500">Usage</div><strong>{subscription?.remainingVisits ?? 0} remaining</strong><div className="text-xs text-gray-600">{subscription?.paymentReference ? `Ref ${subscription.paymentReference.slice(0, 12)}` : "No payment yet"}</div></Card>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {subscription?.status === "Active" ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.cancelWellnessSubscription(auth.session!.accessToken); return "Wellness subscription cancelled. Your current period remains visible for audit."; })}>Cancel subscription</Button> : subscription ? <Button variant="outline" onClick={() => void runWellnessAction(async () => { await api.renewWellnessSubscription(auth.session!.accessToken); return "Wellness subscription renewed."; })}>Renew $19 plan</Button> : <Button variant="dark" onClick={() => void runWellnessAction(async () => { await api.startWellnessSubscription(auth.session!.accessToken); return "Wellness subscription started."; })}>Start $19 plan</Button>}
+          <Button variant="ghost" onClick={() => setShowPlanComparison((current) => !current)}>{showPlanComparison ? "Hide plan comparison" : "Compare plans"}</Button>
+        </div>
+        {showPlanComparison && <div className="mt-4 grid gap-3 md:grid-cols-2" data-testid="wellness-plan-comparison">
+          <Card><div className="font-semibold">Pay as you go</div><div className="mt-1 text-sm text-gray-600">$25–$50 per visit · no recurring charge · best for occasional checks.</div></Card>
+          <Card className="border-deep"><div className="flex items-center gap-2 font-semibold">Monthly wellness <BadgeCheck size={16} className="text-deep-hover" /></div><div className="mt-1 text-sm text-gray-600">$19/month · one included visit · renewal and cancellation controls above.</div></Card>
+        </div>}
+      </section>
 
       {quote && quote.eligible && (
         <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
@@ -628,7 +716,13 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
           });
         }}
       >
-        <div className="font-display text-xl font-medium">Request a certified visit</div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="font-display text-xl font-medium">Request a certified visit</div><div className="text-xs font-semibold text-sand-500">Step {bookingStep} of 3</div></div>
+        <div className="flex items-center gap-2" aria-label="Booking progress">
+          {["Service", "Schedule", "Confirm"].map((label, index) => <div className="flex flex-1 items-center gap-2" key={label}><span className={`inline-flex size-7 items-center justify-center rounded-full text-xs font-bold ${bookingStep > index ? "bg-deep text-white" : "bg-shell text-sand-500"}`}>{bookingStep > index + 1 ? <Check size={14} /> : index + 1}</span><span className="text-xs font-semibold">{label}</span>{index < 2 && <span className="h-px flex-1 bg-shell" />}</div>)}
+        </div>
+        <div className="grid gap-3 md:grid-cols-3" data-testid="wellness-service-comparison">
+          {[["StandardWellnessCheck", "Standard check", "$50", "60 min"], ["InPersonGuestIdCheck", "Guest ID check", "$40", "45 min"], ["DriveByPatrol", "Drive-by patrol", "$25", "30 min"]].map(([value, label, price, duration]) => <button className={`rounded-card border p-4 text-left transition-colors ${visitType === value ? "border-deep bg-mint-tint" : "border-sand-border bg-white hover:border-deep"}`} key={value} onClick={() => { setVisitType(value); setBookingStep(1); }} type="button"><div className="flex items-center justify-between gap-2"><strong>{label}</strong>{visitType === value && <Check size={16} className="text-deep-hover" />}</div><div className="mt-2 text-sm text-gray-600">{duration} · {price}</div></button>)}
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className={wellLabel}>Property</span>
@@ -650,7 +744,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
           </label>
           <label className="flex flex-col gap-1.5">
             <span className={wellLabel}>Scheduled time</span>
-            <input className={wellField} onChange={(event) => setScheduledAt(event.target.value)} type="datetime-local" value={scheduledAt} />
+            <input className={wellField} min={defaultWellnessDateTime()} onChange={(event) => { setScheduledAt(event.target.value); setBookingStep(2); }} type="datetime-local" value={scheduledAt} />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className={wellLabel}>Parish</span>
@@ -660,6 +754,9 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
             <span className={wellLabel}>Area</span>
             <input className={wellField} onChange={(event) => setArea(event.target.value)} value={area} />
           </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 rounded-field bg-shell px-4 py-3 text-[13px]">
+          <MapPin size={16} className="text-deep-hover" /><span>{availableOfficers.length} verified officer{availableOfficers.length === 1 ? "" : "s"} available for this parish/time.</span><span className="text-xs text-sand-500">Assignment is completed by NestyStay operations after confirmation.</span>
         </div>
         <div className="flex flex-wrap gap-2.5">
           <button
@@ -672,6 +769,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
             className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
             onClick={() =>
               void runWellnessAction(async () => {
+                setBookingStep(3);
                 const created = await api.createWellnessVisit(buildRequest(), auth.session!.accessToken);
                 setQuote(null);
                 return `${created.visitType} requested. Payment is ${created.paymentStatus}.`;
@@ -699,7 +797,12 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
         <h2 className="m-0 font-display text-xl font-medium">Visit status</h2>
         {isLoading && <LoadingState />}
         {error && <ErrorState message={error} onRetry={reload} />}
-        <WellnessVisitList visits={visits} reports={reports} />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Card><div className="text-xs text-sand-500">Upcoming</div><strong>{visits.filter((visit) => ["Requested", "Scheduled"].includes(visit.visitStatus)).length}</strong><div className="text-xs text-gray-600">Requested or scheduled</div></Card>
+          <Card><div className="text-xs text-sand-500">Reports</div><strong>{Object.values(reports).filter(Boolean).length}</strong><div className="text-xs text-gray-600">Host-visible submissions</div></Card>
+          <Card><div className="text-xs text-sand-500">Calendar</div><strong>{visits.length ? new Date(visits[0].scheduledAt).toLocaleDateString() : "—"}</strong><div className="text-xs text-gray-600">Next saved visit</div></Card>
+        </div>
+        <WellnessVisitList onCancel={cancelVisit} visits={visits} reports={reports} />
       </section>
     </div>
   );
@@ -715,6 +818,7 @@ type WellnessReportPhotoUploadItem = {
   status: WellnessReportPhotoUploadStatus;
   upload?: WellnessReportPhotoUpload;
   error?: string;
+  caption?: string;
 };
 
 const maximumWellnessReportPhotoBytes = 10 * 1024 * 1024;
@@ -725,6 +829,14 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
   const [coverageArea, setCoverageArea] = useState("Ocho Rios");
   const [isActiveOffDuty, setIsActiveOffDuty] = useState(true);
   const [isRetired, setIsRetired] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [documents, setDocuments] = useState({ governmentId: false, policeBadge: false, proofOfAddress: false });
+  const [availabilityDays, setAvailabilityDays] = useState<string[]>(["Mon", "Wed", "Fri"]);
+  const [availabilityStart, setAvailabilityStart] = useState("09:00");
+  const [availabilityEnd, setAvailabilityEnd] = useState("17:00");
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [visitId, setVisitId] = useState("");
   const [notes, setNotes] = useState("Completed wellness visit. Verified photo evidence attached.");
   const [visits, setVisits] = useState<WellnessVisit[]>([]);
@@ -737,6 +849,62 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
   const uploadedReportPhotoIds = reportUploads
     .filter((upload) => upload.visitId === visitId.trim() && upload.status === "uploaded" && upload.upload?.scanStatus === "Clean")
     .map((upload) => upload.upload!.id);
+
+  const onboardingDraftKey = `nestyStay.wellnessOfficerDraft.${auth.session?.userId ?? "anonymous"}`;
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(onboardingDraftKey);
+      if (!saved) return;
+      const draft = JSON.parse(saved) as Partial<{
+        badgeNumber: string; parish: string; coverageArea: string; isActiveOffDuty: boolean; isRetired: boolean;
+        documents: typeof documents; availabilityDays: string[]; availabilityStart: string; availabilityEnd: string; privacyConsent: boolean; step: number; savedAt: string;
+      }>;
+      if (draft.badgeNumber) setBadgeNumber(draft.badgeNumber);
+      if (draft.parish) setParish(draft.parish);
+      if (draft.coverageArea) setCoverageArea(draft.coverageArea);
+      if (typeof draft.isActiveOffDuty === "boolean") setIsActiveOffDuty(draft.isActiveOffDuty);
+      if (typeof draft.isRetired === "boolean") setIsRetired(draft.isRetired);
+      if (draft.documents) setDocuments(draft.documents);
+      if (draft.availabilityDays) setAvailabilityDays(draft.availabilityDays);
+      if (draft.availabilityStart) setAvailabilityStart(draft.availabilityStart);
+      if (draft.availabilityEnd) setAvailabilityEnd(draft.availabilityEnd);
+      if (typeof draft.privacyConsent === "boolean") setPrivacyConsent(draft.privacyConsent);
+      if (draft.step) setOnboardingStep(Math.min(3, Math.max(1, draft.step)));
+      if (draft.savedAt) setDraftSavedAt(draft.savedAt);
+    } catch {
+      window.localStorage.removeItem(onboardingDraftKey);
+    }
+  }, [onboardingDraftKey]);
+
+  useEffect(() => {
+    if (!auth.session) return;
+    const savedAt = new Date().toISOString();
+    window.localStorage.setItem(onboardingDraftKey, JSON.stringify({ badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, step: onboardingStep, savedAt }));
+    setDraftSavedAt(savedAt);
+  }, [auth.session?.userId, onboardingDraftKey, badgeNumber, parish, coverageArea, isActiveOffDuty, isRetired, documents, availabilityDays, availabilityStart, availabilityEnd, privacyConsent, onboardingStep]);
+
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  }, []);
+
+  useEffect(() => {
+    const key = `nestyStay.wellnessReportDraft.${auth.session?.userId ?? "anonymous"}`;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(key) ?? "null") as { visitId?: string; notes?: string } | null;
+      if (saved?.visitId && !visitId) setVisitId(saved.visitId);
+      if (saved?.notes && notes === "Completed wellness visit. Verified photo evidence attached.") setNotes(saved.notes);
+    } catch { /* ignore malformed local draft */ }
+  }, [auth.session?.userId]);
+
+  useEffect(() => {
+    const key = `nestyStay.wellnessReportDraft.${auth.session?.userId ?? "anonymous"}`;
+    window.localStorage.setItem(key, JSON.stringify({ visitId, notes, savedAt: new Date().toISOString() }));
+  }, [auth.session?.userId, visitId, notes]);
 
   useEffect(() => {
     if (!auth.session) return;
@@ -774,15 +942,16 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
     reportUploadControllers.current[id] = controller;
 
     try {
-      const contentType = resolveWellnessReportPhotoContentType(file);
+      const uploadFile = await compressWellnessReportPhoto(file);
+      const contentType = resolveWellnessReportPhotoContentType(uploadFile);
       const prepared = await api.prepareWellnessReportPhotoUpload(targetVisitId, auth.session?.accessToken ?? "", {
         officerBadgeNumber: badgeNumber,
-        fileName: file.name,
+        fileName: uploadFile.name,
         contentType,
-        sizeBytes: file.size,
+        sizeBytes: uploadFile.size,
       });
       updateReportUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
-      const uploaded = await api.uploadWellnessReportPhotoContent(targetVisitId, prepared.id, badgeNumber, auth.session?.accessToken ?? "", file, {
+      const uploaded = await api.uploadWellnessReportPhotoContent(targetVisitId, prepared.id, badgeNumber, auth.session?.accessToken ?? "", uploadFile, {
         signal: controller.signal,
         onProgress: (progress) => updateReportUpload(id, { progress, status: "uploading" }),
       });
@@ -874,48 +1043,33 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
                 coverageArea,
                 isActiveOffDuty,
                 isRetired,
+                verificationMetadata: JSON.stringify({ documents, availability: { days: availabilityDays, start: availabilityStart, end: availabilityEnd }, privacyConsent, submittedAt: new Date().toISOString() }),
               });
               setOfficer(result);
+              window.localStorage.removeItem(onboardingDraftKey);
               return `Officer ${result.badgeNumber} onboarding is ${result.onboardingStatus}.`;
             });
           }}
         >
-          <h2 className="m-0 font-display text-xl font-medium">Officer onboarding</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="JCF badge number">
-              <Input value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} />
-            </Field>
-            <Field label="Parish">
-              <Input value={parish} onChange={(event) => setParish(event.target.value)} />
-            </Field>
+          <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-xl font-medium">Officer onboarding</h2><span className="text-xs font-semibold text-sand-500">Step {onboardingStep} of 3</span></div>
+          <div className="flex items-center gap-2" aria-label="Officer onboarding progress">
+            {["Identity", "Documents", "Availability"].map((label, index) => <div className="flex flex-1 items-center gap-1.5" key={label}><span className={`inline-flex size-7 items-center justify-center rounded-full text-xs font-bold ${onboardingStep > index ? "bg-deep text-white" : "bg-shell text-sand-500"}`}>{onboardingStep > index + 1 ? <Check size={14} /> : index + 1}</span><span className="hidden text-xs font-semibold sm:inline">{label}</span>{index < 2 && <span className="h-px flex-1 bg-shell" />}</div>)}
           </div>
-          <Field label="Coverage zone">
-            <Input placeholder="e.g. Negril — West End to Sheffield" value={coverageArea} onChange={(event) => setCoverageArea(event.target.value)} />
-          </Field>
-          <div className="flex flex-col gap-1">
-            <label className="flex min-h-11 cursor-pointer items-center gap-3">
-              <input
-                checked={isActiveOffDuty}
-                className="size-5 accent-deep-hover"
-                onChange={(event) => setIsActiveOffDuty(event.target.checked)}
-                type="checkbox"
-              />
-              <span className="text-sm">Active off-duty JCF officer</span>
-            </label>
-            <label className="flex min-h-11 cursor-pointer items-center gap-3">
-              <input
-                checked={isRetired}
-                className="size-5 accent-deep-hover"
-                onChange={(event) => setIsRetired(event.target.checked)}
-                type="checkbox"
-              />
-              <span className="text-sm">Retired</span>
-              <span className="text-xs font-semibold text-coral-text">— retired officers are automatically rejected</span>
-            </label>
-          </div>
-          <Button type="submit" variant="dark">
-            <BadgeCheck size={17} /> Submit for verification
-          </Button>
+          {onboardingStep === 1 && <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="JCF badge number"><Input required value={badgeNumber} onChange={(event) => setBadgeNumber(event.target.value)} /></Field>
+              <Field label="Parish"><Input required value={parish} onChange={(event) => setParish(event.target.value)} /></Field>
+            </div>
+            <Field label="Coverage zone"><Input required placeholder="e.g. Negril — West End to Sheffield" value={coverageArea} onChange={(event) => setCoverageArea(event.target.value)} /></Field>
+            <div className="flex flex-col gap-1">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3"><input checked={isActiveOffDuty} className="size-5 accent-deep-hover" onChange={(event) => setIsActiveOffDuty(event.target.checked)} type="checkbox" /><span className="text-sm">Active off-duty JCF officer</span></label>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3"><input checked={isRetired} className="size-5 accent-deep-hover" onChange={(event) => setIsRetired(event.target.checked)} type="checkbox" /><span className="text-sm">Retired</span><span className="text-xs font-semibold text-coral-text">— retired officers are automatically rejected</span></label>
+            </div>
+            <div className="rounded-field bg-mint-tint px-4 py-3 text-[12.5px] text-mint-text"><Map size={15} className="mr-1 inline" /> Coverage preview: <strong>{parish || "Select a parish"}</strong> · {coverageArea || "Add a coverage area"}. Location data is used for assignment matching only.</div>
+          </>}
+          {onboardingStep === 2 && <div className="flex flex-col gap-3"><div className="text-sm text-gray-600">Upload or confirm the documents an administrator will review. Files are not exposed to hosts.</div>{([ ["governmentId", "Government-issued ID"], ["policeBadge", "JCF badge evidence"], ["proofOfAddress", "Proof of address" ]] as const).map(([key, label]) => <label className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-field border border-sand-border bg-white px-4" key={key}><span className="flex items-center gap-2 text-sm font-semibold"><FileCheck2 size={16} className={documents[key] ? "text-success-text" : "text-sand-500"} />{label}</span><input aria-label={label} checked={documents[key]} className="size-5 accent-deep-hover" onChange={(event) => setDocuments((current) => ({ ...current, [key]: event.target.checked }))} type="checkbox" /></label>)}<div className="rounded-field bg-amber-tint px-4 py-3 text-[12.5px] text-amber-text"><Eye size={15} className="mr-1 inline" /> Admin review uses a side-by-side checklist. Sensitive documents remain role-restricted.</div></div>}
+          {onboardingStep === 3 && <div className="flex flex-col gap-3"><div className="text-sm text-gray-600">Set the days and hours you can accept assignments. Times are stored as your local availability window.</div><div className="flex flex-wrap gap-2">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <label className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-pill border px-3 text-xs font-semibold ${availabilityDays.includes(day) ? "border-deep bg-mint-tint" : "border-sand-input bg-white"}`} key={day}><input checked={availabilityDays.includes(day)} className="sr-only" onChange={() => setAvailabilityDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day])} type="checkbox" />{availabilityDays.includes(day) && <Check size={13} />}{day}</label>)}</div><div className="grid gap-3 sm:grid-cols-2"><Field label="Available from"><Input type="time" value={availabilityStart} onChange={(event) => setAvailabilityStart(event.target.value)} /></Field><Field label="Available until"><Input type="time" value={availabilityEnd} onChange={(event) => setAvailabilityEnd(event.target.value)} /></Field></div><label className="flex items-start gap-3 rounded-field border border-sand-border bg-white p-3"><input checked={privacyConsent} className="mt-1 size-5 accent-deep-hover" onChange={(event) => setPrivacyConsent(event.target.checked)} type="checkbox" /><span className="text-[12.5px]">I consent to NestyStay securely processing my officer information for verification, assignment, payouts, and audit retention. Hosts see badge ID only.</span></label></div>}
+          <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-sand-500">{draftSavedAt ? `Draft saved ${new Date(draftSavedAt).toLocaleTimeString()}` : "Draft saves automatically"}</span><div className="flex gap-2">{onboardingStep > 1 && <Button onClick={() => setOnboardingStep((step) => step - 1)} type="button" variant="ghost">Back</Button>}{onboardingStep < 3 ? <Button onClick={() => setOnboardingStep((step) => step + 1)} type="button" variant="outline">Continue <ArrowRight size={16} /></Button> : <Button disabled={!privacyConsent || availabilityDays.length === 0 || !documents.governmentId || !documents.policeBadge || !documents.proofOfAddress} type="submit" variant="dark"><BadgeCheck size={17} /> Submit for verification</Button>}</div></div>
           {officer && (
             <div className="flex flex-wrap items-center gap-2 rounded-field bg-shell px-4 py-3 text-[13px]">
               <span className="font-mono font-bold">{officer.badgeNumber}</span>
@@ -948,6 +1102,9 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
           <div className="rounded-field bg-amber-tint px-4 py-3 text-[12.5px] text-amber-text">
             Enforced by the API: only the assigned officer can file, and never before the scheduled time.
           </div>
+          <div className={`flex items-center gap-2 rounded-field px-4 py-3 text-[12.5px] ${isOffline ? "bg-amber-tint text-amber-text" : "bg-shell text-gray-600"}`} role="status">
+            {isOffline ? <WifiOff size={15} /> : <Check size={15} />} {isOffline ? "Offline draft mode: your visit ID and notes are saved locally and will be ready when you reconnect." : "Draft autosaved locally. Uploads resume only when you are online."}
+          </div>
           <div className="wellness-upload-panel">
             <label className={buttonClassName("outline", "property-photo-picker")}>
               <Paperclip size={16} /> Report photos
@@ -955,6 +1112,7 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
             </label>
             <WellnessReportUploadList
               uploads={reportUploads.filter((upload) => upload.visitId === visitId.trim())}
+              onCaptionChange={(id, caption) => updateReportUpload(id, { caption })}
               onCancel={cancelReportPhotoUpload}
               onRemove={removeReportPhotoUpload}
               onRetry={retryReportPhotoUpload}
@@ -969,7 +1127,7 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
                 if (!auth.session?.accessToken) throw new Error("Sign in with an approved Officer account before submitting a report.");
                 const result = await api.submitWellnessReport(visitId, auth.session?.accessToken ?? "", {
                   officerBadgeNumber: badgeNumber,
-                  notes,
+                  notes: [notes, ...reportUploads.filter((upload) => upload.visitId === visitId.trim() && upload.caption?.trim()).map((upload) => `${upload.file.name}: ${upload.caption!.trim()}`)].join("\nPhoto notes: "),
                   photos: uploadedReportPhotoIds,
                 });
                 return `Report submitted. Visit is ${result.visitStatus}; payout is ${result.paymentStatus}.`;
@@ -986,26 +1144,34 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
       </div>
 
       <div className="flex flex-col gap-3" id="OFC-02">
-        <h2 className="m-0 font-display text-xl font-medium">Your assigned visits</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-xl font-medium">Your assigned visits</h2><span className="inline-flex items-center gap-1.5 rounded-pill bg-shell px-3 py-1.5 text-xs font-semibold"><CalendarClock size={14} /> {assignedVisits.length} active assignment{assignedVisits.length === 1 ? "" : "s"}</span></div>
         {assignedVisits.length === 0 ? (
           <div className="text-[13px] text-gray-600">
             No visits are assigned to <span className="font-mono font-bold">{badgeNumber.trim().toUpperCase()}</span> yet.
           </div>
         ) : (
-          <WellnessVisitList visits={assignedVisits} />
+          <div className="flex flex-col gap-3">{assignedVisits.map((visit) => <Card className="border border-sand-border" key={visit.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-semibold">{new Date(visit.scheduledAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {new Date(visit.scheduledAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</div><div className="mt-1 text-xs text-gray-600">{visit.visitType} · {visit.parish} / {visit.area}</div></div><StatusChip value={visit.visitStatus} /></div><div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-sand-500"><TimerReset size={14} /> {visit.timeline.slice(-2).join(" · ") || "Assignment created"}</div></Card>)}</div>
         )}
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-3" aria-label="Officer privacy and support">
+        <Card><div className="flex items-center gap-2 font-semibold"><ShieldCheck size={17} className="text-deep-hover" /> Privacy controls</div><p className="mt-2 text-[12.5px] text-gray-600">Your name, photo, phone, and home address are never shown to hosts. Only badge ID, parish coverage, and assignment status are shared.</p><div className="mt-3 flex items-center gap-2 text-xs font-semibold text-success-text"><Check size={14} /> Host visibility restricted</div></Card>
+        <Card><div className="flex items-center gap-2 font-semibold"><Bell size={17} className="text-deep-hover" /> Notification preferences</div><p className="mt-2 text-[12.5px] text-gray-600">Assignment and report events are recorded in the secure activity timeline. Email/SMS delivery depends on the configured notification provider.</p><div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-text"><CircleAlert size={14} /> Provider delivery status shown by admin</div></Card>
+        <Card><div className="flex items-center gap-2 font-semibold"><Lock size={17} className="text-deep-hover" /> Data retention</div><p className="mt-2 text-[12.5px] text-gray-600">Verification and report records are retained for audit and safety purposes, then handled under the platform retention policy.</p><div className="mt-3 text-xs font-semibold text-sand-500">Consent history captured with onboarding</div></Card>
+      </section>
     </div>
   );
 }
 
 function WellnessReportUploadList({
   uploads,
+  onCaptionChange,
   onCancel,
   onRemove,
   onRetry,
 }: {
   uploads: WellnessReportPhotoUploadItem[];
+  onCaptionChange?: (id: string, caption: string) => void;
   onCancel: (id: string) => void;
   onRemove: (id: string) => void;
   onRetry: (item: WellnessReportPhotoUploadItem) => void;
@@ -1018,7 +1184,7 @@ function WellnessReportUploadList({
     <div className="property-upload-list wellness-upload-list">
       {uploads.map((upload) => (
         <div className="property-upload-item" key={upload.id}>
-          <span>{upload.file.name}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1"><span className="truncate">{upload.file.name}</span>{onCaptionChange && <input aria-label={`Caption ${upload.file.name}`} className="min-h-8 rounded border border-sand-input bg-white px-2 text-xs" onChange={(event) => onCaptionChange(upload.id, event.target.value)} placeholder="Optional caption" value={upload.caption ?? ""} />}</div>
           <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
           <div className="property-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
           {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => onCancel(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
@@ -1369,6 +1535,23 @@ function resolvePropertyPhotoContentType(file: File) {
 
 function resolveWellnessReportPhotoContentType(file: File) {
   return resolvePropertyPhotoContentType(file);
+}
+
+async function compressWellnessReportPhoto(file: File): Promise<File> {
+  if (file.size <= 2 * 1024 * 1024 || !file.type.startsWith("image/")) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    return blob ? new File([blob], file.name.replace(/\.(png|webp)$/i, ".jpg"), { type: "image/jpeg", lastModified: Date.now() }) : file;
+  } catch {
+    return file;
+  }
 }
 
 export function CalendarPage({ auth }: { auth: AuthController }) {
@@ -2001,6 +2184,11 @@ export function AdminPage({ auth }: { auth: AuthController }) {
   const [selectedWellnessOfficerId, setSelectedWellnessOfficerId] = useState("");
   const [selectedWellnessVisitId, setSelectedWellnessVisitId] = useState("");
   const [wellnessReportNotes, setWellnessReportNotes] = useState("Admin completion with verified wellness report photo evidence.");
+  const [wellnessOfficerSearch, setWellnessOfficerSearch] = useState("");
+  const [wellnessOfficerStatus, setWellnessOfficerStatus] = useState("All");
+  const [wellnessParishFilter, setWellnessParishFilter] = useState("All");
+  const [selectedWellnessOfficerIds, setSelectedWellnessOfficerIds] = useState<string[]>([]);
+  const [reviewTemplate, setReviewTemplate] = useState("Approved from admin dashboard.");
   const [adminReportUploads, setAdminReportUploads] = useState<WellnessReportPhotoUploadItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -2092,6 +2280,15 @@ export function AdminPage({ auth }: { auth: AuthController }) {
   const selectedCampaignKey = campaignKey || data.campaigns?.[0]?.key || campaignForm.key;
   const selectedWellnessVisit = data.wellness?.recentVisits.find((item) => item.id === selectedWellnessVisitId);
   const selectedWellnessOfficer = data.wellnessOfficers?.find((item) => item.id === selectedWellnessOfficerId);
+  const filteredWellnessOfficers = (data.wellnessOfficers ?? []).filter((officer) => {
+    const matchesSearch = !wellnessOfficerSearch.trim() || `${officer.badgeNumber} ${officer.parish} ${officer.coverageArea}`.toLowerCase().includes(wellnessOfficerSearch.trim().toLowerCase());
+    const matchesStatus = wellnessOfficerStatus === "All" || officer.verificationStatus === wellnessOfficerStatus || officer.onboardingStatus === wellnessOfficerStatus;
+    const matchesParish = wellnessParishFilter === "All" || officer.parish === wellnessParishFilter;
+    return matchesSearch && matchesStatus && matchesParish;
+  });
+  const wellnessParishes = Array.from(new Set((data.wellnessOfficers ?? []).map((officer) => officer.parish))).sort();
+  const pendingReports = (data.wellness?.recentVisits ?? []).filter((visit) => visit.reportStatus !== "Submitted" && visit.visitStatus !== "Cancelled");
+  const wellnessSlaWarnings = (data.wellness?.recentVisits ?? []).filter((visit) => visit.visitStatus === "Requested" && Date.now() - new Date(visit.createdAt).getTime() > 24 * 60 * 60 * 1000);
   const adminReportUploadsForVisit = adminReportUploads.filter((upload) => upload.visitId === selectedWellnessVisitId);
   const uploadedAdminReportPhotoIds = adminReportUploadsForVisit
     .filter((upload) => upload.status === "uploaded" && upload.upload?.scanStatus === "Clean")
@@ -2127,6 +2324,16 @@ export function AdminPage({ auth }: { auth: AuthController }) {
     }
   }
 
+  async function runBulkOfficerAction(action: (officerId: string) => Promise<WellnessOfficer>, verb: string) {
+    if (!selectedWellnessOfficerIds.length) return;
+    if (!window.confirm(`${verb} ${selectedWellnessOfficerIds.length} officer${selectedWellnessOfficerIds.length === 1 ? "" : "s"}?`)) return;
+    await runAction(async () => {
+      const results = await Promise.all(selectedWellnessOfficerIds.map((id) => action(id)));
+      setSelectedWellnessOfficerIds([]);
+      return `${results.length} officer${results.length === 1 ? "" : "s"} ${verb.toLowerCase()}. Notification events queued for each change.`;
+    });
+  }
+
   function updateAdminReportUpload(id: string, patch: Partial<WellnessReportPhotoUploadItem>) {
     setAdminReportUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
   }
@@ -2141,16 +2348,17 @@ export function AdminPage({ auth }: { auth: AuthController }) {
     adminReportUploadControllers.current[id] = controller;
 
     try {
-      const contentType = resolveWellnessReportPhotoContentType(file);
+      const uploadFile = await compressWellnessReportPhoto(file);
+      const contentType = resolveWellnessReportPhotoContentType(uploadFile);
       const officerBadgeNumber = selectedWellnessVisit?.officerBadgeNumber ?? selectedWellnessOfficer?.badgeNumber ?? "ADMIN";
       const prepared = await api.prepareAdminWellnessReportPhotoUpload(targetVisitId, adminToken, {
         officerBadgeNumber,
-        fileName: file.name,
+        fileName: uploadFile.name,
         contentType,
-        sizeBytes: file.size,
+        sizeBytes: uploadFile.size,
       });
       updateAdminReportUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
-      const uploaded = await api.uploadAdminWellnessReportPhotoContent(targetVisitId, prepared.id, adminToken, file, {
+      const uploaded = await api.uploadAdminWellnessReportPhotoContent(targetVisitId, prepared.id, adminToken, uploadFile, {
         signal: controller.signal,
         onProgress: (progress) => updateAdminReportUpload(id, { progress, status: "uploading" }),
       });
@@ -2261,11 +2469,16 @@ export function AdminPage({ auth }: { auth: AuthController }) {
 
       <section className="product-section management-layout wellness-workflow">
         <form className="management-form management-form--wellness">
-          <h2 className="section-subtitle">Wellness operations</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="section-subtitle">Wellness operations</h2><span className="inline-flex items-center gap-1.5 rounded-pill bg-shell px-3 py-1.5 text-xs font-semibold"><SlidersHorizontal size={14} /> Live API queue</span></div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Search officers"><Input placeholder="Badge, parish, area" value={wellnessOfficerSearch} onChange={(event) => setWellnessOfficerSearch(event.target.value)} /></Field>
+            <Field label="Status"><Select value={wellnessOfficerStatus} onChange={(event) => setWellnessOfficerStatus(event.target.value)}><option>All</option><option>Pending</option><option>Verified</option><option>Rejected</option><option>Suspended</option></Select></Field>
+            <Field label="Parish"><Select value={wellnessParishFilter} onChange={(event) => setWellnessParishFilter(event.target.value)}><option>All</option>{wellnessParishes.map((parishName) => <option key={parishName}>{parishName}</option>)}</Select></Field>
+          </div>
           <div className="form-grid form-grid--two">
             <Field label="Officer">
               <Select value={selectedWellnessOfficerId} onChange={(event) => setSelectedWellnessOfficerId(event.target.value)}>
-                {(data.wellnessOfficers ?? []).map((officer) => (
+                {filteredWellnessOfficers.map((officer) => (
                   <option key={officer.id} value={officer.id}>
                     {officer.badgeNumber} · {officer.verificationStatus}
                   </option>
@@ -2284,6 +2497,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             <Field label="Report notes" className="form-grid__full">
               <Textarea value={wellnessReportNotes} onChange={(event) => setWellnessReportNotes(event.target.value)} />
             </Field>
+            <Field label="Review response template" className="form-grid__full"><Select value={reviewTemplate} onChange={(event) => setReviewTemplate(event.target.value)}><option>Approved from admin dashboard.</option><option>Documents verified — approved.</option><option>Additional evidence required before approval.</option><option>Coverage or eligibility did not meet requirements.</option></Select></Field>
           </div>
           <div className="wellness-upload-panel">
             <label className={buttonClassName("outline", "property-photo-picker")}>
@@ -2292,6 +2506,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             </label>
             <WellnessReportUploadList
               uploads={adminReportUploadsForVisit}
+              onCaptionChange={(id, caption) => updateAdminReportUpload(id, { caption })}
               onCancel={cancelAdminReportPhotoUpload}
               onRemove={removeAdminReportPhotoUpload}
               onRetry={retryAdminReportPhotoUpload}
@@ -2304,7 +2519,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               disabled={!selectedWellnessOfficerId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
-                  const officer = await api.approveWellnessOfficer(selectedWellnessOfficerId, adminToken, "Approved from admin dashboard.");
+                  const officer = await api.approveWellnessOfficer(selectedWellnessOfficerId, adminToken, reviewTemplate);
                   return `${officer.badgeNumber} approved.`;
                 })
               }
@@ -2317,7 +2532,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               disabled={!selectedWellnessOfficerId || !canManageOfficers}
               onClick={() =>
                 void runAction(async () => {
-                  const officer = await api.rejectWellnessOfficer(selectedWellnessOfficerId, adminToken, "Rejected from admin dashboard.");
+                  const officer = await api.rejectWellnessOfficer(selectedWellnessOfficerId, adminToken, reviewTemplate);
                   return `${officer.badgeNumber} rejected.`;
                 })
               }
@@ -2344,7 +2559,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 void runAction(async () => {
                   await api.completeWellnessVisit(selectedWellnessVisitId, adminToken, {
                     officerBadgeNumber: selectedWellnessVisit?.officerBadgeNumber ?? selectedWellnessOfficer?.badgeNumber ?? "ADMIN",
-                    notes: wellnessReportNotes,
+                    notes: [wellnessReportNotes, ...adminReportUploadsForVisit.filter((upload) => upload.caption?.trim()).map((upload) => `${upload.file.name}: ${upload.caption!.trim()}`)].join("\nPhoto notes: "),
                     photos: uploadedAdminReportPhotoIds,
                   });
                   return "Visit completed with verified report photo.";
@@ -2388,17 +2603,24 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             Pending officers {data.wellness?.pendingOfficers ?? 0} · verified officers {data.wellness?.verifiedOfficers ?? 0} · pending payouts{" "}
             {formatMoney(data.wellness?.pendingPayoutAmount ?? 0)}
           </div>
+          <div className="flex flex-wrap gap-2 border-t border-shell pt-3">
+            <Button disabled={!canManageOfficers || selectedWellnessOfficerIds.length === 0} onClick={() => void runBulkOfficerAction((id) => api.approveWellnessOfficer(id, adminToken, reviewTemplate), "Approved")} type="button" variant="outline">Bulk approve ({selectedWellnessOfficerIds.length})</Button>
+            <Button disabled={!canManageOfficers || selectedWellnessOfficerIds.length === 0} onClick={() => void runBulkOfficerAction((id) => api.rejectWellnessOfficer(id, adminToken, reviewTemplate), "Rejected")} type="button" variant="ghost">Bulk reject</Button>
+            <Button disabled={!canManageOfficers || selectedWellnessOfficerIds.length === 0} onClick={() => void runBulkOfficerAction((id) => api.suspendWellnessOfficer(id, adminToken, "Suspended from wellness queue."), "Suspended")} type="button" variant="ghost">Bulk suspend</Button>
+          </div>
         </form>
 
         <div>
-          <h2 className="section-subtitle">Wellness queue</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="section-subtitle">Wellness queue</h2><span className="text-xs text-sand-500">{filteredWellnessOfficers.length} shown</span></div>
+          <div className="mb-3 grid gap-2 sm:grid-cols-3"><Card><div className="text-xs text-sand-500">Open reports</div><strong>{pendingReports.length}</strong><div className="text-xs text-gray-600">Visits awaiting report</div></Card><Card><div className="text-xs text-sand-500">SLA warnings</div><strong>{wellnessSlaWarnings.length}</strong><div className="text-xs text-gray-600">Requested over 24h</div></Card><Card><div className="text-xs text-sand-500">Payout exceptions</div><strong>{(data.wellness?.payouts ?? []).filter((payout) => payout.status !== "Paid").length}</strong><div className="text-xs text-gray-600">Pending / review</div></Card></div>
           <div className="compact-list">
-            {(data.wellnessOfficers ?? []).slice(0, 8).map((officer) => (
+            {filteredWellnessOfficers.slice(0, 12).map((officer) => (
               <Card className="compact-list__item" key={officer.id}>
+                <input aria-label={`Select ${officer.badgeNumber}`} checked={selectedWellnessOfficerIds.includes(officer.id)} className="size-4 accent-deep-hover" onChange={() => setSelectedWellnessOfficerIds((current) => current.includes(officer.id) ? current.filter((id) => id !== officer.id) : [...current, officer.id])} type="checkbox" />
                 <BadgeCheck size={20} />
                 <div>
                   <strong>{officer.badgeNumber}</strong>
-                  <span>{officer.parish} · {officer.coverageArea}</span>
+                  <span>{officer.parish} · {officer.coverageArea} · {officer.availabilityStatus}</span>
                 </div>
                 <StatusBadge value={officer.verificationStatus} />
               </Card>
@@ -2415,6 +2637,20 @@ export function AdminPage({ auth }: { auth: AuthController }) {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2" aria-label="Wellness review and payouts">
+        <Card>
+          <div className="flex items-center justify-between gap-3"><h2 className="section-subtitle m-0">Side-by-side application review</h2><Eye size={18} className="text-deep-hover" /></div>
+          {selectedWellnessOfficer ? <div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-field border border-sand-border bg-white p-4"><div className="text-xs font-bold uppercase tracking-wide text-sand-500">Applicant</div><div className="mt-2 font-mono font-bold">{selectedWellnessOfficer.badgeNumber}</div><div className="mt-1 text-sm">{selectedWellnessOfficer.parish} · {selectedWellnessOfficer.coverageArea}</div><div className="mt-2 flex flex-wrap gap-1.5"><StatusChip value={selectedWellnessOfficer.verificationStatus} /><StatusChip value={selectedWellnessOfficer.availabilityStatus} /></div></div><div className="rounded-field border border-sand-border bg-shell p-4"><div className="text-xs font-bold uppercase tracking-wide text-sand-500">Review checklist</div><div className="mt-2 flex flex-col gap-2 text-sm"><span className="flex items-center gap-2"><Check size={15} className="text-success-text" /> Off-duty eligibility declared</span><span className="flex items-center gap-2"><Check size={15} className="text-success-text" /> Coverage zone recorded</span><span className="flex items-center gap-2"><Lock size={15} className="text-deep-hover" /> Identity documents role-restricted</span></div></div></div> : <EmptyState title="Select an officer" copy="Choose an officer from the live queue to review their application." />}
+          <div className="mt-4 rounded-field bg-amber-tint px-4 py-3 text-[12.5px] text-amber-text"><MessageSquare size={15} className="mr-1 inline" /> Approval/rejection actions queue notification events and persist an audit reason.</div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between gap-3"><h2 className="section-subtitle m-0">Commission & payout desk</h2><CreditCard size={18} className="text-deep-hover" /></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3"><div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">Pending</div><strong>{formatMoney(data.wellness?.pendingPayoutAmount ?? 0)}</strong></div><div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">Paid</div><strong>{formatMoney((data.wellness?.payouts ?? []).filter((payout) => payout.status === "Paid").reduce((sum, payout) => sum + payout.officerAmount, 0))}</strong></div><div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">Schedule</div><strong>On completion</strong></div></div>
+          <div className="mt-3 flex flex-col gap-2">{(data.wellness?.payouts ?? []).slice(0, 5).map((payout) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-field border border-sand-border bg-white px-3 py-2 text-sm" key={payout.id}><span className="font-mono">{payout.visitId.slice(0, 8)}</span><span>{formatMoney(payout.officerAmount, payout.currency)}</span><StatusChip value={payout.status} /></div>)}{(data.wellness?.payouts ?? []).length === 0 && <div className="text-sm text-gray-600">No payout records yet.</div>}</div>
+          <div className="mt-3 flex items-center gap-2 text-xs text-sand-500"><CircleAlert size={14} /> Bank-account verification and disputes require the configured payment provider.</div>
+        </Card>
       </section>
 
       <section className="product-section management-layout">
