@@ -61,12 +61,22 @@ public sealed class HealthController(
                                 HasSetting("WebPush:Subject", "VAPID_SUBJECT");
         var pendingEmailCount = 0;
         var failedEmailCount = 0;
+        var recentEmailFailureCount = 0;
+        DateTimeOffset? lastSuccessfulEmailAt = null;
         try
         {
             pendingEmailCount = await db.NotificationQueue.CountAsync(item =>
                 item.Channel == "Email" && (item.DeliveryStatus == "PENDING" || item.DeliveryStatus == "PROCESSING" || item.DeliveryStatus == "RETRYING"), cancellationToken);
             failedEmailCount = await db.NotificationQueue.CountAsync(item =>
                 item.Channel == "Email" && (item.DeliveryStatus == "FAILED" || item.DeliveryStatus == "DEAD_LETTER"), cancellationToken);
+            var recentFailureSince = DateTimeOffset.UtcNow.AddHours(-24);
+            recentEmailFailureCount = await db.NotificationQueue.CountAsync(item =>
+                item.Channel == "Email" && item.UpdatedAt >= recentFailureSince && (item.DeliveryStatus == "FAILED" || item.DeliveryStatus == "DEAD_LETTER"), cancellationToken);
+            lastSuccessfulEmailAt = await db.NotificationQueue
+                .Where(item => item.Channel == "Email" && item.DeliveryStatus == "SENT")
+                .OrderByDescending(item => item.UpdatedAt)
+                .Select(item => (DateTimeOffset?)item.UpdatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception)
         {
@@ -78,7 +88,7 @@ public sealed class HealthController(
         var emailStatus = emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase)
             ? (brevoConfigured ? "CONFIGURED" : "BLOCKED_CREDENTIAL")
             : "LOCAL_CAPTURE";
-        var emailDetail = $"Transactional email transport; queue pending={pendingEmailCount}, failed={failedEmailCount}";
+        var emailDetail = $"Transactional email transport; queue pending={pendingEmailCount}, failed={failedEmailCount}, recentFailures24h={recentEmailFailureCount}, lastSuccess={lastSuccessfulEmailAt?.ToString("O") ?? "never"}";
 
         return Ok(new
         {

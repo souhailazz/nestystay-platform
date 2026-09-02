@@ -58,6 +58,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Contains("worker", body, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("backups", body, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("queue pending", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("recentFailures24h", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("api-key", body, StringComparison.OrdinalIgnoreCase);
     }
