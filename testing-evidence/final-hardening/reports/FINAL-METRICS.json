@@ -12,9 +12,8 @@
   },
   "security": { "authorizationPassed": 37, "authorizationFailed": 0, "dynamicChecksPassed": 7, "dynamicChecksFailed": 0, "npmVulnerabilities": 0, "dotnetVulnerabilities": 0 },
   "browserCoverage": { "routesTested": 127, "routesTotal": 127, "routeFailures": 0, "axePages": 12, "axeCritical": 0, "axeSerious": 0, "responsiveScreens": 60, "responsiveFailures": 0, "responsiveControlsMeasured": 1750 },
-  "performance": { "apiSamples": 210, "apiErrors": 0, "apiMaxMs": 43.97, "loadRequests": 960, "loadApplicationErrors": 0, "loadRateLimited": 16, "frontendInitialJsBytes": 93950, "frontendInitialJsGzipBytes": 22770, "largestJsBytes": 248941, "largestJsGzipBytes": 83852, "chunksOver500Kb": 0 },
+  "performance": { "apiSamples": 210, "apiErrors": 0, "apiMaxMs": 43.97, "loadRequests": 960, "loadApplicationErrors": 0, "loadRateLimited": 16, "frontendInitialJsBytes": 93950, "frontendInitialJsGzipBytes": 22770, "frontendTotalJsBytes": 1107530, "frontendTotalJsGzipBytes": 303358, "frontendCssBytes": 130639, "frontendCssGzipBytes": 24449, "largestJsBytes": 248941, "largestJsGzipBytes": 83852, "chunksOver500Kb": 0 },
   "coverage": { "frontendSourceStatementsPct": 4.97, "frontendSourceBranchesPct": 4.36, "frontendSourceFunctionsPct": 3.81, "frontendSourceLinesPct": 5.66, "backendDomainLinePct": 3.41, "backendApplicationLinePct": 45.18, "backendInfrastructureLinePct": 0.75, "backendApiLinePct": 3.05 },
   "database": { "tables": 145, "indexes": 250, "migrations": 32, "integrityViolations": 0, "foreignKeyConstraints": 0, "primaryKeyConstraints": 145 },
   "status": { "localReleaseCandidate": true, "productionReady": false, "realStripeValidated": false, "realAlibabaValidated": false }
 }
-

@@ -18,7 +18,7 @@
 | Frontend source coverage | Statements 4.97%, branches 4.36%, functions 3.81%, lines 5.66% |
 | Database | 145 tables, 250 indexes, 32 migrations, 0 integrity violations |
 | Dependency audit | npm 0 vulnerabilities; .NET 0 vulnerable packages |
-| Initial JavaScript bundle | 93,950 bytes raw / 22,770 gzip; largest JS 248,941 bytes |
+| JavaScript bundle | Initial 93,950 / 22,770 gzip; total 1,107,530 / 303,358 gzip; largest JS 248,941 bytes |
+| CSS bundle | 130,639 bytes raw / 24,449 gzip |
 
 Coverage is reported honestly over all included source files; browser/E2E evidence is tracked separately and is not converted into unit coverage percentages.
-
