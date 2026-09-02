@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, Search, UserRound, X } from "lucide-react";
 import { AppLink, navigate } from "./components/AppLink";
@@ -16,66 +16,62 @@ import { useAuth, type AuthController } from "./hooks/useAuth";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
-import {
-  AdminPage,
-  AuthPage,
-  BookingManagementPage,
-  CalendarPage,
-  ExplorePage,
-  GuestDashboardPage,
-  HostDashboardPage,
-  HostWellnessPage,
-  OfficerWellnessPage,
-  PaymentConfirmationPage,
-  ProfileSettingsPage,
-  PropertyDetailsPage,
-  PropertyManagementPage,
-} from "./pages/ProductPages";
-import { OwnerPortalPage, PropertyManagerDashboardPage, PropertyManagerGatePage } from "./pages/PropertyManagerPages";
-import {
-  AdminOpsSpecPage,
-  AuthSpecFlowPage,
-  BookingSpecStatePage,
-  DirectorySpecPage,
-  ExperiencesPage,
-  HostProfileSpecPage,
-  HostSpecPage,
-  JournalPage,
-  MessagesPage,
-  PublicContentRoute,
-  QrGateValidationPage,
-  TravelerSpecPage,
-} from "./pages/CompletionPages";
-import {
-  AccessRestrictedPage,
-  AdminKpiPage,
-  AdminReportsPage,
-  AuthPostLoginToastPage,
-  BusinessDirectoryPage,
-  ComingSoonPage,
-  DesignSystemReferencePage,
-  DocumentMessagePage,
-  FavoritesCollectionsPage,
-  HostReportsPage,
-  InsuraGuestPage,
-  LoadingStatePage,
-  LogoutScreenPage,
-  MapSearchPage,
-  NoFavoritesPage,
-  NoReservationsPage,
-  NotFoundPage,
-  NotificationsCenterPage,
-  OfficerIdResetPage,
-  PendingReviewsPage,
-  PoliceDirectoryPage,
-  PropertyManagerReportsPage,
-  PropertyManagerUtilitiesPage,
-  PropertyManagerVerificationPage,
-  ProviderDashboardPage,
-  ServerErrorPage,
-  SignInRequiredPage,
-  TripSuggestionsPage,
-} from "./pages/SpecScreens";
+const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
+const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
+const BookingManagementPage = lazy(() => import("./pages/ProductPages").then(({ BookingManagementPage }) => ({ default: BookingManagementPage })));
+const CalendarPage = lazy(() => import("./pages/ProductPages").then(({ CalendarPage }) => ({ default: CalendarPage })));
+const ExplorePage = lazy(() => import("./pages/ProductPages").then(({ ExplorePage }) => ({ default: ExplorePage })));
+const GuestDashboardPage = lazy(() => import("./pages/ProductPages").then(({ GuestDashboardPage }) => ({ default: GuestDashboardPage })));
+const HostDashboardPage = lazy(() => import("./pages/ProductPages").then(({ HostDashboardPage }) => ({ default: HostDashboardPage })));
+const HostWellnessPage = lazy(() => import("./pages/ProductPages").then(({ HostWellnessPage }) => ({ default: HostWellnessPage })));
+const OfficerWellnessPage = lazy(() => import("./pages/ProductPages").then(({ OfficerWellnessPage }) => ({ default: OfficerWellnessPage })));
+const PaymentConfirmationPage = lazy(() => import("./pages/ProductPages").then(({ PaymentConfirmationPage }) => ({ default: PaymentConfirmationPage })));
+const ProfileSettingsPage = lazy(() => import("./pages/ProductPages").then(({ ProfileSettingsPage }) => ({ default: ProfileSettingsPage })));
+const PropertyDetailsPage = lazy(() => import("./pages/ProductPages").then(({ PropertyDetailsPage }) => ({ default: PropertyDetailsPage })));
+const PropertyManagementPage = lazy(() => import("./pages/ProductPages").then(({ PropertyManagementPage }) => ({ default: PropertyManagementPage })));
+
+const OwnerPortalPage = lazy(() => import("./pages/PropertyManagerPages").then(({ OwnerPortalPage }) => ({ default: OwnerPortalPage })));
+const PropertyManagerDashboardPage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerDashboardPage }) => ({ default: PropertyManagerDashboardPage })));
+const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerGatePage }) => ({ default: PropertyManagerGatePage })));
+
+const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
+const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
+const BookingSpecStatePage = lazy(() => import("./pages/CompletionPages").then(({ BookingSpecStatePage }) => ({ default: BookingSpecStatePage })));
+const DirectorySpecPage = lazy(() => import("./pages/CompletionPages").then(({ DirectorySpecPage }) => ({ default: DirectorySpecPage })));
+const ExperiencesPage = lazy(() => import("./pages/CompletionPages").then(({ ExperiencesPage }) => ({ default: ExperiencesPage })));
+const HostProfileSpecPage = lazy(() => import("./pages/CompletionPages").then(({ HostProfileSpecPage }) => ({ default: HostProfileSpecPage })));
+const HostSpecPage = lazy(() => import("./pages/CompletionPages").then(({ HostSpecPage }) => ({ default: HostSpecPage })));
+const JournalPage = lazy(() => import("./pages/CompletionPages").then(({ JournalPage }) => ({ default: JournalPage })));
+const MessagesPage = lazy(() => import("./pages/CompletionPages").then(({ MessagesPage }) => ({ default: MessagesPage })));
+const PublicContentRoute = lazy(() => import("./pages/CompletionPages").then(({ PublicContentRoute }) => ({ default: PublicContentRoute })));
+const QrGateValidationPage = lazy(() => import("./pages/CompletionPages").then(({ QrGateValidationPage }) => ({ default: QrGateValidationPage })));
+const TravelerSpecPage = lazy(() => import("./pages/CompletionPages").then(({ TravelerSpecPage }) => ({ default: TravelerSpecPage })));
+
+const AccessRestrictedPage = lazy(() => import("./pages/SpecScreens").then(({ AccessRestrictedPage }) => ({ default: AccessRestrictedPage })));
+const AdminKpiPage = lazy(() => import("./pages/SpecScreens").then(({ AdminKpiPage }) => ({ default: AdminKpiPage })));
+const AdminReportsPage = lazy(() => import("./pages/SpecScreens").then(({ AdminReportsPage }) => ({ default: AdminReportsPage })));
+const AuthPostLoginToastPage = lazy(() => import("./pages/SpecScreens").then(({ AuthPostLoginToastPage }) => ({ default: AuthPostLoginToastPage })));
+const ComingSoonPage = lazy(() => import("./pages/SpecScreens").then(({ ComingSoonPage }) => ({ default: ComingSoonPage })));
+const DesignSystemReferencePage = lazy(() => import("./pages/SpecScreens").then(({ DesignSystemReferencePage }) => ({ default: DesignSystemReferencePage })));
+const DocumentMessagePage = lazy(() => import("./pages/SpecScreens").then(({ DocumentMessagePage }) => ({ default: DocumentMessagePage })));
+const FavoritesCollectionsPage = lazy(() => import("./pages/SpecScreens").then(({ FavoritesCollectionsPage }) => ({ default: FavoritesCollectionsPage })));
+const HostReportsPage = lazy(() => import("./pages/SpecScreens").then(({ HostReportsPage }) => ({ default: HostReportsPage })));
+const InsuraGuestPage = lazy(() => import("./pages/SpecScreens").then(({ InsuraGuestPage }) => ({ default: InsuraGuestPage })));
+const LoadingStatePage = lazy(() => import("./pages/SpecScreens").then(({ LoadingStatePage }) => ({ default: LoadingStatePage })));
+const LogoutScreenPage = lazy(() => import("./pages/SpecScreens").then(({ LogoutScreenPage }) => ({ default: LogoutScreenPage })));
+const MapSearchPage = lazy(() => import("./pages/SpecScreens").then(({ MapSearchPage }) => ({ default: MapSearchPage })));
+const NoFavoritesPage = lazy(() => import("./pages/SpecScreens").then(({ NoFavoritesPage }) => ({ default: NoFavoritesPage })));
+const NoReservationsPage = lazy(() => import("./pages/SpecScreens").then(({ NoReservationsPage }) => ({ default: NoReservationsPage })));
+const NotFoundPage = lazy(() => import("./pages/SpecScreens").then(({ NotFoundPage }) => ({ default: NotFoundPage })));
+const NotificationsCenterPage = lazy(() => import("./pages/SpecScreens").then(({ NotificationsCenterPage }) => ({ default: NotificationsCenterPage })));
+const OfficerIdResetPage = lazy(() => import("./pages/SpecScreens").then(({ OfficerIdResetPage }) => ({ default: OfficerIdResetPage })));
+const PendingReviewsPage = lazy(() => import("./pages/SpecScreens").then(({ PendingReviewsPage }) => ({ default: PendingReviewsPage })));
+const PropertyManagerReportsPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerReportsPage }) => ({ default: PropertyManagerReportsPage })));
+const PropertyManagerUtilitiesPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerUtilitiesPage }) => ({ default: PropertyManagerUtilitiesPage })));
+const PropertyManagerVerificationPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerVerificationPage }) => ({ default: PropertyManagerVerificationPage })));
+const ServerErrorPage = lazy(() => import("./pages/SpecScreens").then(({ ServerErrorPage }) => ({ default: ServerErrorPage })));
+const SignInRequiredPage = lazy(() => import("./pages/SpecScreens").then(({ SignInRequiredPage }) => ({ default: SignInRequiredPage })));
+const TripSuggestionsPage = lazy(() => import("./pages/SpecScreens").then(({ TripSuggestionsPage }) => ({ default: TripSuggestionsPage })));
 
 const navItems = [
   ["Explore", "/explore"],
@@ -948,15 +944,17 @@ export default function App() {
         className={`app-shell route-${route.name} ${isWorkspaceRoute(route) ? "app-shell--workspace" : ""}`}
       >
         {hasPublicNav(route) && <Navbar auth={auth} route={route} />}
-        {isWorkspaceRoute(route) ? (
-          <WorkspaceFrame routeName={route.name}>
-            <CurrentPage auth={auth} route={route} />
-          </WorkspaceFrame>
-        ) : (
-          <main>
-            <CurrentPage auth={auth} route={route} />
-          </main>
-        )}
+        <Suspense fallback={<div aria-live="polite" className="min-h-[50vh] p-8" role="status">Loading this workspace…</div>}>
+          {isWorkspaceRoute(route) ? (
+            <WorkspaceFrame routeName={route.name}>
+              <CurrentPage auth={auth} route={route} />
+            </WorkspaceFrame>
+          ) : (
+            <main>
+              <CurrentPage auth={auth} route={route} />
+            </main>
+          )}
+        </Suspense>
       </div>
     </PatoisProvider>
   );

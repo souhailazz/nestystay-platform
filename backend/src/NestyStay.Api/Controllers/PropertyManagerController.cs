@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.PropertyManager;
 
 namespace NestyStay.Api.Controllers;
@@ -39,6 +41,7 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
 
     [Authorize]
     [HttpPost("invoices/{invoiceId:guid}/payments")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<IActionResult> PayInvoice(Guid invoiceId, PayInvoiceRequest request, CancellationToken cancellationToken) => (await store.PayInvoiceAsync(Actor(), authorization.IsInRole(NestyStay.Domain.UserRole.Admin), invoiceId, request, cancellationToken)) is { } result ? Ok(result) : NotFound();
 
     [Authorize]
@@ -77,6 +80,7 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
 
     [Authorize(Roles = "Owner,PropertyManager,Admin")]
     [HttpPost("governance/proposals/{proposalId:guid}/votes")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<IActionResult> Vote(Guid proposalId, VoteRequest request, CancellationToken cancellationToken) => Ok(await store.VoteAsync(Actor(), authorization.IsInRole(NestyStay.Domain.UserRole.Admin), proposalId, request, cancellationToken));
 
     [Authorize(Roles = "Owner")]
@@ -89,6 +93,7 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
 
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("documents")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
     public async Task<IActionResult> Document(AddDocumentRequest request, CancellationToken cancellationToken) => Ok(await store.AddDocumentAsync(Actor(), request, cancellationToken));
 
     [Authorize]
@@ -109,6 +114,7 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
 
     [AllowAnonymous]
     [HttpPost("qr/validate")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<IActionResult> ValidateQr(ValidateQrRequest request, CancellationToken cancellationToken) => Ok(await store.ValidateQrAsync(request.Token, request.PropertyId, authorization.TryGetSignedInUser(), cancellationToken));
 
     [Authorize(Roles = "PropertyManager,Admin")]

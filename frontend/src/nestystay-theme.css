@@ -20,7 +20,7 @@
   /* Warm neutrals (light surfaces) */
   --color-ink: #12241F;           /* primary text */
   --color-gray-600: #5A6B63;      /* secondary text, patois translations */
-  --color-sand-500: #8A7F5E;      /* eyebrows, meta */
+  --color-sand-500: #6C634A;      /* accessible eyebrows and metadata on warm light surfaces */
   --color-sand-border: #E7DCC2;   /* hairlines, card borders */
   --color-sand-input: #C7BC9C;    /* input borders */
   --color-shell: #F3EAC8;         /* subtle fills, table headers, skeleton base */
@@ -37,7 +37,7 @@
 
   /* Semantic (StatusBadge): tint bg + dark text of same hue */
   --color-success: #1B7A4B;  --color-success-tint: #E3F2E9;  --color-success-text: #135A38;
-  --color-coral: #D64F45;    --color-coral-tint: #FBE7E6;    --color-coral-text: #9E2B23;
+  --color-coral: #C13F37;    --color-coral-tint: #FBE7E6;    --color-coral-text: #9E2B23;
   --color-amber: #D9A800;    --color-amber-tint: #FBF1CE;    --color-amber-text: #7A5800;
   --color-info: #2E6BD6;     --color-info-tint: #E5EDFB;     --color-info-text: #1D4FA8;
   --color-mint: #2FB893;     --color-mint-tint: #DFF6EF;     --color-mint-text: #0E6B57;

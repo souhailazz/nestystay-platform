@@ -1,0 +1,23 @@
+
+> nesty-stay-landing@1.0.0 build
+> tsc -b && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 2136 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                 1.41 kB │ gzip:  0.62 kB
+dist/assets/index-BRZyOtys.css                130.64 kB │ gzip: 26.20 kB
+dist/assets/ListControls-Bk9XQK8D.js            4.87 kB │ gzip:  1.85 kB
+dist/assets/PageHeader-C-rpQDYQ.js              5.94 kB │ gzip:  2.28 kB
+dist/assets/icons-DJlheKvO.js                  22.70 kB │ gzip:  7.36 kB
+dist/assets/PropertyManagerPages-DFv7nAm2.js   44.70 kB │ gzip: 11.37 kB
+dist/assets/SpecScreens-ByNWbM4j.js            65.81 kB │ gzip: 15.57 kB
+dist/assets/index-COiwTwpB.js                  93.95 kB │ gzip: 24.34 kB
+dist/assets/ProductPages-DBd0MIEo.js          112.85 kB │ gzip: 27.25 kB
+dist/assets/CompletionPages-C9P2NZQM.js       134.40 kB │ gzip: 32.55 kB
+dist/assets/PublicStateContainer-Cn9FOFDF.js  140.00 kB │ gzip: 35.35 kB
+dist/assets/vendor-asavlaCP.js                233.37 kB │ gzip: 76.03 kB
+dist/assets/motion-B5-CqGdo.js                248.94 kB │ gzip: 89.51 kB
+✓ built in 6.43s

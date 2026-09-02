@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.Access;
 using NestyStay.Domain;
 
@@ -39,6 +41,7 @@ public sealed class AccessController(
     // Gate-facing validation deliberately returns no guest name, email, or private contact data.
     [AllowAnonymous]
     [HttpPost("qr/validate")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<ActionResult<QrValidationResult>> Validate(ValidateQrRequest request, CancellationToken cancellationToken) =>
         Ok(await qrAccessStore.ValidateAsync(request.Token, request.PropertyId, request.DeviceMetadata, cancellationToken));
 

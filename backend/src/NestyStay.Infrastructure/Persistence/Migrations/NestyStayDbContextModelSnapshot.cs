@@ -6407,6 +6407,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EkycTransactionId");
 
+                    b.HasIndex("GuestUserId");
+
+                    b.HasIndex("HostUserId");
+
                     b.HasIndex("PropertyId", "CheckIn", "CheckOut");
 
                     b.ToTable("milestone_booking");
@@ -6763,6 +6767,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.HasIndex("ConversationId", "UserId")
                         .IsUnique();
@@ -8027,6 +8033,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("ManagerUserId", "InvoiceNumber")
                         .IsUnique();
 
+                    b.HasIndex("OwnerUserId", "DueDate");
+
                     b.ToTable("milestone_manager_invoice");
                 });
 
@@ -8475,6 +8483,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
 
                     b.HasIndex("ManagerUserId", "IdempotencyKey")
                         .IsUnique();
@@ -11082,6 +11092,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("PaymentStatus");
 
                     b.HasIndex("VisitStatus");
+
+                    b.HasIndex("HostUserId", "ScheduledAt");
 
                     b.HasIndex("OfficerId", "ScheduledAt");
 

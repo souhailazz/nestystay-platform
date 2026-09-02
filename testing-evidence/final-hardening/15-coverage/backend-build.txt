@@ -1,0 +1,14 @@
+  NestyStay.Domain -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Domain\bin\Debug\net10.0\NestyStay.Domain.dll
+  NestyStay.Application -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Application\bin\Debug\net10.0\NestyStay.Application.dll
+  NestyStay.Domain.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Domain.Tests\bin\Debug\net10.0\NestyStay.Domain.Tests.dll
+  NestyStay.Infrastructure -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Infrastructure\bin\Debug\net10.0\NestyStay.Infrastructure.dll
+  NestyStay.Application.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Application.Tests\bin\Debug\net10.0\NestyStay.Application.Tests.dll
+  NestyStay.Api -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Api\bin\Debug\net10.0\NestyStay.Api.dll
+  NestyStay.Infrastructure.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Infrastructure.Tests\bin\Debug\net10.0\NestyStay.Infrastructure.Tests.dll
+  NestyStay.Api.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Api.Tests\bin\Debug\net10.0\NestyStay.Api.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.78

@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-09-02T12:10:33.626Z",
+  "total": 7,
+  "passed": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "allowed CORS origin",
+      "passed": true,
+      "evidence": "http://localhost:5173"
+    },
+    {
+      "name": "untrusted CORS origin denied",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "credentialed wildcard absent",
+      "passed": true,
+      "evidence": {
+        "vary": "Origin, Access-Control-Request-Headers",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "content-length": "0",
+        "date": "Wed, 02 Sep 2026 12:10:32 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      }
+    },
+    {
+      "name": "malformed JSON rejected",
+      "passed": true,
+      "evidence": 400
+    },
+    {
+      "name": "SQL-like query remains data",
+      "passed": true,
+      "evidence": 200
+    },
+    {
+      "name": "XSS payload persisted as text",
+      "passed": true,
+      "evidence": "<img src=x onerror=\"window.__nestyXss=true\">1788351032273"
+    },
+    {
+      "name": "React output encoding prevents stored XSS",
+      "passed": true,
+      "evidence": {
+        "executed": false,
+        "injectedImageCount": 0,
+        "visibleText": true
+      }
+    }
+  ]
+}

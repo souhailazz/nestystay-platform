@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Domain;
@@ -117,6 +119,7 @@ public sealed class PropertiesController(
 
     [Authorize(Roles = "Host")]
     [HttpPut("{id:guid}/photos/{photoId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadPropertyPhotoContent(Guid id, Guid photoId, CancellationToken cancellationToken)
     {

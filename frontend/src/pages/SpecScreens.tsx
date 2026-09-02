@@ -112,7 +112,7 @@ export function DesignSystemReferencePage() {
     ["Palm", "#0f5a45"],
     ["Sun", "#ffd228"],
     ["Cream", "#f7f3e8"],
-    ["Coral", "#e57b54"],
+    ["Coral", "#b93a32"],
     ["Blue", "#3267a8"],
   ];
 

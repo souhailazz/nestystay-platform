@@ -34,4 +34,13 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:5019",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });

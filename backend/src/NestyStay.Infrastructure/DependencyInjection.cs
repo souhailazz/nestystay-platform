@@ -350,7 +350,8 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"Stripe request failed: {responseBody}");
+            throw new InvalidOperationException(
+                $"Stripe request failed with HTTP {(int)response.StatusCode}. No payment state was changed.");
         }
 
         return JsonDocument.Parse(responseBody);

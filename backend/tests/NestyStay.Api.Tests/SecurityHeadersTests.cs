@@ -32,7 +32,7 @@ public sealed class SecurityHeadersTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal("max-age=31536000; includeSubDomains", SingleHeader(response, "Strict-Transport-Security"));
         Assert.Equal("nosniff", SingleHeader(response, "X-Content-Type-Options"));
         Assert.Equal("strict-origin-when-cross-origin", SingleHeader(response, "Referrer-Policy"));
-        Assert.Equal("camera=(), microphone=(), geolocation=(), usb=()", SingleHeader(response, "Permissions-Policy"));
+        Assert.Equal("camera=(self), microphone=(), geolocation=(), usb=()", SingleHeader(response, "Permissions-Policy"));
         Assert.Equal("DENY", SingleHeader(response, "X-Frame-Options"));
     }
 

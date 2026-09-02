@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.Admin;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Application.Wellness;
@@ -17,6 +19,7 @@ public sealed class WellnessController(
 {
     [AllowAnonymous]
     [HttpPost("officers")]
+    [EnableRateLimiting(RateLimitPolicies.PublicWrite)]
     public async Task<IActionResult> OnboardOfficer(OnboardOfficerRequest request, CancellationToken cancellationToken)
     {
         if (request.UserId is { } requestedUserId)
@@ -240,6 +243,7 @@ public sealed class WellnessController(
 
     [Authorize]
     [HttpPut("visits/{visitId:guid}/report/photos/{photoId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadReportPhotoContent(
         Guid visitId,

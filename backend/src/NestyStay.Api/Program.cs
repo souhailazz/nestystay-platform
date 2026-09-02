@@ -47,6 +47,7 @@ builder.Services.AddAuthorization(options =>
 {
     AdminAuthorizationPolicies.AddPolicies(options);
 });
+builder.Services.AddNestyStayRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration.GetConnectionString("Postgres"));
@@ -71,6 +72,7 @@ if (builder.Configuration.GetValue<bool>("Security:EnableHttpsRedirection"))
 app.UseCors("Frontend");
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

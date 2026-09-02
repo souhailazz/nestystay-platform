@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.Admin;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.SpecCompletion;
@@ -62,6 +64,7 @@ public sealed class BookingsController(
 
     [Authorize]
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<IActionResult> Create(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var guestUserId = authorization.RequireSignedInUser("Authenticated user id is required.");

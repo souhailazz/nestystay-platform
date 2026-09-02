@@ -1,0 +1,58 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+
+Project `NestyStay.Api` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                           Requested   Resolved   Latest 
+   > Microsoft.AspNetCore.OpenApi              10.0.9      10.0.9     10.0.11
+   > Microsoft.EntityFrameworkCore.Design      10.0.9      10.0.9     10.0.11
+   > Microsoft.OpenApi                         2.7.5       2.7.5      3.10.2 
+
+The given project `NestyStay.Domain` has no updates given the current sources.
+Project `NestyStay.Application` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                                            Requested   Resolved   Latest 
+   > Microsoft.Extensions.DependencyInjection.Abstractions      10.0.9      10.0.9     10.0.11
+
+Project `NestyStay.Infrastructure` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                                            Requested   Resolved   Latest 
+   > Microsoft.EntityFrameworkCore.Design                       10.0.9      10.0.9     10.0.11
+   > Microsoft.EntityFrameworkCore.Relational                   10.0.9      10.0.9     10.0.11
+   > Microsoft.Extensions.DependencyInjection.Abstractions      10.0.9      10.0.9     10.0.11
+   > System.Security.Cryptography.Xml                           10.0.10     10.0.10    10.0.11
+
+Project `NestyStay.Api.Tests` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                             Requested   Resolved   Latest 
+   > coverlet.collector                          6.0.4       6.0.4      10.0.1 
+   > Microsoft.AspNetCore.Mvc.Testing            10.0.9      10.0.9     10.0.11
+   > Microsoft.EntityFrameworkCore.InMemory      10.0.9      10.0.9     10.0.11
+   > Microsoft.NET.Test.Sdk                      17.14.1     17.14.1    18.9.0 
+   > xunit.runner.visualstudio                   3.1.5       3.1.5      4.0.0  
+
+Project `NestyStay.Application.Tests` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                Requested   Resolved   Latest
+   > coverlet.collector             6.0.4       6.0.4      10.0.1
+   > Microsoft.NET.Test.Sdk         17.14.1     17.14.1    18.9.0
+   > xunit.runner.visualstudio      3.1.5       3.1.5      4.0.0 
+
+Project `NestyStay.Domain.Tests` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                Requested   Resolved   Latest
+   > coverlet.collector             6.0.4       6.0.4      10.0.1
+   > Microsoft.NET.Test.Sdk         17.14.1     17.14.1    18.9.0
+   > xunit.runner.visualstudio      3.1.5       3.1.5      4.0.0 
+
+Project `NestyStay.Infrastructure.Tests` has the following updates to its packages
+   [net10.0]: 
+   Top-level Package                             Requested   Resolved   Latest 
+   > coverlet.collector                          6.0.4       6.0.4      10.0.1 
+   > Microsoft.EntityFrameworkCore.InMemory      10.0.9      10.0.9     10.0.11
+   > Microsoft.NET.Test.Sdk                      17.14.1     17.14.1    18.9.0 
+   > xunit.runner.visualstudio                   3.1.5       3.1.5      4.0.0  
+

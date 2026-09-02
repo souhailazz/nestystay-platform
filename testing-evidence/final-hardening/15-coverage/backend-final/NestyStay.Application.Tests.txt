@@ -1,0 +1,10 @@
+  NestyStay.Domain -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Domain\bin\Debug\net10.0\NestyStay.Domain.dll
+  NestyStay.Application -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Application\bin\Debug\net10.0\NestyStay.Application.dll
+  NestyStay.Application.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Application.Tests\bin\Debug\net10.0\NestyStay.Application.Tests.dll
+Test run for C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Application.Tests\bin\Debug\net10.0\NestyStay.Application.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    23, Skipped:     0, Total:    23, Duration: 360 ms - NestyStay.Application.Tests.dll (net10.0)
+
+Attachments:
+  C:\Users\Administrator\Desktop\nestystayPLATFORM\testing-evidence\final-hardening\15-coverage\backend-final\NestyStay.Application.Tests\b4004d6a-ebab-426d-86f2-e68c9e77f173\coverage.cobertura.xml

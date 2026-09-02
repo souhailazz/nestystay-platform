@@ -1,0 +1,1055 @@
+{
+  "generatedAt": "2026-09-02T12:09:34.200Z",
+  "total": 127,
+  "tested": 127,
+  "failures": 0,
+  "results": [
+    {
+      "route": "/",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 2711
+    },
+    {
+      "route": "/screens",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 2512
+    },
+    {
+      "route": "/screens/PUB-01",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 2660
+    },
+    {
+      "route": "/design-system",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 970
+    },
+    {
+      "route": "/loading",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 100
+    },
+    {
+      "route": "/explore",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1420
+    },
+    {
+      "route": "/explore/map",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 744
+    },
+    {
+      "route": "/coming-soon",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 244
+    },
+    {
+      "route": "/about",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 509
+    },
+    {
+      "route": "/trust",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 510
+    },
+    {
+      "route": "/help",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 427
+    },
+    {
+      "route": "/contact",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 193
+    },
+    {
+      "route": "/terms",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 502
+    },
+    {
+      "route": "/privacy",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 518
+    },
+    {
+      "route": "/maintenance",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 155
+    },
+    {
+      "route": "/help/safety",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 427
+    },
+    {
+      "route": "/auth/role",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 433
+    },
+    {
+      "route": "/auth/email-verification",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 490
+    },
+    {
+      "route": "/auth/phone-verification",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 499
+    },
+    {
+      "route": "/auth/otp",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 467
+    },
+    {
+      "route": "/auth/forgot-password",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 476
+    },
+    {
+      "route": "/auth/reset-password",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 520
+    },
+    {
+      "route": "/auth/2fa-setup",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 499
+    },
+    {
+      "route": "/auth/recovery-codes",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 506
+    },
+    {
+      "route": "/auth/social-consent",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 489
+    },
+    {
+      "route": "/experiences",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 438
+    },
+    {
+      "route": "/experiences/island-wellness",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 87
+    },
+    {
+      "route": "/journal",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 592
+    },
+    {
+      "route": "/blog",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 592
+    },
+    {
+      "route": "/journal/welcome",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 87
+    },
+    {
+      "route": "/blog/welcome",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 87
+    },
+    {
+      "route": "/login",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 294
+    },
+    {
+      "route": "/register",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 551
+    },
+    {
+      "route": "/directory/custodians",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1712
+    },
+    {
+      "route": "/directory/trades",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 742
+    },
+    {
+      "route": "/directory/businesses",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 2211
+    },
+    {
+      "route": "/directory/police",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 706
+    },
+    {
+      "route": "/directory/guest-verification",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 794
+    },
+    {
+      "route": "/directory/provider/onboarding",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 407
+    },
+    {
+      "route": "/directory/providers/example",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 345
+    },
+    {
+      "route": "/hosts",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 731
+    },
+    {
+      "route": "/hosts/example",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 816
+    },
+    {
+      "route": "/gate/qr",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 379
+    },
+    {
+      "route": "/qr/validate",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 379
+    },
+    {
+      "route": "/properties/00000000-0000-0000-0000-000000000000",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1075
+    },
+    {
+      "route": "/401",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 207
+    },
+    {
+      "route": "/403",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 212
+    },
+    {
+      "route": "/404",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 143
+    },
+    {
+      "route": "/500",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 255
+    },
+    {
+      "route": "/empty/favorites",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 380
+    },
+    {
+      "route": "/empty/reservations",
+      "role": "anonymous",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 420
+    },
+    {
+      "route": "/booking/example/review",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 68
+    },
+    {
+      "route": "/booking/example/identity",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Ne (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:16942)\n    at async a (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:15335)\n    at async m (http://127.0.0.1:4173/assets/CompletionPages-C9P2NZQM.js:1:7187)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 670
+    },
+    {
+      "route": "/booking/example/checkout",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 54
+    },
+    {
+      "route": "/booking/example/success",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Ne (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:16942)\n    at async a (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:15335)\n    at async h (http://127.0.0.1:4173/assets/CompletionPages-C9P2NZQM.js:1:14746)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 75
+    },
+    {
+      "route": "/booking/example/failure",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Ne (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:16942)\n    at async a (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:15335)\n    at async n (http://127.0.0.1:4173/assets/CompletionPages-C9P2NZQM.js:1:19429)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 467
+    },
+    {
+      "route": "/booking/example/cancelled",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Ne (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:16942)\n    at async a (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:15335)\n    at async i (http://127.0.0.1:4173/assets/CompletionPages-C9P2NZQM.js:1:28030)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 234
+    },
+    {
+      "route": "/booking/example/rejected",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Ne (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:16942)\n    at async a (http://127.0.0.1:4173/assets/index-COiwTwpB.js:2:15335)\n    at async i (http://127.0.0.1:4173/assets/CompletionPages-C9P2NZQM.js:1:21695)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 279
+    },
+    {
+      "route": "/traveler/reservations",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 485
+    },
+    {
+      "route": "/traveler/reservations/upcoming",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 481
+    },
+    {
+      "route": "/traveler/reservations/past",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 473
+    },
+    {
+      "route": "/traveler/reservations/cancelled",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 483
+    },
+    {
+      "route": "/traveler/reservations/example",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 490
+    },
+    {
+      "route": "/traveler/payment-methods",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 495
+    },
+    {
+      "route": "/traveler/payments",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 403
+    },
+    {
+      "route": "/traveler/preferences",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1237
+    },
+    {
+      "route": "/traveler/identity",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1234
+    },
+    {
+      "route": "/traveler/reviews/given",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 356
+    },
+    {
+      "route": "/traveler/reviews/pending",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 394
+    },
+    {
+      "route": "/traveler/qr",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 460
+    },
+    {
+      "route": "/messages",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 818
+    },
+    {
+      "route": "/messages/example",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 818
+    },
+    {
+      "route": "/guest-dashboard",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 526
+    },
+    {
+      "route": "/traveler/favorites",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 427
+    },
+    {
+      "route": "/wishlist",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 427
+    },
+    {
+      "route": "/traveler/invoices",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 403
+    },
+    {
+      "route": "/traveler/reviews",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 643
+    },
+    {
+      "route": "/traveler/notifications",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1098
+    },
+    {
+      "route": "/notifications",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1098
+    },
+    {
+      "route": "/traveler/suggestions",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 45039
+    },
+    {
+      "route": "/calendar",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 11197
+    },
+    {
+      "route": "/bookings",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 457
+    },
+    {
+      "route": "/payment-confirmation",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 489
+    },
+    {
+      "route": "/profile",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 971
+    },
+    {
+      "route": "/messages/document",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 543
+    },
+    {
+      "route": "/auth/post-login-toast",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 165
+    },
+    {
+      "route": "/logout",
+      "role": "guest",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 131
+    },
+    {
+      "route": "/host/profile/edit",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 677
+    },
+    {
+      "route": "/host/profile/preview",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 798
+    },
+    {
+      "route": "/host/analytics",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 31476
+    },
+    {
+      "route": "/host/pricing",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 524
+    },
+    {
+      "route": "/host/promotions",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 492
+    },
+    {
+      "route": "/host/exports",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 822
+    },
+    {
+      "route": "/host/reviews",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 433
+    },
+    {
+      "route": "/host/badges",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 3263
+    },
+    {
+      "route": "/host/settings",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 3263
+    },
+    {
+      "route": "/host/properties/archived",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 444
+    },
+    {
+      "route": "/host-dashboard",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 31476
+    },
+    {
+      "route": "/host/wellness",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1266
+    },
+    {
+      "route": "/host/wellness/directory",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 683
+    },
+    {
+      "route": "/host/wellness/book",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1266
+    },
+    {
+      "route": "/host/properties",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 951
+    },
+    {
+      "route": "/host/properties/new",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 669
+    },
+    {
+      "route": "/host/properties/edit",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 625
+    },
+    {
+      "route": "/host/reports",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 711
+    },
+    {
+      "route": "/directory/provider",
+      "role": "host",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 1358
+    },
+    {
+      "route": "/officer/wellness",
+      "role": "officer",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 1709
+    },
+    {
+      "route": "/pm/gates",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/pm/dashboard",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/pm/invoices",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/pm/maintenance",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/pm/governance",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/pm/documents",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 4312
+    },
+    {
+      "route": "/gate",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 784
+    },
+    {
+      "route": "/pm/utilities",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 608
+    },
+    {
+      "route": "/pm/verification",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 624
+    },
+    {
+      "route": "/pm/reports",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 660
+    },
+    {
+      "route": "/pm/insurance",
+      "role": "manager",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 806
+    },
+    {
+      "route": "/owner/dashboard",
+      "role": "owner",
+      "documentStatus": 200,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "unexpected5xx": [],
+      "bodyLength": 571
+    },
+    {
+      "route": "/admin",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/kpis",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/reports",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/officer-id-reset",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/ops/users",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/ops/wellness",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/ops/providers",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    },
+    {
+      "route": "/admin/ops/audit",
+      "role": "admin",
+      "documentStatus": 200,
+      "consoleErrors": [],
+      "unexpected5xx": [],
+      "bodyLength": 572
+    }
+  ]
+}

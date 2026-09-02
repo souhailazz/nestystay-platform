@@ -22,7 +22,7 @@ public static class SecurityHeadersMiddlewareExtensions
                 headers["Strict-Transport-Security"] = new StringValues("max-age=31536000; includeSubDomains");
                 headers["X-Content-Type-Options"] = new StringValues("nosniff");
                 headers["Referrer-Policy"] = new StringValues("strict-origin-when-cross-origin");
-                headers["Permissions-Policy"] = new StringValues("camera=(), microphone=(), geolocation=(), usb=()");
+                headers["Permissions-Policy"] = new StringValues("camera=(self), microphone=(), geolocation=(), usb=()");
                 headers["X-Frame-Options"] = new StringValues("DENY");
                 return Task.CompletedTask;
             });

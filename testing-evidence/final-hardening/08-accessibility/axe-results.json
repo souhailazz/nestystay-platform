@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-09-02T12:10:01.943Z",
+  "pages": 12,
+  "impactTotals": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0,
+    "unknown": 0
+  },
+  "results": [
+    {
+      "route": "/",
+      "violations": []
+    },
+    {
+      "route": "/explore",
+      "violations": []
+    },
+    {
+      "route": "/login",
+      "violations": []
+    },
+    {
+      "route": "/register",
+      "violations": []
+    },
+    {
+      "route": "/directory/custodians",
+      "violations": []
+    },
+    {
+      "route": "/directory/trades",
+      "violations": []
+    },
+    {
+      "route": "/directory/businesses",
+      "violations": []
+    },
+    {
+      "route": "/directory/police",
+      "violations": []
+    },
+    {
+      "route": "/gate/qr",
+      "violations": []
+    },
+    {
+      "route": "/design-system",
+      "violations": []
+    },
+    {
+      "route": "/401",
+      "violations": []
+    },
+    {
+      "route": "/404",
+      "violations": []
+    }
+  ]
+}

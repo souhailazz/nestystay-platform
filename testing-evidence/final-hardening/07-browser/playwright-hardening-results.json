@@ -1,0 +1,3203 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config=playwright.hardening.config.ts"
+    ],
+    "configFile": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\playwright.hardening.config.ts",
+    "rootDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-chromium",
+        "name": "desktop-chromium",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "laptop-chromium",
+        "name": "laptop-chromium",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet-chromium",
+        "name": "tablet-chromium",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "small-mobile-chromium",
+        "name": "small-mobile-chromium",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-firefox",
+        "name": "desktop-firefox",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/final-hardening/07-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-webkit",
+        "name": "desktop-webkit",
+        "testDir": "C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/final-hardening-.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../testing-evidence/final-hardening/07-browser/playwright-hardening-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "../testing-evidence/final-hardening/07-browser/html-report"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "final-hardening-quality.spec.ts",
+      "file": "final-hardening-quality.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 173,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:21.388Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-a415cb0ed6cf07a05f9f",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 89,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:22.056Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-db7602da9dff811809b9",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12086,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:22.152Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-4ee5e7b7ec3caa401a2e",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 115,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:34.247Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-771b1c3ee13bfbf79cd8",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 104,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:34.373Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-57a890c7c0acf33db914",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:34.485Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-63cec317520171cabc78",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 105,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:36.809Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-77d7e373c067d793de61",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 116595,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:37.605Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-b5921a795f5c1863e711",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 27690,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:09:34.297Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-abeb8e1349b1d3395cc0",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10308,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:01.997Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-3386b0be517ea24bb718",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:12.313Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-86eee82aa497840c2976",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11654,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:14.157Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-d693ecd272876e582358",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 242,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 95,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:25.820Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 242,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-63f7bc10c033d78b0c5a",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4986,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:25.926Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-e95423f12189c8fe217a",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 143,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:34.534Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-72b14d2736653c3925bd",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 75,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:34.786Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-a2159198378be8f1cc18",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10528,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:34.869Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-16cd8e739aae832f8ec2",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 92,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.406Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-eb0cb2e139c742ffe2aa",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 88,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.507Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-b5450846651dfef975d4",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 242,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 86,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.604Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 242,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-658cb1973402b9caa2c1",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 74,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.700Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-834d1a989c5c232acec0",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 186,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:46.438Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-13664ccc8ba5eb1d4ef1",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 107,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:46.726Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-58fcb7822b640f826ee3",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10168,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:46.840Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-4be9e200b7b7b0a5ab08",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 116,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.017Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-d812a10c360f26573817",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 119,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.140Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-8f4ca44dcbd2c614ec19",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 242,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 108,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.267Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 242,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-e1842b575f2796aa1416",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 98,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.382Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-870caa4a9cdcd6e62ada",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 132,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:58.186Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-888114b795ffd306338b",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 75,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:58.428Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-020393b67e7167ec2f1b",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10350,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:58.511Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-771813a586975b51bf2d",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 96,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:08.871Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-ab957958566e2c2094de",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 75,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:08.979Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-9f2341b5cce4f95d08ef",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 242,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 73,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:09.062Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 242,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-7c72a41ffcbea4374b53",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 77,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:09.143Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-d8b4100752c5bce14150",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:09.879Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-6133d7466b3eee41416e",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:11.201Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-21ac252a1522a07882c7",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 134,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:11.440Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 134,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-13ce9d71b4c6db299f23",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 206,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:11.845Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-1e2966aa6af654f2ac36",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 209,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:12.058Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-c3a4bfbcf5e8e792785d",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2407,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:12.274Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-b2a893ce857e90d3e0fc",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 234,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:14.692Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-da8fe050a73f2d3d015a",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "all defined frontend route branches render without crashes or unexpected 5xx",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 54,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 347,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:15.923Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 54,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-b851f3e051ff74347d18",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 53,
+          "column": 1
+        },
+        {
+          "title": "representative pages have no critical or serious axe violations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 102,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 256,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:16.367Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 102,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-dc97096ba42a017871ff",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "major public screens do not overflow and controls meet the WCAG minimum target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 134,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 277,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:16.631Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 134,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-d932c86f1fc48c231187",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 175,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 263,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:16.914Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 175,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-366a08e2f78e830cd2e6",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "representative page performance is measured with browser timing APIs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 199,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 273,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:17.184Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 199,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-50581b8b97c3dba2ab7a",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "critical UI smoke works in Chromium, Firefox, and WebKit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2850,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:17.463Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-ac5e9eae42dac941bf6d",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "stable representative screens match visual baselines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                    "line": 258,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 335,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:20.323Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-quality.spec.ts",
+                        "line": 258,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ce1aa9f720dae0586431-e40e0fd6f39f657d33a7",
+          "file": "final-hardening-quality.spec.ts",
+          "line": 257,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "final-hardening-security.spec.ts",
+      "file": "final-hardening-security.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:36.940Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-d4a14f1e4af01b258d5e",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 97,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:07:36.947Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-36cb1379d1f414bb986f",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:30.941Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-fd6fb05793f9f0d49be6",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1618,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:32.159Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-41a4252eee9b636b6ef4",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.800Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-1217048ffde4716e8ba8",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 95,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:45.811Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-a71c9923fdca0da4f05a",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.512Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-b5b7b84075d4cedbd287",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 114,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:10:57.518Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-27d29d82aa5e1c6b2e03",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:09.251Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-fec850b45b12832707ed",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 78,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:09.258Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-8c82997cc41baf89074a",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:14.952Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-59eaaf9fe6a6c6af6823",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:14.960Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-41f1b3b96cb03d74af28",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "authorization matrix rejects anonymous, wrong-role, and cross-owner access",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 14,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:20.688Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 14,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-5ea0a122dcbb343cf3ee",
+          "file": "final-hardening-security.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "CORS, injection, malformed JSON, and output encoding resist common attacks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                    "line": 125,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 273,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T12:11:20.695Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
+                        "line": 125,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "2cd3cfba0dec22ce8cce-d5130e5c1046ecc8b514",
+          "file": "final-hardening-security.spec.ts",
+          "line": 124,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-02T12:07:17.181Z",
+    "duration": 244465.85700000002,
+    "expected": 15,
+    "skipped": 48,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

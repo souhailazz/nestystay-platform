@@ -216,6 +216,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => new { photo.PropertyId, photo.HostUserId, photo.Status });
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => new { booking.PropertyId, booking.CheckIn, booking.CheckOut });
+        modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => booking.GuestUserId);
+        modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => booking.HostUserId);
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => booking.EkycTransactionId);
         modelBuilder.Entity<MilestonePaymentAttempt>().HasIndex(attempt => attempt.IdempotencyKey).IsUnique();
         modelBuilder.Entity<MilestonePaymentAttempt>().HasIndex(attempt => new { attempt.BookingId, attempt.Operation, attempt.Status });
@@ -231,6 +233,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneWellnessOfficer>().HasIndex(officer => new { officer.Parish, officer.VerificationStatus, officer.AvailabilityStatus });
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => new { visit.PropertyId, visit.ScheduledAt });
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => new { visit.OfficerId, visit.ScheduledAt });
+        modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => new { visit.HostUserId, visit.ScheduledAt });
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.VisitStatus);
         modelBuilder.Entity<MilestoneWellnessVisit>().HasIndex(visit => visit.PaymentStatus);
         modelBuilder.Entity<MilestoneWellnessReport>().HasIndex(report => report.VisitId).IsUnique();
@@ -259,6 +262,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => new { document.UserId, document.Status });
         modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => document.IdentityDocumentId);
         modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => new { participant.ConversationId, participant.UserId }).IsUnique();
+        modelBuilder.Entity<MilestoneConversationParticipant>().HasIndex(participant => participant.UserId);
         modelBuilder.Entity<MilestoneMessage>().HasIndex(message => new { message.ConversationId, message.SentAt });
         modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => attachment.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestoneMessageAttachment>().HasIndex(attachment => new { attachment.ConversationId, attachment.OwnerUserId, attachment.Status });
@@ -279,8 +283,10 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneManagerOwner>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId }).IsUnique();
         modelBuilder.Entity<MilestoneManagerProperty>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId });
         modelBuilder.Entity<MilestoneManagerInvoice>().HasIndex(item => new { item.ManagerUserId, item.InvoiceNumber }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerInvoice>().HasIndex(item => new { item.OwnerUserId, item.DueDate });
         modelBuilder.Entity<MilestoneManagerInvoiceLine>().HasIndex(item => item.InvoiceId);
         modelBuilder.Entity<MilestoneManagerPayment>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestoneManagerPayment>().HasIndex(item => item.InvoiceId);
         modelBuilder.Entity<MilestoneManagerLedgerEntry>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.OccurredOn });
         modelBuilder.Entity<MilestoneManagerUtilityCharge>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.PropertyId, item.BillingPeriod });
         modelBuilder.Entity<MilestoneManagerMaintenance>().HasIndex(item => new { item.ManagerUserId, item.Status });

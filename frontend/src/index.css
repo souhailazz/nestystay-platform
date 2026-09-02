@@ -59,6 +59,14 @@ body {
     border: 0;
   }
 
+  button,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  a[href] {
+    min-block-size: 24px;
+  }
+
   a {
     color: inherit;
     text-decoration: none;
@@ -601,7 +609,7 @@ img, svg {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #71817d;
+  color: #5a6b63;
   font-size: 11px;
 }
 .rating {
@@ -1214,7 +1222,7 @@ img, svg {
 .section-heading > p, .heading-side > p {
   max-width: 390px;
   margin: 0;
-  color: #687872;
+  color: #5a6b63;
   font-size: 15px;
   line-height: 1.75;
 }
@@ -1504,7 +1512,7 @@ img, svg {
 .how-heading p {
   max-width: 580px;
   margin: 24px auto 0;
-  color: #697973;
+  color: #5a6b63;
   font-size: 15px;
   line-height: 1.7;
 }
@@ -2677,7 +2685,7 @@ img, svg {
 :root {
   --ref-deep: #062b2b;
   --ref-black: #021b1b;
-  --ref-palm: #2f7d3a;
+  --ref-palm: #24682f;
   --ref-yellow: #ffd21f;
   --ref-brown: #8b4a22;
   --ref-cream: #fff8e7;

@@ -1806,24 +1806,55 @@ public sealed class EfPhaseOneStore(
 
     private void EnsurePhaseOneSeeded()
     {
-        if (db.MilestoneProperties.Any())
+        var changed = false;
+        foreach (var seed in DefaultHostUsers())
         {
-            return;
+            var exists = db.MilestoneUsers.Any(item =>
+                item.Id == seed.Id || item.NormalizedEmail == seed.NormalizedEmail);
+            if (!exists)
+            {
+                db.MilestoneUsers.Add(seed);
+                changed = true;
+            }
         }
 
-        db.MilestoneProperties.AddRange(DefaultProperties());
-        db.SaveChanges();
+        if (!db.MilestoneProperties.Any())
+        {
+            db.MilestoneProperties.AddRange(DefaultProperties());
+            changed = true;
+        }
+
+        if (changed)
+        {
+            db.SaveChanges();
+        }
     }
 
     private async Task EnsurePhaseOneSeededAsync(CancellationToken cancellationToken)
     {
-        if (await db.MilestoneProperties.AnyAsync(cancellationToken))
+        var changed = false;
+        foreach (var seed in DefaultHostUsers())
         {
-            return;
+            var exists = await db.MilestoneUsers.AnyAsync(item =>
+                item.Id == seed.Id || item.NormalizedEmail == seed.NormalizedEmail,
+                cancellationToken);
+            if (!exists)
+            {
+                db.MilestoneUsers.Add(seed);
+                changed = true;
+            }
         }
 
-        db.MilestoneProperties.AddRange(DefaultProperties());
-        await db.SaveChangesAsync(cancellationToken);
+        if (!await db.MilestoneProperties.AnyAsync(cancellationToken))
+        {
+            db.MilestoneProperties.AddRange(DefaultProperties());
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static IReadOnlyList<PendingNotification> BuildApprovalNotifications(MilestoneBooking booking) =>
@@ -2526,6 +2557,39 @@ public sealed class EfPhaseOneStore(
             HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Free listing", "Calendar", "Messaging", "Host keeps 97% payout"])
         }
     ];
+
+    private static IReadOnlyList<MilestoneUser> DefaultHostUsers() =>
+    [
+        CreateDisabledSeedHost(
+            Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+            "host-villa@nestystay.local",
+            "Island Villa Hosting"),
+        CreateDisabledSeedHost(
+            Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            "host-kingston@nestystay.local",
+            "Kingston Corporate Homes"),
+        CreateDisabledSeedHost(
+            Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+            "host-mobay@nestystay.local",
+            "Montego Bay Apartments")
+    ];
+
+    private static MilestoneUser CreateDisabledSeedHost(Guid id, string email, string displayName)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        return new MilestoneUser
+        {
+            Id = id,
+            Email = normalizedEmail,
+            NormalizedEmail = normalizedEmail,
+            PasswordHash = HashPassword($"seed-disabled-{id:N}"),
+            DisplayName = displayName,
+            Status = "Disabled",
+            IsTwoFactorEnabled = false,
+            AdminPermissionsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([]),
+            RolesJson = MilestoneJson.Serialize<IReadOnlyList<UserRole>>([UserRole.Host])
+        };
+    }
 
     private static string HashPassword(string password)
     {

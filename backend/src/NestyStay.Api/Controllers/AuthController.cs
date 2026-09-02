@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using NestyStay.Api.Configuration;
 using NestyStay.Api.Auth;
 using NestyStay.Application.PhaseOne;
 
@@ -14,18 +16,22 @@ public sealed class AuthController(
     CurrentUserContext currentUser) : ControllerBase
 {
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> Register(RegisterUserRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.RegisterAsync(request, cancellationToken));
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.LoginAsync(request, cancellationToken));
 
     [HttpPost("google")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> Google(GoogleSignInRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.GoogleSignInAsync(request, cancellationToken));
 
     [HttpPost("2fa/verify")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken));
 
@@ -82,10 +88,12 @@ public sealed class AuthController(
         Ok(await phaseOneStore.GetProfilePhotoDownloadAsync(RequireUserId(), photoId, cancellationToken));
 
     [HttpPost("password-reset/request")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> RequestPasswordReset(PasswordResetRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.RequestPasswordResetAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));
 
     [HttpPost("password-reset/complete")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> CompletePasswordReset(CompletePasswordResetRequest request, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.CompletePasswordResetAsync(request, cancellationToken));
 

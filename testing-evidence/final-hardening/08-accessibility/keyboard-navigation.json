@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-09-02T12:10:14.088Z",
+  "tab": "pass",
+  "shiftTab": "pass",
+  "enter": "pass",
+  "escape": "not-applicable-no-dialog-trigger",
+  "visibleFocusTarget": {
+    "tag": "A",
+    "outline": "solid"
+  }
+}

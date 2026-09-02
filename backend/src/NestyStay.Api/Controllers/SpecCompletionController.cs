@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
 using NestyStay.Application.Admin;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.SpecCompletion;
@@ -35,6 +37,7 @@ public sealed class SpecCompletionController(
         await store.GetPublicPageAsync(slug, cancellationToken) is { } page ? Ok(page) : NotFound();
 
     [HttpPost("public/contact")]
+    [EnableRateLimiting(RateLimitPolicies.PublicWrite)]
     public async Task<ActionResult<ContactRequestDto>> CreateContact(CreateContactRequest request, CancellationToken cancellationToken) =>
         Ok(await store.CreateContactRequestAsync(request, cancellationToken));
 
@@ -248,6 +251,7 @@ public sealed class SpecCompletionController(
 
     [Authorize]
     [HttpPut("directories/providers/{providerId:guid}/documents/{documentId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
     [RequestSizeLimit(25 * 1024 * 1024)]
     public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> UploadDirectoryProviderDocumentContent(Guid providerId, Guid documentId, CancellationToken cancellationToken)
     {
@@ -296,6 +300,7 @@ public sealed class SpecCompletionController(
     }
 
     [HttpPut("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<AttachmentUploadDto>> UploadMessageAttachmentContent(
         Guid conversationId,
@@ -343,6 +348,7 @@ public sealed class SpecCompletionController(
     }
 
     [HttpPost("messages/conversations/{conversationId:guid}/messages")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
     public async Task<ActionResult<MessageDto>> SendMessage(Guid conversationId, [FromQuery] Guid userId, SendMessageRequest request, CancellationToken cancellationToken)
     {
         authorization.RequireResourceOwner(userId);
@@ -441,10 +447,12 @@ public sealed class SpecCompletionController(
         Ok(await store.GetAuditEventsAsync(cancellationToken));
 
     [HttpPost("auth/flows")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<ActionResult<AuthFlowResultDto>> StartAuthFlow(StartAuthFlowRequest request, CancellationToken cancellationToken) =>
         Ok(await store.StartAuthFlowAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));
 
     [HttpPost("auth/flows/complete")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<ActionResult<AuthFlowResultDto>> CompleteAuthFlow(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
         Ok(await store.CompleteAuthFlowAsync(request, cancellationToken));
 

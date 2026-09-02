@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-09-02T12:10:56.940Z",
+  "project": "mobile-chromium",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "screens": 12,
+  "failures": 0,
+  "results": [
+    {
+      "route": "/",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 21,
+      "undersized": []
+    },
+    {
+      "route": "/explore",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 50,
+      "undersized": []
+    },
+    {
+      "route": "/login",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 10,
+      "undersized": []
+    },
+    {
+      "route": "/register",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 13,
+      "undersized": []
+    },
+    {
+      "route": "/directory/custodians",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 62,
+      "undersized": []
+    },
+    {
+      "route": "/directory/trades",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 43,
+      "undersized": []
+    },
+    {
+      "route": "/directory/businesses",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 81,
+      "undersized": []
+    },
+    {
+      "route": "/directory/police",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 29,
+      "undersized": []
+    },
+    {
+      "route": "/gate/qr",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 12,
+      "undersized": []
+    },
+    {
+      "route": "/help",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 8,
+      "undersized": []
+    },
+    {
+      "route": "/401",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 11,
+      "undersized": []
+    },
+    {
+      "route": "/404",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "controlCount": 10,
+      "undersized": []
+    }
+  ]
+}

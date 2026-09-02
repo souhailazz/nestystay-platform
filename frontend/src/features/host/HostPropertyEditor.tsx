@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save, History } from "lucide-react";
 import { api, type PropertyListing } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
@@ -15,6 +15,7 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
   const [policy, setPolicy] = useState("Moderate");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const formDirty = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -24,9 +25,14 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
         const selected = propertyId ? list.find((item) => item.id === propertyId) : list[0];
         if (active && selected) {
           setProperty(selected);
-          setTitle(selected.title);
-          setNightlyRate(selected.nightlyRate);
-          setPolicy(selected.cancellationPolicy);
+          // Do not overwrite a field the user has already edited while the
+          // asynchronous property request is resolving. This keeps a fast
+          // interaction deterministic instead of losing the pending change.
+          if (!formDirty.current) {
+            setTitle(selected.title);
+            setNightlyRate(selected.nightlyRate);
+            setPolicy(selected.cancellationPolicy);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -83,7 +89,7 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
         <h3>General Information</h3>
         <div className="field-group">
           <label className="field-label">Listing Title</label>
-          <input type="text" className="input-control" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input aria-label="Listing Title" type="text" className="input-control" value={title} onChange={(e) => { formDirty.current = true; setTitle(e.target.value); }} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
