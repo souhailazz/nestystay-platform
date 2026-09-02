@@ -1,7 +1,7 @@
 {
   "baselineSha": "95c14a8b30c017e968b53cedc9165f83c53b9006",
   "resumedFromSha": "35794c8e8718d3c2f8a76e124a477d9a76f13427",
-  "finalSha": "02aaca4747b11aafc6099381dd3bdd4c138310e4",
+  "finalSha": "28827a0",
   "source": { "csharpFiles": 176, "frontendTsFiles": 124, "e2eSpecs": 20, "appRouteBranchLines": 163 },
   "tests": {
     "backend": { "passed": 101, "failed": 0 },
