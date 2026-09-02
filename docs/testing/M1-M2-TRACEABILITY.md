@@ -4,7 +4,7 @@ This final matrix supersedes the earlier pending-row audit snapshot. It is based
 
 | Requirement | Contract source | Frontend/API/DB implementation | Evidence | Status |
 |---|---|---|---|---|
-| Registration, login, logout, signed session and role access | §9 Phase 1; §10 | Auth modal, signed tokens, role policies, durable auth state | 96 backend tests; 26 Vitest; full browser contract matrix 88 passed/2 intentional skips | PASS |
+| Registration, login, logout, signed session and role access | §9 Phase 1; §10 | Auth modal, signed tokens, role policies, durable HttpOnly cookie session state | 101 backend tests; 30 Vitest; browser hardening 22 passed/0 failed/48 intentional skips | PASS |
 | 2FA, authenticator app, recovery and lockout | §9 Phase 1/2; §10 | TOTP enrollment/challenge/recovery and throttling | Auth/API/security tests and browser flows | PASS |
 | Host property listings, ownership, validation and responsive access | §9 Phase 1 | Property store/controller, host UI and ownership filters | API/PostgreSQL + browser evidence | PASS |
 | Booking popup/quote, typed economics and payment stage | §§2–3; §9 Phase 1 | Server-authoritative quote, 9% guest fee, 3% host commission, Stripe application state | Workflow/API/browser/concurrency evidence | PASS |
@@ -16,8 +16,8 @@ This final matrix supersedes the earlier pending-row audit snapshot. It is based
 | Badge feature unlocks and server-side enforcement | §§4–5 | Access service and direct authorization gates | Badge authorization tests and host UI | PASS |
 | Upgrade, expiry, suspension, annual renewal and automated review | §9 Phase 2 | Lifecycle endpoints, renewal records and maintenance/review jobs | PhaseTwo tests, audit rows and admin evidence | PASS |
 | Owner dashboard and authenticator-app 2FA | §9 Phase 2; §6/§10 | Host/admin dashboards and TOTP flows | Browser/API evidence | PASS |
-| Responsive web/all devices | §9 Phase 1/2 | Desktop/tablet/mobile route and workflow surfaces | 15 targeted browser tests; 18-route inventory | PASS |
-| Authentication/authorization/input/secret security | §10 | Signed-token policies, ownership, input validation, upload scanning and DTO minimization | 54 API tests plus live security checks | PASS (local) |
+| Responsive web/all devices | §9 Phase 1/2 | Desktop/tablet/mobile route and workflow surfaces | 60 responsive screens; 1,750 controls; 0 overflow failures; Chromium/Firefox/WebKit smoke | PASS |
+| Authentication/authorization/input/secret security | §10 | Signed-token policies, ownership, input validation, upload scanning, DTO minimization and cookie CSRF boundary | 59 API tests; 54/54 authorization; 7/7 dynamic security checks | PASS (local) |
 | PostgreSQL constraints, migrations and concurrency | §12 | EF migrations, indexes and transaction overlap guards | Migration/state snapshot and concurrency smoke | PASS |
 
 ## Clarification recorded in the signed source
