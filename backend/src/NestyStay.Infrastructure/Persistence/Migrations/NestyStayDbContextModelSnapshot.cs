@@ -7811,6 +7811,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
                     b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId");
 
                     b.ToTable("milestone_manager_document");
@@ -7861,6 +7865,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("weight");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("ProposalId", "OwnerUserId")
                         .IsUnique();
@@ -7934,6 +7940,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("visitor_type");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId");
+
+                    b.HasIndex("PropertyId");
 
                     b.ToTable("milestone_manager_gate_message");
                 });
@@ -8029,6 +8039,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
 
                     b.HasIndex("ManagerUserId", "InvoiceNumber")
                         .IsUnique();
@@ -8163,6 +8175,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
                     b.HasIndex("ManagerUserId", "OwnerUserId", "OccurredOn");
 
                     b.ToTable("milestone_manager_ledger_entry");
@@ -8258,6 +8276,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("VendorId");
+
                     b.HasIndex("ManagerUserId", "Status");
 
                     b.ToTable("milestone_manager_maintenance");
@@ -8332,6 +8356,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TargetOwnerUserId");
+
                     b.HasIndex("ManagerUserId", "CommunityId", "PublishAt");
 
                     b.ToTable("milestone_manager_notice");
@@ -8401,6 +8427,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("verification_status");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("ManagerUserId", "OwnerUserId")
                         .IsUnique();
@@ -8486,6 +8514,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("InvoiceId");
 
+                    b.HasIndex("OwnerUserId");
+
                     b.HasIndex("ManagerUserId", "IdempotencyKey")
                         .IsUnique();
 
@@ -8562,6 +8592,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("ManagerUserId", "OwnerUserId");
 
@@ -8705,6 +8737,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ProxyUserId");
+
                     b.HasIndex("ProposalId", "OwnerUserId")
                         .IsUnique();
 
@@ -8784,6 +8820,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ManagerUserId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
@@ -8840,6 +8882,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GateGuardUserId");
 
                     b.HasIndex("QrAccessId", "ScannedAt");
 
@@ -8924,6 +8968,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
                     b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "BillingPeriod");
 
                     b.ToTable("milestone_manager_utility_charge");
@@ -8996,6 +9046,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ManagerUserId");
+
                     b.ToTable("milestone_manager_vendor");
                 });
 
@@ -9053,6 +9105,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProposalId");
+
+                    b.HasIndex("ProxyId");
 
                     b.ToTable("milestone_manager_vote");
                 });
@@ -11212,6 +11266,320 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("milestone_wishlist_item");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerDocument", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerEligibleVoter", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProposal", null)
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerGateMessage", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoice", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoiceLine", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerLedgerEntry", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerMaintenance", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerVendor", null)
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerNotice", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("TargetOwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerOwner", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerPayment", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProposal", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProxy", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProposal", null)
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ProxyUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerQrAccess", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerQrScan", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("GateGuardUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerQrAccess", null)
+                        .WithMany()
+                        .HasForeignKey("QrAccessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerUtilityCharge", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerVendor", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerVote", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProposal", null)
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProxy", null)
+                        .WithMany()
+                        .HasForeignKey("ProxyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePropertyManager", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

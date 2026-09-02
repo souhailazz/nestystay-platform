@@ -169,6 +169,252 @@
   },
   "suites": [
     {
+      "title": "final-hardening-m5.spec.ts",
+      "file": "final-hardening-m5.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9246,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:29:29.231Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-1196f894e9a36f36a713",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5989,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:29:53.658Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-999dc5057be95b1fe5ca",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6023,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:32:54.268Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-7dcd76572a074322679e",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5999,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:33:12.424Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-4e4d9e9bb71dbd0c3f94",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5897,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:33:30.801Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-89c10d3804b2555d6625",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8870,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:33:46.946Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-42d97ff1c98f9f61fa93",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "M5 property-manager journey uses cookie auth, persisted API data, responsive UI, and guard QR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9661,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T13:34:01.632Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "46e1e74e822b36109276-fed9290191045a82cefe",
+          "file": "final-hardening-m5.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
       "title": "final-hardening-quality.spec.ts",
       "file": "final-hardening-quality.spec.ts",
       "column": 0,
@@ -199,12 +445,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 173,
+                  "duration": 103,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:21.388Z",
+                  "startTime": "2026-09-02T13:29:38.661Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -251,12 +497,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 89,
+                  "duration": 93,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:22.056Z",
+                  "startTime": "2026-09-02T13:29:38.773Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -294,12 +540,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 12086,
+                  "duration": 10944,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:22.152Z",
+                  "startTime": "2026-09-02T13:29:38.873Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -337,12 +583,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 115,
+                  "duration": 111,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:34.247Z",
+                  "startTime": "2026-09-02T13:29:49.836Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -389,12 +635,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 104,
+                  "duration": 105,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:34.373Z",
+                  "startTime": "2026-09-02T13:29:49.959Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -432,12 +678,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2315,
+                  "duration": 2637,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:34.485Z",
+                  "startTime": "2026-09-02T13:29:50.073Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -475,12 +721,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 105,
+                  "duration": 98,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:36.809Z",
+                  "startTime": "2026-09-02T13:29:52.720Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -518,12 +764,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 116595,
+                  "duration": 108726,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:37.605Z",
+                  "startTime": "2026-09-02T13:29:59.779Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -552,12 +798,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 27690,
+                  "duration": 29564,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:09:34.297Z",
+                  "startTime": "2026-09-02T13:31:48.515Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -586,12 +832,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10308,
+                  "duration": 10539,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:01.997Z",
+                  "startTime": "2026-09-02T13:32:18.088Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -620,12 +866,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1833,
+                  "duration": 2246,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:12.313Z",
+                  "startTime": "2026-09-02T13:32:28.637Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -654,12 +900,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 11654,
+                  "duration": 14489,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:14.157Z",
+                  "startTime": "2026-09-02T13:32:30.892Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -697,12 +943,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 95,
+                  "duration": 110,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:25.820Z",
+                  "startTime": "2026-09-02T13:32:45.391Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -740,12 +986,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4986,
+                  "duration": 4840,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:25.926Z",
+                  "startTime": "2026-09-02T13:32:45.510Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -783,12 +1029,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 143,
+                  "duration": 108,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:34.534Z",
+                  "startTime": "2026-09-02T13:33:00.456Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -835,12 +1081,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 75,
+                  "duration": 99,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:34.786Z",
+                  "startTime": "2026-09-02T13:33:00.572Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -878,12 +1124,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10528,
+                  "duration": 10563,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:34.869Z",
+                  "startTime": "2026-09-02T13:33:00.687Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -921,12 +1167,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 92,
+                  "duration": 102,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.406Z",
+                  "startTime": "2026-09-02T13:33:11.260Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -978,7 +1224,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.507Z",
+                  "startTime": "2026-09-02T13:33:11.371Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1025,12 +1271,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 86,
+                  "duration": 76,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.604Z",
+                  "startTime": "2026-09-02T13:33:11.468Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1077,12 +1323,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 74,
+                  "duration": 79,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.700Z",
+                  "startTime": "2026-09-02T13:33:11.550Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1129,12 +1375,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 186,
+                  "duration": 120,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:46.438Z",
+                  "startTime": "2026-09-02T13:33:18.556Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1181,12 +1427,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 107,
+                  "duration": 139,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:46.726Z",
+                  "startTime": "2026-09-02T13:33:18.684Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1224,12 +1470,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10168,
+                  "duration": 10584,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:46.840Z",
+                  "startTime": "2026-09-02T13:33:18.832Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1267,12 +1513,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 116,
+                  "duration": 127,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.017Z",
+                  "startTime": "2026-09-02T13:33:29.425Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1319,12 +1565,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 119,
+                  "duration": 146,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.140Z",
+                  "startTime": "2026-09-02T13:33:29.562Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1371,12 +1617,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 108,
+                  "duration": 118,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.267Z",
+                  "startTime": "2026-09-02T13:33:29.715Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1423,12 +1669,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 98,
+                  "duration": 124,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.382Z",
+                  "startTime": "2026-09-02T13:33:29.840Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1475,12 +1721,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 132,
+                  "duration": 102,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:58.186Z",
+                  "startTime": "2026-09-02T13:33:36.837Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1527,12 +1773,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 75,
+                  "duration": 92,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:58.428Z",
+                  "startTime": "2026-09-02T13:33:36.948Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1570,12 +1816,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10350,
+                  "duration": 8728,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:58.511Z",
+                  "startTime": "2026-09-02T13:33:37.049Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1613,12 +1859,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 96,
+                  "duration": 86,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:08.871Z",
+                  "startTime": "2026-09-02T13:33:45.785Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1665,12 +1911,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 75,
+                  "duration": 77,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:08.979Z",
+                  "startTime": "2026-09-02T13:33:45.878Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1717,12 +1963,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 73,
+                  "duration": 78,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:09.062Z",
+                  "startTime": "2026-09-02T13:33:45.961Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1769,12 +2015,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 77,
+                  "duration": 93,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:09.143Z",
+                  "startTime": "2026-09-02T13:33:46.046Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1821,12 +2067,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 819,
+                  "duration": 220,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:09.879Z",
+                  "startTime": "2026-09-02T13:33:56.378Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1873,12 +2119,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 230,
+                  "duration": 250,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:11.201Z",
+                  "startTime": "2026-09-02T13:33:56.607Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1925,12 +2171,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 398,
+                  "duration": 284,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:11.440Z",
+                  "startTime": "2026-09-02T13:33:56.866Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1977,12 +2223,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 206,
+                  "duration": 277,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:11.845Z",
+                  "startTime": "2026-09-02T13:33:57.161Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2029,12 +2275,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 209,
+                  "duration": 204,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:12.058Z",
+                  "startTime": "2026-09-02T13:33:57.448Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2072,12 +2318,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2407,
+                  "duration": 2430,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:12.274Z",
+                  "startTime": "2026-09-02T13:33:57.658Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2115,12 +2361,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 234,
+                  "duration": 305,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:14.692Z",
+                  "startTime": "2026-09-02T13:34:00.097Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2167,12 +2413,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 347,
+                  "duration": 331,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:15.923Z",
+                  "startTime": "2026-09-02T13:34:11.438Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2219,12 +2465,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 256,
+                  "duration": 297,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:16.367Z",
+                  "startTime": "2026-09-02T13:34:11.779Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2271,12 +2517,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 277,
+                  "duration": 352,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:16.631Z",
+                  "startTime": "2026-09-02T13:34:12.082Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2323,12 +2569,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 263,
+                  "duration": 370,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:16.914Z",
+                  "startTime": "2026-09-02T13:34:12.443Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2375,12 +2621,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 273,
+                  "duration": 319,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:17.184Z",
+                  "startTime": "2026-09-02T13:34:12.821Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2418,12 +2664,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2850,
+                  "duration": 3105,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:17.463Z",
+                  "startTime": "2026-09-02T13:34:13.148Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2461,12 +2707,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 335,
+                  "duration": 299,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:20.323Z",
+                  "startTime": "2026-09-02T13:34:16.260Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2526,7 +2772,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:36.940Z",
+                  "startTime": "2026-09-02T13:29:52.845Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2560,7 +2806,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -2573,18 +2819,18 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 97,
+                  "duration": 101,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:07:36.947Z",
+                  "startTime": "2026-09-02T13:29:52.851Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -2597,7 +2843,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-36cb1379d1f414bb986f",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -2616,12 +2862,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1210,
+                  "duration": 1390,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:30.941Z",
+                  "startTime": "2026-09-02T13:32:50.376Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2650,12 +2896,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1618,
+                  "duration": 1556,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:32.159Z",
+                  "startTime": "2026-09-02T13:32:51.773Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2665,7 +2911,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-41a4252eee9b636b6ef4",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -2693,12 +2939,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 1,
+                  "duration": 0,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.800Z",
+                  "startTime": "2026-09-02T13:33:11.653Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2732,7 +2978,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -2745,18 +2991,18 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 95,
+                  "duration": 87,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:45.811Z",
+                  "startTime": "2026-09-02T13:33:11.658Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -2769,7 +3015,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-a71c9923fdca0da4f05a",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -2797,12 +3043,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 0,
+                  "duration": 1,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.512Z",
+                  "startTime": "2026-09-02T13:33:29.994Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2836,7 +3082,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -2849,18 +3095,18 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 114,
+                  "duration": 122,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:10:57.518Z",
+                  "startTime": "2026-09-02T13:33:30.001Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -2873,7 +3119,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-27d29d82aa5e1c6b2e03",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -2906,7 +3152,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:09.251Z",
+                  "startTime": "2026-09-02T13:33:46.161Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2940,7 +3186,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -2953,18 +3199,18 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 78,
+                  "duration": 88,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:09.258Z",
+                  "startTime": "2026-09-02T13:33:46.167Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -2977,7 +3223,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-8c82997cc41baf89074a",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -3010,7 +3256,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:14.952Z",
+                  "startTime": "2026-09-02T13:34:00.415Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3044,7 +3290,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -3057,18 +3303,18 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 177,
+                  "duration": 245,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:14.960Z",
+                  "startTime": "2026-09-02T13:34:00.421Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -3081,7 +3327,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-41f1b3b96cb03d74af28",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         },
         {
@@ -3109,12 +3355,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 0,
+                  "duration": 1,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:20.688Z",
+                  "startTime": "2026-09-02T13:34:16.580Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3148,7 +3394,7 @@
                   "type": "skip",
                   "location": {
                     "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                    "line": 125,
+                    "line": 167,
                     "column": 8
                   }
                 }
@@ -3161,18 +3407,18 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 273,
+                  "duration": 300,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T12:11:20.695Z",
+                  "startTime": "2026-09-02T13:34:16.586Z",
                   "annotations": [
                     {
                       "type": "skip",
                       "location": {
                         "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-security.spec.ts",
-                        "line": 125,
+                        "line": 167,
                         "column": 8
                       }
                     }
@@ -3185,7 +3431,7 @@
           ],
           "id": "2cd3cfba0dec22ce8cce-d5130e5c1046ecc8b514",
           "file": "final-hardening-security.spec.ts",
-          "line": 124,
+          "line": 166,
           "column": 1
         }
       ]
@@ -3193,9 +3439,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-02T12:07:17.181Z",
-    "duration": 244465.85700000002,
-    "expected": 15,
+    "startTime": "2026-09-02T13:29:25.940Z",
+    "duration": 291789.753,
+    "expected": 22,
     "skipped": 48,
     "unexpected": 0,
     "flaky": 0

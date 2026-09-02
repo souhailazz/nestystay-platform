@@ -60,6 +60,31 @@ test("authorization matrix rejects anonymous, wrong-role, and cross-owner access
   expect(invoiceResponse.ok(), await invoiceResponse.text()).toBeTruthy();
   const invoice = await invoiceResponse.json() as { id: string };
 
+  const maintenanceResponse = await api.post("/api/property-manager/maintenance", {
+    headers: auth(managerA),
+    data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, title: "Authorization maintenance", description: "Isolation fixture", category: "General", urgency: "NORMAL" },
+  });
+  expect(maintenanceResponse.ok(), await maintenanceResponse.text()).toBeTruthy();
+  const maintenance = await maintenanceResponse.json() as { id: string };
+  const documentResponse = await api.post("/api/property-manager/documents", {
+    headers: auth(managerA),
+    data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, title: "Authorization document", category: "Finance", fileName: "authorization.pdf", contentType: "application/pdf", sizeBytes: 12, contentBase64: Buffer.from("%PDF-1.7\nfoo").toString("base64") },
+  });
+  expect(documentResponse.ok(), await documentResponse.text()).toBeTruthy();
+  const document = await documentResponse.json() as { id: string };
+  const proposalResponse = await api.post("/api/property-manager/governance/proposals", {
+    headers: auth(managerA),
+    data: { title: "Authorization proposal", description: "Isolation fixture", opensAt: new Date(Date.now() - 60_000).toISOString(), closesAt: new Date(Date.now() + 86_400_000).toISOString(), isAnonymous: true, quorum: 1 },
+  });
+  expect(proposalResponse.ok(), await proposalResponse.text()).toBeTruthy();
+  const proposal = await proposalResponse.json() as { id: string };
+  const qrResponse = await api.post("/api/property-manager/qr", {
+    headers: auth(managerA),
+    data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, subjectType: "OWNER", validFrom: new Date(Date.now() - 60_000).toISOString(), validUntil: new Date(Date.now() + 86_400_000).toISOString() },
+  });
+  expect(qrResponse.ok(), await qrResponse.text()).toBeTruthy();
+  const qr = await qrResponse.json() as { id: string };
+
   const anonymous: AuthorizationCase[] = [
     { name: "profile", method: "GET", url: "/api/auth/profile", expected: [401] },
     { name: "booking list", method: "GET", url: "/api/bookings", expected: [401] },
@@ -104,6 +129,23 @@ test("authorization matrix rejects anonymous, wrong-role, and cross-owner access
     { name: "manager B cannot read manager A owner statement", method: "GET", url: `/api/property-manager/owners/${ownerA.userId}/statement`, session: managerB, expected: [400, 403, 404] },
     { name: "manager B cannot verify manager A owner", method: "POST", url: `/api/property-manager/owners/${ownerA.userId}/verification`, session: managerB, data: { status: "Verified" }, expected: [400, 403, 404] },
     { name: "owner B cannot read owner A invoice", method: "GET", url: `/api/property-manager/invoices/${invoice.id}`, session: ownerB, expected: [403, 404] },
+    { name: "manager B cannot read manager A statement", method: "GET", url: `/api/property-manager/owners/${ownerA.userId}/statement`, session: managerB, expected: [400, 403, 404] },
+    { name: "manager B cannot assign manager A owner property", method: "POST", url: "/api/property-manager/properties", session: managerB, data: { ownerUserId: ownerA.userId, title: "IDOR property", unitNumber: "IDOR-1", address: "Kingston" }, expected: [400, 403, 404] },
+    { name: "manager B cannot create utility for manager A property", method: "POST", url: "/api/property-manager/utilities", session: managerB, data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, utilityType: "Water", billingPeriod: "2075-01", usage: 1, rate: 1 }, expected: [400, 403, 404] },
+    { name: "manager B cannot update manager A maintenance", method: "PATCH", url: `/api/property-manager/maintenance/${maintenance.id}`, session: managerB, data: { status: "COMPLETED", cost: 1, notes: "IDOR" }, expected: [400, 403, 404] },
+    { name: "manager B cannot store manager A document", method: "POST", url: "/api/property-manager/documents", session: managerB, data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, title: "IDOR", category: "Finance", fileName: "idor.pdf", contentType: "application/pdf", sizeBytes: 1 }, expected: [400, 403, 404] },
+    { name: "manager B cannot download manager A document", method: "GET", url: `/api/property-manager/documents/${document.id}/download`, session: managerB, expected: [403, 404] },
+    { name: "manager B cannot vote on manager A governance", method: "POST", url: `/api/property-manager/governance/proposals/${proposal.id}/votes`, session: managerB, data: { choice: "YES" }, expected: [400, 403, 404] },
+    { name: "manager B cannot revoke manager A QR", method: "POST", url: `/api/property-manager/qr/${qr.id}/revoke`, session: managerB, expected: [400, 403, 404] },
+    { name: "manager B cannot pay manager A invoice", method: "POST", url: `/api/property-manager/invoices/${invoice.id}/payments`, session: managerB, data: { amount: 1, idempotencyKey: `idor-${Date.now()}` }, expected: [400, 403, 404] },
+    { name: "owner B cannot read owner A statement", method: "GET", url: `/api/property-manager/owners/${ownerA.userId}/statement`, session: ownerB, expected: [400, 403, 404] },
+    { name: "owner B cannot download owner A document", method: "GET", url: `/api/property-manager/documents/${document.id}/download`, session: ownerB, expected: [403, 404] },
+    { name: "owner B cannot create maintenance on owner A property", method: "POST", url: "/api/property-manager/maintenance", session: ownerB, data: { ownerUserId: ownerA.userId, propertyId: managedProperty.id, title: "IDOR", description: "IDOR", category: "General", urgency: "NORMAL" }, expected: [400, 403, 404] },
+    { name: "owner B cannot vote on owner A governance", method: "POST", url: `/api/property-manager/governance/proposals/${proposal.id}/votes`, session: ownerB, data: { choice: "YES" }, expected: [400, 403, 404] },
+    { name: "owner B cannot open owner A portal", method: "GET", url: "/api/property-manager/owner/portal", session: ownerB, expected: [400, 403, 404] },
+    { name: "provider cannot read manager invoice", method: "GET", url: `/api/property-manager/invoices/${invoice.id}`, session: provider, expected: [403, 404] },
+    { name: "gate guard cannot read manager invoice", method: "GET", url: `/api/property-manager/invoices/${invoice.id}`, session: guestA, expected: [403, 404] },
+    { name: "anonymous cannot read manager invoice", method: "GET", url: `/api/property-manager/invoices/${invoice.id}`, expected: [401] },
   ];
 
   const cases = [...anonymous, ...wrongRole, ...ownership];

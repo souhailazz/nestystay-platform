@@ -21,7 +21,7 @@ export function createSession(
     userId: verification.userId,
     email,
     displayName: displayName?.trim() || email.split("@")[0] || "Nesty guest",
-    accessToken: verification.accessToken,
+    accessToken: "",
     expiresAt: verification.expiresAt,
     roles: verification.roles,
     permissions: verification.permissions ?? [],
@@ -33,7 +33,7 @@ export function createGoogleSession(verification: GoogleSignInResponse): AuthSes
     userId: verification.userId,
     email: verification.email,
     displayName: verification.displayName.trim() || verification.email.split("@")[0] || "Nesty guest",
-    accessToken: verification.accessToken,
+    accessToken: "",
     expiresAt: verification.expiresAt,
     roles: verification.roles,
     permissions: verification.permissions ?? [],
@@ -41,7 +41,7 @@ export function createGoogleSession(verification: GoogleSignInResponse): AuthSes
 }
 
 export function createLoginSession(login: LoginResponse, displayName?: string): AuthSession {
-  if (!login.accessToken || !login.expiresAt || !login.roles) {
+  if (!login.expiresAt || !login.roles) {
     throw new Error("Password login did not include a session.");
   }
 
@@ -49,7 +49,7 @@ export function createLoginSession(login: LoginResponse, displayName?: string): 
     userId: login.userId,
     email: login.email,
     displayName: displayName?.trim() || login.email.split("@")[0] || "Nesty guest",
-    accessToken: login.accessToken,
+    accessToken: "",
     expiresAt: login.expiresAt,
     roles: login.roles,
     permissions: login.permissions ?? [],
@@ -62,11 +62,13 @@ export function loadSession(): AuthSession | null {
 
   try {
     const session = JSON.parse(stored) as AuthSession;
-    if (!session.accessToken || new Date(session.expiresAt).getTime() <= Date.now()) {
+    // Sessions written by older builds contained a bearer secret.  Remove
+    // them rather than ever returning that secret to application code.
+    if (session.accessToken || !session.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
       clearSession();
       return null;
     }
-    return { ...session, permissions: session.permissions ?? [] };
+    return { ...session, accessToken: "", permissions: session.permissions ?? [] };
   } catch {
     clearSession();
     return null;
@@ -74,7 +76,7 @@ export function loadSession(): AuthSession | null {
 }
 
 export function saveSession(session: AuthSession) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...session, accessToken: "" }));
 }
 
 export function clearSession() {

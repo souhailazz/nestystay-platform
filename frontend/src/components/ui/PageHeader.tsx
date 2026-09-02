@@ -64,7 +64,7 @@ export function PageHeader({
         {copy && (
           <motion.p
             animate={{ opacity: 1, y: 0 }}
-            className="mb-0 mt-3 font-sans text-[15px] leading-[1.55] text-gray-600"
+            className="mb-0 mt-3 font-sans text-[15px] leading-[1.55] text-ink"
             initial={{ opacity: 0, y: 18 }}
             transition={{ duration: 0.7, delay: 0.2 }}
           >

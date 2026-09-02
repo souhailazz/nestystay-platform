@@ -103,13 +103,10 @@ public sealed class AdminTokenAuthenticationHandler(
     private string? ReadBearerToken()
     {
         var authorization = Request.Headers.Authorization.ToString();
-        if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var token = authorization["Bearer ".Length..].Trim();
-        return token.Length == 0 ? null : token;
+        var token = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? authorization["Bearer ".Length..].Trim()
+            : Request.Cookies[SessionCookieAuth.SessionCookieName]?.Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
     }
 
     private string? ResolveSecretHash(string configurationKey, string environmentKey)

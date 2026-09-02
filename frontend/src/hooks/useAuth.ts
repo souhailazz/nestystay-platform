@@ -20,6 +20,33 @@ export function useAuth() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // Rehydrate identity from the server-managed HttpOnly session cookie after
+  // a refresh.  The profile request deliberately never receives a bearer
+  // secret in JavaScript; accessToken stays an empty compatibility field.
+  useEffect(() => {
+    let active = true;
+    void api.getProfile().then((profile) => {
+      if (!active) return;
+      const previous = loadSession();
+      const next: AuthSession = {
+        userId: profile.userId,
+        email: profile.email,
+        displayName: profile.displayName,
+        accessToken: "",
+        expiresAt: previous?.expiresAt ?? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+        roles: profile.roles,
+        permissions: previous?.permissions ?? [],
+      };
+      saveSession(next);
+      setSession(next);
+    }).catch((error: unknown) => {
+      if (!active) return;
+      const status = (error as { status?: number } | null)?.status;
+      if (status === 401 && !loadSession()) setSession(null);
+    });
+    return () => { active = false; };
+  }, []);
+
   const register = useCallback(async (body: RegisterUserRequest) => {
     setIsAuthBusy(true);
     try {
@@ -101,9 +128,10 @@ export function useAuth() {
   const logout = useCallback(async () => {
     const accessToken = session?.accessToken;
     try {
-      if (accessToken) {
-        await api.logout(accessToken);
-      }
+      // Cookie sessions deliberately keep accessToken empty.  Always call the
+      // server logout endpoint so it clears the HttpOnly cookie and invalidates
+      // the persisted session; bearer sessions continue to work unchanged.
+      await api.logout(accessToken);
     } finally {
       clearSession();
       setSession(null);

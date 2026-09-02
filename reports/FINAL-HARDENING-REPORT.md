@@ -1,10 +1,13 @@
 # NestyStay final hardening report
 
 Baseline: `95c14a8b30c017e968b53cedc9165f83c53b9006`
+Resumed hardening SHA: `35794c8e8718d3c2f8a76e124a477d9a76f13427`
+
+> **Current authoritative result:** [M1–M5 final hardening addendum](../testing-evidence/final-hardening/reports/FINAL-HARDENING-M5-ADDENDUM.md) supersedes historical baseline counts below and records the completed M5, cookie/CSRF, authorization, and PostgreSQL validation.
 
 The final hardening pass was resumed from the current worktree. Existing user changes and generated visual evidence were preserved. The implementation now has named API rate limits, production-safe security headers, generic payment-provider failures, lazy-loaded frontend route bundles, a focus-managed accessible modal, contrast fixes, evidence-backed query indexes, deterministic seeded parent identities for legacy properties/bookings, and a race-safe host property editor.
 
-Local release-candidate decision: **YES**, subject to the explicit production-only blockers below. Production readiness: **NO**.
+Local release-candidate decision: **YES** for contractual M1–M5, subject to the explicit production-only blockers below. Production readiness: **NO**.
 
 ## Verification result
 

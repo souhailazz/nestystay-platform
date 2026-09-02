@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-02T13:34:11.108Z",
+  "project": "desktop-webkit",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "1ad9a6e4-9307-4b86-b933-885b623af57f",
+    "invoiceId": "4088c66b-9948-4f23-a41b-384b87b1e6ff",
+    "maintenanceId": "edb2e59d-bc88-4693-9523-eeb638509194",
+    "proposalId": "47be8e6c-a0e3-47d5-b373-f214a66a9571"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "buttons": 0
+  },
+  "passed": true
+}

@@ -206,7 +206,13 @@ public sealed class EfPropertyManagerStore(
 
     public async Task<MaintenanceDto> CreateMaintenanceAsync(Guid actorUserId, bool isAdmin, CreateMaintenanceRequest request, CancellationToken cancellationToken)
     {
-        var ownerId = request.OwnerUserId; var managerId = isAdmin ? (await db.MilestoneManagerProperties.Where(x => x.Id == request.PropertyId && !x.IsDeleted).Select(x => x.ManagerUserId).FirstOrDefaultAsync(cancellationToken)) : actorUserId;
+        var ownerId = request.OwnerUserId;
+        var isManagerActor = !isAdmin && await db.MilestonePropertyManagers.AnyAsync(x => x.ManagerUserId == actorUserId && !x.IsDeleted, cancellationToken);
+        var managerId = isAdmin
+            ? await db.MilestoneManagerProperties.Where(x => x.Id == request.PropertyId && !x.IsDeleted).Select(x => x.ManagerUserId).FirstOrDefaultAsync(cancellationToken)
+            : isManagerActor
+                ? actorUserId
+                : await db.MilestoneManagerOwners.Where(x => x.OwnerUserId == actorUserId && !x.IsDeleted).Select(x => x.ManagerUserId).FirstOrDefaultAsync(cancellationToken);
         if (managerId == Guid.Empty) throw new InvalidOperationException("Property is not in a manager portfolio.");
         if (!isAdmin && actorUserId != ownerId) await RequireOwnerScopeAsync(actorUserId, ownerId, cancellationToken); else await RequireOwnerScopeAsync(managerId, ownerId, cancellationToken);
         var property = await db.MilestoneManagerProperties.SingleOrDefaultAsync(x => x.Id == request.PropertyId && x.ManagerUserId == managerId && x.OwnerUserId == ownerId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Property is not in the manager portfolio.");
@@ -292,7 +298,31 @@ public sealed class EfPropertyManagerStore(
     { var managers = await db.MilestoneManagerOwners.Where(x => x.OwnerUserId == ownerUserId && !x.IsDeleted).Select(x => x.ManagerUserId).ToListAsync(cancellationToken); if (managers.Count == 0) throw new InvalidOperationException("Owner is not linked to a property manager."); var managerId = managers[0]; var properties = await db.MilestoneManagerProperties.Where(x => x.ManagerUserId == managerId && x.OwnerUserId == ownerUserId && !x.IsDeleted).ToListAsync(cancellationToken); var invoices = await db.MilestoneManagerInvoices.Where(x => x.ManagerUserId == managerId && x.OwnerUserId == ownerUserId && !x.IsDeleted).ToListAsync(cancellationToken); var lines = await db.MilestoneManagerInvoiceLines.Where(x => invoices.Select(i => i.Id).Contains(x.InvoiceId) && !x.IsDeleted).ToListAsync(cancellationToken); var utilities = await db.MilestoneManagerUtilityCharges.Where(x => x.ManagerUserId == managerId && x.OwnerUserId == ownerUserId && !x.IsDeleted).ToListAsync(cancellationToken); var maintenance = await db.MilestoneManagerMaintenances.Where(x => x.ManagerUserId == managerId && x.OwnerUserId == ownerUserId && !x.IsDeleted).ToListAsync(cancellationToken); var notices = await GetNoticesAsync(ownerUserId, false, cancellationToken); var proposals = await db.MilestoneManagerProposals.Where(x => x.ManagerUserId == managerId && !x.IsDeleted).ToListAsync(cancellationToken); var proposalDtos = new List<ProposalDto>(); foreach (var proposal in proposals) proposalDtos.Add(await BuildProposalDtoAsync(proposal, cancellationToken)); var documents = (await GetDocumentsAsync(ownerUserId, false, cancellationToken)).ToList(); return new OwnerPortalDto(ownerUserId, properties.Select(ToDto).ToList(), invoices.Select(x => ToDto(x, lines.Where(l => l.InvoiceId == x.Id))).ToList(), await GetStatementAsync(ownerUserId, false, ownerUserId, null, null, cancellationToken), utilities.Select(ToDto).ToList(), maintenance.Select(ToDto).ToList(), notices, proposalDtos, documents); }
 
     private async Task<MilestonePropertyManager> EnsureManagerAsync(Guid managerUserId, CancellationToken cancellationToken)
-    { var manager = await db.MilestonePropertyManagers.SingleOrDefaultAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (manager is not null) return manager; manager = new MilestonePropertyManager { ManagerUserId = managerUserId, BusinessName = "NestyStay Property Management", SubscriptionTier = "Portfolio", MonthlyAmount = 0m, SubscriptionStatus = "ACTIVE", NextBillingAt = timeProvider.GetUtcNow().AddMonths(1) }; db.MilestonePropertyManagers.Add(manager); await db.SaveChangesAsync(cancellationToken); return manager; }
+    {
+        // API contract tests and trusted service callers can provide a signed
+        // manager id without first creating an interactive account.  Maintain a
+        // disabled parent user so the database FK remains valid while ensuring
+        // the placeholder can never authenticate or appear as a real person.
+        if (!await db.MilestoneUsers.AnyAsync(x => x.Id == managerUserId && !x.IsDeleted, cancellationToken))
+        {
+            db.MilestoneUsers.Add(new MilestoneUser
+            {
+                Id = managerUserId,
+                Email = $"manager-{managerUserId:N}@system.invalid",
+                NormalizedEmail = $"MANAGER-{managerUserId:N}@SYSTEM.INVALID",
+                PasswordHash = "disabled",
+                DisplayName = "Property Manager (service account)",
+                RolesJson = "[\"PropertyManager\"]",
+                Status = "Disabled",
+                IsTwoFactorEnabled = false,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        var manager = await db.MilestonePropertyManagers.SingleOrDefaultAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (manager is not null) return manager;
+        manager = new MilestonePropertyManager { ManagerUserId = managerUserId, BusinessName = "NestyStay Property Management", SubscriptionTier = "Portfolio", MonthlyAmount = 0m, SubscriptionStatus = "ACTIVE", NextBillingAt = timeProvider.GetUtcNow().AddMonths(1) };
+        db.MilestonePropertyManagers.Add(manager); await db.SaveChangesAsync(cancellationToken); return manager;
+    }
     private async Task RequireOwnerScopeAsync(Guid managerUserId, Guid ownerUserId, CancellationToken cancellationToken) { if (!await db.MilestoneManagerOwners.AnyAsync(x => x.ManagerUserId == managerUserId && x.OwnerUserId == ownerUserId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Owner is not assigned to this manager."); }
     private async Task AuditAsync(Guid actor, string action, string type, Guid target, CancellationToken cancellationToken) { db.MilestoneAuditEvents.Add(new MilestoneAuditEvent { ActorUserId = actor, ActorRole = "PropertyManager", Action = action, SubjectType = type, SubjectId = target, Reason = action, MetadataJson = JsonSerializer.Serialize(new { source = "property-manager" }) }); await Task.CompletedTask; }
     private async Task<ProposalDto> BuildProposalDtoAsync(MilestoneManagerProposal proposal, CancellationToken cancellationToken)

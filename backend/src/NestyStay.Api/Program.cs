@@ -27,6 +27,7 @@ builder.Services.AddCors(options =>
                 "http://127.0.0.1:5174",
                 "https://localhost:5174")
             .AllowAnyHeader()
+            .AllowCredentials()
             .AllowAnyMethod());
 });
 
@@ -72,6 +73,7 @@ if (builder.Configuration.GetValue<bool>("Security:EnableHttpsRedirection"))
 app.UseCors("Frontend");
 
 app.UseAuthentication();
+app.UseMiddleware<CookieCsrfMiddleware>();
 app.UseRateLimiter();
 app.UseAuthorization();
 

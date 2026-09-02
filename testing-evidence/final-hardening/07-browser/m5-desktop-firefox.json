@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-02T13:33:56.260Z",
+  "project": "desktop-firefox",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "cd8543f0-c8a8-482d-a065-0206f2a7cf88",
+    "invoiceId": "25e3df53-4fe6-4633-9829-1a0f523e7f1e",
+    "maintenanceId": "99577209-3447-4c4e-b603-9f46016e4021",
+    "proposalId": "8b79feae-6532-405c-a4ae-a27e521cfb9f"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "buttons": 0
+  },
+  "passed": true
+}

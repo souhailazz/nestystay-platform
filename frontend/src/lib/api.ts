@@ -1066,6 +1066,15 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   token?: string;
 };
 
+const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const prefix = `${encodeURIComponent(name)}=`;
+  const value = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix));
+  return value ? decodeURIComponent(value.slice(prefix.length)) : undefined;
+}
+
 type UploadOptions = {
   signal?: AbortSignal;
   onProgress?: (progress: number) => void;
@@ -1118,8 +1127,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
+  if (unsafeMethods.has((options.method ?? "GET").toUpperCase())) {
+    const csrf = readCookie("nestyStay.csrf");
+    if (csrf) headers.set("X-CSRF-Token", csrf);
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
@@ -1135,9 +1150,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (await response.json()) as T;
 }
 
-async function requestFile(path: string, token: string): Promise<DownloadedFile> {
-  const headers = new Headers({ Authorization: `Bearer ${token}` });
-  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+async function requestFile(path: string, token?: string): Promise<DownloadedFile> {
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers, credentials: "include" });
 
   if (!response.ok) {
     throw await buildApiError(response);
@@ -1157,11 +1173,14 @@ function requestUpload<T>(path: string, token: string | undefined, file: File, o
     const cleanup = () => options.signal?.removeEventListener("abort", abort);
 
     xhr.open("PUT", `${API_BASE_URL}${path}`);
+    xhr.withCredentials = true;
     xhr.responseType = "json";
     if (token) {
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    const csrf = readCookie("nestyStay.csrf");
+    if (csrf) xhr.setRequestHeader("X-CSRF-Token", csrf);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -1276,13 +1295,14 @@ export const api = {
     }>("/health"),
   register: (body: RegisterUserRequest) =>
     request<RegisterUserResponse>("/auth/register", { method: "POST", body }),
-  login: (body: LoginRequest) => request<LoginResponse>("/auth/login", { method: "POST", body }),
+  login: (body: LoginRequest) => request<LoginResponse>("/auth/login", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   googleSignIn: (body: GoogleSignInRequest) =>
-    request<GoogleSignInResponse>("/auth/google", { method: "POST", body }),
+    request<GoogleSignInResponse>("/auth/google", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   verifyTwoFactor: (challengeId: string, code: string) =>
     request<VerifyTwoFactorResponse>("/auth/2fa/verify", {
       method: "POST",
       body: { challengeId, code },
+      headers: { "X-Session-Mode": "cookie" },
     }),
   getDevelopmentTwoFactorCode: (challengeId: string) =>
     request<{ challengeId: string; code: string; expiresAt: string }>(`/auth/development/challenges/${challengeId}`),
@@ -1292,9 +1312,9 @@ export const api = {
     request<ConfirmTwoFactorEnrollmentResponse>("/auth/2fa/enrollments/confirm", { method: "POST", token, body }),
   disableTwoFactor: (token: string, body: { code: string }) =>
     request<DisableTwoFactorResponse>("/auth/2fa", { method: "DELETE", token, body }),
-  logout: (token: string) =>
+  logout: (token?: string) =>
     request<{ loggedOut: boolean; invalidatedAt: string }>("/auth/logout", { method: "POST", token }),
-  getProfile: (token: string) => request<UserProfile>("/auth/profile", { token }),
+  getProfile: (token?: string) => request<UserProfile>("/auth/profile", { token }),
   updateProfile: (token: string, body: { displayName: string; phone?: string | null }) =>
     request<UserProfile>("/auth/profile", { method: "PATCH", token, body }),
   prepareProfilePhotoUpload: (token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>

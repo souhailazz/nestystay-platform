@@ -26,6 +26,7 @@ This matrix separates source/component presence from exercised, API-backed UI jo
 
 ## Known test-scope limits
 
-- Vitest is intentionally reported as full-source coverage, not as a proxy for browser coverage: 26 tests passed; statements 4.97%, branches 4.36%, functions 3.81%, lines 5.66%.
+- Vitest is not a proxy for browser coverage: the historical full-source run had 26 tests with statements 4.97%, branches 4.36%, functions 3.81%, lines 5.66%; the resumed included-source run has 30 tests with statements 44.73%, branches 44.29%, functions 29.61%, lines 44.22%. Both scopes are retained explicitly.
 - Real external Stripe/Connect, Alibaba Cloud eKYC, email/SMS/push, and payout-provider calls require production credentials and were not claimed as locally verified.
 - Browser route inventory treats expected API 404/403 responses for placeholder IDs as handled application states; it fails on unexpected 5xx and uncaught application crashes.
+- M5 Property Manager evidence is a dedicated persisted end-to-end journey: 7/7 configured browser/viewport projects passed with 0 console errors, 0 unexpected 5xx responses, and 0 axe violations.

@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-02T13:33:36.711Z",
+  "project": "small-mobile-chromium",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "26a54300-1155-469d-a820-b29898ed74de",
+    "invoiceId": "3b49bab1-c9e9-418d-a291-342ed38daa2e",
+    "maintenanceId": "da957382-48fb-4a07-ad66-b81b806ba1cb",
+    "proposalId": "715d5741-6e30-4451-a0ac-e979fd8969e6"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 360,
+    "innerWidth": 360,
+    "buttons": 0
+  },
+  "passed": true
+}

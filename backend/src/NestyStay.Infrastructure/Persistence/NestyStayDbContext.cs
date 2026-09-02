@@ -299,6 +299,49 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneManagerQrAccess>().HasIndex(item => item.TokenHash).IsUnique();
         modelBuilder.Entity<MilestoneManagerQrScan>().HasIndex(item => new { item.QrAccessId, item.ScannedAt });
 
+        // Phase 5 relationship constraints.  These are intentionally explicit
+        // because the milestone entities use scalar ids (rather than navigation
+        // properties) to keep the authorization surface small.  Every relation
+        // was reviewed against the live database orphan inventory before being
+        // added; contextual QR scan property ids are not constrained because
+        // they represent the guard's supplied comparison value, not ownership.
+        static void UserLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneUser>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void OptionalUserLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneUser>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void PropertyLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneManagerProperty>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void OptionalPropertyLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneManagerProperty>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void OptionalVendorLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneManagerVendor>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void InvoiceLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneManagerInvoice>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+        static void OptionalInvoiceLink<TEntity>(ModelBuilder builder, string key) where TEntity : class => builder.Entity<TEntity>().HasOne<MilestoneManagerInvoice>().WithMany().HasForeignKey(key).OnDelete(DeleteBehavior.Restrict);
+
+        UserLink<MilestonePropertyManager>(modelBuilder, nameof(MilestonePropertyManager.ManagerUserId));
+        UserLink<MilestoneManagerOwner>(modelBuilder, nameof(MilestoneManagerOwner.ManagerUserId)); UserLink<MilestoneManagerOwner>(modelBuilder, nameof(MilestoneManagerOwner.OwnerUserId));
+        UserLink<MilestoneManagerProperty>(modelBuilder, nameof(MilestoneManagerProperty.ManagerUserId)); UserLink<MilestoneManagerProperty>(modelBuilder, nameof(MilestoneManagerProperty.OwnerUserId));
+        UserLink<MilestoneManagerInvoice>(modelBuilder, nameof(MilestoneManagerInvoice.ManagerUserId)); UserLink<MilestoneManagerInvoice>(modelBuilder, nameof(MilestoneManagerInvoice.OwnerUserId));
+        OptionalPropertyLink<MilestoneManagerInvoice>(modelBuilder, nameof(MilestoneManagerInvoice.PropertyId));
+        InvoiceLink<MilestoneManagerInvoiceLine>(modelBuilder, nameof(MilestoneManagerInvoiceLine.InvoiceId));
+        UserLink<MilestoneManagerPayment>(modelBuilder, nameof(MilestoneManagerPayment.ManagerUserId)); UserLink<MilestoneManagerPayment>(modelBuilder, nameof(MilestoneManagerPayment.OwnerUserId));
+        InvoiceLink<MilestoneManagerPayment>(modelBuilder, nameof(MilestoneManagerPayment.InvoiceId));
+        UserLink<MilestoneManagerLedgerEntry>(modelBuilder, nameof(MilestoneManagerLedgerEntry.ManagerUserId)); UserLink<MilestoneManagerLedgerEntry>(modelBuilder, nameof(MilestoneManagerLedgerEntry.OwnerUserId));
+        OptionalPropertyLink<MilestoneManagerLedgerEntry>(modelBuilder, nameof(MilestoneManagerLedgerEntry.PropertyId)); OptionalInvoiceLink<MilestoneManagerLedgerEntry>(modelBuilder, nameof(MilestoneManagerLedgerEntry.InvoiceId));
+        UserLink<MilestoneManagerUtilityCharge>(modelBuilder, nameof(MilestoneManagerUtilityCharge.ManagerUserId)); UserLink<MilestoneManagerUtilityCharge>(modelBuilder, nameof(MilestoneManagerUtilityCharge.OwnerUserId));
+        PropertyLink<MilestoneManagerUtilityCharge>(modelBuilder, nameof(MilestoneManagerUtilityCharge.PropertyId)); OptionalInvoiceLink<MilestoneManagerUtilityCharge>(modelBuilder, nameof(MilestoneManagerUtilityCharge.InvoiceId));
+        UserLink<MilestoneManagerVendor>(modelBuilder, nameof(MilestoneManagerVendor.ManagerUserId));
+        UserLink<MilestoneManagerMaintenance>(modelBuilder, nameof(MilestoneManagerMaintenance.ManagerUserId)); UserLink<MilestoneManagerMaintenance>(modelBuilder, nameof(MilestoneManagerMaintenance.OwnerUserId));
+        PropertyLink<MilestoneManagerMaintenance>(modelBuilder, nameof(MilestoneManagerMaintenance.PropertyId)); OptionalVendorLink<MilestoneManagerMaintenance>(modelBuilder, nameof(MilestoneManagerMaintenance.VendorId));
+        UserLink<MilestoneManagerNotice>(modelBuilder, nameof(MilestoneManagerNotice.ManagerUserId)); OptionalUserLink<MilestoneManagerNotice>(modelBuilder, nameof(MilestoneManagerNotice.TargetOwnerUserId));
+        UserLink<MilestoneManagerProposal>(modelBuilder, nameof(MilestoneManagerProposal.ManagerUserId));
+        modelBuilder.Entity<MilestoneManagerEligibleVoter>().HasOne<MilestoneManagerProposal>().WithMany().HasForeignKey(x => x.ProposalId).OnDelete(DeleteBehavior.Restrict);
+        UserLink<MilestoneManagerEligibleVoter>(modelBuilder, nameof(MilestoneManagerEligibleVoter.OwnerUserId));
+        modelBuilder.Entity<MilestoneManagerVote>().HasOne<MilestoneManagerProposal>().WithMany().HasForeignKey(x => x.ProposalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneManagerVote>().HasOne<MilestoneManagerProxy>().WithMany().HasForeignKey(x => x.ProxyId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneManagerProxy>().HasOne<MilestoneManagerProposal>().WithMany().HasForeignKey(x => x.ProposalId).OnDelete(DeleteBehavior.Restrict);
+        UserLink<MilestoneManagerProxy>(modelBuilder, nameof(MilestoneManagerProxy.OwnerUserId)); UserLink<MilestoneManagerProxy>(modelBuilder, nameof(MilestoneManagerProxy.ProxyUserId));
+        UserLink<MilestoneManagerDocument>(modelBuilder, nameof(MilestoneManagerDocument.ManagerUserId)); OptionalUserLink<MilestoneManagerDocument>(modelBuilder, nameof(MilestoneManagerDocument.OwnerUserId)); OptionalPropertyLink<MilestoneManagerDocument>(modelBuilder, nameof(MilestoneManagerDocument.PropertyId));
+        UserLink<MilestoneManagerGateMessage>(modelBuilder, nameof(MilestoneManagerGateMessage.ManagerUserId)); OptionalPropertyLink<MilestoneManagerGateMessage>(modelBuilder, nameof(MilestoneManagerGateMessage.PropertyId));
+        UserLink<MilestoneManagerQrAccess>(modelBuilder, nameof(MilestoneManagerQrAccess.ManagerUserId)); OptionalUserLink<MilestoneManagerQrAccess>(modelBuilder, nameof(MilestoneManagerQrAccess.OwnerUserId)); OptionalPropertyLink<MilestoneManagerQrAccess>(modelBuilder, nameof(MilestoneManagerQrAccess.PropertyId));
+        modelBuilder.Entity<MilestoneManagerQrScan>().HasOne<MilestoneManagerQrAccess>().WithMany().HasForeignKey(x => x.QrAccessId).OnDelete(DeleteBehavior.Restrict);
+        OptionalUserLink<MilestoneManagerQrScan>(modelBuilder, nameof(MilestoneManagerQrScan.GateGuardUserId));
+
         NestyStaySeed.Apply(modelBuilder);
     }
 

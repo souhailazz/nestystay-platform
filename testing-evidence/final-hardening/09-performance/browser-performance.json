@@ -1,105 +1,105 @@
 {
-  "generatedAt": "2026-09-02T12:10:25.767Z",
+  "generatedAt": "2026-09-02T13:32:45.328Z",
   "environment": "local production preview; synthetic unthrottled",
   "pages": [
     {
       "route": "/",
-      "ttfbMs": 1.700000286102295,
-      "domContentLoadedMs": 171.5,
-      "loadMs": 451.6000003814697,
-      "fcpMs": 276,
-      "lcpMs": 364,
+      "ttfbMs": 1.6000003814697266,
+      "domContentLoadedMs": 183,
+      "loadMs": 1495,
+      "fcpMs": 300,
+      "lcpMs": 388,
       "cls": 0.0004374376419967421,
-      "tbtMs": 13,
-      "transferBytes": 919
+      "tbtMs": 20,
+      "transferBytes": 920
     },
     {
       "route": "/explore",
-      "ttfbMs": 1.700000286102295,
-      "domContentLoadedMs": 14.199999809265137,
-      "loadMs": 61.5,
-      "fcpMs": 92,
-      "lcpMs": 420,
+      "ttfbMs": 2.0999999046325684,
+      "domContentLoadedMs": 20.09999990463257,
+      "loadMs": 84.5,
+      "fcpMs": 96,
+      "lcpMs": 440,
       "cls": 0.7314185302734374,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/login",
-      "ttfbMs": 1.700000286102295,
-      "domContentLoadedMs": 14.100000381469727,
-      "loadMs": 52.80000019073486,
+      "ttfbMs": 1.799999713897705,
+      "domContentLoadedMs": 18.200000286102295,
+      "loadMs": 58.200000286102295,
+      "fcpMs": 52,
+      "lcpMs": 388,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 920
+    },
+    {
+      "route": "/register",
+      "ttfbMs": 2,
+      "domContentLoadedMs": 15.599999904632568,
+      "loadMs": 49.299999713897705,
       "fcpMs": 48,
       "lcpMs": 368,
       "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
-    },
-    {
-      "route": "/register",
-      "ttfbMs": 1.700000286102295,
-      "domContentLoadedMs": 17.199999809265137,
-      "loadMs": 49.19999980926514,
-      "fcpMs": 52,
-      "lcpMs": 364,
-      "cls": 0,
-      "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/directory/custodians",
-      "ttfbMs": 1.5,
-      "domContentLoadedMs": 14.099999904632568,
-      "loadMs": 50.90000009536743,
-      "fcpMs": 48,
-      "lcpMs": 376,
+      "ttfbMs": 1.8000001907348633,
+      "domContentLoadedMs": 14.400000095367432,
+      "loadMs": 56.200000286102295,
+      "fcpMs": 52,
+      "lcpMs": 404,
       "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/directory/trades",
-      "ttfbMs": 1.700000286102295,
-      "domContentLoadedMs": 14.799999713897705,
-      "loadMs": 47.69999980926514,
-      "fcpMs": 52,
-      "lcpMs": 384,
-      "cls": 0.02181630417309671,
+      "ttfbMs": 2.0999999046325684,
+      "domContentLoadedMs": 16.299999713897705,
+      "loadMs": 48.69999980926514,
+      "fcpMs": 28,
+      "lcpMs": 376,
+      "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/directory/businesses",
       "ttfbMs": 1.5,
-      "domContentLoadedMs": 15,
-      "loadMs": 51.30000019073486,
-      "fcpMs": 52,
-      "lcpMs": 372,
+      "domContentLoadedMs": 20.09999990463257,
+      "loadMs": 63.5,
+      "fcpMs": 36,
+      "lcpMs": 392,
       "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/directory/police",
-      "ttfbMs": 1.799999713897705,
-      "domContentLoadedMs": 17,
-      "loadMs": 47.5,
-      "fcpMs": 52,
-      "lcpMs": 380,
+      "ttfbMs": 1.6999998092651367,
+      "domContentLoadedMs": 13.5,
+      "loadMs": 46.59999990463257,
+      "fcpMs": 28,
+      "lcpMs": 368,
       "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     },
     {
       "route": "/gate/qr",
-      "ttfbMs": 1.5999999046325684,
-      "domContentLoadedMs": 16.600000381469727,
-      "loadMs": 50.700000286102295,
-      "fcpMs": 72,
-      "lcpMs": 348,
+      "ttfbMs": 2,
+      "domContentLoadedMs": 18.699999809265137,
+      "loadMs": 59.59999990463257,
+      "fcpMs": 84,
+      "lcpMs": 356,
       "cls": 0,
       "tbtMs": 0,
-      "transferBytes": 919
+      "transferBytes": 920
     }
   ]
 }

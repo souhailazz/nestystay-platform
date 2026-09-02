@@ -22,18 +22,34 @@ public sealed class AuthController(
 
     [HttpPost("login")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
-    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken) =>
-        Ok(await phaseOneStore.LoginAsync(request, cancellationToken));
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await phaseOneStore.LoginAsync(request, cancellationToken);
+        if (SessionCookieAuth.IsCookieMode(Request) && result.AccessToken is not null && result.ExpiresAt is not null)
+        {
+            SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt.Value, IsSecureCookie());
+        }
+
+        return Ok(SanitizeForBrowser(result));
+    }
 
     [HttpPost("google")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
-    public async Task<IActionResult> Google(GoogleSignInRequest request, CancellationToken cancellationToken) =>
-        Ok(await phaseOneStore.GoogleSignInAsync(request, cancellationToken));
+    public async Task<IActionResult> Google(GoogleSignInRequest request, CancellationToken cancellationToken)
+    {
+        var result = await phaseOneStore.GoogleSignInAsync(request, cancellationToken);
+        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie());
+        return Ok(SanitizeForBrowser(result));
+    }
 
     [HttpPost("2fa/verify")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
-    public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken) =>
-        Ok(await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken));
+    public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken)
+    {
+        var result = await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken);
+        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie());
+        return Ok(SanitizeForBrowser(result));
+    }
 
     [Authorize]
     [HttpPost("2fa/enrollments")]
@@ -63,7 +79,7 @@ public sealed class AuthController(
     [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken) =>
-        Ok(await phaseOneStore.LogoutAsync(RequireUserId(), cancellationToken));
+        LogoutAndClearCookies(await phaseOneStore.LogoutAsync(RequireUserId(), cancellationToken));
 
     [Authorize]
     [HttpPost("profile/photo/uploads")]
@@ -136,4 +152,22 @@ public sealed class AuthController(
 
     private Guid RequireUserId() =>
         currentUser.UserId ?? throw new UnauthorizedAccessException("A signed session bearer token is required.");
+
+    private bool IsSecureCookie() =>
+        configuration.GetValue<bool?>("Security:SessionCookieSecure") ?? environment.IsProduction();
+
+    private IActionResult LogoutAndClearCookies(object result)
+    {
+        SessionCookieAuth.Clear(Response);
+        return Ok(result);
+    }
+
+    private object SanitizeForBrowser(LoginResponse result) =>
+        SessionCookieAuth.IsCookieMode(Request) ? result with { AccessToken = null } : result;
+
+    private object SanitizeForBrowser(GoogleSignInResponse result) =>
+        SessionCookieAuth.IsCookieMode(Request) ? result with { AccessToken = string.Empty } : result;
+
+    private object SanitizeForBrowser(VerifyTwoFactorResponse result) =>
+        SessionCookieAuth.IsCookieMode(Request) ? result with { AccessToken = string.Empty } : result;
 }

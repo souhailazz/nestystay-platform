@@ -57,6 +57,19 @@ describe("api client", () => {
     expect(headers.has("Authorization")).toBe(false);
   });
 
+  it("sends credentialed requests and the CSRF header for cookie sessions", async () => {
+    vi.stubGlobal("document", { cookie: "nestyStay.csrf=test-csrf-token" });
+    const fetchMock = stubFetch(jsonResponse({ id: "booking-2" }));
+
+    await api.createBooking({ propertyId: "property-1", guestUserId: "guest-1", checkIn: "2026-09-10", checkOut: "2026-09-12" }, "");
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(init.credentials).toBe("include");
+    expect(headers.get("X-CSRF-Token")).toBe("test-csrf-token");
+    vi.unstubAllGlobals();
+  });
+
   it("surfaces API problem details with status codes", async () => {
     stubFetch(jsonResponse({ title: "Forbidden" }, 403, "Forbidden"));
 
