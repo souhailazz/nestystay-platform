@@ -5,7 +5,7 @@ This note resumes the interrupted hardening pass; the repository was not reset a
 ## Current state
 
 - Original baseline SHA: `95c14a8b30c017e968b53cedc9165f83c53b9006`
-- Current HEAD: `95c14a8b30c017e968b53cedc9165f83c53b9006` (final commit pending)
+- Current HEAD: `4559c4f4db3b96d2b040e64dff2fbd457905f8a1` (final hardening commit)
 - PostgreSQL: local `nestystay_dev` on PostgreSQL 18; 32 EF migrations applied (including `FinalHardeningIndexes`)
 - In-app Codex browser: unavailable in this environment; standalone Playwright is used
 - Semgrep, CodeQL, k6 and Artillery: not installed; local Node load harness remains the fallback
@@ -36,6 +36,8 @@ This note resumes the interrupted hardening pass; the repository was not reset a
 
 The current working tree contains the prior hardening changes plus the new hardening harness, security matrix, modal/accessibility fixes, preview proxy, dependency lock update, and generated evidence/artifacts. `git status --short` is the authoritative file list; no reset or checkout was performed.
 
-## Remaining finalization
+## Finalization completed
 
-- Commit the reviewed worktree and run release gates from a clean checkout of the resulting SHA. Production readiness remains explicitly **NO** until the external provider and infrastructure blockers in `reports/FINAL-HARDENING-REPORT.md` are closed.
+- Reviewed hardening changes were committed at `4559c4f4db3b96d2b040e64dff2fbd457905f8a1`.
+- A fresh detached checkout of that SHA passed backend restore/tests and frontend `npm ci`, typecheck and production build; the checkout was clean and then removed.
+- The main worktree is clean. Production readiness remains explicitly **NO** until the external provider and infrastructure blockers in `reports/FINAL-HARDENING-REPORT.md` are closed.
