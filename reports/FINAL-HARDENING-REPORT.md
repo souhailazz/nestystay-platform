@@ -17,7 +17,7 @@ Local release-candidate decision: **YES** for contractual M1–M5 and the self-h
 - Backend: 109 passed, 0 failed across Domain, Application, Infrastructure, and API suites (including 3 email outbox and 3 production-email configuration tests).
 - Frontend: clean `npm ci`, lint, typecheck, 30 unit tests, full-source coverage, and production build all passed.
 - Browser: original regression 31 passed/8 skipped; hardening matrix 22 passed, 0 failed, 48 intentional project skips; Firefox and WebKit smoke passed.
-- Security: 37/37 authorization cases, 7/7 dynamic security checks, dependency audits clean, and no live credential/private-key material found (the `sk_live_`/`pk_live_`/`whsec_` matches are sample strings in validation/tests/docs).
+- Security: 54/54 authorization cases, 7/7 dynamic security checks, dependency audits clean, and no live credential/private-key material found (the `sk_live_`/`pk_live_`/`whsec_` matches are sample strings in validation/tests/docs).
 - Database: 0 integrity violations after seeding the three legacy host parent rows; reviewed relationship/index migrations plus email outbox and self-hosted provider migrations applied locally.
 - Financial/concurrency: 16/16 monetary-rule assertions and 4/4 parallel API assertions passed.
 
