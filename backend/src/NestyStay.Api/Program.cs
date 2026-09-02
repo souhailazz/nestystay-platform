@@ -51,8 +51,13 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddNestyStayRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration.GetConnectionString("Postgres"));
-builder.Services.AddHostedService<MilestoneMaintenanceService>();
+builder.Services.AddInfrastructureServices(
+    builder.Configuration.GetConnectionString("Postgres"),
+    builder.Configuration.GetValue("BackgroundJobs:Enabled", true));
+if (builder.Configuration.GetValue("BackgroundJobs:Enabled", true))
+{
+    builder.Services.AddHostedService<MilestoneMaintenanceService>();
+}
 
 var app = builder.Build();
 
@@ -78,6 +83,14 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// The optional compose worker sidecar runs the same host without publishing a port.
+// It is still a normal ASP.NET host so migrations, DI and health diagnostics stay identical.
+if (builder.Configuration.GetValue<bool>("Worker:Enabled"))
+{
+    app.Urls.Clear();
+    app.Urls.Add("http://127.0.0.1:0");
+}
 
 app.Run();
 

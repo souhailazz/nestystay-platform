@@ -41,7 +41,12 @@ public interface INotificationGateway
 public interface IEmailSender
 {
     string ProviderName { get; }
-    Task SendAsync(EmailMessage message, CancellationToken cancellationToken);
+    Task<EmailDeliveryResult> QueueAsync(EmailMessage message, CancellationToken cancellationToken);
+
+    // Kept as the application-facing verb used by existing workflows. Implementations
+    // enqueue work and return immediately; delivery is performed by the worker.
+    Task<EmailDeliveryResult> SendAsync(EmailMessage message, CancellationToken cancellationToken) =>
+        QueueAsync(message, cancellationToken);
 }
 
 public interface ISmsSender
@@ -213,7 +218,42 @@ public sealed record PaymentRefundResult(
 
 public sealed record NotificationMessage(string Recipient, string Subject, string Body);
 
-public sealed record EmailMessage(string To, string Subject, string Body, Guid? CorrelationId = null);
+public sealed record EmailMessage(
+    string To,
+    string Subject,
+    string Body,
+    Guid? CorrelationId = null,
+    string? TemplateKey = null,
+    string? IdempotencyKey = null,
+    bool IsHtml = false,
+    string? TextBody = null,
+    string? HtmlBody = null,
+    string? ReplyToEmail = null,
+    string? ReplyToName = null);
+
+public enum EmailDeliveryStatus
+{
+    Pending,
+    Processing,
+    Sent,
+    Failed,
+    Retrying,
+    DeadLetter
+}
+
+public sealed record EmailDeliveryResult(
+    Guid MessageId,
+    EmailDeliveryStatus Status,
+    string ProviderName,
+    string? ProviderMessageId = null,
+    DateTimeOffset? AcceptedAt = null,
+    string? Error = null);
+
+public sealed record EmailTemplate(
+    string Key,
+    string Subject,
+    string TextBody,
+    string? HtmlBody = null);
 
 public sealed record SmsMessage(string To, string Body, Guid? CorrelationId = null);
 

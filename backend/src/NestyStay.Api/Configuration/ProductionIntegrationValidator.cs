@@ -17,8 +17,6 @@ public static class ProductionIntegrationValidator
         new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
         new("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"),
         new("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE", "Alibaba eKYC URL base"),
-        new("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE", "Cloudflare R2 upload URL base"),
-        new("Integrations:CloudflareR2DownloadUrlBase", "CLOUDFLARE_R2_DOWNLOAD_URL_BASE", "Cloudflare R2 download URL base"),
         new("Integrations:InsuraGuestApiBaseUrl", "INSURAGUEST_API_BASE_URL", "InsuraGuest API base URL")
     ];
 
@@ -92,6 +90,22 @@ public static class ProductionIntegrationValidator
         if (stripeWebhookSecret?.StartsWith("whsec_test", StringComparison.OrdinalIgnoreCase) == true)
         {
             throw new InvalidOperationException("Production Stripe webhook signing secret must be a live secret.");
+        }
+
+        var emailProvider = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+        var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
+        if (emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            var brevoKey = configuration["Email:Brevo:ApiKey"] ?? Environment.GetEnvironmentVariable("BREVO_API_KEY");
+            var senderEmail = configuration["Email:Brevo:SenderEmail"] ?? Environment.GetEnvironmentVariable("BREVO_SENDER_EMAIL");
+            if (string.IsNullOrWhiteSpace(brevoKey) || string.IsNullOrWhiteSpace(senderEmail))
+            {
+                throw new InvalidOperationException("Production Brevo email is selected but BREVO_API_KEY or BREVO_SENDER_EMAIL is missing.");
+            }
+            if (Contains(brevoKey, "replace-with") || Contains(senderEmail, "example."))
+            {
+                throw new InvalidOperationException("Production Brevo email configuration contains a placeholder value.");
+            }
         }
 
         if (ResolveBoolean(configuration, "Security:AdminBootstrap:Enabled", "NESTYSTAY_ADMIN_BOOTSTRAP_ENABLED"))

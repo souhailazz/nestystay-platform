@@ -41,3 +41,12 @@ The current working tree contains the prior hardening changes plus the new harde
 - The resumed changes are ready for commit after the final clean-worktree verification below.
 - Current database validation: 145 tables, 45 foreign keys, 0 enforced M5 orphans; one contextual wrong-property QR comparison is intentionally unconstrained and documented.
 - Production readiness remains explicitly **NO** until the external provider and infrastructure blockers in `reports/FINAL-HARDENING-REPORT.md` are closed.
+
+## Low-cost production preparation (2026-09-02)
+
+- Added the provider-neutral PostgreSQL email outbox, Brevo transport, local `.eml` transport, safe template catalog, idempotency and retry/dead-letter lifecycle.
+- Added admin-only `/api/health/integrations` and `/admin/ops/integrations` status surfaces; secrets are never returned to the browser.
+- Removed legacy notification-provider seed references in favor of Brevo transactional email and optional provider-neutral channels; Alibaba eKYC remains unchanged.
+- Added self-host deployment artifacts: API/frontend Dockerfiles, Caddy edge configuration, private-network Compose stack, worker sidecar, PostgreSQL/Redis/private storage volumes and optional observability profile.
+- Added first-server, provider matrix, DNS, backup/restore, operations, business mailbox and client handover documentation.
+- Added and executed deployment evidence in `20-deployment/`; Docker Compose parse and image builds passed. Real Brevo/Stripe/eKYC credentials, domain/TLS, off-server backup and staging/restore remain blocked client/operator gates.

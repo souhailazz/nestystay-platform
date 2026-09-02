@@ -266,7 +266,7 @@ Development OpenAPI JSON is exposed by the backend at `/openapi/v1.json`.
 - [ ] Configure real Stripe webhook validation.
 - [ ] Configure real Alibaba Cloud eKYC credentials.
 - [ ] Configure real eKYC webhook/provider signatures.
-- [ ] Configure Cloudflare R2 credentials and upload signing.
+- [ ] Configure the self-hosted persistent object-storage volume (MinIO adapter is optional).
 - [ ] Configure InsuraGuest API credentials and integration details.
 - [ ] Set production `NESTYSTAY_ADMIN_TOKEN_SHA256`.
 - [ ] Set production `NESTYSTAY_WEBHOOK_SHARED_SECRET`.
@@ -275,10 +275,9 @@ Development OpenAPI JSON is exposed by the backend at `/openapi/v1.json`.
 - [ ] Apply production migration workflow.
 - [ ] Configure production domain.
 - [ ] Configure production SSL.
-- [ ] Configure production hosting and deployment pipeline.
-- [ ] Configure real email provider.
-- [ ] Configure real SMS provider.
-- [ ] Configure real push notification provider if required.
+- [ ] Configure production hosting and deployment pipeline (`docker-compose.production.yml`).
+- [ ] Configure Brevo transactional email and a Zoho/Google business mailbox.
+- [ ] Configure SMS or push only if separately approved.
 - [ ] Add real public admin user and role management if required.
 - [ ] Add production observability, structured logging, and alerting.
 - [ ] Complete legal, privacy, payment, insurance, and compliance review.

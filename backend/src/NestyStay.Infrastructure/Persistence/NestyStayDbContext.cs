@@ -258,6 +258,13 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneTravelerPaymentMethod>().HasIndex(method => method.ProviderPaymentMethodReference);
         modelBuilder.Entity<MilestoneReview>().HasIndex(review => new { review.UserId, review.PropertyId, review.BookingId });
         modelBuilder.Entity<MilestoneTravelerNotification>().HasIndex(notification => new { notification.UserId, notification.IsRead });
+        modelBuilder.Entity<NotificationQueueItem>().HasIndex(item => new { item.Channel, item.DeliveryStatus, item.NextAttemptAt });
+        modelBuilder.Entity<NotificationQueueItem>().HasIndex(item => item.IdempotencyKey).IsUnique();
+        modelBuilder.Entity<NotificationQueueItem>().Property(item => item.Body).HasMaxLength(100_000);
+        modelBuilder.Entity<NotificationQueueItem>().Property(item => item.TextBody).HasMaxLength(100_000);
+        modelBuilder.Entity<NotificationQueueItem>().Property(item => item.HtmlBody).HasMaxLength(100_000);
+        modelBuilder.Entity<NotificationQueueItem>().Property(item => item.ReplyToEmail).HasMaxLength(320);
+        modelBuilder.Entity<NotificationQueueItem>().Property(item => item.ReplyToName).HasMaxLength(256);
         modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => document.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => new { document.UserId, document.Status });
         modelBuilder.Entity<MilestoneIdentityDocumentUpload>().HasIndex(document => document.IdentityDocumentId);

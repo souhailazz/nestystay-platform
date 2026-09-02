@@ -106,10 +106,10 @@ public static class NestyStaySeed
         Provider(ProviderKind.Ekyc, "Onfido", false),
         Provider(ProviderKind.Payment, "Stripe", true),
         Provider(ProviderKind.Payment, "PayPal", false),
-        Provider(ProviderKind.Storage, "CloudflareR2", true),
+        Provider(ProviderKind.Storage, "LocalPersistentObjectStorage", true),
         Provider(ProviderKind.Storage, "DigitalOceanSpaces", false),
         Provider(ProviderKind.Storage, "AmazonS3", false),
-        Provider(ProviderKind.Notification, "AwsSesTwilioFirebase", true),
+        Provider(ProviderKind.Notification, "BrevoTransactional", true),
         Provider(ProviderKind.Insurance, "InsuraGuest", true)
     ];
 

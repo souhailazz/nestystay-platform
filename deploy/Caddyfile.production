@@ -1,0 +1,24 @@
+{
+	admin off
+}
+
+(nesty_common) {
+	encode gzip
+	header {
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.stripe.com https://r.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+	header /assets/* Cache-Control "public, max-age=31536000, immutable"
+	reverse_proxy /api/* api:8080
+	reverse_proxy /openapi/* api:8080
+	reverse_proxy /swagger/* api:8080
+	reverse_proxy frontend:80
+}
+
+{$NESTYSTAY_DOMAIN:localhost} {
+	import nesty_common
+}

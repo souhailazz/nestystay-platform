@@ -2,13 +2,21 @@
 
 ## Current decision
 
-**NO — local full-stack acceptance is complete, but production launch is not yet authorized.** M1–M5 application behavior is locally implemented and tested. Production-only blockers are external configuration and operational controls, not missing local UI/API behavior.
+**NO — the low-cost self-host release candidate is prepared, but production is not authorized.** M1–M5 application behavior remains locally complete. Remaining gates are credentials, client-owned infrastructure, external-provider validation, monitoring and restore evidence.
 
-## Required before launch
+## Application gates
 
-- Live Stripe account, Connect configuration, webhook signing secret and refund/reconciliation rehearsal.
-- Live Alibaba/eKYC credentials, callback signing material and failure/retention policy.
-- Managed PostgreSQL with backups, restore test, migrations policy and least-privilege service account.
-- Production object storage, malware scanning, CDN/access policy and document retention policy.
-- Secret manager, TLS/domain configuration, rate-limit/WAF policy, structured logs, metrics, alerts and incident runbook.
-- Fresh clean-database migration run by an operator with `CREATEDB` (the local `nestystay` role is intentionally not allowed to create databases).
+- [x] Cookie sessions, CSRF protection, authorization and audit paths remain enabled.
+- [x] PostgreSQL migration for the email outbox applied locally.
+- [x] Email queue and retry lifecycle covered by automated tests.
+- [x] Production compose, private networks, health checks and restart policies added.
+- [ ] Live Stripe and webhook rehearsal.
+- [ ] Live Alibaba eKYC callback/signature rehearsal.
+- [ ] Real Brevo delivery and complaint handling test.
+- [ ] Off-server encrypted backup and restore rehearsal.
+- [ ] Domain, Cloudflare and Let's Encrypt validation.
+- [ ] Monitoring alerts and incident drill.
+
+## Status separation
+
+M1–M5 contractual functionality is not failed by these external gates. They block full production readiness only.

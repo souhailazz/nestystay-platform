@@ -1,0 +1,2 @@
+Command: docker run --rm -v ./deploy/Caddyfile.production:/etc/caddy/Caddyfile:ro caddy:2.10-alpine caddy validate --config /etc/caddy/Caddyfile
+Result: PASS — adapted configuration is valid and automatic HTTPS redirects are enabled for a real domain.

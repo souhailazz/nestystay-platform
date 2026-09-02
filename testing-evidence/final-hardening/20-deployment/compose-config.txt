@@ -1,0 +1,5 @@
+Command: docker compose --env-file .env.production.example -f docker-compose.production.yml config --quiet
+Result: PASS (exit code 0)
+Scope: frontend, api, worker, postgres, redis, minio, caddy and optional observability profile definitions.
+Note: the example file contains placeholders by design; the production validator still rejects placeholders at API startup.
+Observability profile validation: `docker compose --profile observability ... config --quiet` also passed.

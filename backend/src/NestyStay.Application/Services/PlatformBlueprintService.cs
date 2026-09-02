@@ -76,8 +76,8 @@ public sealed class PlatformBlueprintService : IPlatformBlueprintService
     [
         new(ProviderKind.Ekyc, "Alibaba Cloud eKYC", ["Jumio", "Onfido"], "Days", "Subject checks retain provider, status, cost, and audit history."),
         new(ProviderKind.Payment, "Stripe", ["PayPal"], "Days", "Supports checkout, split schedules, escrow, subscriptions, refunds, and payouts."),
-        new(ProviderKind.Storage, "Cloudflare R2", ["DigitalOcean Spaces", "Amazon S3"], "Hours", "One storage interface supports documents, reports, and future media."),
-        new(ProviderKind.Notification, "AWS SES / Twilio / Firebase", ["Provider-specific fallbacks"], "Hours", "Email, SMS, and push events are queued behind one notification boundary."),
+        new(ProviderKind.Storage, "Local persistent object storage", ["MinIO (S3-compatible)"], "Hours", "Private self-hosted storage supports documents, reports and media without a mandatory cloud bucket."),
+        new(ProviderKind.Notification, "Brevo transactional email", ["Provider-neutral web push", "Optional SMS"], "Hours", "Email events are queued behind one provider boundary; SMS and push remain opt-in channels."),
         new(ProviderKind.Insurance, "InsuraGuest", ["Manual plan configuration"], "Days", "Host dashboard add-on, policy metadata, and plan eligibility live behind an adapter.")
     ];
 }

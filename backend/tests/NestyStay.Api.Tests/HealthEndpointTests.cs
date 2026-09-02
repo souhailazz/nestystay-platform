@@ -28,6 +28,23 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task IntegrationStatusIsAdminOnlyAndRedactsCredentials()
+    {
+        using var client = _factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/health/integrations")).StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var response = await client.GetAsync("/api/health/integrations");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("payments", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("identity", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("api-key", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task BackendSchemaEndpointReturnsRules()
     {
         using var client = _factory.CreateClient();

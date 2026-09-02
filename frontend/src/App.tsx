@@ -568,7 +568,7 @@ function adminOpsPermission(view: string): AdminPermission {
   if (view === "audit" || view === "logs") return AdminPermissions.auditLogAccess;
   if (view === "directory" || view === "directories" || view === "providers") return AdminPermissions.propertyModeration;
   if (view === "payments" || view === "refunds" || view === "reports" || view === "wellness") return AdminPermissions.financialReporting;
-  if (view === "badges" || view === "badge-management" || view === "badge-assignments" || view === "pricebook" || view === "campaigns" || view === "fees") return AdminPermissions.systemConfiguration;
+  if (view === "badges" || view === "badge-management" || view === "badge-assignments" || view === "pricebook" || view === "campaigns" || view === "fees" || view === "integrations") return AdminPermissions.systemConfiguration;
   return AdminPermissions.userManagement;
 }
 

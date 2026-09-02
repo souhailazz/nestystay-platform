@@ -12,6 +12,7 @@ using NestyStay.Application.Wellness;
 using NestyStay.Application.PropertyManager;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
+using NestyStay.Infrastructure.Notifications;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Collections.Concurrent;
@@ -23,7 +24,7 @@ namespace NestyStay.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, string? postgresConnectionString = null)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, string? postgresConnectionString = null, bool backgroundJobsEnabled = true)
     {
         services.AddDbContext<NestyStayDbContext>(options =>
             options.UseNpgsql(postgresConnectionString ??
@@ -33,8 +34,30 @@ public static class DependencyInjection
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
         services.AddSingleton<IStorageProvider, CloudflareR2StorageProvider>();
         services.AddSingleton<IFileSafetyScanner, MagicByteFileSafetyScanner>();
-        services.AddSingleton<INotificationGateway, CompositeNotificationGateway>();
-        services.AddSingleton<IEmailSender, LocalDevelopmentEmailSender>();
+        services.AddSingleton<INotificationGateway, PersistentNotificationGateway>();
+        services.AddSingleton<IEmailSender, EmailOutboxSender>();
+        services.AddSingleton<FileEmailDeliveryTransport>();
+        services.AddHttpClient<BrevoEmailDeliveryTransport>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.brevo.com/");
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        });
+        services.AddSingleton<IEmailDeliveryTransport>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var selected = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+            var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
+            var useBrevo = selected.Equals("brevo", StringComparison.OrdinalIgnoreCase) &&
+                           !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase);
+            return useBrevo
+                ? provider.GetRequiredService<BrevoEmailDeliveryTransport>()
+                : provider.GetRequiredService<FileEmailDeliveryTransport>();
+        });
+        if (backgroundJobsEnabled)
+        {
+            services.AddHostedService<EmailDeliveryWorker>();
+        }
         services.AddSingleton<ISmsSender, LocalDevelopmentSmsSender>();
         services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
         services.AddSingleton<IDevelopmentAuthSecretStore, InMemoryDevelopmentAuthSecretStore>();
@@ -398,11 +421,15 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
     private const int BufferSize = 81920;
     private const int HeaderByteLimit = 512;
 
-    public string ProviderName => "Cloudflare R2";
+    public string ProviderName =>
+        ResolveSetting("Integrations:StorageProvider", "NESTYSTAY_STORAGE_PROVIDER")?.Trim().ToLowerInvariant() == "r2"
+            ? "Cloudflare R2"
+            : "Local persistent object storage";
 
     public Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken)
     {
-        var baseUrl = ResolveSetting("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE") ??
+        var baseUrl = ResolveSetting("Integrations:LocalStorageBaseUrl", "NESTYSTAY_STORAGE_BASE_URL") ??
+                      ResolveSetting("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE") ??
                       "https://storage.nestystay.local/upload";
 
         return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}");
@@ -482,7 +509,8 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
 
     public Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken)
     {
-        var baseUrl = ResolveSetting("Integrations:CloudflareR2DownloadUrlBase", "CLOUDFLARE_R2_DOWNLOAD_URL_BASE") ??
+        var baseUrl = ResolveSetting("Integrations:LocalStorageBaseUrl", "NESTYSTAY_STORAGE_BASE_URL") ??
+                      ResolveSetting("Integrations:CloudflareR2DownloadUrlBase", "CLOUDFLARE_R2_DOWNLOAD_URL_BASE") ??
                       ResolveSetting("Integrations:CloudflareR2UploadUrlBase", "CLOUDFLARE_R2_UPLOAD_URL_BASE") ??
                       "https://storage.nestystay.local/download";
 
@@ -601,20 +629,29 @@ internal sealed class MagicByteFileSafetyScanner : IFileSafetyScanner
             (character >= 'A' && character <= 'F'));
 }
 
-internal sealed class CompositeNotificationGateway : INotificationGateway
+internal sealed class PersistentNotificationGateway(IServiceScopeFactory scopeFactory, TimeProvider timeProvider) : INotificationGateway
 {
-    public string ProviderName => "SES/Twilio/Firebase";
+    public string ProviderName => "NestyStay in-app notifications";
 
-    public Task QueueAsync(NotificationMessage message, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
-}
-
-internal sealed class LocalDevelopmentEmailSender : IEmailSender
-{
-    public string ProviderName => "Local development email";
-
-    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+    public async Task QueueAsync(NotificationMessage message, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NestyStayDbContext>();
+        db.NotificationQueue.Add(new NestyStay.Domain.Notifications.NotificationQueueItem
+        {
+            Channel = "InApp",
+            Recipient = message.Recipient,
+            Subject = message.Subject,
+            Body = message.Body,
+            Status = NestyStay.Domain.NotificationStatus.Queued,
+            DeliveryStatus = "SENT",
+            SentAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
 }
 
 internal sealed class LocalDevelopmentSmsSender : ISmsSender

@@ -24,4 +24,5 @@ All evidence below was generated from the current worktree after the accepted ba
 | Responsive | `17-mobile/responsive-*.json` | five Chromium viewport projects, 60 screens |
 | Financial | `18-business-logic/financial-results.json` | 16 API-backed cent/commission/fee assertions |
 | Continuation | `HARDENING-CONTINUATION.md` | scope, baseline, environment and pending-gate log |
+| Deployment/email | `20-deployment/*` | compose parse and image builds, EF outbox migrations, email queue/transport tests and backup-script review |
 | Reports | `reports/*.md`, `reports/FINAL-METRICS.json`, `reports/FINAL-HARDENING-M5-ADDENDUM.md` | current M1–M5 decision, session/DB evidence, and machine-readable metrics (mirrored at repository `reports/`) |

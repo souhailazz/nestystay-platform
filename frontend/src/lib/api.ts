@@ -49,6 +49,13 @@ export type LoginResponse = {
   permissions?: AdminPermission[] | null;
 };
 
+export type IntegrationStatus = {
+  key: string;
+  provider: string;
+  status: string;
+  detail: string;
+};
+
 export type VerifyTwoFactorResponse = {
   userId: string;
   accessToken: string;
@@ -1293,6 +1300,8 @@ export const api = {
       database: string;
       openApi: string;
     }>("/health"),
+  integrationStatus: (token: string) =>
+    request<{ generatedAt: string; services: IntegrationStatus[] }>("/health/integrations", { token }),
   register: (body: RegisterUserRequest) =>
     request<RegisterUserResponse>("/auth/register", { method: "POST", body }),
   login: (body: LoginRequest) => request<LoginResponse>("/auth/login", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),

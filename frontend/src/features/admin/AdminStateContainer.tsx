@@ -16,7 +16,7 @@ interface AdminStateContainerProps {
 export function AdminStateContainer({ view, auth }: AdminStateContainerProps) {
   const token = auth.session?.accessToken || "";
 
-  if (view === "overview" || view === "dashboard" || view === "metrics") {
+  if (view === "overview" || view === "dashboard" || view === "metrics" || view === "integrations") {
     return <AdminOverview token={token} />;
   }
 

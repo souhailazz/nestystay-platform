@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { ShieldCheck, Activity, Users, Home, DollarSign, Server, AlertCircle, RefreshCw } from "lucide-react";
-import { api, formatMoney } from "../../lib/api";
+import { ShieldCheck, Activity, Users, Home, DollarSign, Server, AlertCircle } from "lucide-react";
+import { api, type IntegrationStatus } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
 interface AdminOverviewProps {
@@ -9,23 +9,32 @@ interface AdminOverviewProps {
 
 export function AdminOverview({ token }: AdminOverviewProps) {
   const [health, setHealth] = useState<{ service: string; status: string; database: string; openApi: string } | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const h = await api.health();
+        const [h, status] = await Promise.all([api.health(), token ? api.integrationStatus(token) : Promise.resolve({ generatedAt: "", services: [] })]);
         if (active) setHealth(h);
+        if (active) setIntegrations(status.services);
       } catch (err) {
-        console.error(err);
+        if (active) setIntegrationError(err instanceof Error ? err.message : "Integration status is unavailable.");
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [token]);
+
+  const statusClass = (status: string) => status === "CONFIGURED" || status === "SELF_HOSTED"
+    ? "text-green"
+    : status === "LOCAL_CAPTURE" || status === "OPTIONAL_NOT_CONNECTED"
+      ? "text-sun"
+      : "text-coral";
 
   return (
     <div className="page-container container py-6" data-testid="adm-01-page" id="ADM-01">
@@ -61,25 +70,11 @@ export function AdminOverview({ token }: AdminOverviewProps) {
 
       {/* Infrastructure Health Panel */}
       <div className="card-box p-6 mb-6">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Server size={18} /> Infrastructure Service Status</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-3 bg-gray-50 rounded border">
-            <span className="text-xs subtext">Database Engine</span>
-            <p className="font-bold text-green flex items-center gap-1"><ShieldCheck size={14} /> PostgreSQL 16 (EF Core)</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded border">
-            <span className="text-xs subtext">Object Storage</span>
-            <p className="font-bold text-green flex items-center gap-1"><ShieldCheck size={14} /> S3 / MinIO Encrypted</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded border">
-            <span className="text-xs subtext">Payment Gateway</span>
-            <p className="font-bold text-green flex items-center gap-1"><ShieldCheck size={14} /> Stripe API v10</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded border">
-            <span className="text-xs subtext">Identity Engine</span>
-            <p className="font-bold text-green flex items-center gap-1"><ShieldCheck size={14} /> Alibaba Cloud eKYC</p>
-          </div>
-        </div>
+        <div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold text-lg flex items-center gap-2"><Server size={18} /> Integration status</h3><span className="text-xs subtext">Live configuration · secrets hidden</span></div>
+        {loading && <div aria-busy="true" aria-label="Loading integration status" className="h-24 animate-pulse rounded border bg-gray-50" />}
+        {integrationError && <div className="mb-3 flex items-center gap-2 rounded border border-coral bg-coral-tint p-3 text-sm text-coral-text" role="alert"><AlertCircle size={15} /> {integrationError}</div>}
+        {!loading && integrations.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{integrations.map((item) => <div className="rounded border bg-gray-50 p-3" key={item.key}><div className="flex items-center justify-between gap-2"><span className="text-xs subtext">{item.key}</span><span className={`text-[10px] font-bold uppercase ${statusClass(item.status)}`}>{item.status.replaceAll("_", " ")}</span></div><p className={`mt-1 flex items-center gap-1 font-bold ${statusClass(item.status)}`}><ShieldCheck size={14} /> {item.provider}</p><p className="m-0 text-xs text-gray-600">{item.detail}</p></div>)}</div>}
+        {!loading && integrations.length === 0 && !integrationError && <p className="m-0 text-sm text-gray-600">No integration status returned for this session.</p>}
       </div>
     </div>
   );

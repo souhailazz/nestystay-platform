@@ -2563,13 +2563,13 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("2051c60e-60c1-29f7-0be7-c9f83a1797a2"),
+                            Id = new Guid("78f9eed4-7f80-0ef8-32b9-404b60a9463e"),
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            EncryptedConfigReference = "vault://nestystay/storage/cloudflarer2",
+                            EncryptedConfigReference = "vault://nestystay/storage/localpersistentobjectstorage",
                             IsDeleted = false,
                             IsPrimary = true,
                             Kind = "Storage",
-                            ProviderName = "CloudflareR2",
+                            ProviderName = "LocalPersistentObjectStorage",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -2596,13 +2596,13 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("52c17d79-74b3-c176-6bb8-bc6887d3fadb"),
+                            Id = new Guid("04da9ac7-7bf7-7dc3-4bff-0d43fee71f12"),
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            EncryptedConfigReference = "vault://nestystay/notification/awssestwiliofirebase",
+                            EncryptedConfigReference = "vault://nestystay/notification/brevotransactional",
                             IsDeleted = false,
                             IsPrimary = true,
                             Kind = "Notification",
-                            ProviderName = "AwsSesTwilioFirebase",
+                            ProviderName = "BrevoTransactional",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -2833,10 +2833,14 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
                     b.Property<string>("Body")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
                         .HasColumnName("body");
 
                     b.Property<string>("Channel")
@@ -2853,9 +2857,39 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
+                    b.Property<string>("DeliveryStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("delivery_status");
+
+                    b.Property<string>("HtmlBody")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
+                        .HasColumnName("html_body");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("provider_message_id");
 
                     b.Property<string>("Recipient")
                         .IsRequired()
@@ -2866,6 +2900,16 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("RecipientUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("recipient_user_id");
+
+                    b.Property<string>("ReplyToEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("reply_to_email");
+
+                    b.Property<string>("ReplyToName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("reply_to_name");
 
                     b.Property<DateTimeOffset?>("SentAt")
                         .HasColumnType("timestamp with time zone")
@@ -2883,6 +2927,11 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("subject");
 
+                    b.Property<string>("TextBody")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
+                        .HasColumnName("text_body");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -2892,6 +2941,11 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("Channel", "DeliveryStatus", "NextAttemptAt");
 
                     b.ToTable("notification_queue_item");
                 });
