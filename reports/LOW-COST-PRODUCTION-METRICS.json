@@ -1,5 +1,6 @@
 {
   "baseSha": "3cfb33818975fc688676e04004e20cf28672a171",
+  "deploymentVerificationSha": "cf1f4fd381396d0a4ae171be3fb464e5358d925c",
   "backendTests": { "passed": 109, "failed": 0 },
   "frontendTests": { "passed": 30, "failed": 0 },
   "emailTests": { "passed": 6, "failed": 0 },
@@ -10,5 +11,6 @@
   "realBrevo": "BLOCKED_CREDENTIAL",
   "realStripe": "BLOCKED_CREDENTIAL",
   "realAlibabaEkyc": "BLOCKED_CREDENTIAL",
-  "productionReady": false
+  "productionReady": false,
+  "productionSmokeSuite": { "configured": true, "testsListed": 6, "executedAgainstDeployedUrl": false }
 }

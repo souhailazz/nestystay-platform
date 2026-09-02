@@ -6,6 +6,13 @@ Resumed hardening SHA: `35794c8e8718d3c2f8a76e124a477d9a76f13427`
 Deployment continuation (2026-09-02): the low-cost production implementation is recorded in
 `LOW-COST-PRODUCTION-IMPLEMENTATION.md` and its final commit SHA is reported in the handover response.
 
+Pre-deployment verification (2026-09-02): `cf1f4fd381396d0a4ae171be3fb464e5358d925c` adds the
+client credential inventory, a configurable non-destructive production smoke suite, the
+`PUBLIC_APP_URL` Compose wiring, and the corrected API container `/api/health` probe. Compose
+and observability profiles rendered successfully, all release images built, Caddy validated,
+and an isolated object-storage archive restore matched its source checksum. The smoke suite is
+ready but cannot be executed against a public deployment until the client supplies the URL.
+
 > **Current authoritative result:** [M1–M5 final hardening addendum](../testing-evidence/final-hardening/reports/FINAL-HARDENING-M5-ADDENDUM.md) supersedes historical baseline counts below and records the completed M5, cookie/CSRF, authorization, and PostgreSQL validation.
 
 The final hardening pass was resumed from the current worktree. Existing user changes and generated visual evidence were preserved. The implementation now has named API rate limits, production-safe security headers, generic payment-provider failures, lazy-loaded frontend route bundles, a focus-managed accessible modal, contrast fixes, evidence-backed query indexes, deterministic seeded parent identities for legacy properties/bookings, and a race-safe host property editor.
