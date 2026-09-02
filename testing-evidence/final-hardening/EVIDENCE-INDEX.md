@@ -21,4 +21,4 @@ All evidence below was generated from the current worktree after the accepted ba
 | Responsive | `17-mobile/responsive-*.json` | five Chromium viewport projects, 60 screens |
 | Financial | `18-business-logic/financial-results.json` | 16 API-backed cent/commission/fee assertions |
 | Continuation | `HARDENING-CONTINUATION.md` | scope, baseline, environment and pending-gate log |
-| Reports | `../../reports/*.md`, `../../reports/FINAL-METRICS.json` | consolidated scorecard and machine-readable metrics |
+| Reports | `reports/*.md`, `reports/FINAL-METRICS.json` | consolidated scorecard and machine-readable metrics (mirrored at repository `reports/`) |
