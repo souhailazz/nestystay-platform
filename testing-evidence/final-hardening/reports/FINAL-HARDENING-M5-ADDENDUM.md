@@ -2,6 +2,8 @@
 
 Generated 2026-09-02 from the worktree resumed at hardening commit `35794c8e8718d3c2f8a76e124a477d9a76f13427`.
 
+Validated implementation/evidence commit: `02aaca4747b11aafc6099381dd3bdd4c138310e4`.
+
 This addendum is the current result for the M1–M5 hardening pass. Historical baseline numbers remain in `FINAL-HARDENING-REPORT.md`; this document records the new M5, session-boundary, database, and regression evidence.
 
 The signed agreement was verified readable at `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf` (11 pages, 785,845 bytes). Its SHA-256 is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`, matching the supplied Downloads source byte-for-byte.
