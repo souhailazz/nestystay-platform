@@ -1,8 +1,9 @@
 {
   "baseSha": "3cfb33818975fc688676e04004e20cf28672a171",
-  "backendTests": { "passed": 108, "failed": 0 },
+  "backendTests": { "passed": 109, "failed": 0 },
   "frontendTests": { "passed": 30, "failed": 0 },
   "emailTests": { "passed": 6, "failed": 0 },
+  "browserTests": { "planned": 70, "passed": 22, "failed": 0, "intentionalSkips": 48 },
   "composeConfig": "PASS",
   "dockerBuild": "PASS",
   "databaseMigrations": ["AddEmailDeliveryOutbox", "AlignSelfHostedProviders", "AlignSelfHostedStorage", "AddEmailRichContent"],

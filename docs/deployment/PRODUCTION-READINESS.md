@@ -9,6 +9,8 @@
 - [x] Cookie sessions, CSRF protection, authorization and audit paths remain enabled.
 - [x] PostgreSQL migration for the email outbox applied locally.
 - [x] Email queue and retry lifecycle covered by automated tests.
+- [x] Admin-only integration status reports providers, email queue, Web Push flag, worker sidecar and backup destination without secrets.
+- [x] Checked-SHA deployment runner applies EF migrations inside the private Compose network and performs a health check.
 - [x] Production compose, private networks, health checks and restart policies added.
 - [ ] Live Stripe and webhook rehearsal.
 - [ ] Live Alibaba eKYC callback/signature rehearsal.

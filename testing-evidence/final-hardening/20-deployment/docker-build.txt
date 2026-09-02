@@ -1,5 +1,5 @@
-Command: docker compose --env-file .env.production.example -f docker-compose.production.yml build frontend api worker
-Result: PASS
+Command: docker compose --env-file .env.production.example -f docker-compose.production.yml build api worker frontend
+Result: PASS (final migration/health-status changes)
 Images: nestystay-frontend, nestystay-api, nestystay-api:production
 The build used the repository Dockerfiles and completed frontend Vite and backend Release publish stages.
 After hardening `.dockerignore` and non-root storage ownership, the API/worker image rebuild also passed with a 16.54 MB build context.

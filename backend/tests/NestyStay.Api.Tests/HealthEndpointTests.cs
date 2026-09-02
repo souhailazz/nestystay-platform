@@ -28,6 +28,20 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task LiveAndReadyHealthEndpointsExposeSafeChecks()
+    {
+        using var client = _factory.CreateClient();
+
+        var live = await client.GetAsync("/api/health/live");
+        Assert.Equal(HttpStatusCode.OK, live.StatusCode);
+        Assert.Contains("live", await live.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+
+        var ready = await client.GetAsync("/api/health/ready");
+        Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
+        Assert.Contains("ready", await ready.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task IntegrationStatusIsAdminOnlyAndRedactsCredentials()
     {
         using var client = _factory.CreateClient();
@@ -40,6 +54,10 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("payments", body, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("identity", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("webPush", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("worker", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("backups", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("queue pending", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("api-key", body, StringComparison.OrdinalIgnoreCase);
     }

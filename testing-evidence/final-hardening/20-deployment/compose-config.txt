@@ -3,3 +3,4 @@ Result: PASS (exit code 0)
 Scope: frontend, api, worker, postgres, redis, minio, caddy and optional observability profile definitions.
 Note: the example file contains placeholders by design; the production validator still rejects placeholders at API startup.
 Observability profile validation: `docker compose --profile observability ... config --quiet` also passed.
+Final stack wiring includes private Redis connection settings, a declared worker sidecar, local persistent storage, and no public PostgreSQL/Redis/MinIO ports. EF migration-only mode is available through the deployment runner.

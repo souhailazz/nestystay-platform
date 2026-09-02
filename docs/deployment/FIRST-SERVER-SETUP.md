@@ -5,7 +5,10 @@
 3. Clone this repository at a release commit and create a secret-managed `.env` from the variables in `docker-compose.production.yml`.
 4. Set strong unique PostgreSQL, Redis, MinIO and application secrets. Set live Stripe, Alibaba eKYC and Brevo values only in the secret manager.
 5. Run `docker compose -f docker-compose.production.yml config` and review the rendered configuration for accidental secrets or public ports.
-6. Start PostgreSQL first, apply EF migrations from a controlled runner, then start `api`, `worker`, `frontend` and `caddy`.
+6. Run `ALLOW_INITIAL_DEPLOY=true scripts/deploy-production.sh` for a new database (or set
+   `RELEASE_SHA` and run it normally for an existing install). The script validates Compose,
+   waits for PostgreSQL, takes a pre-deploy dump when data exists, runs EF migrations in the
+   private network, and starts `api`, `worker`, `frontend` and `caddy`.
 7. Verify `/health`, login, booking, payment test mode in staging, eKYC callback handling, email delivery, QR validation and an admin audit event.
 8. Schedule `scripts/backup-postgres.sh`, copy encrypted backups off-server, and complete a restore rehearsal before go-live.
 

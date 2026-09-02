@@ -1,18 +1,27 @@
 # Provider and infrastructure matrix
 
-| Capability | Local implementation | Production choice | Current status |
-| --- | --- | --- | --- |
-| Frontend/API | Vite + ASP.NET Core | Docker + Caddy | Compose ready; admin integration status is available at `/admin/ops/integrations`; not deployed |
-| PostgreSQL | EF Core/Npgsql | Self-hosted PostgreSQL volume | Local migration verified |
-| Redis | Reserved private service | Self-hosted Redis with password | Compose ready; wire distributed cache/rate limits before scale-out |
-| Object storage | `IStorageProvider` with private persistent volume | Self-hosted volume/MinIO service | Local persistent adapter active; MinIO service available for future S3 adapter |
-| Email | PostgreSQL outbox + file transport | Brevo transactional | Application PASS; real delivery needs credentials |
-| Business mailbox | Provider-neutral docs | Zoho or Google Workspace | Client decision |
-| Payments | Stripe abstraction + local gateway | Stripe live | Application PASS; real provider blocked |
-| Identity | Alibaba eKYC abstraction/callbacks | Alibaba eKYC | Preserved; real credentials blocked |
-| TLS/DNS | Caddy config | Cloudflare free DNS + Let's Encrypt | Domain action required |
-| Monitoring | Health endpoints/logging | Prometheus/Grafana/Loki/Uptime Kuma profile | Compose profile ready |
-| Backups | pg_dump + checksum + optional restic | Client-owned off-server encrypted storage | Local script PASS; destination required |
-| SMS/push | Optional provider-neutral seam | Disabled unless separately approved | Not a release dependency |
+| Component | Provider | Self-hosted / external | Cost model | Required for launch | Configured | Tested | Fallback |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Frontend | Vite + Nginx | Self-hosted | VPS only | Yes | PASS (Compose) | PASS (build/browser) | None |
+| API | ASP.NET Core | Self-hosted | VPS only | Yes | PASS (Compose) | PASS (109 backend tests) | Local runner |
+| PostgreSQL | PostgreSQL 17 | Self-hosted | VPS disk | Yes | PASS (private volume) | PASS (migrations/integrity) | Restore rehearsal required |
+| Redis | Redis 7 | Self-hosted | VPS disk | Yes for sidecar topology | PASS (private/password) | PASS (health/config) | Single-instance in-memory limits until distributed wiring |
+| Object storage | Local adapter + private volume; MinIO service | Self-hosted | VPS disk | Yes | PASS (local adapter); MinIO service ready | PASS (authorization/upload tests) | Reviewed MinIO S3 adapter before switching |
+| Transactional email | Brevo + PostgreSQL outbox | External | Free allowance, then usage | Yes for email delivery | PASS (application); BLOCKED CREDENTIAL (real) | PASS (queue/config) | In-app + file capture |
+| Business email | Zoho (default) or Google Workspace | External | Client mailbox plan | Client decision | CLIENT DECISION | DOCUMENTED | Provider-neutral addresses |
+| Payments | Stripe | External | Per-transaction fees | Yes for live payments | PASS (application); BLOCKED CREDENTIAL (real) | PASS (local/idempotency) | Safe local/test mode |
+| eKYC | Alibaba Cloud eKYC | External | Per-check fees | Yes where required | PASS (application); BLOCKED CREDENTIAL (real) | PASS (callback/security tests) | Explicit manual admin review only if approved |
+| Payout | Audited manual mode | Self-hosted | Bank transfer cost only | Yes initially | PASS | PASS (authorization/idempotency) | Stripe Connect optional |
+| Messaging | NestyStay PostgreSQL/attachments | Self-hosted | VPS only | Yes | PASS | PASS (API/browser) | In-app only |
+| Notifications | In-app + email worker | Self-hosted + Brevo | VPS + email allowance | Yes | PASS / BLOCKED CREDENTIAL for Brevo | PASS (queue/retry) | In-app |
+| Web Push | Standards/VAPID (feature flag) | Self-controlled optional | VPS only | Optional | OPTIONAL (disabled) | Not enabled | In-app/email |
+| SMS | None | Disabled | No recurring cost | No | DISABLED | Not applicable | In-app/email |
+| Maps | Leaflet/OpenStreetMap-compatible | Self-controlled | Low-traffic public tiles; provider swap later | Optional | PASS (UI); geocoder optional | PASS (responsive routes) | Manual coordinates |
+| Monitoring | Prometheus/Grafana | Self-hosted | VPS disk | Yes before go-live | PASS (Compose profile) | PASS (config parse) | Health endpoints/logs |
+| Logs | Loki | Self-hosted | VPS disk | Recommended | PASS (Compose profile) | PASS (config parse) | Container logs |
+| Uptime | Uptime Kuma | Self-hosted | VPS disk | Recommended | PASS (Compose profile) | PASS (config parse) | Manual health checks |
+| Backups | pg_dump + tar + optional restic | Self-hosted/off-server | Destination-dependent | Yes | PASS (local); BLOCKED OFF-SERVER | PASS (syntax/checksum) | Local backup only until destination exists |
+| TLS | Caddy + Let's Encrypt | Self-hosted/external CA | Free | Yes | PASS (config); BLOCKED DOMAIN | PASS (Caddy validate) | Staging HTTP only |
+| DNS/proxy | Cloudflare free | External | Free tier | Yes | CLIENT ACTION | Documented | Registrar DNS |
 
 No mail provider other than Brevo/Zoho/Google appears in the runtime plan. Stripe and Alibaba eKYC remain the only commercial application integrations required by the signed milestones.

@@ -32,7 +32,7 @@ export function AdminOverview({ token }: AdminOverviewProps) {
 
   const statusClass = (status: string) => status === "CONFIGURED" || status === "SELF_HOSTED"
     ? "text-green"
-    : status === "LOCAL_CAPTURE" || status === "OPTIONAL_NOT_CONNECTED"
+    : status === "LOCAL_CAPTURE" || status === "OPTIONAL_NOT_CONNECTED" || status === "OPTIONAL_DISABLED"
       ? "text-sun"
       : "text-coral";
 

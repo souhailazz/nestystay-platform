@@ -46,7 +46,10 @@ The current working tree contains the prior hardening changes plus the new harde
 
 - Added the provider-neutral PostgreSQL email outbox, Brevo transport, local `.eml` transport, safe template catalog, idempotency and retry/dead-letter lifecycle.
 - Added admin-only `/api/health/integrations` and `/admin/ops/integrations` status surfaces; secrets are never returned to the browser.
+- Integration status now reports email queue counts, Web Push flag/configuration, worker-sidecar declaration, Redis wiring and off-server backup state without exposing credentials.
 - Removed legacy notification-provider seed references in favor of Brevo transactional email and optional provider-neutral channels; Alibaba eKYC remains unchanged.
 - Added self-host deployment artifacts: API/frontend Dockerfiles, Caddy edge configuration, private-network Compose stack, worker sidecar, PostgreSQL/Redis/private storage volumes and optional observability profile.
 - Added first-server, provider matrix, DNS, backup/restore, operations, business mailbox and client handover documentation.
+- Added `scripts/deploy-production.sh` with checked-SHA validation, pre-deploy dump, private-network EF migration-only mode, Compose build/start and health checks; added client ownership transfer runbook.
 - Added and executed deployment evidence in `20-deployment/`; Docker Compose parse and image builds passed. Real Brevo/Stripe/eKYC credentials, domain/TLS, off-server backup and staging/restore remain blocked client/operator gates.
+- Latest verification: backend 109/109, frontend 30/30, and Playwright hardening 22 passed / 48 intentional skips / 0 failed.

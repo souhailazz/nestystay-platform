@@ -43,7 +43,7 @@ Development OpenAPI JSON is exposed by the backend at `/openapi/v1.json`.
 - [x] Two-factor authentication challenge flow is implemented.
 - [x] Two-factor verification flow is implemented.
 - [x] Google-style sign-in flow is implemented for local verified session creation.
-- [x] Frontend auth state persists the active session in local storage.
+- [x] Frontend auth state persists non-secret session metadata locally; the bearer session is an HttpOnly cookie and the CSRF token is handled separately.
 - [x] Protected guest and host pages require an active frontend session.
 - [x] Login page is connected to backend auth endpoints.
 - [x] Guest dashboard route is connected to authenticated session data.

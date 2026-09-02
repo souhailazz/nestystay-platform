@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using NestyStay.Api.Configuration;
 using NestyStay.Application;
@@ -8,6 +9,7 @@ using NestyStay.Api.Middleware;
 using NestyStay.Api.Auth;
 using NestyStay.Api.Services;
 using NestyStay.Infrastructure;
+using NestyStay.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +62,18 @@ if (builder.Configuration.GetValue("BackgroundJobs:Enabled", true))
 }
 
 var app = builder.Build();
+
+// The deployment runner can apply reviewed EF migrations inside the private
+// Compose network without exposing PostgreSQL. This is opt-in and exits before
+// starting HTTP/background services.
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnly") ||
+    string.Equals(Environment.GetEnvironmentVariable("NESTYSTAY_MIGRATE_ONLY"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var db = migrationScope.ServiceProvider.GetRequiredService<NestyStayDbContext>();
+    await db.Database.MigrateAsync();
+    return;
+}
 
 await app.BootstrapAdministratorAsync();
 

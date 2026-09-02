@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T15:21:39.571Z",
+  "generatedAt": "2026-09-02T15:36:10.140Z",
   "project": "desktop-firefox",
   "workflows": [
     "manager cookie session",
@@ -14,10 +14,10 @@
   ],
   "unexpected5xx": [],
   "persisted": {
-    "propertyId": "ccee9dbc-07f6-4105-8dcb-89ba0c74150c",
-    "invoiceId": "71d6220c-e18d-4b19-b8b6-39191159dcbf",
-    "maintenanceId": "b037b6f6-4aa7-40f1-8736-dde6ad066dd9",
-    "proposalId": "5a211b5a-fcbb-40cb-b30f-d671d33583da"
+    "propertyId": "3a1ab931-d591-483d-9b76-3d2ce6a87f78",
+    "invoiceId": "f62fb222-7080-4e3c-b94c-1ab10a9ccfbf",
+    "maintenanceId": "87e3c855-69bd-4065-9b73-4b486eb325d8",
+    "proposalId": "db27e92c-1872-4440-bf76-cdca8a5b50bf"
   },
   "axeViolations": 0,
   "responsive": {

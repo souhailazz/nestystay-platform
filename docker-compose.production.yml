@@ -26,8 +26,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD};Pooling=true;SSL Mode=Prefer
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       Security__EnableHttpsRedirection: "false"
       BackgroundJobs__Enabled: "false"
+      Worker__SidecarEnabled: "true"
       Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
       Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
       Integrations__AlibabaEkycTransactionUrlBase: ${ALIBABA_EKYC_TRANSACTION_URL_BASE:?Set ALIBABA_EKYC_TRANSACTION_URL_BASE}
@@ -69,8 +71,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Worker__Enabled: "true"
+      Worker__SidecarEnabled: "true"
       BackgroundJobs__Enabled: "true"
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD};Pooling=true;SSL Mode=Prefer
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
       Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
       Integrations__AlibabaEkycTransactionUrlBase: ${ALIBABA_EKYC_TRANSACTION_URL_BASE:?Set ALIBABA_EKYC_TRANSACTION_URL_BASE}

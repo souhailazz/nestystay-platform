@@ -2,3 +2,4 @@ Command: dotnet ef database update --project backend/src/NestyStay.Infrastructur
 Result: PASS
 Migrations applied: AddEmailDeliveryOutbox, AlignSelfHostedProviders, AlignSelfHostedStorage, AddEmailRichContent
 The local PostgreSQL database accepted the outbox lifecycle columns and self-hosted provider seed values.
+Migration-only smoke: `NESTYSTAY_MIGRATE_ONLY=true dotnet run --project backend/src/NestyStay.Api --no-build` completed with "No migrations were applied. The database is already up to date." This is the same private-network mode used by `scripts/deploy-production.sh`.

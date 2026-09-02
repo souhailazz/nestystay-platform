@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T15:19:38.958Z",
+  "generatedAt": "2026-09-02T15:34:08.784Z",
   "total": 127,
   "tested": 127,
   "failures": 0,
@@ -595,7 +595,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 485
@@ -607,7 +607,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 481
@@ -619,7 +619,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 473
@@ -631,7 +631,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 483
@@ -643,7 +643,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 490
@@ -665,7 +665,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async A (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:20229)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async A (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:20229)"
       ],
       "unexpected5xx": [],
       "bodyLength": 403
@@ -697,7 +697,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async Promise.all (index 0)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:31896)",
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async Promise.all (index 0)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:31896)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
       "unexpected5xx": [],
@@ -709,9 +709,9 @@
       "documentStatus": 200,
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async Promise.all (index 0)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:31896)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "ApiError: Not Found\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async Promise.all (index 1)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:31896)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
       ],
       "unexpected5xx": [],
       "bodyLength": 394
@@ -723,7 +723,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:7929)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async j (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:7929)"
       ],
       "unexpected5xx": [],
       "bodyLength": 460
@@ -785,7 +785,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async A (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:20229)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async A (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:20229)"
       ],
       "unexpected5xx": [],
       "bodyLength": 403
@@ -828,7 +828,7 @@
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
       ],
       "unexpected5xx": [],
-      "bodyLength": 47292
+      "bodyLength": 47574
     },
     {
       "route": "/calendar",
@@ -838,7 +838,7 @@
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
       ],
       "unexpected5xx": [],
-      "bodyLength": 11957
+      "bodyLength": 12052
     },
     {
       "route": "/bookings",
@@ -929,7 +929,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async Promise.all (index 0)\n    at async C (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:38800)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async Promise.all (index 0)\n    at async C (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:38800)"
       ],
       "unexpected5xx": [],
       "bodyLength": 702
@@ -1001,7 +1001,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:46176)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async g (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:46176)"
       ],
       "unexpected5xx": [],
       "bodyLength": 464
@@ -1073,7 +1073,7 @@
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
         "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-DKJ2_0YK.js:2:15707)\n    at async k (http://127.0.0.1:4173/assets/PublicStateContainer-6_F3xTD-.js:1:66296)"
+        "ApiError: Unauthorized\n    at Oe (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:17441)\n    at async a (http://127.0.0.1:4173/assets/index-ByyVQI7c.js:2:15707)\n    at async k (http://127.0.0.1:4173/assets/PublicStateContainer-DmMCKNub.js:1:66296)"
       ],
       "unexpected5xx": [],
       "bodyLength": 645
