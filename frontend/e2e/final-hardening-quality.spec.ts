@@ -22,7 +22,7 @@ const routeCases: RouteCase[] = [
   ...["/", "/screens", "/screens/PUB-01", "/design-system", "/loading", "/explore", "/explore/map", "/coming-soon",
     "/about", "/trust", "/help", "/contact", "/terms", "/privacy", "/maintenance", "/help/safety",
     "/auth/role", "/auth/email-verification", "/auth/phone-verification", "/auth/otp", "/auth/forgot-password",
-    "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent", "/experiences",
+    "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent", "/owner/invitation", "/experiences",
     "/experiences/island-wellness", "/journal", "/blog", "/journal/welcome", "/blog/welcome", "/login", "/register",
     "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/directory/guest-verification",
     "/directory/provider/onboarding", "/directory/providers/example", "/hosts", "/hosts/example", "/gate/qr", "/qr/validate",

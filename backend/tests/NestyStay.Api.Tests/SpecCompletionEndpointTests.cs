@@ -120,6 +120,31 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         });
         Assert.Equal(HttpStatusCode.BadRequest, reusedCompletion.StatusCode);
 
+        var invitationResponse = await client.PostAsJsonAsync("/api/spec/auth/flows", new
+        {
+            userId,
+            flowType = "OwnerInvitation",
+            destination = "owner@test.local"
+        });
+        Assert.Equal(HttpStatusCode.OK, invitationResponse.StatusCode);
+        var invitation = await invitationResponse.Content.ReadFromJsonAsync<AuthFlowResponse>();
+        Assert.NotNull(invitation);
+        var invitationSecret = await client.GetFromJsonAsync<DevelopmentAuthFlowSecretResponse>(
+            $"/api/spec/auth/development/flows/{invitation.Id}");
+        Assert.NotNull(invitationSecret);
+        var acceptedInvitation = await client.PostAsJsonAsync("/api/spec/auth/owner-invitation/accept", new
+        {
+            flowId = invitation.Id,
+            token = invitationSecret.Token
+        });
+        Assert.Equal(HttpStatusCode.OK, acceptedInvitation.StatusCode);
+        var reusedInvitation = await client.PostAsJsonAsync("/api/spec/auth/owner-invitation/accept", new
+        {
+            flowId = invitation.Id,
+            token = invitationSecret.Token
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reusedInvitation.StatusCode);
+
         var recoveryWithoutToken = await client.PostAsync($"/api/spec/auth/{userId}/recovery-codes", null);
         Assert.Equal(HttpStatusCode.Unauthorized, recoveryWithoutToken.StatusCode);
 

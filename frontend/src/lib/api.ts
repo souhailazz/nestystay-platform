@@ -1649,8 +1649,10 @@ export const api = {
   getAuditLog: (token: string) => request<AuditEvent[]>("/spec/admin/audit-log", { token }),
   startAuthFlow: (body: { userId?: string | null; flowType: string; destination: string }) =>
     request<AuthFlowResult>("/spec/auth/flows", { method: "POST", body }),
-  completeAuthFlow: (body: { flowId: string; code: string }) =>
+  completeAuthFlow: (body: { flowId: string; code?: string; token?: string }) =>
     request<AuthFlowResult>("/spec/auth/flows/complete", { method: "POST", body }),
+  acceptOwnerInvitation: (body: { flowId: string; token?: string; code?: string }) =>
+    request<AuthFlowResult>("/spec/auth/owner-invitation/accept", { method: "POST", body }),
   getDevelopmentAuthFlowSecret: (flowId: string) =>
     request<{ id: string; code: string; token: string; expiresAt: string }>(`/spec/auth/development/flows/${flowId}`),
   generateRecoveryCodes: (userId: string, token: string) =>

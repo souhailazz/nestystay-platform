@@ -1,0 +1,96 @@
+groups:
+  - name: nestystay-availability
+    interval: 30s
+    rules:
+      - alert: NestyStayApiUnavailable
+        expr: nestystay_api_health{check="live"} == 0
+        for: 2m
+        labels: {severity: critical, service: api}
+        annotations:
+          summary: NestyStay API liveness is failing
+          description: The API live probe has been failing for at least two minutes.
+      - alert: NestyStayPostgresUnavailable
+        expr: nestystay_dependency_health{dependency="postgres"} == 0
+        for: 2m
+        labels: {severity: critical, service: postgres}
+        annotations:
+          summary: PostgreSQL is unavailable
+          description: The API cannot reach PostgreSQL.
+      - alert: NestyStayRedisUnavailable
+        expr: nestystay_dependency_health{dependency="redis"} == 0
+        for: 2m
+        labels: {severity: critical, service: redis}
+        annotations:
+          summary: Redis is unavailable
+          description: Redis health has been failing for at least two minutes.
+      - alert: NestyStayMinioUnavailable
+        expr: nestystay_dependency_health{dependency="minio"} == 0
+        for: 2m
+        labels: {severity: critical, service: minio}
+        annotations:
+          summary: MinIO is unavailable
+          description: Private object storage health has been failing for at least two minutes.
+      - alert: NestyStayWorkerUnavailable
+        expr: nestystay_worker_heartbeat == 0
+        for: 5m
+        labels: {severity: warning, service: worker}
+        annotations:
+          summary: Background worker heartbeat is missing
+          description: No worker heartbeat has been observed for five minutes.
+
+  - name: nestystay-application
+    interval: 30s
+    rules:
+      - alert: NestyStayApi5xxSpike
+        expr: sum(rate(http_server_requests_seconds_count{service="nestystay-api",status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels: {severity: warning, service: api}
+        annotations:
+          summary: API 5xx error spike
+          description: API 5xx responses exceed 0.1 requests per second for five minutes.
+      - alert: NestyStayApiHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{service="nestystay-api"}[5m])) by (le)) > 1
+        for: 10m
+        labels: {severity: warning, service: api}
+        annotations:
+          summary: API p95 latency is high
+          description: API p95 latency exceeds one second for ten minutes.
+      - alert: NestyStayEmailQueueBacklog
+        expr: nestystay_email_queue_pending > 100
+        for: 15m
+        labels: {severity: warning, service: worker}
+        annotations:
+          summary: Email queue backlog is growing
+          description: More than 100 email messages have remained pending for 15 minutes.
+      - alert: NestyStayEmailFailureSpike
+        expr: increase(nestystay_email_delivery_failures_total[15m]) > 10
+        for: 5m
+        labels: {severity: warning, service: email}
+        annotations:
+          summary: Email delivery failures increased
+          description: More than ten email delivery failures were recorded in fifteen minutes.
+      - alert: NestyStayBackupFailure
+        expr: nestystay_backup_last_success_timestamp_seconds < time() - 90000
+        for: 15m
+        labels: {severity: critical, service: backups}
+        annotations:
+          summary: Backup is stale or missing
+          description: No successful backup has been reported in the configured daily window.
+      - alert: NestyStayDiskUsageHigh
+        expr: (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"}) / node_filesystem_size_bytes{mountpoint="/"} > 0.85
+        for: 15m
+        labels: {severity: warning, service: host}
+        annotations:
+          summary: Host disk usage is high
+          description: Root filesystem usage is above 85 percent.
+      - alert: NestyStayContainerRestartLoop
+        expr: increase(container_start_time_seconds[15m]) > 3
+        for: 10m
+        labels: {severity: warning, service: docker}
+        annotations:
+          summary: A container is restarting repeatedly
+          description: Container start events exceed three in fifteen minutes.
+
+# Rules intentionally reference metrics emitted by the production metrics
+# adapter/exporters.  Missing metrics remain inactive (rather than firing
+# noisy false positives) until the corresponding exporter is enabled.

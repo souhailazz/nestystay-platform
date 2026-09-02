@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T15:34:45.550Z",
+  "generatedAt": "2026-09-02T17:43:32.904Z",
   "project": "laptop-chromium",
   "viewport": {
     "width": 1440,
@@ -21,7 +21,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 50,
+      "controlCount": 42,
       "undersized": []
     },
     {
@@ -45,7 +45,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 62,
+      "controlCount": 43,
       "undersized": []
     },
     {
@@ -61,7 +61,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 81,
+      "controlCount": 47,
       "undersized": []
     },
     {

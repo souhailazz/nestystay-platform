@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PropertyManager;
+using NestyStay.Application.SpecCompletion;
 
 namespace NestyStay.Infrastructure.Persistence.Milestones;
 
@@ -11,7 +12,8 @@ public sealed class EfPropertyManagerStore(
     NestyStayDbContext db,
     IPaymentGateway paymentGateway,
     IStorageProvider storageProvider,
-    TimeProvider timeProvider) : IPropertyManagerStore
+    TimeProvider timeProvider,
+    ISpecCompletionStore specCompletionStore) : IPropertyManagerStore
 {
     private static readonly SemaphoreSlim PaymentGate = new(1, 1);
     private static readonly SemaphoreSlim GovernanceGate = new(1, 1);
@@ -55,6 +57,9 @@ public sealed class EfPropertyManagerStore(
         db.MilestoneManagerOwners.Add(owner);
         await AuditAsync(managerUserId, "OwnerInvited", "ManagerOwner", owner.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        await specCompletionStore.StartAuthFlowAsync(
+            new StartAuthFlowRequest(user.Id, "OwnerInvitation", user.Email, RequestIp: "manager"),
+            cancellationToken);
         return ToDto(owner);
     }
 

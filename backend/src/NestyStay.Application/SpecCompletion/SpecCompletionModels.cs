@@ -59,6 +59,7 @@ public interface ISpecCompletionStore
     Task<IReadOnlyList<AuditEventDto>> GetAuditEventsAsync(CancellationToken cancellationToken);
     Task<AuthFlowResultDto> StartAuthFlowAsync(StartAuthFlowRequest request, CancellationToken cancellationToken);
     Task<AuthFlowResultDto> CompleteAuthFlowAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken);
+    Task<AuthFlowResultDto> AcceptOwnerInvitationAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken);
     Task<DevelopmentAuthFlowSecretDto?> GetDevelopmentAuthFlowSecretAsync(Guid flowId, CancellationToken cancellationToken);
     Task<IReadOnlyList<RecoveryCodeDto>> GenerateRecoveryCodesAsync(Guid userId, CancellationToken cancellationToken);
     Task<SocialAuthConfigDto> GetSocialAuthConfigAsync(CancellationToken cancellationToken);
@@ -163,6 +164,6 @@ public sealed record AuthFlowResultDto(
     int AttemptsRemaining);
 public sealed record DevelopmentAuthFlowSecretDto(Guid Id, string Code, string Token, DateTimeOffset ExpiresAt);
 public sealed record StartAuthFlowRequest(Guid? UserId, string FlowType, string Destination, string? RequestIp = null);
-public sealed record CompleteAuthFlowRequest(Guid FlowId, string Code);
+public sealed record CompleteAuthFlowRequest(Guid FlowId, string Code = "", string? Token = null);
 public sealed record RecoveryCodeDto(string Code, bool Used);
 public sealed record SocialAuthConfigDto(bool GoogleEnabled, bool AppleEnabled, bool FacebookEnabled, IReadOnlyList<string> RequiredEnvironmentVariables);

@@ -229,7 +229,8 @@ public sealed record EmailMessage(
     string? TextBody = null,
     string? HtmlBody = null,
     string? ReplyToEmail = null,
-    string? ReplyToName = null);
+    string? ReplyToName = null,
+    IReadOnlyDictionary<string, string>? TemplateValues = null);
 
 public enum EmailDeliveryStatus
 {

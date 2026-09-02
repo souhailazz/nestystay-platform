@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Microsoft.Extensions.Configuration;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
@@ -20,7 +21,8 @@ public sealed class EfSpecCompletionStore(
     IGoogleIdentityValidator googleIdentityValidator,
     IStorageProvider storageProvider,
     IFileSafetyScanner fileSafetyScanner,
-    IPaymentGateway paymentGateway) : ISpecCompletionStore, IPrivilegedAuditStore
+    IPaymentGateway paymentGateway,
+    IConfiguration configuration) : ISpecCompletionStore, IPrivilegedAuditStore
 {
     private const int MaximumAuthFlowAttempts = 5;
     private const int MaximumAccountAuthFlowsPerWindow = 5;
@@ -52,6 +54,7 @@ public sealed class EfSpecCompletionStore(
     };
     private static readonly TimeSpan VerificationCodeLifetime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan OwnerInvitationLifetime = TimeSpan.FromDays(7);
     private static readonly Guid SeedHostUserId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     private static readonly Guid SeedGuestUserId = Guid.Parse("99999999-9999-4999-8999-999999999999");
     private static readonly Guid SeedPropertyId = Guid.Parse("11111111-1111-4111-8111-111111111111");
@@ -1535,7 +1538,9 @@ public sealed class EfSpecCompletionStore(
             RequestIpHash = requestIpHash,
             ExpiresAt = now.Add(flowType.Equals("PasswordReset", StringComparison.OrdinalIgnoreCase)
                 ? PasswordResetLifetime
-                : VerificationCodeLifetime),
+                : flowType.Equals("OwnerInvitation", StringComparison.OrdinalIgnoreCase)
+                    ? OwnerInvitationLifetime
+                    : VerificationCodeLifetime),
             LastSentAt = now
         };
 
@@ -1582,7 +1587,7 @@ public sealed class EfSpecCompletionStore(
             throw new InvalidOperationException("Verification link or code has expired.");
         }
 
-        if (!VerifyBoundSecret(flow, request.Code))
+        if (!VerifyBoundSecret(flow, string.IsNullOrWhiteSpace(request.Token) ? request.Code : request.Token))
         {
             flow.FailedAttempts++;
             flow.UpdatedAt = now;
@@ -1604,6 +1609,29 @@ public sealed class EfSpecCompletionStore(
         await AddAuditAsync("AuthFlowCompleted", "AuthFlow", flow.Id, $"{flow.FlowType} code completed.", flow.UserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(flow);
+    }
+
+    public async Task<AuthFlowResultDto> AcceptOwnerInvitationAsync(CompleteAuthFlowRequest request, CancellationToken cancellationToken)
+    {
+        var flow = await db.MilestoneAuthFlows.SingleOrDefaultAsync(item => item.Id == request.FlowId && !item.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Invitation not found.");
+        if (!flow.FlowType.Equals("OwnerInvitation", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("This link is not an owner invitation.");
+        var result = await CompleteAuthFlowAsync(request, cancellationToken);
+        var owners = await db.MilestoneManagerOwners
+            .Where(item => item.OwnerUserId == flow.UserId && !item.IsDeleted && item.InvitationStatus == "INVITED")
+            .ToListAsync(cancellationToken);
+        foreach (var owner in owners)
+        {
+            owner.InvitationStatus = "ACCEPTED";
+            owner.UpdatedAt = timeProvider.GetUtcNow();
+        }
+        if (owners.Count > 0)
+        {
+            await AddAuditAsync("OwnerInvitationAccepted", "ManagerOwner", owners[0].Id, "Owner accepted a signed invitation link.", flow.UserId, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return result;
     }
 
     public async Task<DevelopmentAuthFlowSecretDto?> GetDevelopmentAuthFlowSecretAsync(Guid flowId, CancellationToken cancellationToken)
@@ -2463,6 +2491,7 @@ public sealed class EfSpecCompletionStore(
         var purpose = flow.FlowType switch
         {
             "PasswordReset" => "password reset",
+            "OwnerInvitation" => "owner invitation",
             "PhoneVerification" => "phone verification",
             "OneTimePasscode" => "one-time passcode",
             "TwoFactorSetup" => "authenticator setup",
@@ -2480,11 +2509,30 @@ public sealed class EfSpecCompletionStore(
             return;
         }
 
-        var body = flow.FlowType == "PasswordReset"
-            ? $"Use this NestyStay reset code: {code}. Reset token: {token}. It expires at {flow.ExpiresAt:O}."
-            : $"Use this NestyStay {purpose} code: {code}. It expires at {flow.ExpiresAt:O}.";
+        var appUrl = (configuration["PublicAppUrl"] ?? Environment.GetEnvironmentVariable("PUBLIC_APP_URL") ?? "http://localhost:5173").TrimEnd('/');
+        var (templateKey, actionUrl) = flow.FlowType switch
+        {
+            "PasswordReset" => ("password-reset", $"{appUrl}/auth/reset-password?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}"),
+            "OwnerInvitation" => ("owner-invitation", $"{appUrl}/owner/invitation?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}"),
+            _ => ("auth-code", $"{appUrl}/auth/email-verification?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}")
+        };
         await emailSender.SendAsync(
-            new EmailMessage(flow.Destination, $"NestyStay {purpose} code", body, flow.Id),
+            new EmailMessage(
+                flow.Destination,
+                $"NestyStay {purpose}",
+                string.Empty,
+                flow.Id,
+                templateKey,
+                TemplateValues: new Dictionary<string, string>
+                {
+                    ["actionUrl"] = actionUrl,
+                    ["code"] = code,
+                    ["token"] = token,
+                    ["expiresAt"] = flow.ExpiresAt.ToString("O")
+                },
+                IsHtml: true,
+                ReplyToEmail: configuration["Email:Brevo:ReplyToEmail"] ?? Environment.GetEnvironmentVariable("REPLY_TO_EMAIL"),
+                ReplyToName: configuration["Email:Brevo:ReplyToName"] ?? "NestyStay Support"),
             cancellationToken);
     }
 
@@ -2500,6 +2548,7 @@ public sealed class EfSpecCompletionStore(
             "otp" or "onetimepasscode" => "OneTimePasscode",
             "forgot" or "reset" or "passwordreset" or "resetpassword" => "PasswordReset",
             "twofa" or "totp" or "twofactorsetup" => "TwoFactorSetup",
+            "ownerinvitation" or "invitation" or "ownerinvite" => "OwnerInvitation",
             _ => throw new InvalidOperationException("Unsupported authentication flow type.")
         };
     }
@@ -2554,8 +2603,12 @@ public sealed class EfSpecCompletionStore(
 
         var salt = Convert.FromBase64String(flow.SecretSalt);
         var actualHash = Convert.FromBase64String(HashBoundSecret(flow.FlowType, flow.UserId, flow.NormalizedDestination, secret.Trim(), salt));
-        var expectedHash = Convert.FromBase64String(flow.CodeHash);
-        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+        var expectedCodeHash = Convert.FromBase64String(flow.CodeHash);
+        var expectedTokenHash = Convert.FromBase64String(flow.TokenHash);
+        // Both the six-digit fallback code and the high-entropy URL token are
+        // valid secrets, but only their hashes are persisted.
+        return CryptographicOperations.FixedTimeEquals(actualHash, expectedCodeHash) ||
+               CryptographicOperations.FixedTimeEquals(actualHash, expectedTokenHash);
     }
 
     private static string HashBoundSecret(string purpose, Guid? userId, string destination, string secret, byte[] salt)

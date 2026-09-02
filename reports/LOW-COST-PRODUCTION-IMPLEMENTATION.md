@@ -12,10 +12,10 @@ The current tip preserves the locally complete M1–M5 full-stack implementation
 | Real Brevo delivery | BLOCKED | No client API key/sender domain |
 | Alibaba eKYC | PRESERVED | Existing adapter/callback tests |
 | Stripe | PRESERVED | Existing adapter/webhook tests; live keys blocked |
-| Self-host compose | PASS candidate | Compose config and frontend/API/worker image builds |
-| PostgreSQL/Redis/private storage | PASS candidate | Compose health checks, internal app network and volumes |
-| Backups | PASS local script / BLOCKED remote | pg_dump/checksum script; no approved remote repository |
-| TLS/DNS/monitoring | DOCUMENTED / BLOCKED deployment | Caddy, Cloudflare checklist and observability profile |
+| Self-host compose | PASS candidate | Compose config, healthchecks/restart policies, and frontend/API/worker image builds |
+| PostgreSQL/Redis/private storage | PASS candidate | Compose health checks, internal app network/volumes, and MinIO S3 adapter/container round-trip |
+| Backups | PASS local script / BLOCKED remote | PostgreSQL, object, config archives plus structured status/checksum verification; no approved remote repository |
+| TLS/DNS/monitoring | DOCUMENTED / BLOCKED deployment | Caddy, Cloudflare checklist, Prometheus/Grafana/Loki/Uptime Kuma profile and validated starter alerts |
 
 ## Email provider classification
 

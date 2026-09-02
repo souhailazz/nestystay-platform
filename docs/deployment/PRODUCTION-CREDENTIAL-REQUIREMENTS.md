@@ -10,6 +10,7 @@ the client-owned server.
 | VPS/server | Yes | Server IP, SSH access, OS access, firewall policy, resource and storage allocation | BLOCKED — client server not supplied |
 | Domain registrar | Yes | Registered production domain and DNS-management access | BLOCKED — production domain not supplied |
 | Cloudflare | Yes for the planned edge setup | Cloudflare account/zone access, DNS records, proxy/WAF decision | BLOCKED — client zone not supplied |
+| MinIO/S3-compatible object storage | Yes for production uploads | Private endpoint, application access key/secret, bucket, region, TLS choice and persistent-volume ownership | BLOCKED INFRASTRUCTURE — MinIO adapter and Compose service are ready |
 | Brevo | Yes for transactional application email | API key, verified sender domain/address, sender name, reply-to address, webhook/complaint access | BLOCKED CREDENTIAL — application adapter is ready |
 | Zoho OR Google Workspace | Yes for human/business mail | Selected mailbox provider, domain verification, support/info/billing mailboxes, operator access | CLIENT DECISION — Zoho is the documented default; Google Workspace is the alternative |
 | Stripe | Yes for live payments | Live publishable/secret keys, webhook signing secret and endpoint, test/live account access, refund/payment test authorization | BLOCKED CREDENTIAL — application integration is ready |

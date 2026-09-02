@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
 using NestyStay.Application.Abstractions;
+using NestyStay.Application.Configuration;
 using NestyStay.Infrastructure.Persistence;
 
 namespace NestyStay.Api.Controllers;
@@ -51,11 +52,12 @@ public sealed class HealthController(
     [HttpGet("integrations")]
     public async Task<IActionResult> GetIntegrations(CancellationToken cancellationToken)
     {
-        var emailProvider = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+        var flags = ProviderFeatureFlags.From(configuration);
+        var emailProvider = flags.EmailProvider;
         var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
         var brevoConfigured = !string.IsNullOrWhiteSpace(configuration["Email:Brevo:ApiKey"] ?? Environment.GetEnvironmentVariable("BREVO_API_KEY")) &&
                               !string.IsNullOrWhiteSpace(configuration["Email:Brevo:SenderEmail"] ?? Environment.GetEnvironmentVariable("BREVO_SENDER_EMAIL"));
-        var webPushEnabled = ResolveBoolean("WebPush:Enabled", "WEB_PUSH_ENABLED");
+        var webPushEnabled = flags.WebPushEnabled;
         var webPushConfigured = HasSetting("WebPush:PublicKey", "VAPID_PUBLIC_KEY") &&
                                 HasSetting("WebPush:PrivateKey", "VAPID_PRIVATE_KEY") &&
                                 HasSetting("WebPush:Subject", "VAPID_SUBJECT");
@@ -87,7 +89,7 @@ public sealed class HealthController(
 
         var emailStatus = emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase)
             ? (brevoConfigured ? "CONFIGURED" : "BLOCKED_CREDENTIAL")
-            : "LOCAL_CAPTURE";
+            : "CONFIGURED";
         var emailDetail = $"Transactional email transport; queue pending={pendingEmailCount}, failed={failedEmailCount}, recentFailures24h={recentEmailFailureCount}, lastSuccess={lastSuccessfulEmailAt?.ToString("O") ?? "never"}";
 
         return Ok(new
@@ -95,15 +97,17 @@ public sealed class HealthController(
             generatedAt = DateTimeOffset.UtcNow,
             services = new[]
             {
-                Service("payments", paymentGateway.ProviderName, HasSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY") ? "CONFIGURED" : "BLOCKED_CREDENTIAL", "Stripe payment adapter"),
-                Service("identity", ekycProvider.ProviderName, HasSetting("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE") ? "CONFIGURED" : "BLOCKED_CREDENTIAL", "Alibaba eKYC adapter"),
-                Service("email", emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase) ? "Brevo transactional email" : "Local file capture", emailStatus, emailDetail),
-                Service("storage", storageProvider.ProviderName, storageProvider.ProviderName.Contains("Local", StringComparison.OrdinalIgnoreCase) ? "SELF_HOSTED" : "CONFIGURED", "Private API-authorized object storage"),
-                Service("postgres", "PostgreSQL", HasSetting("ConnectionStrings:Postgres", "ConnectionStrings__Postgres") ? "CONFIGURED" : "BLOCKED_INFRASTRUCTURE", "Application database connection"),
-                Service("redis", "Self-hosted Redis", HasSetting("ConnectionStrings:Redis", "ConnectionStrings__Redis") ? "CONFIGURED" : "OPTIONAL_NOT_CONNECTED", "Reserved for distributed coordination before scale-out"),
-                Service("webPush", "Provider-neutral Web Push", webPushEnabled ? (webPushConfigured ? "CONFIGURED" : "BLOCKED_CREDENTIAL") : "OPTIONAL_DISABLED", webPushEnabled ? "VAPID configuration is present; browser subscriptions remain opt-in" : "Optional channel disabled; in-app and email remain available"),
-                Service("worker", "Self-hosted background worker", ResolveBoolean("Worker:SidecarEnabled", "WORKER_SIDECAR_ENABLED") || ResolveBoolean("Worker:Enabled", "WORKER_ENABLED") || ResolveBoolean("BackgroundJobs:Enabled", "BACKGROUND_JOBS_ENABLED") ? "CONFIGURED" : "OPTIONAL_NOT_CONNECTED", "Worker sidecar is deployed separately; heartbeat is not exposed through the API"),
-                Service("backups", "pg_dump + object archive + optional restic", HasSetting("Backup:Repository", "RESTIC_REPOSITORY") ? "CONFIGURED" : "BLOCKED_OPERATIONAL", "Off-server encrypted destination is required before production")
+                Service("payments", paymentGateway.ProviderName, HasSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY") ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Stripe payment adapter"),
+                Service("identity", ekycProvider.ProviderName, HasSetting("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE") ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Alibaba eKYC adapter"),
+                Service("email", emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase) ? "Brevo transactional email" : "Local file capture", emailStatus.Replace("BLOCKED_CREDENTIAL", "BLOCKED_EXTERNAL", StringComparison.Ordinal), emailDetail),
+                Service("storage", storageProvider.ProviderName, storageProvider.ProviderName.Contains("MinIO", StringComparison.OrdinalIgnoreCase) ? "CONFIGURED" : "DEGRADED", "Private API-authorized object storage"),
+                Service("minio", storageProvider.ProviderName, storageProvider.ProviderName.Contains("MinIO", StringComparison.OrdinalIgnoreCase) ? "CONFIGURED" : "NOT_CONFIGURED", "Private bucket; admin console is internal-only"),
+                Service("postgres", "PostgreSQL", HasSetting("ConnectionStrings:Postgres", "ConnectionStrings__Postgres") ? "CONFIGURED" : "NOT_CONFIGURED", "Application database connection"),
+                Service("redis", "Self-hosted Redis", HasSetting("ConnectionStrings:Redis", "ConnectionStrings__Redis") ? "CONFIGURED" : "NOT_CONFIGURED", "Distributed coordination and rate-limit backing service"),
+                Service("webPush", "Provider-neutral Web Push", webPushEnabled ? (webPushConfigured ? "CONFIGURED" : "BLOCKED_EXTERNAL") : "OPTIONAL_DISABLED", webPushEnabled ? "VAPID configuration is present; browser subscriptions remain opt-in" : "Optional channel disabled; in-app and email remain available"),
+                Service("worker", "Self-hosted background worker", ResolveBoolean("Worker:SidecarEnabled", "WORKER_SIDECAR_ENABLED") || ResolveBoolean("Worker:Enabled", "WORKER_ENABLED") || ResolveBoolean("BackgroundJobs:Enabled", "BACKGROUND_JOBS_ENABLED") ? "CONFIGURED" : "NOT_CONFIGURED", "Worker sidecar is deployed separately; heartbeat is not exposed through the API"),
+                Service("backups", "pg_dump + object archive + optional restic", HasSetting("Backup:Repository", "RESTIC_REPOSITORY") ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Off-server encrypted destination is required before production"),
+                Service("monitoring", "Prometheus, Grafana, Loki, Uptime Kuma", HasSetting("Monitoring:Enabled", "MONITORING_ENABLED") ? "CONFIGURED" : "NOT_CONFIGURED", "Compose profile with starter alert rules and dashboards")
             }
         });
     }

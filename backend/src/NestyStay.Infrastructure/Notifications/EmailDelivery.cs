@@ -29,8 +29,9 @@ public static class EmailTemplateCatalog
     private static readonly IReadOnlyDictionary<string, EmailTemplate> Templates =
         new Dictionary<string, EmailTemplate>(StringComparer.OrdinalIgnoreCase)
         {
-            ["auth-code"] = new("auth-code", "Your NestyStay verification code", "Use code {{code}}. It expires at {{expiresAt}}.", "<h1>NestyStay verification</h1><p>Use code <strong>{{code}}</strong>. It expires at {{expiresAt}}.</p><p>Need help? Reply to this email or contact your NestyStay support team.</p>"),
-            ["password-reset"] = new("password-reset", "Reset your NestyStay password", "Use this password reset token: {{token}}. It expires at {{expiresAt}}.", "<h1>Reset your NestyStay password</h1><p>Use this one-time reset token:</p><p><strong>{{token}}</strong></p><p>It expires at {{expiresAt}}. If you did not request this, contact support immediately.</p>"),
+            ["auth-code"] = new("auth-code", "Your NestyStay verification action", "Open your NestyStay verification page: {{actionUrl}}\n\nFallback code: {{code}}. It expires at {{expiresAt}}.", "<h1>NestyStay verification</h1><p><a href=\"{{actionUrl}}\">Verify your email</a></p><p>Fallback code: <strong>{{code}}</strong>. It expires at {{expiresAt}}.</p><p>If the button does not work, copy this URL: {{actionUrl}}</p>"),
+            ["password-reset"] = new("password-reset", "Reset your NestyStay password", "Open your NestyStay password reset page: {{actionUrl}}\n\nThis one-time link expires at {{expiresAt}}.", "<h1>Reset your NestyStay password</h1><p><a href=\"{{actionUrl}}\">Reset your password</a></p><p>If the button does not work, copy this URL: {{actionUrl}}</p><p>This one-time link expires at {{expiresAt}}.</p>"),
+            ["owner-invitation"] = new("owner-invitation", "You have been invited to NestyStay", "Open your owner invitation: {{actionUrl}}\n\nIf the button does not work, copy this URL: {{actionUrl}}", "<h1>NestyStay owner invitation</h1><p><a href=\"{{actionUrl}}\">Review your owner invitation</a></p><p>If the button does not work, copy this URL: {{actionUrl}}</p>"),
             ["booking-update"] = new("booking-update", "Your NestyStay booking update", "Your booking status is now {{status}}.", "<h1>Your NestyStay booking</h1><p>Your booking status is now <strong>{{status}}</strong>.</p><p>Keep this email for your records.</p>")
         };
 
@@ -76,6 +77,7 @@ public sealed class EmailOutboxSender(IServiceScopeFactory scopeFactory, TimePro
 
     public async Task<EmailDeliveryResult> QueueAsync(EmailMessage message, CancellationToken cancellationToken)
     {
+        message = EmailTemplateCatalog.Apply(message, message.TemplateValues);
         Validate(message);
         var idempotencyKey = string.IsNullOrWhiteSpace(message.IdempotencyKey)
             ? message.CorrelationId?.ToString("N")
@@ -83,6 +85,7 @@ public sealed class EmailOutboxSender(IServiceScopeFactory scopeFactory, TimePro
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<NestyStayDbContext>();
+        var configuration = scope.ServiceProvider.GetService<IConfiguration>();
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
             var existing = await db.NotificationQueue.AsNoTracking()
@@ -102,8 +105,8 @@ public sealed class EmailOutboxSender(IServiceScopeFactory scopeFactory, TimePro
             Body = message.Body,
             TextBody = message.TextBody ?? (!message.IsHtml ? message.Body : null),
             HtmlBody = message.HtmlBody ?? (message.IsHtml ? message.Body : null),
-            ReplyToEmail = message.ReplyToEmail,
-            ReplyToName = message.ReplyToName,
+            ReplyToEmail = message.ReplyToEmail ?? configuration?["Email:Brevo:ReplyToEmail"] ?? Environment.GetEnvironmentVariable("REPLY_TO_EMAIL"),
+            ReplyToName = message.ReplyToName ?? configuration?["Email:Brevo:ReplyToName"] ?? "NestyStay Support",
             Status = NotificationStatus.Queued,
             DeliveryStatus = nameof(EmailDeliveryStatus.Pending).ToUpperInvariant(),
             NextAttemptAt = now,

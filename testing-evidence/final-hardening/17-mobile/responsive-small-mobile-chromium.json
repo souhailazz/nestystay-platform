@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T15:36:00.896Z",
+  "generatedAt": "2026-09-02T17:44:52.351Z",
   "project": "small-mobile-chromium",
   "viewport": {
     "width": 360,
@@ -21,7 +21,7 @@
       "viewportWidth": 360,
       "scrollWidth": 360,
       "horizontalOverflow": 0,
-      "controlCount": 50,
+      "controlCount": 48,
       "undersized": []
     },
     {
@@ -45,7 +45,7 @@
       "viewportWidth": 360,
       "scrollWidth": 360,
       "horizontalOverflow": 0,
-      "controlCount": 62,
+      "controlCount": 43,
       "undersized": []
     },
     {
@@ -61,7 +61,7 @@
       "viewportWidth": 360,
       "scrollWidth": 360,
       "horizontalOverflow": 0,
-      "controlCount": 81,
+      "controlCount": 47,
       "undersized": []
     },
     {

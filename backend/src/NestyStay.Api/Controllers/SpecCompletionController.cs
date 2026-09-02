@@ -456,6 +456,11 @@ public sealed class SpecCompletionController(
     public async Task<ActionResult<AuthFlowResultDto>> CompleteAuthFlow(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
         Ok(await store.CompleteAuthFlowAsync(request, cancellationToken));
 
+    [HttpPost("auth/owner-invitation/accept")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> AcceptOwnerInvitation(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.AcceptOwnerInvitationAsync(request, cancellationToken));
+
     [HttpGet("auth/development/flows/{flowId:guid}")]
     public async Task<ActionResult<DevelopmentAuthFlowSecretDto>> GetDevelopmentAuthFlowSecret(Guid flowId, CancellationToken cancellationToken)
     {

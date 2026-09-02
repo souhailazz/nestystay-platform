@@ -169,6 +169,360 @@
   },
   "suites": [
     {
+      "title": "final-hardening-email.spec.ts",
+      "file": "final-hardening-email.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 190,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:40:32.849Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-27771d094e4846daffef",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5701,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:40:53.811Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-4cf554381452eb15aea1",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 214,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:43:58.126Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-e42bfa333253adfe3475",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:16.123Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-43ab8d8778f4c4f2cfd8",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 190,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:34.677Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-ccb263b73ddb7e2cda42",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 791,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:53.453Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-a316eee40bab4ddffd3c",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "transactional email links are captured and complete through the real browser routes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                    "line": 22,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 444,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:45:09.113Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-email.spec.ts",
+                        "line": 22,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "df35c9d3aa3c68dd05c5-70c7b51223e814620753",
+          "file": "final-hardening-email.spec.ts",
+          "line": 21,
+          "column": 1
+        }
+      ]
+    },
+    {
       "title": "final-hardening-m5.spec.ts",
       "file": "final-hardening-m5.spec.ts",
       "column": 0,
@@ -190,12 +544,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10535,
+                  "duration": 8089,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:31:54.124Z",
+                  "startTime": "2026-09-02T17:40:33.232Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -224,12 +578,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5852,
+                  "duration": 6041,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:18.814Z",
+                  "startTime": "2026-09-02T17:40:59.692Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -258,12 +612,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5625,
+                  "duration": 5728,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:10.414Z",
+                  "startTime": "2026-09-02T17:43:58.545Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -292,12 +646,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5750,
+                  "duration": 5776,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:28.313Z",
+                  "startTime": "2026-09-02T17:44:16.462Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -326,12 +680,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5762,
+                  "duration": 6272,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:44.356Z",
+                  "startTime": "2026-09-02T17:44:35.050Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -360,12 +714,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7726,
+                  "duration": 7994,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.968Z",
+                  "startTime": "2026-09-02T17:44:54.851Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -394,12 +748,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 9758,
+                  "duration": 9560,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:15.258Z",
+                  "startTime": "2026-09-02T17:45:09.720Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -410,6 +764,360 @@
           "id": "46e1e74e822b36109276-fed9290191045a82cefe",
           "file": "final-hardening-m5.spec.ts",
           "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "final-hardening-minio-ui.spec.ts",
+      "file": "final-hardening-minio-ui.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 113,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:40:41.352Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-c95bcfcb744c91dfd8f8",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "laptop-chromium",
+              "projectName": "laptop-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3201,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:41:05.750Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-92d2ccc1200c743e122d",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "tablet-chromium",
+              "projectName": "tablet-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 94,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:04.299Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-084ecb332738ccfe8fcd",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 122,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:22.261Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-77361aa755803d393557",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "small-mobile-chromium",
+              "projectName": "small-mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 85,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:44:41.351Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-ef77f5ddedac0923b9a1",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-firefox",
+              "projectName": "desktop-firefox",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 222,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:45:02.876Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-26d705c8c07cba0eb2ea",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "profile photo crosses the real browser, API, and MinIO storage path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                    "line": 6,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "desktop-webkit",
+              "projectName": "desktop-webkit",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 292,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-02T17:45:19.292Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\Administrator\\Desktop\\nestystayPLATFORM\\frontend\\e2e\\final-hardening-minio-ui.spec.ts",
+                        "line": 6,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f7034324de534e1fbd7d-5c8046badb05dac42894",
+          "file": "final-hardening-minio-ui.spec.ts",
+          "line": 5,
           "column": 1
         }
       ]
@@ -445,12 +1153,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 110,
+                  "duration": 107,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:04.832Z",
+                  "startTime": "2026-09-02T17:40:41.493Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -497,12 +1205,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 103,
+                  "duration": 116,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:04.952Z",
+                  "startTime": "2026-09-02T17:40:41.610Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -540,12 +1248,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10599,
+                  "duration": 8873,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:05.063Z",
+                  "startTime": "2026-09-02T17:40:41.745Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -583,12 +1291,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 110,
+                  "duration": 101,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:15.676Z",
+                  "startTime": "2026-09-02T17:40:50.628Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -635,12 +1343,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 92,
+                  "duration": 111,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:15.795Z",
+                  "startTime": "2026-09-02T17:40:50.737Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -678,12 +1386,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2022,
+                  "duration": 2108,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:15.894Z",
+                  "startTime": "2026-09-02T17:40:50.854Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -721,12 +1429,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 113,
+                  "duration": 92,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:17.925Z",
+                  "startTime": "2026-09-02T17:40:52.971Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -764,12 +1472,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 104061,
+                  "duration": 105638,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:24.808Z",
+                  "startTime": "2026-09-02T17:41:08.974Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -798,12 +1506,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 27604,
+                  "duration": 27502,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:34:08.877Z",
+                  "startTime": "2026-09-02T17:42:54.621Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -832,12 +1540,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 9099,
+                  "duration": 10807,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:34:36.490Z",
+                  "startTime": "2026-09-02T17:43:22.133Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -866,12 +1574,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2113,
+                  "duration": 2522,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:34:45.597Z",
+                  "startTime": "2026-09-02T17:43:32.947Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -900,12 +1608,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 13518,
+                  "duration": 13465,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:34:47.718Z",
+                  "startTime": "2026-09-02T17:43:35.477Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -943,12 +1651,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 97,
+                  "duration": 98,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:01.244Z",
+                  "startTime": "2026-09-02T17:43:48.949Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -986,12 +1694,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5073,
+                  "duration": 5056,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:01.349Z",
+                  "startTime": "2026-09-02T17:43:49.056Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1029,12 +1737,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 92,
+                  "duration": 89,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:16.190Z",
+                  "startTime": "2026-09-02T17:44:04.422Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1081,12 +1789,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 76,
+                  "duration": 93,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:16.292Z",
+                  "startTime": "2026-09-02T17:44:04.517Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1124,12 +1832,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10866,
+                  "duration": 10429,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:16.374Z",
+                  "startTime": "2026-09-02T17:44:04.618Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1167,12 +1875,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 113,
+                  "duration": 103,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.251Z",
+                  "startTime": "2026-09-02T17:44:15.054Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1219,12 +1927,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 80,
+                  "duration": 78,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.374Z",
+                  "startTime": "2026-09-02T17:44:15.165Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1271,12 +1979,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 91,
+                  "duration": 75,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.460Z",
+                  "startTime": "2026-09-02T17:44:15.249Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1323,12 +2031,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 75,
+                  "duration": 78,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.559Z",
+                  "startTime": "2026-09-02T17:44:15.332Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1375,12 +2083,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 110,
+                  "duration": 135,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:34.180Z",
+                  "startTime": "2026-09-02T17:44:22.402Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1427,12 +2135,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 125,
+                  "duration": 114,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:34.297Z",
+                  "startTime": "2026-09-02T17:44:22.543Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1470,12 +2178,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 8707,
+                  "duration": 10775,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:34.429Z",
+                  "startTime": "2026-09-02T17:44:22.665Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1513,12 +2221,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 114,
+                  "duration": 132,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.142Z",
+                  "startTime": "2026-09-02T17:44:33.449Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1565,12 +2273,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 124,
+                  "duration": 109,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.263Z",
+                  "startTime": "2026-09-02T17:44:33.590Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1617,12 +2325,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 113,
+                  "duration": 112,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.393Z",
+                  "startTime": "2026-09-02T17:44:33.706Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1669,12 +2377,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 121,
+                  "duration": 112,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.513Z",
+                  "startTime": "2026-09-02T17:44:33.824Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1721,12 +2429,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 83,
+                  "duration": 75,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:50.244Z",
+                  "startTime": "2026-09-02T17:44:41.460Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1773,12 +2481,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 78,
+                  "duration": 77,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:50.333Z",
+                  "startTime": "2026-09-02T17:44:41.542Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1816,12 +2524,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10498,
+                  "duration": 10749,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:50.418Z",
+                  "startTime": "2026-09-02T17:44:41.626Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1859,12 +2567,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 86,
+                  "duration": 70,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:00.923Z",
+                  "startTime": "2026-09-02T17:44:52.382Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1911,12 +2619,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 78,
+                  "duration": 77,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.016Z",
+                  "startTime": "2026-09-02T17:44:52.458Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -1963,12 +2671,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 77,
+                  "duration": 94,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.100Z",
+                  "startTime": "2026-09-02T17:44:52.541Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2015,12 +2723,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 77,
+                  "duration": 78,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.183Z",
+                  "startTime": "2026-09-02T17:44:52.642Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2067,12 +2775,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 203,
+                  "duration": 208,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:10.236Z",
+                  "startTime": "2026-09-02T17:45:03.126Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2119,12 +2827,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 192,
+                  "duration": 227,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:10.448Z",
+                  "startTime": "2026-09-02T17:45:03.341Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2171,12 +2879,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 196,
+                  "duration": 221,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:10.647Z",
+                  "startTime": "2026-09-02T17:45:03.577Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2223,12 +2931,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 213,
+                  "duration": 230,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:10.849Z",
+                  "startTime": "2026-09-02T17:45:03.806Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2275,12 +2983,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 222,
+                  "duration": 228,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:11.070Z",
+                  "startTime": "2026-09-02T17:45:04.043Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2318,12 +3026,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2582,
+                  "duration": 2591,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:11.302Z",
+                  "startTime": "2026-09-02T17:45:04.281Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2361,12 +3069,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 203,
+                  "duration": 960,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:13.890Z",
+                  "startTime": "2026-09-02T17:45:06.880Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2413,12 +3121,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 322,
+                  "duration": 319,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:25.161Z",
+                  "startTime": "2026-09-02T17:45:19.605Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2465,12 +3173,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 304,
+                  "duration": 327,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:25.491Z",
+                  "startTime": "2026-09-02T17:45:19.932Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2517,12 +3225,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 323,
+                  "duration": 317,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:25.802Z",
+                  "startTime": "2026-09-02T17:45:20.267Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2569,12 +3277,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 307,
+                  "duration": 360,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:26.141Z",
+                  "startTime": "2026-09-02T17:45:20.591Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2621,12 +3329,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 327,
+                  "duration": 369,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:26.457Z",
+                  "startTime": "2026-09-02T17:45:20.958Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2664,12 +3372,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2936,
+                  "duration": 2958,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:26.792Z",
+                  "startTime": "2026-09-02T17:45:21.335Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2707,12 +3415,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 315,
+                  "duration": 348,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:29.736Z",
+                  "startTime": "2026-09-02T17:45:24.304Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2772,7 +3480,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:18.061Z",
+                  "startTime": "2026-09-02T17:40:53.087Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2819,12 +3527,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 89,
+                  "duration": 90,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:32:18.067Z",
+                  "startTime": "2026-09-02T17:40:53.092Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2862,12 +3570,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1319,
+                  "duration": 1488,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:06.451Z",
+                  "startTime": "2026-09-02T17:43:54.138Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2896,12 +3604,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1675,
+                  "duration": 1666,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:07.777Z",
+                  "startTime": "2026-09-02T17:43:55.634Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2944,7 +3652,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.657Z",
+                  "startTime": "2026-09-02T17:44:15.438Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -2991,12 +3699,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 89,
+                  "duration": 82,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:27.661Z",
+                  "startTime": "2026-09-02T17:44:15.443Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3048,7 +3756,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.653Z",
+                  "startTime": "2026-09-02T17:44:33.961Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3095,12 +3803,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 98,
+                  "duration": 115,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:35:43.658Z",
+                  "startTime": "2026-09-02T17:44:33.968Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3152,7 +3860,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.281Z",
+                  "startTime": "2026-09-02T17:44:52.750Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3199,12 +3907,12 @@
                   "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 74,
+                  "duration": 80,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:01.286Z",
+                  "startTime": "2026-09-02T17:44:52.755Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3256,7 +3964,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:14.113Z",
+                  "startTime": "2026-09-02T17:45:07.866Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3303,12 +4011,12 @@
                   "workerIndex": 5,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 188,
+                  "duration": 262,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:14.119Z",
+                  "startTime": "2026-09-02T17:45:07.871Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3355,12 +4063,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 0,
+                  "duration": 1,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:30.072Z",
+                  "startTime": "2026-09-02T17:45:24.679Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3407,12 +4115,12 @@
                   "workerIndex": 6,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 287,
+                  "duration": 313,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-02T15:36:30.078Z",
+                  "startTime": "2026-09-02T17:45:24.687Z",
                   "annotations": [
                     {
                       "type": "skip",
@@ -3439,10 +4147,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-02T15:31:50.424Z",
-    "duration": 280736.61100000003,
-    "expected": 22,
-    "skipped": 48,
+    "startTime": "2026-09-02T17:40:29.599Z",
+    "duration": 296254.354,
+    "expected": 24,
+    "skipped": 60,
     "unexpected": 0,
     "flaky": 0
   }

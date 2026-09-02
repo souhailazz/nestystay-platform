@@ -1,20 +1,21 @@
 {
   "baselineSha": "95c14a8b30c017e968b53cedc9165f83c53b9006",
   "resumedFromSha": "35794c8e8718d3c2f8a76e124a477d9a76f13427",
-  "finalSha": "02aaca4747b11aafc6099381dd3bdd4c138310e4",
-  "source": { "csharpFiles": 176, "frontendTsFiles": 124, "e2eSpecs": 16, "appRouteBranchLines": 163 },
+  "finalSha": "pending-final-release-commit",
+  "source": { "csharpFiles": 176, "frontendTsFiles": 124, "e2eSpecs": 20, "appRouteBranchLines": 163 },
   "tests": {
-    "backend": { "passed": 101, "failed": 0 },
+    "backend": { "passed": 111, "failed": 0 },
     "frontendUnit": { "passed": 30, "failed": 0 },
     "originalBrowserRegression": { "planned": 39, "passed": 31, "failed": 0, "skipped": 8 },
-    "hardeningBrowser": { "planned": 70, "passed": 22, "failed": 0, "skipped": 48, "unexpected": 0, "flaky": 0 },
+    "hardeningBrowser": { "planned": 84, "passed": 24, "failed": 0, "skipped": 60, "unexpected": 0, "flaky": 0 },
     "financial": { "passed": 16, "failed": 0 },
     "concurrency": { "apiChecksPassed": 4, "apiChecksFailed": 0, "backendConcurrencyTestsDiscovered": 13 }
   },
   "security": { "authorizationPassed": 54, "authorizationFailed": 0, "dynamicChecksPassed": 7, "dynamicChecksFailed": 0, "npmVulnerabilities": 0, "dotnetVulnerabilities": 0, "sessionCookie": "HttpOnly+CSRF", "legacyBearerStorage": false },
-  "browserCoverage": { "routesTested": 127, "routesTotal": 127, "routeFailures": 0, "axePages": 12, "axeCritical": 0, "axeSerious": 0, "responsiveScreens": 60, "responsiveFailures": 0, "responsiveControlsMeasured": 1750 },
+  "browserCoverage": { "routesTested": 128, "routesTotal": 128, "routeFailures": 0, "axePages": 12, "axeCritical": 0, "axeSerious": 0, "responsiveScreens": 60, "responsiveFailures": 0, "responsiveControlsMeasured": 1750 },
   "performance": { "apiSamples": 210, "apiErrors": 0, "apiMaxMs": 43.97, "loadRequests": 960, "loadApplicationErrors": 0, "loadRateLimited": 16, "frontendInitialJsBytes": 93950, "frontendInitialJsGzipBytes": 22770, "frontendTotalJsBytes": 1107530, "frontendTotalJsGzipBytes": 303358, "frontendCssBytes": 130639, "frontendCssGzipBytes": 24449, "largestJsBytes": 248941, "largestJsGzipBytes": 83852, "chunksOver500Kb": 0 },
   "coverage": { "frontendSourceStatementsPct": 4.97, "frontendSourceBranchesPct": 4.36, "frontendSourceFunctionsPct": 3.81, "frontendSourceLinesPct": 5.66, "backendDomainLinePct": 3.41, "backendApplicationLinePct": 45.18, "backendInfrastructureLinePct": 0.75, "backendApiLinePct": 3.05 },
   "database": { "tables": 145, "indexes": 250, "migrations": 34, "integrityViolations": 0, "foreignKeyConstraintsBefore": 0, "foreignKeyConstraints": 45, "enforcedM5Orphans": 0, "contextualQrScanPropertyOrphans": 1, "primaryKeyConstraints": 145 },
-  "status": { "localReleaseCandidate": true, "productionReady": false, "realStripeValidated": false, "realAlibabaValidated": false }
+  "integrations": { "minioApplication": "PASS", "minioRealContainer": "PASS", "minioRealUiBrowser": "PASS", "clickableEmailBrowserFlows": "PASS", "monitoringConfig": "PASS", "backupScriptsLocal": "PASS", "offServerBackup": "BLOCKED_DESTINATION" },
+  "status": { "localReleaseCandidate": true, "productionReady": false, "realStripeValidated": false, "realAlibabaValidated": false, "realBrevoValidated": false }
 }

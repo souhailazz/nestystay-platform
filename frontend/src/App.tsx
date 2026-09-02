@@ -36,6 +36,7 @@ const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages"
 
 const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
 const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
+const OwnerInvitationPage = lazy(() => import("./pages/CompletionPages").then(({ OwnerInvitationPage }) => ({ default: OwnerInvitationPage })));
 const BookingSpecStatePage = lazy(() => import("./pages/CompletionPages").then(({ BookingSpecStatePage }) => ({ default: BookingSpecStatePage })));
 const DirectorySpecPage = lazy(() => import("./pages/CompletionPages").then(({ DirectorySpecPage }) => ({ default: DirectorySpecPage })));
 const ExperiencesPage = lazy(() => import("./pages/CompletionPages").then(({ ExperiencesPage }) => ({ default: ExperiencesPage })));
@@ -95,6 +96,7 @@ type Route =
   | { name: "coming-soon" }
   | { name: "public-content"; slug: string }
   | { name: "auth-spec"; kind: string }
+  | { name: "owner-invitation" }
   | { name: "experiences"; slug?: string }
   | { name: "journal"; slug?: string }
   | { name: "booking-state"; state: string; bookingId?: string }
@@ -181,6 +183,7 @@ function parseRoute(): Route {
   if (path === "/auth/2fa-setup") return { name: "auth-spec", kind: "twofa" };
   if (path === "/auth/recovery-codes") return { name: "auth-spec", kind: "recovery" };
   if (path === "/auth/social-consent") return { name: "auth-spec", kind: "social" };
+  if (path === "/owner/invitation") return { name: "owner-invitation" };
   if (path === "/experiences") return { name: "experiences" };
   if (path.startsWith("/experiences/")) return { name: "experiences", slug: path.split("/")[2] };
   if (path === "/journal" || path === "/blog") return { name: "journal" };
@@ -778,6 +781,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PublicContentRoute slug={route.slug} />;
     case "auth-spec":
       return <AuthSpecFlowPage auth={auth} kind={route.kind} />;
+    case "owner-invitation":
+      return <OwnerInvitationPage />;
     case "experiences":
       return <ExperiencesPage slug={route.slug} />;
     case "journal":

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using NestyStay.Application.Admin;
 using NestyStay.Application.Abstractions;
 using NestyStay.Domain;
@@ -59,7 +60,8 @@ public sealed class PhaseOneStore(
     IAccessTokenService? accessTokenService = null,
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
-    IDevelopmentAuthSecretStore? developmentAuthSecrets = null) : IPhaseOneStore
+    IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
+    IConfiguration? configuration = null) : IPhaseOneStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -517,8 +519,18 @@ public sealed class PhaseOneStore(
                     new EmailMessage(
                         email,
                         "NestyStay password reset",
-                        $"Use this NestyStay password reset token: {token}. It expires at {expiresAt:O}.",
-                        requestId),
+                        string.Empty,
+                        requestId,
+                        "password-reset",
+                        TemplateValues: new Dictionary<string, string>
+                        {
+                            ["actionUrl"] = $"{(configuration?["PublicAppUrl"] ?? Environment.GetEnvironmentVariable("PUBLIC_APP_URL") ?? "http://localhost:5173").TrimEnd('/')}/auth/reset-password?requestId={requestId:N}&token={Uri.EscapeDataString(token)}",
+                            ["token"] = token,
+                            ["expiresAt"] = expiresAt.ToString("O")
+                        },
+                        IsHtml: true,
+                        ReplyToEmail: configuration?["Email:Brevo:ReplyToEmail"] ?? Environment.GetEnvironmentVariable("REPLY_TO_EMAIL"),
+                        ReplyToName: configuration?["Email:Brevo:ReplyToName"] ?? "NestyStay Support"),
                     cancellationToken);
             }
         }

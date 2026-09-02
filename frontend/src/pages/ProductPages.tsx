@@ -81,6 +81,7 @@ import {
   type FoundingTier,
   type FoundingTransferEvaluation,
   type GoogleSignInRequest,
+  type IntegrationStatus,
   type PhaseTwoPricebookItem,
   type ProfilePhotoUpload,
   type PropertyPhotoUpload,
@@ -2201,6 +2202,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
   const [adminReportUploads, setAdminReportUploads] = useState<WellnessReportPhotoUploadItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const adminReportUploadControllers = useRef<Record<string, AbortController>>({});
 
   async function loadAdminData(cancelled?: () => boolean) {
@@ -2279,6 +2281,24 @@ export function AdminPage({ auth }: { auth: AuthController }) {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!canConfigureSystem || !adminToken) {
+      setIntegrations([]);
+      return;
+    }
+    let cancelled = false;
+    void api.integrationStatus(adminToken)
+      .then((result) => {
+        if (!cancelled) setIntegrations(result.services);
+      })
+      .catch(() => {
+        if (!cancelled) setIntegrations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminToken, canConfigureSystem]);
 
   useEffect(() => () => {
     Object.values(adminReportUploadControllers.current).forEach((controller) => controller.abort());
@@ -2453,6 +2473,29 @@ export function AdminPage({ auth }: { auth: AuthController }) {
         ))}
         {actionError && <ErrorState message={actionError} />}
         {notice && <div className="notice-panel">{notice}</div>}
+        {canConfigureSystem && (
+          <Card className="mt-4" id="integration-status">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="section-subtitle">Integration status</h2>
+                <p className="m-0 text-sm text-sand-500">Live readiness from the protected health integration endpoint. Credentials are never displayed.</p>
+              </div>
+              <StatusChip value={integrations.length ? `${integrations.filter((service) => service.status === "HEALTHY" || service.status === "CONFIGURED").length}/${integrations.length} ready` : "Loading"} />
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {integrations.map((service) => (
+                <div className="rounded-card border border-shell bg-cream px-3 py-2" key={service.key}>
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="text-sm">{service.key}</strong>
+                    <StatusChip value={service.status} />
+                  </div>
+                  <div className="mt-1 text-xs text-sand-500">{service.provider} · {service.detail}</div>
+                </div>
+              ))}
+              {!integrations.length && <div className="text-sm text-sand-500">Integration status is unavailable or still loading.</div>}
+            </div>
+          </Card>
+        )}
         <div className="metric-grid">
           <MetricCard icon={Gauge} label="API health" value={data.health ?? "unknown"} />
           <MetricCard icon={LayoutDashboard} label="Modules" value={String(data.modules ?? 0)} />

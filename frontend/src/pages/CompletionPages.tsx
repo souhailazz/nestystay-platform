@@ -194,9 +194,18 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
   const [error, setError] = useState<string | null>(null);
   const [resetRequestId, setResetRequestId] = useState(() => new URLSearchParams(window.location.search).get("requestId") ?? "");
   const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
+  const [linkFlowId] = useState(() => new URLSearchParams(window.location.search).get("flowId") ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const canUseDevelopmentDelivery = import.meta.env.DEV || import.meta.env.MODE === "test";
+
+  useEffect(() => {
+    if (kind !== "email" || !linkFlowId || !resetToken) return;
+    setNotice("Verifying your secure email link…");
+    void api.completeAuthFlow({ flowId: linkFlowId, token: resetToken })
+      .then((completed) => setNotice(completed.status === "Completed" ? "Email verified. You can continue to NestyStay." : "Verification " + completed.status.toLowerCase() + "."))
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "This verification link is invalid or expired."));
+  }, [kind, linkFlowId, resetToken]);
 
   async function start(flowType = kind) {
     setError(null);
@@ -367,6 +376,43 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
             </Card>
           )}
         </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+export function OwnerInvitationPage() {
+  const params = new URLSearchParams(window.location.search);
+  const flowId = params.get("flowId") ?? "";
+  const token = params.get("token") ?? "";
+  const [status, setStatus] = useState<"loading" | "accepted" | "error">("loading");
+  const [message, setMessage] = useState("Checking your secure invitation link…");
+
+  useEffect(() => {
+    if (!flowId || !token) {
+      setStatus("error");
+      setMessage("This invitation link is incomplete. Ask the property manager to send a new invitation.");
+      return;
+    }
+    void api.acceptOwnerInvitation({ flowId, token })
+      .then((result) => {
+        setStatus("accepted");
+        setMessage(result.status === "Completed" ? "Invitation accepted. Sign in to open your owner portal." : "Invitation is no longer active.");
+      })
+      .catch((caught) => {
+        setStatus("error");
+        setMessage(caught instanceof Error ? caught.message : "This invitation link is invalid or expired.");
+      });
+  }, [flowId, token]);
+
+  return (
+    <CompletionShell id="PM-INVITE" eyebrow="Owner invitation" title="Your NestyStay owner portal starts here." copy="This secure link is single-use and expires after seven days.">
+      <section className="product-section product-section--center">
+        <Card className="settings-card max-w-xl">
+          <div className={status === "accepted" ? "notice-panel" : status === "error" ? "rounded-field bg-coral-tint p-4 text-sm" : "notice-panel"} role="status" aria-live="polite">{message}</div>
+          {status === "accepted" && <AppLink className={buttonClassName("sun") + " mt-4 inline-flex"} href="/login">Sign in to owner portal <ArrowRight size={16} /></AppLink>}
+          {status === "error" && <AppLink className={buttonClassName("outline") + " mt-4 inline-flex"} href="/contact">Contact support</AppLink>}
+        </Card>
       </section>
     </CompletionShell>
   );

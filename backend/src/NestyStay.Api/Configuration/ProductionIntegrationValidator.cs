@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using NestyStay.Application.Configuration;
 
 namespace NestyStay.Api.Configuration;
 
@@ -106,6 +107,26 @@ public static class ProductionIntegrationValidator
             {
                 throw new InvalidOperationException("Production Brevo email configuration contains a placeholder value.");
             }
+        }
+
+        var providerFlags = ProviderFeatureFlags.From(configuration);
+        if (providerFlags.ObjectStorageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
+            providerFlags.ObjectStorageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase))
+        {
+            var minioSettings = new[]
+            {
+                new RequiredSetting("Integrations:MinioEndpoint", "MINIO_ENDPOINT", "MinIO endpoint"),
+                new RequiredSetting("Integrations:MinioAccessKey", "MINIO_ACCESS_KEY", "MinIO access key"),
+                new RequiredSetting("Integrations:MinioSecretKey", "MINIO_SECRET_KEY", "MinIO secret key"),
+                new RequiredSetting("Integrations:MinioBucket", "MINIO_BUCKET", "MinIO bucket")
+            };
+            var missingMinio = minioSettings
+                .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
+                .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
+                .ToArray();
+            if (missingMinio.Length > 0)
+                throw new InvalidOperationException("Production MinIO object storage is selected but configuration is incomplete. Missing: " + string.Join("; ", missingMinio));
+            foreach (var setting in minioSettings) RejectPlaceholderValue(configuration, setting);
         }
 
         if (ResolveBoolean(configuration, "Security:AdminBootstrap:Enabled", "NESTYSTAY_ADMIN_BOOTSTRAP_ENABLED"))

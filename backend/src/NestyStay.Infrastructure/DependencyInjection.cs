@@ -13,6 +13,8 @@ using NestyStay.Application.PropertyManager;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
 using NestyStay.Infrastructure.Notifications;
+using NestyStay.Infrastructure.Storage;
+using NestyStay.Application.Configuration;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Collections.Concurrent;
@@ -32,7 +34,21 @@ public static class DependencyInjection
 
         services.AddSingleton<IEkycProvider, AlibabaEkycProvider>();
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
-        services.AddSingleton<IStorageProvider, CloudflareR2StorageProvider>();
+        services.AddHttpClient("object-storage", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddSingleton<CloudflareR2StorageProvider>();
+        services.AddSingleton<MinioStorageProvider>();
+        services.AddSingleton<IStorageProvider>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var flags = ProviderFeatureFlags.From(configuration);
+            return flags.ObjectStorageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
+                   flags.ObjectStorageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<MinioStorageProvider>()
+                : provider.GetRequiredService<CloudflareR2StorageProvider>();
+        });
         services.AddSingleton<IFileSafetyScanner, MagicByteFileSafetyScanner>();
         services.AddSingleton<INotificationGateway, PersistentNotificationGateway>();
         services.AddSingleton<IEmailSender, EmailOutboxSender>();
@@ -46,7 +62,7 @@ public static class DependencyInjection
         services.AddSingleton<IEmailDeliveryTransport>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
-            var selected = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+             var selected = ProviderFeatureFlags.From(configuration).EmailProvider;
             var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
             var useBrevo = selected.Equals("brevo", StringComparison.OrdinalIgnoreCase) &&
                            !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase);

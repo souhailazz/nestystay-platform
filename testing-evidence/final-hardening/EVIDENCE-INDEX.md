@@ -9,8 +9,8 @@ All evidence below was generated from the current worktree after the accepted ba
 | Security | `02-security/dynamic-security-checks.json` | Playwright API/browser security harness, 7/7 |
 | Dependency security | `02-security/npm-audit.json`, `dotnet-vulnerable.txt`, `dotnet-outdated.txt` | npm/.NET CLI audits |
 | Authorization | `04-authorization/authorization-matrix.json` | expanded role/ownership matrix, 54/54 |
-| Route coverage | `07-browser/route-coverage.json` | Playwright route inventory, 127/127 |
-| Browser result | `07-browser/playwright-hardening-results.json` | 7-project hardening config, 70 planned / 22 pass / 48 intentional skip |
+| Route coverage | `07-browser/route-coverage.json` | Playwright route inventory, 128/128 |
+| Browser result | `07-browser/playwright-hardening-results.json` | 7-project hardening config, 84 tests / 24 pass / 60 intentional skip / 0 unexpected |
 | M5 Property Manager | `07-browser/m5-*.json` | persisted manager/owner/QR/gate journey, 7/7 projects |
 | Lighthouse/tooling | `07-browser/lighthouse.json` | CLI unavailable; browser timing evidence linked and green |
 | Accessibility | `08-accessibility/axe-results.json`, `keyboard-navigation.json` | axe and keyboard browser harness |
@@ -24,5 +24,6 @@ All evidence below was generated from the current worktree after the accepted ba
 | Responsive | `17-mobile/responsive-*.json` | five Chromium viewport projects, 60 screens |
 | Financial | `18-business-logic/financial-results.json` | 16 API-backed cent/commission/fee assertions |
 | Continuation | `HARDENING-CONTINUATION.md` | scope, baseline, environment and pending-gate log |
-| Deployment/email | `20-deployment/*` | compose parse and image builds, EF outbox migrations, email queue/transport tests and backup-script review |
+| Deployment/email | `20-deployment/*` | compose parse/build, MinIO provider/container round-trip and real UI upload/download, EF outbox migrations, clickable email browser flows, monitoring validation, and structured backup-script review |
+| Zero-credential continuation | `reports/ZERO-CREDENTIAL-PRODUCTION-PREP-ADDENDUM.md` | current provider boundary, MinIO/email/monitoring/backup validation and production-only blockers |
 | Reports | `reports/*.md`, `reports/FINAL-METRICS.json`, `reports/FINAL-HARDENING-M5-ADDENDUM.md` | current M1–M5 decision, session/DB evidence, and machine-readable metrics (mirrored at repository `reports/`) |
