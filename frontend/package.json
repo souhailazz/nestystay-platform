@@ -10,6 +10,7 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run src",
     "test:e2e": "playwright test",
+    "test:e2e:production": "playwright test --config=playwright.production-smoke.config.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:update": "playwright test --update-snapshots",
     "preview": "vite preview"

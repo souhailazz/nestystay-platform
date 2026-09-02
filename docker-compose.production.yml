@@ -48,13 +48,14 @@ services:
       Email__Brevo__ReplyToEmail: ${BREVO_REPLY_TO_EMAIL:-}
       Email__Brevo__ReplyToName: ${BREVO_REPLY_TO_NAME:-NestyStay Support}
       Integrations__LocalStorageRoot: /var/lib/nestystay/storage
+      PublicAppUrl: ${PUBLIC_APP_URL:?Set PUBLIC_APP_URL}
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     networks: [app]
     volumes: [app-storage:/var/lib/nestystay/storage]
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -80,6 +81,7 @@ services:
       Integrations__AlibabaEkycTransactionUrlBase: ${ALIBABA_EKYC_TRANSACTION_URL_BASE:?Set ALIBABA_EKYC_TRANSACTION_URL_BASE}
       Integrations__InsuraGuestApiBaseUrl: ${INSURAGUEST_API_BASE_URL:?Set INSURAGUEST_API_BASE_URL}
       Integrations__StorageProvider: local
+      PublicAppUrl: ${PUBLIC_APP_URL:?Set PUBLIC_APP_URL}
       Security__SessionTokenSecret: ${NESTYSTAY_SESSION_TOKEN_SECRET:?Set NESTYSTAY_SESSION_TOKEN_SECRET}
       Security__TotpSecretProtectionKey: ${NESTYSTAY_TOTP_SECRET_PROTECTION_KEY:?Set NESTYSTAY_TOTP_SECRET_PROTECTION_KEY}
       Webhooks__SharedSecret: ${NESTYSTAY_WEBHOOK_SHARED_SECRET:?Set NESTYSTAY_WEBHOOK_SHARED_SECRET}
