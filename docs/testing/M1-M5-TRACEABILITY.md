@@ -46,3 +46,13 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 - Saved-search/favorite persistence, review responses, plan selection and recurring reminders remain configurable/client-side enhancements where no signed-contract persistence rule exists; core provider profile, moderation, document binary storage/download, manager portfolio, invoice, utility, maintenance, notice, governance and QR actions are real API calls.
 - Real Stripe/Alibaba credentials, live payment rails, SMS/push delivery, geocoding network, bank reconciliation and production deployment controls remain separate production validation gates. QR image decoding is implemented with the browser `BarcodeDetector` API and keeps a manual fallback.
 - Browser session storage is an HttpOnly `nestyStay.session` cookie with a strict double-submit CSRF token; legacy bearer values are cleared from localStorage. PostgreSQL relationship hardening added 45 reviewed FKs with 0 enforced M5 orphan rows; the contextual QR mismatch value is intentionally retained without an FK.
+
+### Property listing lifecycle enhancement (2026-09-05)
+
+- `POST /api/properties/{id}/duplicate` creates an owner-scoped draft and copies only clean uploaded photos.
+- `POST /api/properties/{id}/publish` publishes an owner-scoped draft after review.
+- `GET /api/properties/{id}/revisions` exposes immutable, versioned snapshots; `POST /api/properties/{id}/revisions/{revisionId}/restore` restores a selected snapshot as a new draft revision.
+- `POST /api/properties/bulk/archive` performs one owner-scoped mutation for up to 100 properties and records a revision for every changed listing.
+- Host UI now exposes Draft/Publish, Duplicate, History/Restore, page selection and transactional bulk archive actions. Public listing reads continue to exclude drafts and archived records, while the host-owned view includes both for management.
+- Evidence: `backend/tests/NestyStay.Api.Tests/PropertyEnhancementEndpointTests.cs` (duplicate → owned draft → revision restore → publish → bulk archive) and `frontend/src/lib/api.test.ts` (API client lifecycle contract). Backend API suite: 65 passed; frontend unit suite: 32 passed; browser usability suite: 4 passed, 1 intentional mobile skip.
+- The notification center now hydrates authenticated users from `GET /api/spec/traveler/{userId}` and persists read/read-all actions through the real notification endpoints; unauthenticated visitors retain a local preference-only view and are not presented with false delivery success. API client coverage includes load, read and read-all calls.
