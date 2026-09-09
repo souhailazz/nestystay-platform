@@ -91,6 +91,11 @@ public sealed class HealthController(
             ? (brevoConfigured ? "CONFIGURED" : "BLOCKED_CREDENTIAL")
             : "CONFIGURED";
         var emailDetail = $"Transactional email transport; queue pending={pendingEmailCount}, failed={failedEmailCount}, recentFailures24h={recentEmailFailureCount}, lastSuccess={lastSuccessfulEmailAt?.ToString("O") ?? "never"}";
+        var alibabaEkycConfigured = HasSetting("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID") &&
+                                    HasSetting("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET") &&
+                                    HasSetting("Integrations:AlibabaEkycCallbackUrl", "ALIBABA_EKYC_CALLBACK_URL") &&
+                                    HasSetting("Integrations:AlibabaEkycReturnUrl", "ALIBABA_EKYC_RETURN_URL") &&
+                                    HasSetting("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN");
 
         return Ok(new
         {
@@ -98,7 +103,7 @@ public sealed class HealthController(
             services = new[]
             {
                 Service("payments", paymentGateway.ProviderName, HasSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY") ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Stripe payment adapter"),
-                Service("identity", ekycProvider.ProviderName, HasSetting("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE") ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Alibaba eKYC adapter"),
+                Service("identity", ekycProvider.ProviderName, alibabaEkycConfigured ? "CONFIGURED" : "BLOCKED_EXTERNAL", "Alibaba eKYC adapter"),
                 Service("email", emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase) ? "Brevo transactional email" : "Local file capture", emailStatus.Replace("BLOCKED_CREDENTIAL", "BLOCKED_EXTERNAL", StringComparison.Ordinal), emailDetail),
                 Service("storage", storageProvider.ProviderName, storageProvider.ProviderName.Contains("MinIO", StringComparison.OrdinalIgnoreCase) ? "CONFIGURED" : "DEGRADED", "Private API-authorized object storage"),
                 Service("minio", storageProvider.ProviderName, storageProvider.ProviderName.Contains("MinIO", StringComparison.OrdinalIgnoreCase) ? "CONFIGURED" : "NOT_CONFIGURED", "Private bucket; admin console is internal-only"),

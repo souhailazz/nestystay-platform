@@ -21,6 +21,7 @@ public sealed class SpecCompletionController(
     IConfiguration configuration) : ControllerBase
 {
     [HttpPost("auth/passwordless/request")]
+    [HttpPost("/api/auth/passwordless/request")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<ActionResult<AuthFlowResultDto>> RequestPasswordlessLogin(
         PasswordlessLoginRequest request,
@@ -35,6 +36,7 @@ public sealed class SpecCompletionController(
     }
 
     [HttpPost("auth/passwordless/complete")]
+    [HttpPost("/api/auth/passwordless/complete")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> CompletePasswordlessLogin(
         CompleteAuthFlowRequest request,
@@ -49,6 +51,10 @@ public sealed class SpecCompletionController(
         var profile = await phaseOneStore.GetUserProfileAsync(flow.UserId.Value, cancellationToken);
         var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
         var accessToken = accessTokenService.Issue(profile.UserId, profile.Roles, expiresAt);
+        if (phaseOneStore is ISessionActivityStore sessionStore && accessTokenService.Validate(accessToken) is { } session)
+        {
+            await sessionStore.RecordSessionAsync(profile.UserId, session.TokenId, session.IssuedAt, expiresAt, "Passwordless browser", Request.Headers.UserAgent.ToString(), HttpContext.Connection.RemoteIpAddress?.ToString(), false, cancellationToken);
+        }
         if (SessionCookieAuth.IsCookieMode(Request))
         {
             SessionCookieAuth.Issue(Response, accessToken, expiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
@@ -134,6 +140,40 @@ public sealed class SpecCompletionController(
     {
         authorization.RequireResourceOwner(userId);
         return Ok(await store.GetTravelerWorkspaceAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("traveler/{userId:guid}/recommendations")]
+    public async Task<ActionResult<IReadOnlyList<TravelerRecommendationDto>>> GetTravelerRecommendations(
+        Guid userId,
+        [FromQuery] string? parish,
+        [FromQuery] decimal? maximumNightlyRate,
+        [FromQuery] string? badgeLevel,
+        [FromQuery] int limit = 12,
+        CancellationToken cancellationToken = default)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GetTravelerRecommendationsAsync(userId, new TravelerRecommendationQuery(parish, maximumNightlyRate, badgeLevel, limit), cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/recommendations/{propertyId:guid}/dismiss")]
+    public async Task<ActionResult<TravelerRecommendationDto>> DismissTravelerRecommendation(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.DismissTravelerRecommendationAsync(userId, propertyId, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/recommendations/{propertyId:guid}/restore")]
+    public async Task<ActionResult<TravelerRecommendationDto>> RestoreTravelerRecommendation(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.RestoreTravelerRecommendationAsync(userId, propertyId, cancellationToken));
+    }
+
+    [HttpPut("traveler/{userId:guid}/preferences")]
+    public async Task<ActionResult<TravelerPreferenceDto>> SaveTravelerPreferences(Guid userId, SaveTravelerPreferencesRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.SaveTravelerPreferencesAsync(userId, request, cancellationToken));
     }
 
     [HttpPost("traveler/{userId:guid}/wishlist/collections")]
@@ -417,6 +457,21 @@ public sealed class SpecCompletionController(
         return Ok(await store.GetHostOperationsAsync(hostUserId, cancellationToken));
     }
 
+    [Authorize(Policy = AdminAuthorizationPolicies.FinancialReporting)]
+    [HttpPost("admin/host-payouts/{payoutId:guid}/settle")]
+    public async Task<ActionResult<HostPayoutDto>> SettleHostPayout(Guid payoutId, SettleHostPayoutRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        var payout = await store.SettleHostPayoutAsync(payoutId, actor, request.Notes, cancellationToken);
+        if (payout is null) return NotFound();
+        if (store is IPrivilegedAuditStore auditStore)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(AuditActor(AdminPermissionCatalog.FinancialReporting), "HostPayoutSettled", "HostPayout", payout.Id, request.Notes ?? "Manual host payout settlement.", null, payout), cancellationToken);
+        }
+        return Ok(payout);
+    }
+
     [HttpPost("host/{hostUserId:guid}/pricing-rules")]
     public async Task<ActionResult<HostPricingRuleDto>> SavePricingRule(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
     {
@@ -562,3 +617,5 @@ public sealed class SpecCompletionController(
         effectivePermission,
         HttpContext.TraceIdentifier);
 }
+
+public sealed record SettleHostPayoutRequest(string? Notes = null);

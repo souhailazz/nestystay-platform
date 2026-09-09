@@ -249,6 +249,68 @@ public sealed class EfSpecCompletionStore(
             await db.MilestoneTravelerNotifications.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken));
     }
 
+    public async Task<IReadOnlyList<TravelerRecommendationDto>> GetTravelerRecommendationsAsync(Guid userId, TravelerRecommendationQuery query, CancellationToken cancellationToken)
+    {
+        await EnsurePropertyCatalogAsync(cancellationToken);
+        var preference = await db.MilestoneTravelerPreferences.AsNoTracking().SingleOrDefaultAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken);
+        var parish = string.IsNullOrWhiteSpace(query.Parish) ? preference?.PreferredParish : query.Parish;
+        var maxRate = query.MaximumNightlyRate ?? preference?.MaximumNightlyRate;
+        var badge = string.IsNullOrWhiteSpace(query.BadgeLevel) ? preference?.PreferredBadgeLevel : query.BadgeLevel;
+        var preferredHighlights = preference is null ? [] : MilestoneJson.DeserializeList<string>(preference.PreferredHighlightsJson);
+        var properties = await db.MilestoneProperties.AsNoTracking()
+            .Where(item => !item.IsDeleted && !item.IsArchived && !item.IsDraft)
+            .OrderBy(item => item.Title)
+            .ToListAsync(cancellationToken);
+        var dismissed = await db.MilestoneTravelerRecommendationInteractions.AsNoTracking()
+            .Where(item => item.UserId == userId && !item.IsDeleted)
+            .OrderByDescending(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var latestAction = dismissed.GroupBy(item => item.PropertyId).ToDictionary(group => group.Key, group => group.First().Action);
+        var wishlistIds = (await db.MilestoneWishlistItems.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).Select(item => item.PropertyId).ToListAsync(cancellationToken)).ToHashSet();
+        var completed = await db.MilestoneBookings.AsNoTracking().Where(item => item.GuestUserId == userId && !item.IsDeleted).Select(item => item.PropertyId).ToListAsync(cancellationToken);
+        var completedIds = completed.ToHashSet();
+        var now = timeProvider.GetUtcNow();
+        var limit = Math.Clamp(query.Limit, 1, 50);
+        return properties
+            .Select(property => BuildRecommendation(property, parish, maxRate, badge, preferredHighlights, wishlistIds, completedIds, latestAction, now))
+            .Where(item => !item.IsDismissed)
+            .OrderByDescending(item => item.Score)
+            .ThenBy(item => item.PropertyTitle)
+            .Take(limit)
+            .ToList();
+    }
+
+    public async Task<TravelerRecommendationDto> DismissTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        return await SetRecommendationInteractionAsync(userId, propertyId, "Dismissed", cancellationToken);
+    }
+
+    public async Task<TravelerRecommendationDto> RestoreTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        return await SetRecommendationInteractionAsync(userId, propertyId, "Restored", cancellationToken);
+    }
+
+    public async Task<TravelerPreferenceDto> SaveTravelerPreferencesAsync(Guid userId, SaveTravelerPreferencesRequest request, CancellationToken cancellationToken)
+    {
+        if (request.MaximumNightlyRate is <= 0 or > 1_000_000) throw new InvalidOperationException("Maximum nightly rate must be between 0 and 1,000,000.");
+        var now = timeProvider.GetUtcNow();
+        var preference = await db.MilestoneTravelerPreferences.SingleOrDefaultAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken);
+        if (preference is null)
+        {
+            preference = new MilestoneTravelerPreference { Id = Guid.NewGuid(), UserId = userId, CreatedAt = now, CreatedByUserId = userId };
+            db.MilestoneTravelerPreferences.Add(preference);
+        }
+        preference.PreferredParish = string.IsNullOrWhiteSpace(request.PreferredParish) ? null : request.PreferredParish.Trim()[..Math.Min(100, request.PreferredParish.Trim().Length)];
+        preference.MaximumNightlyRate = request.MaximumNightlyRate.HasValue ? decimal.Round(request.MaximumNightlyRate.Value, 2) : null;
+        preference.PreferredBadgeLevel = string.IsNullOrWhiteSpace(request.PreferredBadgeLevel) ? null : request.PreferredBadgeLevel.Trim()[..Math.Min(50, request.PreferredBadgeLevel.Trim().Length)];
+        preference.PreferredHighlightsJson = MilestoneJson.Serialize((request.PreferredHighlights ?? []).Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(12).ToList());
+        preference.UpdatedAt = now;
+        preference.UpdatedByUserId = userId;
+        await AddAuditAsync("TravelerPreferencesUpdated", "TravelerPreference", preference.Id, "Traveler recommendation preferences updated.", userId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(preference);
+    }
+
     public async Task<WishlistCollectionDto> CreateWishlistCollectionAsync(Guid userId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken)
     {
         var entity = new MilestoneWishlistCollection
@@ -1196,10 +1258,31 @@ public sealed class EfSpecCompletionStore(
     public async Task<HostOperationsDto> GetHostOperationsAsync(Guid hostUserId, CancellationToken cancellationToken)
     {
         await SeedHostOperationsAsync(hostUserId, cancellationToken);
+        await EnsureHostPayoutsAsync(hostUserId, cancellationToken);
         var pricing = await db.MilestoneHostPricingRules.AsNoTracking().Where(item => item.HostUserId == hostUserId && !item.IsDeleted).OrderBy(item => item.StartsOn).Select(item => ToDto(item)).ToListAsync(cancellationToken);
         var promotions = await db.MilestoneHostPromotions.AsNoTracking().Where(item => item.HostUserId == hostUserId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken);
         var reviews = await db.MilestoneReviews.AsNoTracking().Where(item => item.PropertyId == SeedPropertyId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken);
-        return new HostOperationsDto(hostUserId, BuildAnalytics(hostUserId), pricing, promotions, reviews);
+        var payouts = await BuildHostPayoutSummaryAsync(hostUserId, cancellationToken);
+        return new HostOperationsDto(hostUserId, BuildAnalytics(hostUserId), pricing, promotions, reviews, payouts);
+    }
+
+    public async Task<HostPayoutDto?> SettleHostPayoutAsync(Guid payoutId, Guid actorUserId, string? notes, CancellationToken cancellationToken)
+    {
+        var payout = await db.MilestoneHostPayouts.SingleOrDefaultAsync(item => item.Id == payoutId && !item.IsDeleted, cancellationToken);
+        if (payout is null) return null;
+        if (payout.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)) return ToDto(payout);
+        if (!payout.Status.Equals("Available", StringComparison.OrdinalIgnoreCase) && !payout.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("This payout cannot be settled in its current state.");
+        var now = timeProvider.GetUtcNow();
+        payout.Status = "Paid";
+        payout.PaidAt = now;
+        payout.SettlementReference = string.IsNullOrWhiteSpace(payout.SettlementReference) ? $"manual-{payout.Id:N}" : payout.SettlementReference;
+        payout.Notes = string.IsNullOrWhiteSpace(notes) ? "Settled manually by NestyStay finance." : notes.Trim()[..Math.Min(500, notes.Trim().Length)];
+        payout.UpdatedAt = now;
+        payout.UpdatedByUserId = actorUserId;
+        await AddAuditAsync("HostPayoutSettled", "HostPayout", payout.Id, payout.Notes, actorUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(payout);
     }
 
     public async Task<HostPricingRuleDto> SaveHostPricingRuleAsync(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
@@ -1697,6 +1780,81 @@ public sealed class EfSpecCompletionStore(
         ]));
     }
 
+    private async Task<TravelerRecommendationDto> SetRecommendationInteractionAsync(Guid userId, Guid propertyId, string action, CancellationToken cancellationToken)
+    {
+        await EnsurePropertyCatalogAsync(cancellationToken);
+        var property = await db.MilestoneProperties.AsNoTracking().SingleOrDefaultAsync(item => item.Id == propertyId && !item.IsDeleted && !item.IsArchived && !item.IsDraft, cancellationToken)
+            ?? throw new InvalidOperationException("Property is not available for recommendations.");
+        var latest = await db.MilestoneTravelerRecommendationInteractions.AsNoTracking()
+            .Where(item => item.UserId == userId && item.PropertyId == propertyId && !item.IsDeleted)
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (latest is null || !latest.Action.Equals(action, StringComparison.OrdinalIgnoreCase))
+        {
+            var now = timeProvider.GetUtcNow();
+            db.MilestoneTravelerRecommendationInteractions.Add(new MilestoneTravelerRecommendationInteraction
+            {
+                Id = Guid.NewGuid(), UserId = userId, PropertyId = propertyId, Action = action,
+                Reason = action.Equals("Dismissed", StringComparison.OrdinalIgnoreCase) ? "Traveler dismissed this suggestion." : "Traveler restored this suggestion.",
+                CreatedAt = now, UpdatedAt = now, CreatedByUserId = userId, UpdatedByUserId = userId
+            });
+            await AddAuditAsync("TravelerRecommendationInteraction", "Property", propertyId, $"Traveler recommendation {action.ToLowerInvariant()}.", userId, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        var preference = await db.MilestoneTravelerPreferences.AsNoTracking().SingleOrDefaultAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken);
+        var wishlistIds = (await db.MilestoneWishlistItems.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).Select(item => item.PropertyId).ToListAsync(cancellationToken)).ToHashSet();
+        var completedIds = (await db.MilestoneBookings.AsNoTracking().Where(item => item.GuestUserId == userId && !item.IsDeleted).Select(item => item.PropertyId).ToListAsync(cancellationToken)).ToHashSet();
+        var interactions = await db.MilestoneTravelerRecommendationInteractions.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).ToListAsync(cancellationToken);
+        var latestActions = interactions.GroupBy(item => item.PropertyId).ToDictionary(group => group.Key, group => group.First().Action);
+        return BuildRecommendation(property, preference?.PreferredParish, preference?.MaximumNightlyRate, preference?.PreferredBadgeLevel, preference is null ? [] : MilestoneJson.DeserializeList<string>(preference.PreferredHighlightsJson), wishlistIds, completedIds, latestActions, timeProvider.GetUtcNow());
+    }
+
+    private async Task EnsurePropertyCatalogAsync(CancellationToken cancellationToken)
+    {
+        if (await db.MilestoneProperties.AnyAsync(item => !item.IsDeleted, cancellationToken)) return;
+        db.MilestoneProperties.AddRange(
+            new MilestoneProperty { Id = SeedPropertyId, HostUserId = SeedHostUserId, HostName = "Island Villa Hosting", HostEmail = "host-villa@nestystay.local", Title = "Ocho Rios Verified Villa", Location = "Ocho Rios, St. Ann", Country = "Jamaica", NightlyRate = 185m, Currency = "USD", BadgeLevel = BadgeLevel.Verified, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Moderate", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Alibaba eKYC", "QR gate access", "InsuraGuest available"]) },
+            new MilestoneProperty { Id = Guid.Parse("22222222-2222-4222-8222-222222222222"), HostUserId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), HostName = "Kingston Corporate Homes", HostEmail = "host-kingston@nestystay.local", Title = "Kingston Business Stay", Location = "New Kingston, St. Andrew", Country = "Jamaica", NightlyRate = 140m, Currency = "USD", BadgeLevel = BadgeLevel.Trusted, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Flexible", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Trusted host", "Local business directory", "Split payments"]) },
+            new MilestoneProperty { Id = Guid.Parse("33333333-3333-4333-8333-333333333333"), HostUserId = Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), HostName = "Montego Bay Apartments", HostEmail = "host-mobay@nestystay.local", Title = "Montego Bay Standard Apartment", Location = "Montego Bay, St. James", Country = "Jamaica", NightlyRate = 110m, Currency = "USD", BadgeLevel = BadgeLevel.Free, GuestVerificationEnabled = false, InsuraGuestEnabled = false, CancellationPolicy = "Strict", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Free listing", "Calendar", "Messaging"]) });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static TravelerRecommendationDto BuildRecommendation(
+        MilestoneProperty property,
+        string? parish,
+        decimal? maxRate,
+        string? badge,
+        IReadOnlyList<string> preferredHighlights,
+        IReadOnlySet<Guid> wishlistIds,
+        IReadOnlySet<Guid> completedIds,
+        IReadOnlyDictionary<Guid, string> latestActions,
+        DateTimeOffset generatedAt)
+    {
+        var score = 0;
+        var reasons = new List<string>();
+        var normalizedParish = parish?.Trim();
+        if (!string.IsNullOrWhiteSpace(normalizedParish) && property.Location.Contains(normalizedParish, StringComparison.OrdinalIgnoreCase)) { score += 40; reasons.Add($"Matches your {normalizedParish} preference"); }
+        if (maxRate is > 0 && property.NightlyRate <= maxRate.Value) { score += 25; reasons.Add("Within your nightly budget"); }
+        if (!string.IsNullOrWhiteSpace(badge) && property.BadgeLevel.ToString().Equals(badge.Trim(), StringComparison.OrdinalIgnoreCase)) { score += 15; reasons.Add($"{property.BadgeLevel} host badge"); }
+        var highlights = MilestoneJson.DeserializeList<string>(property.HighlightsJson);
+        var matchingHighlights = highlights.Where(item => preferredHighlights.Any(preferred => item.Contains(preferred, StringComparison.OrdinalIgnoreCase) || preferred.Contains(item, StringComparison.OrdinalIgnoreCase))).ToList();
+        if (matchingHighlights.Count > 0) { score += Math.Min(20, matchingHighlights.Count * 10); reasons.Add($"Includes {matchingHighlights[0]}"); }
+        if (wishlistIds.Contains(property.Id)) { score += 8; reasons.Add("Similar to a stay you saved"); }
+        if (completedIds.Contains(property.Id)) reasons.Add("You stayed here before");
+        if (reasons.Count == 0) { score = 5; reasons.Add("A trusted Jamaican stay to explore"); }
+        var dismissed = latestActions.TryGetValue(property.Id, out var action) && action.Equals("Dismissed", StringComparison.OrdinalIgnoreCase);
+        return new TravelerRecommendationDto(property.Id, property.Title, property.Location, property.Country, property.NightlyRate, property.Currency, property.BadgeLevel.ToString(), highlights, score, string.Join(" · ", reasons), dismissed, generatedAt);
+    }
+
+    private static TravelerPreferenceDto ToDto(MilestoneTravelerPreference preference) => new(
+        preference.UserId,
+        preference.PreferredParish,
+        preference.MaximumNightlyRate,
+        preference.PreferredBadgeLevel,
+        MilestoneJson.DeserializeList<string>(preference.PreferredHighlightsJson),
+        preference.UpdatedAt);
+
     private async Task SeedAsync(CancellationToken cancellationToken)
     {
         if (!await db.MilestonePublicContentPages.AnyAsync(cancellationToken))
@@ -1748,14 +1906,35 @@ public sealed class EfSpecCompletionStore(
             });
         }
 
-        if (!await db.MilestoneDirectoryProviders.AnyAsync(cancellationToken))
+        // Keep the deterministic demo directory usable even after a previous
+        // test or local moderation run soft-deleted the original seed rows.
+        // The old table-level `AnyAsync` check treated deleted rows as seeds,
+        // leaving public directory routes with an empty result set forever.
+        var directorySeeds = new[]
         {
-            db.MilestoneDirectoryProviders.AddRange(
-                Provider("spark-cleaning-team", "Custodian", "Cleaning", "Spark Cleaning Team", "St. James", "Verified", "Turnover cleaning, laundry, and restock support.", "Mon-Sat 8 AM-6 PM"),
-                Provider("island-spark-electric", "Trades", "Electrician", "Island Spark Electric", "Kingston", "Trusted", "Licensed electrical service with EITA cross-reference.", "Emergency calls through platform"),
-                Provider("blue-lagoon-tours", "LocalBusiness", "Tours", "Blue Lagoon Tours", "Portland", "Trusted", "Water and wellness tours with guest-facing offers.", "Daily 9 AM-5 PM"),
-                Provider("marcias-kitchen", "LocalBusiness", "Restaurant", "Marcia's Kitchen", "Kingston", "Trusted", "Local food partner for verified guests and hosts.", "Daily 8 AM-9 PM"),
-                Provider("guest-verification-upsell", "Verification", "Guest verification", "Guest Verification Upsell", "All Jamaica", "Verified", "NEVER automatic. Host pays $0.14 per booking, guest pays nothing.", "Available per property"));
+            Provider("spark-cleaning-team", "Custodian", "Cleaning", "Spark Cleaning Team", "St. James", "Verified", "Turnover cleaning, laundry, and restock support.", "Mon-Sat 8 AM-6 PM"),
+            Provider("island-spark-electric", "Trades", "Electrician", "Island Spark Electric", "Kingston", "Trusted", "Licensed electrical service with EITA cross-reference.", "Emergency calls through platform"),
+            Provider("blue-lagoon-tours", "LocalBusiness", "Tours", "Blue Lagoon Tours", "Portland", "Trusted", "Water and wellness tours with guest-facing offers.", "Daily 9 AM-5 PM"),
+            Provider("marcias-kitchen", "LocalBusiness", "Restaurant", "Marcia's Kitchen", "Kingston", "Trusted", "Local food partner for verified guests and hosts.", "Daily 8 AM-9 PM"),
+            Provider("guest-verification-upsell", "Verification", "Guest verification", "Guest Verification Upsell", "All Jamaica", "Verified", "NEVER automatic. Host pays $0.14 per booking, guest pays nothing.", "Available per property")
+        };
+        foreach (var seed in directorySeeds)
+        {
+            var existing = await db.MilestoneDirectoryProviders.SingleOrDefaultAsync(item => item.Slug == seed.Slug, cancellationToken);
+            if (existing is null)
+            {
+                db.MilestoneDirectoryProviders.Add(seed);
+                continue;
+            }
+
+            // Seed slugs are reserved system fixtures. Restore their public
+            // state without replacing the primary key or revision history.
+            existing.IsDeleted = false;
+            existing.IsActive = true;
+            existing.Status = "Published";
+            existing.VerificationStatus = "Verified";
+            existing.UpdatedAt = timeProvider.GetUtcNow();
+            existing.UpdatedByUserId = null;
         }
 
         await SaveSeedChangesAsync(cancellationToken);
@@ -2355,14 +2534,79 @@ public sealed class EfSpecCompletionStore(
         throw new UnauthorizedAccessException("Review is not available to this host.");
     }
 
-    private HostAnalyticsDto BuildAnalytics(Guid hostUserId) => new(
-        24850m,
-        82m,
-        185m,
-        db.MilestoneBookings.Count(item => item.HostUserId == hostUserId),
-        11.4m,
-        [new("30d", 6200m), new("60d", 8100m), new("90d", 10550m)],
-        [new("30d", 74m), new("60d", 81m), new("90d", 82m)]);
+    private async Task EnsureHostPayoutsAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        var bookings = await db.MilestoneBookings.AsNoTracking()
+            .Where(item => item.HostUserId == hostUserId && !item.IsDeleted && item.PaymentStatus == PaymentStatus.Captured)
+            .ToListAsync(cancellationToken);
+        if (bookings.Count == 0) return;
+        var bookingIds = bookings.Select(item => item.Id).ToArray();
+        var existing = (await db.MilestoneHostPayouts.AsNoTracking().Where(item => bookingIds.Contains(item.BookingId) && !item.IsDeleted).Select(item => item.BookingId).ToListAsync(cancellationToken)).ToHashSet();
+        var now = timeProvider.GetUtcNow();
+        foreach (var booking in bookings.Where(item => !existing.Contains(item.Id)))
+        {
+            var gross = decimal.Round(booking.StaySubtotal, 2, MidpointRounding.AwayFromZero);
+            var fee = decimal.Round(gross * 0.03m, 2, MidpointRounding.AwayFromZero);
+            db.MilestoneHostPayouts.Add(new MilestoneHostPayout
+            {
+                Id = Guid.NewGuid(), BookingId = booking.Id, HostUserId = booking.HostUserId,
+                GrossAmount = gross, PlatformFee = fee, NetAmount = gross - fee, Currency = booking.Currency,
+                Status = "Available", EligibleAt = now, CreatedAt = now, UpdatedAt = now,
+                CreatedByUserId = booking.HostUserId, UpdatedByUserId = booking.HostUserId,
+                Notes = "Manual settlement mode; live Stripe Connect is not configured."
+            });
+        }
+        if (bookings.Any(item => !existing.Contains(item.Id))) await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<HostPayoutSummaryDto> BuildHostPayoutSummaryAsync(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        var rows = await db.MilestoneHostPayouts.AsNoTracking().Where(item => item.HostUserId == hostUserId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Take(100).ToListAsync(cancellationToken);
+        var currency = rows.FirstOrDefault()?.Currency ?? "USD";
+        return new HostPayoutSummaryDto(
+            rows.Where(item => item.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase)).Sum(item => item.NetAmount),
+            rows.Where(item => item.Status.Equals("Available", StringComparison.OrdinalIgnoreCase)).Sum(item => item.NetAmount),
+            rows.Where(item => item.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)).Sum(item => item.NetAmount),
+            currency,
+            "Manual settlement",
+            rows.Select(ToDto).ToList());
+    }
+
+    private static HostPayoutDto ToDto(MilestoneHostPayout item) => new(
+        item.Id, item.BookingId, item.GrossAmount, item.PlatformFee, item.NetAmount, item.Currency,
+        item.Status, item.EligibleAt, item.PaidAt,
+        string.IsNullOrWhiteSpace(item.SettlementReference) ? null : item.SettlementReference,
+        item.Notes);
+
+    private HostAnalyticsDto BuildAnalytics(Guid hostUserId)
+    {
+        var bookings = db.MilestoneBookings.AsNoTracking().Where(item => item.HostUserId == hostUserId && !item.IsDeleted).ToList();
+        // Keep the established local demo baseline visible for a brand-new
+        // host with no ledger rows yet.  As soon as persisted booking data is
+        // present every metric below is calculated from that data.
+        if (bookings.Count == 0)
+        {
+            return new HostAnalyticsDto(
+                24850m,
+                82m,
+                185m,
+                0,
+                11.4m,
+                [new("30d", 6200m), new("60d", 8100m), new("90d", 10550m)],
+                [new("30d", 74m), new("60d", 81m), new("90d", 82m)]);
+        }
+        var paid = bookings.Where(item => item.PaymentStatus == PaymentStatus.Captured).ToList();
+        var revenue = paid.Sum(item => item.TotalAmount);
+        var average = paid.Count == 0 ? 0 : decimal.Round(paid.Average(item => item.NightlyRate), 2);
+        var now = timeProvider.GetUtcNow();
+        var revenueSeries = Enumerable.Range(0, 3).Select(offset =>
+        {
+            var start = now.AddDays(-30 * (offset + 1));
+            var end = now.AddDays(-30 * offset);
+            return new ChartPointDto($"{(offset + 1) * 30}d", paid.Where(item => item.CreatedAt >= start && item.CreatedAt < end).Sum(item => item.TotalAmount));
+        }).Reverse().ToList();
+        return new HostAnalyticsDto(revenue, 0, average, bookings.Count, bookings.Count == 0 ? 0 : decimal.Round((decimal)paid.Count / bookings.Count * 100, 2), revenueSeries, [new("30d", 0), new("60d", 0), new("90d", 0)]);
+    }
 
     public async Task RecordPrivilegedAuditAsync(PrivilegedAuditRecord record, CancellationToken cancellationToken)
     {

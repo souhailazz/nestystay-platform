@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NestyStay.Api.Configuration;
 using NestyStay.Api.Auth;
 using NestyStay.Application.PhaseOne;
+using NestyStay.Application.SpecCompletion;
+using NestyStay.Application.Abstractions;
+using NestyStay.Infrastructure.Persistence;
+using NestyStay.Infrastructure.Persistence.Milestones;
 
 namespace NestyStay.Api.Controllers;
 
@@ -13,7 +18,10 @@ public sealed class AuthController(
     IPhaseOneStore phaseOneStore,
     IHostEnvironment environment,
     IConfiguration configuration,
-    CurrentUserContext currentUser) : ControllerBase
+    CurrentUserContext currentUser,
+    ISpecCompletionStore specCompletionStore,
+    NestyStayDbContext db,
+    IAccessTokenService accessTokenService) : ControllerBase
 {
     [HttpPost("register")]
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
@@ -24,7 +32,11 @@ public sealed class AuthController(
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await phaseOneStore.LoginAsync(request, cancellationToken);
+        var result = await phaseOneStore.LoginAsync(request with
+        {
+            UserAgent = Request.Headers.UserAgent.ToString(),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        }, cancellationToken);
         if (SessionCookieAuth.IsCookieMode(Request) && result.AccessToken is not null && result.ExpiresAt is not null)
         {
             SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt.Value, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
@@ -46,7 +58,11 @@ public sealed class AuthController(
     [EnableRateLimiting(RateLimitPolicies.Authentication)]
     public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken)
     {
-        var result = await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken);
+        var result = await phaseOneStore.VerifyTwoFactorAsync(request with
+        {
+            UserAgent = Request.Headers.UserAgent.ToString(),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        }, cancellationToken);
         if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
         return Ok(SanitizeForBrowser(result));
     }
@@ -80,6 +96,75 @@ public sealed class AuthController(
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken) =>
         LogoutAndClearCookies(await phaseOneStore.LogoutAsync(RequireUserId(), cancellationToken));
+
+    [Authorize]
+    [HttpGet("sessions")]
+    public async Task<ActionResult<IReadOnlyList<UserSessionDto>>> GetSessions(CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as ISessionActivityStore
+            ?? throw new InvalidOperationException("Session management is unavailable.");
+        var sessions = await store.GetSessionsAsync(RequireUserId(), currentUser.SessionTokenId, cancellationToken);
+        return Ok(sessions);
+    }
+
+    [Authorize]
+    [HttpDelete("sessions/{sessionId:guid}")]
+    public async Task<IActionResult> RevokeSession(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as ISessionActivityStore
+            ?? throw new InvalidOperationException("Session management is unavailable.");
+        var result = await store.RevokeSessionAsync(RequireUserId(), sessionId, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("sessions/revoke-others")]
+    public async Task<IActionResult> RevokeOtherSessions(CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as ISessionActivityStore
+            ?? throw new InvalidOperationException("Session management is unavailable.");
+        var count = await store.RevokeOtherSessionsAsync(RequireUserId(), null, currentUser.SessionTokenId, cancellationToken);
+        return Ok(new { revoked = count });
+    }
+
+    [HttpPost("2fa/sms/request")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<SmsTwoFactorChallengeDto>> RequestSmsFallback(SmsTwoFactorRequest request, CancellationToken cancellationToken)
+    {
+        var challenge = await db.MilestoneTwoFactorChallenges.SingleOrDefaultAsync(item => item.ChallengeId == request.ChallengeId && item.ExpiresAt > DateTimeOffset.UtcNow, cancellationToken);
+        if (challenge is null) throw new InvalidOperationException("Invalid or expired 2FA challenge.");
+        var user = await db.MilestoneUsers.AsNoTracking().SingleOrDefaultAsync(item => item.Id == challenge.UserId, cancellationToken);
+        if (user is null || string.IsNullOrWhiteSpace(user.Phone)) throw new InvalidOperationException("SMS fallback is not available for this account.");
+        var flow = await specCompletionStore.StartAuthFlowAsync(new StartAuthFlowRequest(user.Id, "OneTimePasscode", user.Phone, ResolveRequesterIp()), cancellationToken);
+        return Ok(new SmsTwoFactorChallengeDto(flow.Id, challenge.ChallengeId, MaskPhone(user.Phone), flow.ExpiresAt, flow.AttemptsRemaining));
+    }
+
+    [HttpPost("2fa/sms/verify")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<IActionResult> VerifySmsFallback(VerifySmsTwoFactorRequest request, CancellationToken cancellationToken)
+    {
+        var challenge = await db.MilestoneTwoFactorChallenges.SingleOrDefaultAsync(item => item.ChallengeId == request.ChallengeId && item.ExpiresAt > DateTimeOffset.UtcNow, cancellationToken);
+        if (challenge is null) throw new InvalidOperationException("Invalid or expired 2FA challenge.");
+        var flow = await specCompletionStore.CompleteAuthFlowAsync(new CompleteAuthFlowRequest(request.FlowId, request.Code), cancellationToken);
+        if (flow.UserId != challenge.UserId || !flow.FlowType.Equals("OneTimePasscode", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("SMS challenge does not match the login attempt.");
+        db.MilestoneTwoFactorChallenges.Remove(challenge);
+        await db.SaveChangesAsync(cancellationToken);
+        var profile = await phaseOneStore.GetUserProfileAsync(challenge.UserId, cancellationToken);
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
+        var accessToken = accessTokenService.Issue(profile.UserId, profile.Roles, expiresAt);
+        if (phaseOneStore is ISessionActivityStore sessionStore && accessTokenService.Validate(accessToken) is { } session)
+        {
+            await sessionStore.RecordSessionAsync(profile.UserId, session.TokenId, session.IssuedAt, expiresAt,
+                string.IsNullOrWhiteSpace(request.DeviceName) ? "SMS fallback browser" : request.DeviceName,
+                Request.Headers.UserAgent.ToString(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                request.RememberDevice,
+                cancellationToken);
+        }
+        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, accessToken, expiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
+        var response = new VerifyTwoFactorResponse(profile.UserId, accessToken, expiresAt, profile.Roles);
+        return Ok(SanitizeForBrowser(response));
+    }
 
     [Authorize]
     [HttpPost("profile/photo/uploads")]
@@ -153,6 +238,12 @@ public sealed class AuthController(
     private Guid RequireUserId() =>
         currentUser.UserId ?? throw new UnauthorizedAccessException("A signed session bearer token is required.");
 
+    private static string MaskPhone(string phone)
+    {
+        var normalized = phone.Trim();
+        return normalized.Length <= 4 ? "••••" : $"{new string('•', Math.Max(0, normalized.Length - 4))}{normalized[^4..]}";
+    }
+
     private bool IsSecureCookie() =>
         configuration.GetValue<bool?>("Security:SessionCookieSecure") ?? environment.IsProduction();
 
@@ -184,3 +275,14 @@ public sealed class AuthController(
     private object SanitizeForBrowser(VerifyTwoFactorResponse result) =>
         SessionCookieAuth.IsCookieMode(Request) ? result with { AccessToken = string.Empty } : result;
 }
+
+public sealed record SmsTwoFactorRequest(string ChallengeId);
+public sealed record VerifySmsTwoFactorRequest(
+    string ChallengeId,
+    Guid FlowId,
+    string Code,
+    string? DeviceName = null,
+    bool RememberDevice = false,
+    string? UserAgent = null,
+    string? IpAddress = null);
+public sealed record SmsTwoFactorChallengeDto(Guid FlowId, string ChallengeId, string MaskedPhone, DateTimeOffset ExpiresAt, int AttemptsRemaining);

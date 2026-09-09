@@ -213,6 +213,22 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
         return result is null ? NotFound() : Ok(result);
     }
 
+    [Authorize(Roles = "PropertyManager")]
+    [HttpPost("documents/exports")]
+    public async Task<IActionResult> CreateDocumentExport(CreateDocumentExportRequest request, CancellationToken cancellationToken) => Ok(await store.CreateDocumentExportAsync(Actor(), request, cancellationToken));
+
+    [Authorize(Roles = "PropertyManager")]
+    [HttpGet("documents/exports/{exportId:guid}")]
+    public async Task<IActionResult> GetDocumentExport(Guid exportId, CancellationToken cancellationToken) => (await store.GetDocumentExportAsync(Actor(), exportId, cancellationToken)) is { } result ? Ok(result) : NotFound();
+
+    [Authorize(Roles = "PropertyManager")]
+    [HttpGet("documents/exports/{exportId:guid}/download")]
+    public async Task<IActionResult> DownloadDocumentExport(Guid exportId, CancellationToken cancellationToken)
+    {
+        var result = await store.OpenDocumentExportAsync(Actor(), exportId, cancellationToken);
+        return result is null ? NotFound() : File(result.Content, result.ContentType, result.FileName, enableRangeProcessing: false);
+    }
+
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("documents/{documentId:guid}/archive")]
     public async Task<IActionResult> ArchiveDocument(Guid documentId, [FromQuery] bool restore, CancellationToken cancellationToken) => (await store.ArchiveDocumentAsync(Actor(), documentId, restore, cancellationToken)) is { } result ? Ok(result) : NotFound();

@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NestyStay.Api.Auth;
 using NestyStay.Api.Configuration;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Domain;
+using NestyStay.Infrastructure.Persistence;
+using NestyStay.Infrastructure.Persistence.Milestones;
 
 namespace NestyStay.Api.Controllers;
 
@@ -14,7 +17,8 @@ namespace NestyStay.Api.Controllers;
 public sealed class PropertiesController(
     IPhaseOneStore phaseOneStore,
     IPhaseTwoStore phaseTwoStore,
-    IResourceAuthorizationService authorization) : ControllerBase
+    IResourceAuthorizationService authorization,
+    NestyStayDbContext db) : ControllerBase
 {
     [HttpGet]
     public IActionResult GetProperties() => Ok(phaseOneStore.GetProperties());
@@ -52,6 +56,50 @@ public sealed class PropertiesController(
         var store = phaseOneStore as IPropertyEnhancementStore
             ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
         return Ok(await store.BulkArchivePropertiesAsync(authorization.RequireHost(), request.PropertyIds, request.IsArchived, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("bulk/edit/preview")]
+    public async Task<ActionResult<BulkPropertyEditPreviewDto>> PreviewBulkEdit(BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.PreviewBulkPropertyEditAsync(authorization.RequireHost(), request, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("bulk/edit")]
+    public async Task<ActionResult<IReadOnlyList<PropertyListingDto>>> BulkEdit(BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.BulkEditPropertiesAsync(authorization.RequireHost(), request, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/availability")]
+    public async Task<ActionResult<PropertyAvailabilityDto>> GetAvailability(Guid id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken cancellationToken)
+    {
+        if (phaseOneStore.GetProperty(id) is null) return NotFound();
+        var start = from ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var end = to ?? start.AddDays(60);
+        if (end <= start || end.DayNumber - start.DayNumber > 366) return BadRequest("Availability range must be between 1 and 366 days.");
+        var bookings = phaseOneStore.GetBookings().Where(item => item.PropertyId == id && !item.Status.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) && !item.Status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase)).ToList();
+        var blocks = await db.MilestoneCalendarBlocks.AsNoTracking().Where(item => item.PropertyId == id && !item.IsDeleted && item.EndsOn > start && item.StartsOn < end).ToListAsync(cancellationToken);
+        var days = Enumerable.Range(0, end.DayNumber - start.DayNumber).Select(offset =>
+        {
+            var date = start.AddDays(offset);
+            var booking = bookings.FirstOrDefault(item => item.CheckIn <= date && item.CheckOut > date);
+            if (booking is not null)
+            {
+                var held = booking.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase);
+                return new PropertyAvailabilityDayDto(date, held ? "HELD" : "BOOKED", "Booking", held ? "Held while verification completes" : "Confirmed booking");
+            }
+            var block = blocks.FirstOrDefault(item => item.StartsOn <= date && item.EndsOn > date);
+            return block is null
+                ? new PropertyAvailabilityDayDto(date, "AVAILABLE", "Available")
+                : new PropertyAvailabilityDayDto(date, "BLOCKED", "ExternalCalendar", block.Summary);
+        }).ToList();
+        return Ok(new PropertyAvailabilityDto(id, start, end, days));
     }
 
     [Authorize(Roles = "Host")]

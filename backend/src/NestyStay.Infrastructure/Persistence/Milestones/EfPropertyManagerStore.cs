@@ -33,10 +33,11 @@ public sealed class EfPropertyManagerStore(
         var proposals = await db.MilestoneManagerProposals.Where(x => x.ManagerUserId == actorUserId && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).Take(20).ToListAsync(cancellationToken);
         var documents = await db.MilestoneManagerDocuments.Where(x => x.ManagerUserId == actorUserId && !x.IsDeleted && !x.IsArchived).OrderByDescending(x => x.CreatedAt).Take(20).ToListAsync(cancellationToken);
         var gateMessages = await db.MilestoneManagerGateMessages.Where(x => x.ManagerUserId == actorUserId && !x.IsDeleted).OrderByDescending(x => x.ValidFrom).Take(20).ToListAsync(cancellationToken);
+        if (ApplyDueSubscriptionChange(manager)) await db.SaveChangesAsync(cancellationToken);
         var proposalDtos = new List<ProposalDto>();
         foreach (var proposal in proposals) proposalDtos.Add(await BuildProposalDtoAsync(proposal, cancellationToken));
         return new PropertyManagerDashboardDto(
-            ToDto(manager), owners.Count, properties.Count,
+            ToDto(manager, properties.Count), owners.Count, properties.Count,
             invoices.Sum(x => x.Balance), invoices.Count(x => x.Status is "ISSUED" or "OVERDUE" && x.Balance > 0),
             maintenance.Count(x => x.Status is not ("COMPLETED" or "CANCELLED")), owners.Count(x => x.VerificationStatus == "PENDING"),
             await db.MilestoneManagerQrScans.CountAsync(x => x.CreatedAt >= timeProvider.GetUtcNow().AddDays(-30) && !x.IsDeleted, cancellationToken),
@@ -82,18 +83,29 @@ public sealed class EfPropertyManagerStore(
     public async Task<ManagerProfileDto> RenewSubscriptionAsync(Guid managerUserId, CancellationToken cancellationToken)
     {
         var manager = await EnsureManagerAsync(managerUserId, cancellationToken);
+        ApplyDueSubscriptionChange(manager);
         manager.SubscriptionStatus = "ACTIVE";
         manager.NextBillingAt = timeProvider.GetUtcNow().AddMonths(1);
-        manager.SubscriptionTier = "Portfolio";
-        manager.MonthlyAmount = 0m; // the signed agreement leaves tier prices configurable
+        manager.BillingProviderStatus = "LOCAL_TEST_CAPTURED";
+        manager.CancellationReason = null;
+        manager.AutoRenew = true;
+        manager.PendingSubscriptionTier = null;
+        manager.PendingSubscriptionEffectiveAt = null;
+        db.MilestoneManagerSubscriptionEvents.Add(new MilestoneManagerSubscriptionEvent { ManagerUserId = managerUserId, EventType = "RENEW", FromTier = manager.SubscriptionTier, ToTier = manager.SubscriptionTier, Status = "COMPLETED", Reason = "Subscription renewed by manager.", EffectiveAt = timeProvider.GetUtcNow() });
         await AuditAsync(managerUserId, "ManagerSubscriptionRenewed", "PropertyManager", manager.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
-        return ToDto(manager);
+        var unitsUsed = await db.MilestoneManagerProperties.CountAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        return ToDto(manager, unitsUsed);
     }
 
     public async Task<PropertyDto> AddPropertyAsync(Guid managerUserId, AddPropertyRequest request, CancellationToken cancellationToken)
     {
-        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var manager = await EnsureManagerAsync(managerUserId, cancellationToken);
+        ApplyDueSubscriptionChange(manager);
+        var unitLimit = SubscriptionUnitLimit(manager.SubscriptionTier);
+        var unitsUsed = await db.MilestoneManagerProperties.CountAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (unitLimit is { } limit && unitsUsed >= limit)
+            throw new InvalidOperationException($"The {manager.SubscriptionTier} plan allows {limit} units. Upgrade the subscription to add another property.");
         await RequireOwnerScopeAsync(managerUserId, request.OwnerUserId, cancellationToken);
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.UnitNumber)) throw new InvalidOperationException("Property title and unit number are required.");
         var property = new MilestoneManagerProperty { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, CommunityId = request.CommunityId, Title = request.Title.Trim(), UnitNumber = request.UnitNumber.Trim(), Address = request.Address.Trim(), Status = "ACTIVE", OccupancyStatus = "VACANT" };
@@ -436,7 +448,7 @@ public sealed class EfPropertyManagerStore(
     { if (isAdmin) return (await db.MilestoneManagerDocuments.Where(x => !x.IsDeleted && !x.IsArchived).ToListAsync(cancellationToken)).Select(ToDto).ToList(); var managerIds = await db.MilestoneManagerOwners.Where(x => x.OwnerUserId == actorUserId && !x.IsDeleted).Select(x => x.ManagerUserId).ToListAsync(cancellationToken); return (await db.MilestoneManagerDocuments.Where(x => managerIds.Contains(x.ManagerUserId) && !x.IsDeleted && !x.IsArchived && (x.OwnerUserId == null || x.OwnerUserId == actorUserId)).ToListAsync(cancellationToken)).Select(ToDto).ToList(); }
 
     public async Task<DocumentDto> AddDocumentAsync(Guid managerUserId, AddDocumentRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); if (request.OwnerUserId is { } owner) await RequireOwnerScopeAsync(managerUserId, owner, cancellationToken); if (request.PropertyId is { } documentProperty && !await db.MilestoneManagerProperties.AnyAsync(x => x.Id == documentProperty && x.ManagerUserId == managerUserId && (!request.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Property is not in the manager portfolio."); if (request.SizeBytes <= 0 || request.SizeBytes > 25 * 1024 * 1024) throw new InvalidOperationException("Document size must be between 1 byte and 25 MB."); var safeName = Path.GetFileName(request.FileName); if (safeName != request.FileName || safeName.Contains("..", StringComparison.Ordinal)) throw new InvalidOperationException("Document filename is invalid."); var allowed = request.ContentType.ToLowerInvariant() is "application/pdf" or "image/jpeg" or "image/png"; if (!allowed) throw new InvalidOperationException("Only PDF, JPEG, and PNG documents are accepted."); var key = $"property-manager/{managerUserId:N}/{Guid.NewGuid():N}/{safeName}"; if (!string.IsNullOrWhiteSpace(request.ContentBase64)) { byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Document content is not valid base64."); } if (bytes.LongLength != request.SizeBytes) throw new InvalidOperationException("Document size does not match content."); await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken); } var item = new MilestoneManagerDocument { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = request.PropertyId, Title = request.Title.Trim(), Category = request.Category.Trim(), FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, AccessScope = request.OwnerUserId is null ? "COMMUNITY" : "OWNER" }; db.MilestoneManagerDocuments.Add(item); db.MilestoneManagerDocumentVersions.Add(new MilestoneManagerDocumentVersion { DocumentId = item.Id, ManagerUserId = managerUserId, Version = 1, FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId }); await AuditAsync(managerUserId, "DocumentStored", "Document", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
+    { await EnsureManagerAsync(managerUserId, cancellationToken); if (request.OwnerUserId is { } owner) await RequireOwnerScopeAsync(managerUserId, owner, cancellationToken); if (request.PropertyId is { } documentProperty && !await db.MilestoneManagerProperties.AnyAsync(x => x.Id == documentProperty && x.ManagerUserId == managerUserId && (!request.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Property is not in the manager portfolio."); if (request.SizeBytes <= 0 || request.SizeBytes > 25 * 1024 * 1024) throw new InvalidOperationException("Document size must be between 1 byte and 25 MB."); if (request.ExpiresOn is { } expiresOn && expiresOn < DateOnly.FromDateTime(DateTime.UtcNow)) throw new InvalidOperationException("Document expiry must be today or later."); var safeName = Path.GetFileName(request.FileName); if (safeName != request.FileName || safeName.Contains("..", StringComparison.Ordinal)) throw new InvalidOperationException("Document filename is invalid."); var allowed = request.ContentType.ToLowerInvariant() is "application/pdf" or "image/jpeg" or "image/png"; if (!allowed) throw new InvalidOperationException("Only PDF, JPEG, and PNG documents are accepted."); var key = $"property-manager/{managerUserId:N}/{Guid.NewGuid():N}/{safeName}"; if (!string.IsNullOrWhiteSpace(request.ContentBase64)) { byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Document content is not valid base64."); } if (bytes.LongLength != request.SizeBytes) throw new InvalidOperationException("Document size does not match content."); await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken); } var item = new MilestoneManagerDocument { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = request.PropertyId, Title = request.Title.Trim(), Category = request.Category.Trim(), FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, AccessScope = request.OwnerUserId is null ? "COMMUNITY" : "OWNER", ExpiresOn = request.ExpiresOn }; db.MilestoneManagerDocuments.Add(item); db.MilestoneManagerDocumentVersions.Add(new MilestoneManagerDocumentVersion { DocumentId = item.Id, ManagerUserId = managerUserId, Version = 1, FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId }); await AuditAsync(managerUserId, "DocumentStored", "Document", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
 
     public async Task<DocumentDownloadDto?> GetDocumentDownloadAsync(Guid actorUserId, bool isAdmin, Guid documentId, CancellationToken cancellationToken)
     {
@@ -447,6 +459,56 @@ public sealed class EfPropertyManagerStore(
         db.MilestoneManagerDocumentAccessEvents.Add(new MilestoneManagerDocumentAccessEvent { DocumentId = document.Id, ActorUserId = actorUserId, Action = "DOWNLOAD" });
         await db.SaveChangesAsync(cancellationToken);
         return new DocumentDownloadDto(document.Id, document.FileName, document.ContentType, document.SizeBytes, url, expiresAt);
+    }
+
+    public async Task<DocumentExportDto> CreateDocumentExportAsync(Guid managerUserId, CreateDocumentExportRequest request, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var ids = request.DocumentIds?.Distinct().ToArray() ?? [];
+        if (ids.Length is 0 or > 100) throw new InvalidOperationException("Select between 1 and 100 documents for an export.");
+        var available = await db.MilestoneManagerDocuments
+            .Where(x => x.ManagerUserId == managerUserId && ids.Contains(x.Id) && !x.IsDeleted && !x.IsArchived)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        if (available.Count != ids.Length) throw new InvalidOperationException("One or more documents are not available in this manager portfolio.");
+        var item = new MilestoneManagerDocumentExport
+        {
+            ManagerUserId = managerUserId,
+            DocumentIdsJson = JsonSerializer.Serialize(ids),
+            Status = "QUEUED"
+        };
+        db.MilestoneManagerDocumentExports.Add(item);
+        await AuditAsync(managerUserId, "DocumentExportQueued", "DocumentExport", item.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(item, null);
+    }
+
+    public async Task<DocumentExportDto?> GetDocumentExportAsync(Guid managerUserId, Guid exportId, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var item = await db.MilestoneManagerDocumentExports.AsNoTracking().SingleOrDefaultAsync(x => x.Id == exportId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (item is null) return null;
+        string? url = null;
+        if (item.Status == "COMPLETED" && !string.IsNullOrWhiteSpace(item.ObjectKey) && item.ExpiresAt is { } expiresAt && expiresAt > timeProvider.GetUtcNow())
+        {
+            url = await storageProvider.CreateDownloadUrlAsync(item.ObjectKey, expiresAt, cancellationToken);
+        }
+        return ToDto(item, url);
+    }
+
+    public async Task<DocumentExportFile?> OpenDocumentExportAsync(Guid managerUserId, Guid exportId, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var item = await db.MilestoneManagerDocumentExports.SingleOrDefaultAsync(x => x.Id == exportId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (item is null || !item.Status.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(item.ObjectKey) || item.ExpiresAt is not { } expiresAt || expiresAt <= timeProvider.GetUtcNow())
+        {
+            return null;
+        }
+
+        var content = await storageProvider.OpenReadAsync(item.ObjectKey, cancellationToken);
+        await AuditAsync(managerUserId, "DocumentExportDownloaded", "DocumentExport", item.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return new DocumentExportFile(content, item.FileName ?? "nesty-documents.zip", "application/zip", expiresAt);
     }
 
     public async Task<GateMessageDto> CreateGateMessageAsync(Guid managerUserId, CreateGateMessageRequest request, CancellationToken cancellationToken)
@@ -755,14 +817,123 @@ public sealed class EfPropertyManagerStore(
     }
 
     public async Task<ManagerProfileDto> ChangeSubscriptionAsync(Guid managerUserId, ChangeSubscriptionRequest request, CancellationToken cancellationToken)
-    { var manager = await EnsureManagerAsync(managerUserId, cancellationToken); var action = request.Action.Trim().ToUpperInvariant(); if (action is not ("PAUSE" or "RESUME" or "UPGRADE" or "DOWNGRADE" or "CANCEL" or "REACTIVATE")) throw new InvalidOperationException("Unsupported subscription action."); var from = manager.SubscriptionTier; if (action == "UPGRADE" || action == "DOWNGRADE") manager.SubscriptionTier = string.IsNullOrWhiteSpace(request.TargetTier) ? (action == "UPGRADE" ? "Enterprise" : "Starter") : request.TargetTier.Trim(); manager.SubscriptionStatus = action switch { "PAUSE" => "PAUSED", "CANCEL" => "CANCELLED", "RESUME" or "REACTIVATE" => "ACTIVE", _ => manager.SubscriptionStatus }; manager.NextBillingAt = action is "CANCEL" or "PAUSE" ? manager.NextBillingAt : timeProvider.GetUtcNow().AddMonths(1); db.MilestoneManagerSubscriptionEvents.Add(new MilestoneManagerSubscriptionEvent { ManagerUserId = managerUserId, EventType = action, FromTier = from, ToTier = manager.SubscriptionTier, Status = "COMPLETED", Reason = request.Reason?.Trim(), EffectiveAt = timeProvider.GetUtcNow() }); await AuditAsync(managerUserId, $"Subscription{action}", "PropertyManager", manager.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(manager); }
+    {
+        var manager = await EnsureManagerAsync(managerUserId, cancellationToken);
+        ApplyDueSubscriptionChange(manager);
+        var action = request.Action.Trim().ToUpperInvariant();
+        if (action is not ("PAUSE" or "RESUME" or "UPGRADE" or "DOWNGRADE" or "CANCEL" or "REACTIVATE" or "AUTO_RENEW"))
+            throw new InvalidOperationException("Unsupported subscription action.");
+
+        var now = timeProvider.GetUtcNow();
+        var from = manager.SubscriptionTier;
+        var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+        var toTier = manager.SubscriptionTier;
+        var status = "COMPLETED";
+
+        if (action is "UPGRADE" or "DOWNGRADE")
+        {
+            var requestedTier = NormalizeSubscriptionTier(request.TargetTier, action == "UPGRADE" ? "Enterprise" : "Starter");
+            var currentRank = SubscriptionTierRank(manager.SubscriptionTier);
+            var targetRank = SubscriptionTierRank(requestedTier);
+            if (action == "UPGRADE" && targetRank <= currentRank)
+                throw new InvalidOperationException("An upgrade must select a higher subscription tier.");
+            if (action == "DOWNGRADE" && targetRank >= currentRank)
+                throw new InvalidOperationException("A downgrade must select a lower subscription tier.");
+
+            if (action == "DOWNGRADE")
+            {
+                manager.PendingSubscriptionTier = requestedTier;
+                manager.PendingSubscriptionEffectiveAt = manager.NextBillingAt > now ? manager.NextBillingAt : now.AddMonths(1);
+                toTier = requestedTier;
+                status = "SCHEDULED";
+            }
+            else
+            {
+                manager.SubscriptionTier = requestedTier;
+                manager.PendingSubscriptionTier = null;
+                manager.PendingSubscriptionEffectiveAt = null;
+                manager.NextBillingAt = now.AddMonths(1);
+                toTier = requestedTier;
+            }
+        }
+        else if (action == "PAUSE")
+        {
+            manager.SubscriptionStatus = "PAUSED";
+            manager.BillingProviderStatus = "PAUSED_LOCAL";
+        }
+        else if (action is "RESUME" or "REACTIVATE")
+        {
+            manager.SubscriptionStatus = "ACTIVE";
+            manager.BillingProviderStatus = "LOCAL_TEST_READY";
+            manager.CancellationReason = null;
+            if (action == "REACTIVATE") manager.AutoRenew = true;
+        }
+        else if (action == "CANCEL")
+        {
+            manager.SubscriptionStatus = "CANCELLED";
+            manager.AutoRenew = false;
+            manager.CancellationReason = reason ?? "Cancelled by manager.";
+            manager.BillingProviderStatus = "CANCELLED_LOCAL";
+        }
+        else if (action == "AUTO_RENEW")
+        {
+            if (request.AutoRenew is null) throw new InvalidOperationException("Auto-renew preference is required.");
+            manager.AutoRenew = request.AutoRenew.Value;
+            if (manager.AutoRenew && manager.SubscriptionStatus == "CANCELLED")
+            {
+                manager.SubscriptionStatus = "ACTIVE";
+                manager.BillingProviderStatus = "LOCAL_TEST_READY";
+                manager.CancellationReason = null;
+            }
+        }
+
+        db.MilestoneManagerSubscriptionEvents.Add(new MilestoneManagerSubscriptionEvent
+        {
+            ManagerUserId = managerUserId,
+            EventType = action,
+            FromTier = from,
+            ToTier = toTier,
+            Status = status,
+            Reason = reason,
+            EffectiveAt = status == "SCHEDULED" ? manager.PendingSubscriptionEffectiveAt!.Value : now
+        });
+        await AuditAsync(managerUserId, $"Subscription{action}", "PropertyManager", manager.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        var unitsUsed = await db.MilestoneManagerProperties.CountAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        return ToDto(manager, unitsUsed);
+    }
 
     public async Task<IReadOnlyList<SubscriptionEventDto>> ListSubscriptionEventsAsync(Guid managerUserId, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); return (await db.MilestoneManagerSubscriptionEvents.AsNoTracking().Where(x => x.ManagerUserId == managerUserId && !x.IsDeleted).OrderByDescending(x => x.EffectiveAt).ToListAsync(cancellationToken)).Select(x => new SubscriptionEventDto(x.Id, x.EventType, x.FromTier, x.ToTier, x.Status, x.Reason, x.EffectiveAt)).ToList(); }
+    {
+        var manager = await EnsureManagerAsync(managerUserId, cancellationToken);
+        if (ApplyDueSubscriptionChange(manager)) await db.SaveChangesAsync(cancellationToken);
+        return (await db.MilestoneManagerSubscriptionEvents.AsNoTracking().Where(x => x.ManagerUserId == managerUserId && !x.IsDeleted).OrderByDescending(x => x.EffectiveAt).ToListAsync(cancellationToken)).Select(x => new SubscriptionEventDto(x.Id, x.EventType, x.FromTier, x.ToTier, x.Status, x.Reason, x.EffectiveAt)).ToList();
+    }
+
+    public async Task<int> ApplyDueSubscriptionChangesAsync(CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        var managers = await db.MilestonePropertyManagers
+            .Where(x => !x.IsDeleted && x.PendingSubscriptionTier != null && x.PendingSubscriptionEffectiveAt <= now)
+            .OrderBy(x => x.PendingSubscriptionEffectiveAt)
+            .Take(500)
+            .ToListAsync(cancellationToken);
+        var applied = 0;
+        foreach (var manager in managers)
+        {
+            if (!ApplyDueSubscriptionChange(manager)) continue;
+            await AuditAsync(manager.ManagerUserId, "SubscriptionDowngradeApplied", "PropertyManager", manager.Id, cancellationToken);
+            applied++;
+        }
+        if (applied > 0) await db.SaveChangesAsync(cancellationToken);
+        return applied;
+    }
 
     public async Task<SubscriptionEventDto> RetrySubscriptionPaymentAsync(Guid managerUserId, CancellationToken cancellationToken)
     {
         var manager = await EnsureManagerAsync(managerUserId, cancellationToken);
+        ApplyDueSubscriptionChange(manager);
+        manager.BillingProviderStatus = "RETRY_QUEUED";
         var item = new MilestoneManagerSubscriptionEvent { ManagerUserId = managerUserId, EventType = "PAYMENT_RETRY", FromTier = manager.SubscriptionTier, ToTier = manager.SubscriptionTier, Status = "RETRY_QUEUED", Reason = "Manager requested a billing retry.", EffectiveAt = timeProvider.GetUtcNow() };
         db.MilestoneManagerSubscriptionEvents.Add(item);
         await AuditAsync(managerUserId, "SubscriptionPaymentRetryQueued", "PropertyManager", manager.Id, cancellationToken);
@@ -987,7 +1158,7 @@ public sealed class EfPropertyManagerStore(
         }
         var manager = await db.MilestonePropertyManagers.SingleOrDefaultAsync(x => x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
         if (manager is not null) return manager;
-        manager = new MilestonePropertyManager { ManagerUserId = managerUserId, BusinessName = "NestyStay Property Management", SubscriptionTier = "Portfolio", MonthlyAmount = 0m, SubscriptionStatus = "ACTIVE", NextBillingAt = timeProvider.GetUtcNow().AddMonths(1) };
+        manager = new MilestonePropertyManager { ManagerUserId = managerUserId, BusinessName = "NestyStay Property Management", SubscriptionTier = "Portfolio", MonthlyAmount = 0m, SubscriptionStatus = "ACTIVE", BillingProviderStatus = "LOCAL_TEST_READY", AutoRenew = true, NextBillingAt = timeProvider.GetUtcNow().AddMonths(1) };
         db.MilestonePropertyManagers.Add(manager); await db.SaveChangesAsync(cancellationToken); return manager;
     }
     private async Task RequireOwnerScopeAsync(Guid managerUserId, Guid ownerUserId, CancellationToken cancellationToken) { if (!await db.MilestoneManagerOwners.AnyAsync(x => x.ManagerUserId == managerUserId && x.OwnerUserId == ownerUserId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Owner is not assigned to this manager."); }
@@ -1003,7 +1174,72 @@ public sealed class EfPropertyManagerStore(
         return new ProposalDto(proposal.Id, proposal.CommunityId, proposal.Title, proposal.Description, proposal.OpensAt, proposal.ClosesAt, proposal.Status, proposal.IsAnonymous, proposal.Quorum, eligible, votes.Count, results);
     }
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
-    private static ManagerProfileDto ToDto(MilestonePropertyManager x) => new(x.ManagerUserId, x.BusinessName, x.SubscriptionTier, x.MonthlyAmount, x.SubscriptionStatus, x.NextBillingAt);
+    private static ManagerProfileDto ToDto(MilestonePropertyManager x, int unitsUsed = 0) => new(
+        x.ManagerUserId,
+        x.BusinessName,
+        x.SubscriptionTier,
+        x.MonthlyAmount,
+        x.SubscriptionStatus,
+        x.NextBillingAt,
+        x.PendingSubscriptionTier,
+        x.PendingSubscriptionEffectiveAt,
+        x.AutoRenew,
+        x.BillingProviderStatus,
+        SubscriptionUnitLimit(x.SubscriptionTier),
+        unitsUsed,
+        x.CancellationReason);
+
+    private static int? SubscriptionUnitLimit(string tier) => tier.Trim().ToUpperInvariant() switch
+    {
+        "STARTER" or "STANDARD" => 10,
+        "PROFESSIONAL" => 50,
+        "ENTERPRISE" or "PORTFOLIO" => null,
+        _ => 10
+    };
+
+    private static int SubscriptionTierRank(string tier) => tier.Trim().ToUpperInvariant() switch
+    {
+        "STARTER" => 0,
+        "STANDARD" => 1,
+        "PROFESSIONAL" => 2,
+        "ENTERPRISE" => 3,
+        "PORTFOLIO" => 3,
+        _ => -1
+    };
+
+    private static string NormalizeSubscriptionTier(string? tier, string fallback) =>
+        (tier ?? fallback).Trim().ToUpperInvariant() switch
+        {
+            "STARTER" => "Starter",
+            "STANDARD" => "Standard",
+            "PROFESSIONAL" => "Professional",
+            "ENTERPRISE" => "Enterprise",
+            "PORTFOLIO" => "Portfolio",
+            _ => throw new InvalidOperationException("Subscription tier must be Starter, Standard, Professional, or Enterprise.")
+        };
+
+    private bool ApplyDueSubscriptionChange(MilestonePropertyManager manager)
+    {
+        if (string.IsNullOrWhiteSpace(manager.PendingSubscriptionTier) || manager.PendingSubscriptionEffectiveAt is not { } effectiveAt || effectiveAt > timeProvider.GetUtcNow()) return false;
+        var previousTier = manager.SubscriptionTier;
+        var nextTier = manager.PendingSubscriptionTier!;
+        manager.SubscriptionTier = nextTier;
+        manager.PendingSubscriptionTier = null;
+        manager.PendingSubscriptionEffectiveAt = null;
+        manager.SubscriptionStatus = manager.AutoRenew ? "ACTIVE" : "CANCELLED";
+        manager.BillingProviderStatus = manager.AutoRenew ? "LOCAL_TEST_READY" : "CANCELLED_LOCAL";
+        db.MilestoneManagerSubscriptionEvents.Add(new MilestoneManagerSubscriptionEvent
+        {
+            ManagerUserId = manager.ManagerUserId,
+            EventType = "DOWNGRADE_APPLIED",
+            FromTier = previousTier,
+            ToTier = nextTier,
+            Status = "COMPLETED",
+            Reason = "Scheduled downgrade reached the end of the paid period.",
+            EffectiveAt = effectiveAt
+        });
+        return true;
+    }
     private static OwnerDto ToDto(MilestoneManagerOwner x) => new(x.Id, x.OwnerUserId, x.DisplayName, x.Email, x.VerificationStatus, x.InvitationStatus, x.CommunityId);
     private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus);
     private static InvoiceDto ToDto(MilestoneManagerInvoice x, IEnumerable<MilestoneManagerInvoiceLine> lines) => new(x.Id, x.OwnerUserId, x.PropertyId, x.InvoiceNumber, x.IssueDate, x.DueDate, x.Subtotal, x.Tax, x.Total, x.AmountPaid, x.Balance, x.Currency, x.Status, lines.Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitAmount, l.Amount)).ToList());
@@ -1018,7 +1254,9 @@ public sealed class EfPropertyManagerStore(
     }
     private static ProposalDto ToDto(MilestoneManagerProposal x, int eligible, int votes) { var results = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase); return new(x.Id, x.CommunityId, x.Title, x.Description, x.OpensAt, x.ClosesAt, x.Status, x.IsAnonymous, x.Quorum, eligible, votes, results); }
     private static ProxyDto ToDto(MilestoneManagerProxy x) => new(x.Id, x.ProposalId, x.OwnerUserId, x.ProxyUserId, x.Status, x.ValidUntil, x.AcceptedAt);
-    private static DocumentDto ToDto(MilestoneManagerDocument x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.Title, x.Category, x.FileName, x.ContentType, x.SizeBytes, x.AccessScope, x.IsArchived, x.CreatedAt);
+    private static DocumentDto ToDto(MilestoneManagerDocument x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.Title, x.Category, x.FileName, x.ContentType, x.SizeBytes, x.AccessScope, x.IsArchived, x.ExpiresOn, x.CreatedAt);
+    private static DocumentExportDto ToDto(MilestoneManagerDocumentExport x, string? url) => new(x.Id, x.Status, ParseDocumentIds(x.DocumentIdsJson).Count, x.FileName, url, x.Error, x.CreatedAt, x.CompletedAt, x.ExpiresAt);
+    private static IReadOnlyList<Guid> ParseDocumentIds(string value) => JsonSerializer.Deserialize<Guid[]>(value) ?? [];
     private static GateMessageDto ToDto(MilestoneManagerGateMessage x) => new(x.Id, x.CommunityId, x.PropertyId, x.Recipient, x.Message, x.VisitorType, x.ValidFrom, x.ValidUntil);
     private static NestyStay.Application.PropertyManager.PaymentMethodDto ToDto(MilestoneManagerPaymentMethod x) => new(x.Id, x.OwnerUserId, x.Provider, x.Brand, x.Last4, x.ExpMonth, x.ExpYear, x.IsDefault);
     private static PaymentOperationDto ToPaymentDto(MilestoneManagerPayment x) => new(x.Id, x.InvoiceId, x.OwnerUserId, x.Amount, x.RefundedAmount, x.Provider, x.ProviderReference, x.Status, x.ReconciliationStatus, x.ReconciliationReference, x.RefundReason, x.CreatedAt);

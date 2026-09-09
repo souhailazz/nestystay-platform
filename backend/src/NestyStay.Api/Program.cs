@@ -84,6 +84,10 @@ builder.Services.AddInfrastructureServices(
 if (builder.Configuration.GetValue("BackgroundJobs:Enabled", true))
 {
     builder.Services.AddHostedService<MilestoneMaintenanceService>();
+    builder.Services.AddHostedService<CalendarSyncMaintenanceService>();
+    builder.Services.AddHostedService<PropertyManagerDocumentExpiryService>();
+    builder.Services.AddHostedService<PropertyManagerDocumentExportService>();
+    builder.Services.AddHostedService<PropertyManagerSubscriptionMaintenanceService>();
 }
 
 var app = builder.Build();

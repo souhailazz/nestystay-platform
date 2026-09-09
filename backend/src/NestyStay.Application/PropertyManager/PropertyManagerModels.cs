@@ -50,6 +50,9 @@ public interface IPropertyManagerStore
     Task<IReadOnlyList<DocumentDto>> GetDocumentsAsync(Guid actorUserId, bool isAdmin, CancellationToken cancellationToken);
     Task<DocumentDto> AddDocumentAsync(Guid managerUserId, AddDocumentRequest request, CancellationToken cancellationToken);
     Task<DocumentDownloadDto?> GetDocumentDownloadAsync(Guid actorUserId, bool isAdmin, Guid documentId, CancellationToken cancellationToken);
+    Task<DocumentExportDto> CreateDocumentExportAsync(Guid managerUserId, CreateDocumentExportRequest request, CancellationToken cancellationToken);
+    Task<DocumentExportDto?> GetDocumentExportAsync(Guid managerUserId, Guid exportId, CancellationToken cancellationToken);
+    Task<DocumentExportFile?> OpenDocumentExportAsync(Guid managerUserId, Guid exportId, CancellationToken cancellationToken);
     Task<DocumentDto?> ArchiveDocumentAsync(Guid managerUserId, Guid documentId, bool restore, CancellationToken cancellationToken);
     Task<IReadOnlyList<DocumentVersionDto>> ListDocumentVersionsAsync(Guid actorUserId, bool isAdmin, Guid documentId, CancellationToken cancellationToken);
     Task<DocumentVersionDto> AddDocumentVersionAsync(Guid managerUserId, AddDocumentVersionRequest request, CancellationToken cancellationToken);
@@ -64,6 +67,7 @@ public interface IPropertyManagerStore
     Task<ManagerProfileDto> ChangeSubscriptionAsync(Guid managerUserId, ChangeSubscriptionRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<SubscriptionEventDto>> ListSubscriptionEventsAsync(Guid managerUserId, CancellationToken cancellationToken);
     Task<SubscriptionEventDto> RetrySubscriptionPaymentAsync(Guid managerUserId, CancellationToken cancellationToken);
+    Task<int> ApplyDueSubscriptionChangesAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<InvitationEventDto>> ListInvitationEventsAsync(Guid managerUserId, Guid ownerUserId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OwnerVerificationDto>> ListOwnerVerificationAsync(Guid managerUserId, Guid ownerUserId, CancellationToken cancellationToken);
     Task<OwnerVerificationDto> DecideOwnerVerificationAsync(Guid managerUserId, DecideOwnerVerificationRequest request, CancellationToken cancellationToken);
@@ -127,12 +131,13 @@ public sealed record CreateProposalRequest(Guid? CommunityId, string Title, stri
 public sealed record AddProposalDiscussionRequest(Guid ProposalId, string Body);
 public sealed record VoteRequest(string Choice, Guid? ProxyId = null);
 public sealed record CreateProxyRequest(Guid ProposalId, Guid ProxyUserId, DateTimeOffset ValidUntil);
-public sealed record AddDocumentRequest(Guid? OwnerUserId, Guid? PropertyId, string Title, string Category, string FileName, string ContentType, long SizeBytes, string? ContentBase64 = null);
+public sealed record AddDocumentRequest(Guid? OwnerUserId, Guid? PropertyId, string Title, string Category, string FileName, string ContentType, long SizeBytes, string? ContentBase64 = null, DateOnly? ExpiresOn = null);
+public sealed record CreateDocumentExportRequest(IReadOnlyList<Guid> DocumentIds);
 public sealed record AddDocumentVersionRequest(Guid DocumentId, string FileName, string ContentType, long SizeBytes, string ContentBase64);
 public sealed record CreateGateMessageRequest(Guid? CommunityId, Guid? PropertyId, string Recipient, string Message, string VisitorType, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);
 public sealed record IssueQrRequest(Guid? OwnerUserId, Guid? PropertyId, string SubjectType, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);
 public sealed record RevokeQrRequest(string? Reason = null);
-public sealed record ChangeSubscriptionRequest(string Action, string? TargetTier = null, string? Reason = null);
+public sealed record ChangeSubscriptionRequest(string Action, string? TargetTier = null, string? Reason = null, bool? AutoRenew = null);
 public sealed record DecideOwnerVerificationRequest(Guid OwnerUserId, string Requirement, string Status, string? Reason = null, string? DocumentKey = null);
 public sealed record SaveDashboardPreferenceRequest(IReadOnlyList<string> KpiOrder, IReadOnlyList<string> VisibleKpis, string SavedFiltersJson, IReadOnlyList<string> SavedViews);
 public sealed record SaveAgreementRequest(Guid OwnerUserId, Guid? PropertyId, DateOnly EffectiveFrom, DateOnly? EffectiveTo, string FeeRuleJson, decimal MaintenanceApprovalLimit, decimal ExpenseApprovalLimit, string? SignedDocumentKey = null);
@@ -168,7 +173,20 @@ public sealed record PropertyManagerDashboardDto(
     IReadOnlyList<ProposalDto> Proposals,
     IReadOnlyList<DocumentDto> Documents,
     IReadOnlyList<GateMessageDto> GateMessages);
-public sealed record ManagerProfileDto(Guid ManagerUserId, string BusinessName, string SubscriptionTier, decimal MonthlyAmount, string SubscriptionStatus, DateTimeOffset NextBillingAt);
+public sealed record ManagerProfileDto(
+    Guid ManagerUserId,
+    string BusinessName,
+    string SubscriptionTier,
+    decimal MonthlyAmount,
+    string SubscriptionStatus,
+    DateTimeOffset NextBillingAt,
+    string? PendingSubscriptionTier = null,
+    DateTimeOffset? PendingSubscriptionEffectiveAt = null,
+    bool AutoRenew = true,
+    string BillingProviderStatus = "LOCAL_TEST",
+    int? UnitLimit = null,
+    int UnitsUsed = 0,
+    string? CancellationReason = null);
 public sealed record OwnerDto(Guid Id, Guid OwnerUserId, string DisplayName, string Email, string VerificationStatus, string InvitationStatus, Guid? CommunityId);
 public sealed record PropertyDto(Guid Id, Guid OwnerUserId, Guid? CommunityId, string Title, string UnitNumber, string Address, string Status, string OccupancyStatus);
 public sealed record PropertyAssignmentHistoryDto(Guid Id, Guid PropertyId, Guid? PreviousOwnerUserId, Guid NewOwnerUserId, Guid ActorUserId, string Reason, Guid BatchId, DateTimeOffset ChangedAt);
@@ -206,9 +224,11 @@ public sealed record NoticeInteractionDto(Guid Id, Guid SubjectId, Guid ActorUse
 public sealed record ProposalDto(Guid Id, Guid? CommunityId, string Title, string Description, DateTimeOffset OpensAt, DateTimeOffset ClosesAt, string Status, bool IsAnonymous, int? Quorum, int EligibleVoters, int VotesCast, IReadOnlyDictionary<string, int> Results);
 public sealed record ProposalDiscussionDto(Guid Id, Guid ProposalId, Guid AuthorUserId, string Body, DateTimeOffset CreatedAt);
 public sealed record ProxyDto(Guid Id, Guid ProposalId, Guid OwnerUserId, Guid ProxyUserId, string Status, DateTimeOffset ValidUntil, DateTimeOffset? AcceptedAt);
-public sealed record DocumentDto(Guid Id, Guid? OwnerUserId, Guid? PropertyId, string Title, string Category, string FileName, string ContentType, long SizeBytes, string AccessScope, bool IsArchived, DateTimeOffset CreatedAt);
+public sealed record DocumentDto(Guid Id, Guid? OwnerUserId, Guid? PropertyId, string Title, string Category, string FileName, string ContentType, long SizeBytes, string AccessScope, bool IsArchived, DateOnly? ExpiresOn, DateTimeOffset CreatedAt);
 public sealed record DocumentVersionDto(Guid Id, Guid DocumentId, int Version, string FileName, string ContentType, long SizeBytes, Guid CreatedByUserId, DateTimeOffset CreatedAt);
 public sealed record DocumentDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
+public sealed record DocumentExportFile(Stream Content, string FileName, string ContentType, DateTimeOffset ExpiresAt);
+public sealed record DocumentExportDto(Guid Id, string Status, int DocumentCount, string? FileName, string? Url, string? Error, DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt, DateTimeOffset? ExpiresAt);
 public sealed record GateMessageDto(Guid Id, Guid? CommunityId, Guid? PropertyId, string Recipient, string Message, string VisitorType, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);
 public sealed record GateDeliveryAttemptDto(Guid Id, Guid GateMessageId, string Recipient, string Status, string? ProviderReference, int AttemptNumber, string? FailureReason, DateTimeOffset CreatedAt);
 public sealed record QrIssueDto(Guid Id, string Token, string SubjectType, Guid? PropertyId, DateTimeOffset ValidFrom, DateTimeOffset ValidUntil);

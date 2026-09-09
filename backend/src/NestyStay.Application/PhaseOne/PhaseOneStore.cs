@@ -64,6 +64,23 @@ public interface IPropertyEnhancementStore
     Task<IReadOnlyList<PropertyRevisionDto>> GetPropertyRevisionsAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken);
     Task<IReadOnlyList<PropertyListingDto>> BulkArchivePropertiesAsync(Guid hostUserId, IReadOnlyCollection<Guid> propertyIds, bool isArchived, CancellationToken cancellationToken);
     Task<PropertyListingDto> RestorePropertyRevisionAsync(Guid hostUserId, Guid propertyId, Guid revisionId, CancellationToken cancellationToken);
+    Task<BulkPropertyEditPreviewDto> PreviewBulkPropertyEditAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PropertyListingDto>> BulkEditPropertiesAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Optional authentication/session extensions.  Keeping these extensions
+/// separate preserves compatibility with legacy test adapters while allowing
+/// the EF-backed application to expose per-device revocation.
+/// </summary>
+public interface ISessionActivityStore
+{
+    Task<bool> IsSessionTokenActiveAsync(Guid userId, DateTimeOffset issuedAt, string? tokenId, CancellationToken cancellationToken);
+    Task RecordSessionAsync(Guid userId, string tokenId, DateTimeOffset issuedAt, DateTimeOffset expiresAt, string? deviceName, string? userAgent, string? ipAddress, bool trusted, CancellationToken cancellationToken);
+    Task<IReadOnlyList<UserSessionDto>> GetSessionsAsync(Guid userId, string? currentTokenId, CancellationToken cancellationToken);
+    Task<UserSessionDto?> RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken);
+    /// <summary>Revokes every active session except the caller's current token (or an explicitly supplied session id).</summary>
+    Task<int> RevokeOtherSessionsAsync(Guid userId, Guid? keepSessionId, string? keepTokenId, CancellationToken cancellationToken);
 }
 
 public sealed class PhaseOneStore(
@@ -75,7 +92,7 @@ public sealed class PhaseOneStore(
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
-    IConfiguration? configuration = null) : IPhaseOneStore
+    IConfiguration? configuration = null) : IPhaseOneStore, ISessionActivityStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -106,6 +123,7 @@ public sealed class PhaseOneStore(
     private readonly List<PhaseOneBookingRateLimit> _bookingRateLimits = [];
     private readonly List<PhaseOneProfilePhoto> _profilePhotos = [];
     private readonly List<PhaseOnePropertyPhoto> _propertyPhotos = [];
+    private readonly List<PhaseOneSession> _sessions = [];
     private readonly HashSet<string> _completedRefundIdempotencyKeys = [];
     private readonly List<PhaseOneProperty> _properties =
     [
@@ -228,13 +246,14 @@ public sealed class PhaseOneStore(
             if (!user.IsTwoFactorEnabled)
             {
                 var directTokenExpiresAt = now.AddHours(8);
+                var directToken = IssueInMemorySession(user.Id, user.Roles, directTokenExpiresAt, request.DeviceName, request.UserAgent, request.RememberDevice);
                 return Task.FromResult(new LoginResponse(
                     user.Id,
                     user.Email,
                     false,
                     null,
                     null,
-                    _accessTokenService.Issue(user.Id, user.Roles, directTokenExpiresAt),
+                    directToken,
                     directTokenExpiresAt,
                     user.Roles,
                     user.AdminPermissions));
@@ -420,7 +439,7 @@ public sealed class PhaseOneStore(
                 user.Id,
                 user.Email,
                 user.DisplayName,
-                _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
+                IssueInMemorySession(user.Id, user.Roles, tokenExpiresAt, "Google browser", null, false),
                 tokenExpiresAt,
                 user.Roles,
                 "Google",
@@ -452,7 +471,7 @@ public sealed class PhaseOneStore(
                 var recoveryTokenExpiresAt = now.AddHours(8);
                 return Task.FromResult(new VerifyTwoFactorResponse(
                 user.Id,
-                _accessTokenService.Issue(user.Id, user.Roles, recoveryTokenExpiresAt),
+                IssueInMemorySession(user.Id, user.Roles, recoveryTokenExpiresAt, request.DeviceName, request.UserAgent, request.RememberDevice),
                 recoveryTokenExpiresAt,
                 user.Roles,
                 user.AdminPermissions));
@@ -477,7 +496,7 @@ public sealed class PhaseOneStore(
 
             return Task.FromResult(new VerifyTwoFactorResponse(
                 user.Id,
-                _accessTokenService.Issue(user.Id, user.Roles, tokenExpiresAt),
+                IssueInMemorySession(user.Id, user.Roles, tokenExpiresAt, request.DeviceName, request.UserAgent, request.RememberDevice),
                 tokenExpiresAt,
                 user.Roles,
                 user.AdminPermissions));
@@ -755,6 +774,90 @@ public sealed class PhaseOneStore(
         }
     }
 
+    public Task<bool> IsSessionTokenActiveAsync(Guid userId, DateTimeOffset issuedAt, string? tokenId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId);
+            // Preserve the signed-token compatibility behavior used by legacy
+            // API clients and local test adapters: a valid token can be
+            // authorized before a profile row is hydrated.  Once a persisted
+            // user exists, timestamp and per-device revocation rules apply.
+            if (user is null) return Task.FromResult(true);
+            if (user.SessionInvalidatedAt is not null && issuedAt <= user.SessionInvalidatedAt.Value) return Task.FromResult(false);
+            if (string.IsNullOrWhiteSpace(tokenId)) return Task.FromResult(true);
+            var session = _sessions.SingleOrDefault(item => item.UserId == userId && item.TokenId == tokenId);
+            return Task.FromResult(session is null || session.RevokedAt is null && session.ExpiresAt > timeProvider.GetUtcNow());
+        }
+    }
+
+    private string IssueInMemorySession(Guid userId, IReadOnlyList<UserRole> roles, DateTimeOffset expiresAt, string? deviceName, string? userAgent, bool trusted)
+    {
+        var token = _accessTokenService.Issue(userId, roles, expiresAt);
+        var validation = _accessTokenService.Validate(token);
+        if (validation is not null && _sessions.All(item => item.TokenId != validation.TokenId))
+        {
+            var now = timeProvider.GetUtcNow();
+            _sessions.Add(new PhaseOneSession(
+                Guid.NewGuid(),
+                userId,
+                validation.TokenId,
+                string.IsNullOrWhiteSpace(deviceName) ? "Unknown device" : deviceName.Trim(),
+                ResolveBrowser(userAgent),
+                validation.IssuedAt,
+                now,
+                expiresAt,
+                trusted ? now.AddDays(30) : null));
+        }
+
+        return token;
+    }
+
+    public Task RecordSessionAsync(Guid userId, string tokenId, DateTimeOffset issuedAt, DateTimeOffset expiresAt, string? deviceName, string? userAgent, string? ipAddress, bool trusted, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            if (_sessions.All(item => item.TokenId != tokenId))
+            {
+                _sessions.Add(new PhaseOneSession(Guid.NewGuid(), userId, tokenId, string.IsNullOrWhiteSpace(deviceName) ? "Unknown device" : deviceName.Trim(), ResolveBrowser(userAgent), issuedAt, timeProvider.GetUtcNow(), expiresAt, trusted ? timeProvider.GetUtcNow().AddDays(30) : null));
+            }
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task<IReadOnlyList<UserSessionDto>> GetSessionsAsync(Guid userId, string? currentTokenId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var now = timeProvider.GetUtcNow();
+            return Task.FromResult<IReadOnlyList<UserSessionDto>>(_sessions.Where(item => item.UserId == userId).OrderByDescending(item => item.LastUsedAt).Select(item => new UserSessionDto(item.Id, item.DeviceName, item.Browser, null, item.IssuedAt, item.LastUsedAt, item.ExpiresAt, !string.IsNullOrWhiteSpace(currentTokenId) && item.TokenId == currentTokenId, item.TrustedUntil > now, item.TrustedUntil, item.RevokedAt is not null || item.ExpiresAt <= now)).ToList());
+        }
+    }
+
+    public Task<UserSessionDto?> RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var session = _sessions.SingleOrDefault(item => item.Id == sessionId && item.UserId == userId);
+            if (session is null) return Task.FromResult<UserSessionDto?>(null);
+            session.RevokedAt ??= timeProvider.GetUtcNow();
+            return Task.FromResult<UserSessionDto?>(new UserSessionDto(session.Id, session.DeviceName, session.Browser, null, session.IssuedAt, session.LastUsedAt, session.ExpiresAt, false, session.TrustedUntil > timeProvider.GetUtcNow(), session.TrustedUntil, true));
+        }
+    }
+
+    public Task<int> RevokeOtherSessionsAsync(Guid userId, Guid? keepSessionId, string? keepTokenId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var candidates = _sessions.Where(item => item.UserId == userId && item.RevokedAt is null &&
+                (!keepSessionId.HasValue || item.Id != keepSessionId.Value) &&
+                (string.IsNullOrWhiteSpace(keepTokenId) || item.TokenId != keepTokenId)).ToList();
+            var now = timeProvider.GetUtcNow();
+            foreach (var candidate in candidates) candidate.RevokedAt = now;
+            return Task.FromResult(candidates.Count);
+        }
+    }
+
     public Task<ProfilePhotoUploadDto> PrepareProfilePhotoUploadAsync(Guid userId, PrepareProfilePhotoUploadRequest request, CancellationToken cancellationToken)
     {
         var safeFileName = ValidateProfilePhoto(request.FileName, request.ContentType, request.SizeBytes);
@@ -973,6 +1076,48 @@ public sealed class PhaseOneStore(
             return Task.FromResult<IReadOnlyList<PropertyListingDto>>(updated.Select(ToListingDto).ToList());
         }
     }
+
+    public Task<BulkPropertyEditPreviewDto> PreviewBulkPropertyEditAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        ValidateBulkEditRequest(request);
+        lock (_gate)
+        {
+            var ids = request.PropertyIds.ToArray();
+            var properties = _properties.Where(property => ids.Contains(property.Id) && !property.IsDeleted).ToList();
+            if (properties.Count != ids.Length || properties.Any(property => property.HostUserId != hostUserId)) throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+            return Task.FromResult(new BulkPropertyEditPreviewDto(ids.Length, properties.Count, ids, ChangedFields(request), request.NightlyRate, request.CancellationPolicy, request.GuestVerificationEnabled, request.InsuraGuestEnabled));
+        }
+    }
+
+    public Task<IReadOnlyList<PropertyListingDto>> BulkEditPropertiesAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        ValidateBulkEditRequest(request);
+        if (request.NightlyRate is <= 0 or > 1_000_000) throw new InvalidOperationException("Nightly rate must be greater than zero and less than 1,000,000.");
+        lock (_gate)
+        {
+            var ids = request.PropertyIds.ToArray();
+            var properties = _properties.Where(property => ids.Contains(property.Id) && !property.IsDeleted).ToList();
+            if (properties.Count != ids.Length || properties.Any(property => property.HostUserId != hostUserId)) throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+            var updated = properties.Select(property => property with
+            {
+                NightlyRate = request.NightlyRate.HasValue ? decimal.Round(request.NightlyRate.Value, 2) : property.NightlyRate,
+                CancellationPolicy = string.IsNullOrWhiteSpace(request.CancellationPolicy) ? property.CancellationPolicy : request.CancellationPolicy.Trim(),
+                GuestVerificationEnabled = request.GuestVerificationEnabled ?? property.GuestVerificationEnabled,
+                InsuraGuestEnabled = request.InsuraGuestEnabled ?? property.InsuraGuestEnabled
+            }).ToList();
+            foreach (var property in updated) _properties[_properties.FindIndex(item => item.Id == property.Id)] = property;
+            return Task.FromResult<IReadOnlyList<PropertyListingDto>>(updated.Select(ToListingDto).ToList());
+        }
+    }
+
+    private static void ValidateBulkEditRequest(BulkPropertyEditRequest request)
+    {
+        if (request.PropertyIds is null || request.PropertyIds.Count == 0 || request.PropertyIds.Count > 100 || request.PropertyIds.Any(id => id == Guid.Empty) || request.PropertyIds.Distinct().Count() != request.PropertyIds.Count) throw new ArgumentException("Select between 1 and 100 unique properties.", nameof(request));
+        if (request.NightlyRate is null && string.IsNullOrWhiteSpace(request.CancellationPolicy) && !request.GuestVerificationEnabled.HasValue && !request.InsuraGuestEnabled.HasValue) throw new ArgumentException("At least one field must be changed.", nameof(request));
+    }
+
+    private static IReadOnlyList<string> ChangedFields(BulkPropertyEditRequest request) =>
+        new[] { request.NightlyRate.HasValue ? nameof(request.NightlyRate) : null, !string.IsNullOrWhiteSpace(request.CancellationPolicy) ? nameof(request.CancellationPolicy) : null, request.GuestVerificationEnabled.HasValue ? nameof(request.GuestVerificationEnabled) : null, request.InsuraGuestEnabled.HasValue ? nameof(request.InsuraGuestEnabled) : null }.Where(item => item is not null).Select(item => item!).ToArray();
 
     public Task<PropertyListingDto> RestorePropertyRevisionAsync(Guid hostUserId, Guid propertyId, Guid revisionId, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Property revision restore requires the persisted property store.");
@@ -1461,7 +1606,7 @@ public sealed class PhaseOneStore(
                     UserRole.Guest,
                     booking.Id.ToString("N"),
                     request.EkycMetaInfo,
-                    string.IsNullOrWhiteSpace(request.DocumentType) ? "01000000" : request.DocumentType.Trim(),
+                    string.IsNullOrWhiteSpace(request.DocumentType) ? "GLB03002" : request.DocumentType.Trim(),
                     request.EkycCallbackUrl),
                 cancellationToken);
 
@@ -2172,6 +2317,13 @@ public sealed class PhaseOneStore(
             ? ["Host-created listing"]
             : highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList();
 
+    private static string ResolveBrowser(string? userAgent) =>
+        string.IsNullOrWhiteSpace(userAgent) ? "Unknown browser" :
+        userAgent.Contains("Edg/", StringComparison.OrdinalIgnoreCase) ? "Microsoft Edge" :
+        userAgent.Contains("Chrome/", StringComparison.OrdinalIgnoreCase) ? "Google Chrome" :
+        userAgent.Contains("Firefox/", StringComparison.OrdinalIgnoreCase) ? "Mozilla Firefox" :
+        userAgent.Contains("Safari/", StringComparison.OrdinalIgnoreCase) ? "Safari" : "Browser";
+
     private static string ToMilestoneStatus(BookingStatus status) =>
         status switch
         {
@@ -2607,6 +2759,29 @@ public sealed class PhaseOneStore(
         IReadOnlyList<string> Highlights,
         bool IsArchived,
         bool IsDeleted);
+
+    private sealed class PhaseOneSession(
+        Guid id,
+        Guid userId,
+        string tokenId,
+        string deviceName,
+        string browser,
+        DateTimeOffset issuedAt,
+        DateTimeOffset lastUsedAt,
+        DateTimeOffset expiresAt,
+        DateTimeOffset? trustedUntil)
+    {
+        public Guid Id { get; } = id;
+        public Guid UserId { get; } = userId;
+        public string TokenId { get; } = tokenId;
+        public string DeviceName { get; } = deviceName;
+        public string Browser { get; } = browser;
+        public DateTimeOffset IssuedAt { get; } = issuedAt;
+        public DateTimeOffset LastUsedAt { get; set; } = lastUsedAt;
+        public DateTimeOffset ExpiresAt { get; } = expiresAt;
+        public DateTimeOffset? TrustedUntil { get; } = trustedUntil;
+        public DateTimeOffset? RevokedAt { get; set; }
+    }
 
     private sealed record PendingNotification(string RecipientType, NotificationMessage Message);
 

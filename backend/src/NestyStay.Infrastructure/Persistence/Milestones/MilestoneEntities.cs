@@ -55,6 +55,51 @@ public sealed class MilestoneTwoFactorChallenge : BaseEntity
     public int FailedAttempts { get; set; }
 }
 
+/// <summary>
+/// A single signed session.  The bearer token itself is never persisted; only
+/// a hash of its JTI is stored so a user can revoke one device without
+/// invalidating every other device.
+/// </summary>
+public sealed class MilestoneUserSession : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public string TokenIdHash { get; set; } = string.Empty;
+    public string DeviceName { get; set; } = "Unknown device";
+    public string Browser { get; set; } = "Unknown browser";
+    public string? ApproximateLocation { get; set; }
+    public string? IpAddressHash { get; set; }
+    public DateTimeOffset IssuedAt { get; set; }
+    public DateTimeOffset LastUsedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+    public DateTimeOffset? TrustedUntil { get; set; }
+}
+
+/// <summary>WebAuthn credential metadata and public key material.</summary>
+public sealed class MilestonePasskeyCredential : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public string CredentialIdHash { get; set; } = string.Empty;
+    public string CredentialId { get; set; } = string.Empty;
+    public string PublicKey { get; set; } = string.Empty;
+    public uint SignCount { get; set; }
+    public string TransportsJson { get; set; } = "[]";
+    public string Label { get; set; } = "Passkey";
+    public DateTimeOffset? LastUsedAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+}
+
+public sealed class MilestonePasskeyChallenge : BaseEntity
+{
+    public Guid? UserId { get; set; }
+    public string ChallengeId { get; set; } = string.Empty;
+    public string Challenge { get; set; } = string.Empty;
+    public string Purpose { get; set; } = "Registration";
+    public string OptionsJson { get; set; } = "{}";
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? ConsumedAt { get; set; }
+}
+
 public sealed class MilestoneProperty : BaseEntity
 {
     public Guid HostUserId { get; set; }
@@ -89,9 +134,22 @@ public sealed class MilestoneCalendarFeed : BaseEntity
     public string FeedUrl { get; set; } = string.Empty;
     public string Status { get; set; } = "Connected";
     public string? ETag { get; set; }
+    public DateTimeOffset? LastModifiedAt { get; set; }
+    public DateTimeOffset? NextSyncAt { get; set; }
     public DateTimeOffset? LastSyncAttemptAt { get; set; }
     public DateTimeOffset? LastSyncAt { get; set; }
     public string? LastError { get; set; }
+}
+
+public sealed class MilestoneCalendarSyncEvent : BaseEntity
+{
+    public Guid FeedId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string Status { get; set; } = "Started";
+    public int BlockCount { get; set; }
+    public string? Error { get; set; }
+    public DateTimeOffset StartedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 }
 
 public sealed class MilestoneCalendarBlock : BaseEntity
@@ -555,6 +613,44 @@ public sealed class MilestoneWishlistItem : BaseEntity
     public int SortOrder { get; set; }
 }
 
+/// <summary>
+/// Durable, explainable recommendation inputs.  Interactions are append-only
+/// so a dismissed recommendation can be restored without losing the reason it
+/// was shown.  The recommendation service never stores a guest's raw search
+/// query or sensitive profile data.
+/// </summary>
+public sealed class MilestoneTravelerRecommendationInteraction : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneTravelerPreference : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public string? PreferredParish { get; set; }
+    public decimal? MaximumNightlyRate { get; set; }
+    public string? PreferredBadgeLevel { get; set; }
+    public string PreferredHighlightsJson { get; set; } = "[]";
+}
+
+public sealed class MilestoneHostPayout : BaseEntity
+{
+    public Guid BookingId { get; set; }
+    public Guid HostUserId { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal PlatformFee { get; set; }
+    public decimal NetAmount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public string Status { get; set; } = "Pending";
+    public DateTimeOffset? EligibleAt { get; set; }
+    public DateTimeOffset? PaidAt { get; set; }
+    public string SettlementReference { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+}
+
 public sealed class MilestoneTravelerPaymentMethod : BaseEntity
 {
     public Guid UserId { get; set; }
@@ -860,6 +956,11 @@ public sealed class MilestonePropertyManager : BaseEntity
     public decimal MonthlyAmount { get; set; }
     public string SubscriptionStatus { get; set; } = "Active";
     public DateTimeOffset NextBillingAt { get; set; }
+    public string? PendingSubscriptionTier { get; set; }
+    public DateTimeOffset? PendingSubscriptionEffectiveAt { get; set; }
+    public bool AutoRenew { get; set; } = true;
+    public string BillingProviderStatus { get; set; } = "LOCAL_TEST";
+    public string? CancellationReason { get; set; }
 }
 
 public sealed class MilestoneManagerOwner : BaseEntity
@@ -1230,6 +1331,18 @@ public sealed class MilestoneManagerDocumentAccessEvent : BaseEntity
     public Guid DocumentId { get; set; }
     public Guid ActorUserId { get; set; }
     public string Action { get; set; } = "VIEW";
+}
+
+public sealed class MilestoneManagerDocumentExport : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public string DocumentIdsJson { get; set; } = "[]";
+    public string Status { get; set; } = "QUEUED";
+    public string? ObjectKey { get; set; }
+    public string? FileName { get; set; }
+    public string? Error { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
 }
 
 public sealed class MilestoneManagerGateMessage : BaseEntity

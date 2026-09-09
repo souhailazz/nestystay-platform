@@ -16,11 +16,64 @@ public sealed class WebhooksController(
     IPhaseOneStore phaseOneStore,
     IProviderEventStore providerEventStore,
     IConfiguration configuration,
-    IHostEnvironment environment) : ControllerBase
+    IHostEnvironment environment,
+    IEkycResultProvider? ekycResultProvider = null) : ControllerBase
 {
     private static readonly ConcurrentDictionary<string, DateTimeOffset> ProcessedWebhookEvents = new();
     private static readonly TimeSpan StripeSignatureTolerance = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan WebhookReplayMemory = TimeSpan.FromDays(1);
+
+    [HttpGet("alibaba-ekyc/callback")]
+    public async Task<IActionResult> ReceiveAlibabaEkycCallback(
+        [FromQuery] AlibabaEkycCallbackRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsAlibabaCallbackAuthorized(request.CallbackToken))
+        {
+            return Unauthorized(new { message = "Alibaba eKYC callback token is missing or invalid." });
+        }
+
+        if (ekycResultProvider is null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Alibaba eKYC result provider is not configured." });
+        }
+
+        if (!Guid.TryParse(request.BookingId, out var bookingId) ||
+            string.IsNullOrWhiteSpace(request.TransactionId) ||
+            !IsAlibabaPassedValue(request.Passed))
+        {
+            return BadRequest(new { message = "Alibaba eKYC callback parameters are incomplete or invalid." });
+        }
+
+        var transactionId = request.TransactionId.Trim();
+        var booking = phaseOneStore.GetBooking(bookingId);
+        if (booking is null)
+        {
+            return NotFound();
+        }
+
+        if (!string.Equals(booking.EkycTransactionId, transactionId, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Alibaba eKYC transaction does not match the booking." });
+        }
+
+        var result = await ekycResultProvider.CheckResultAsync(
+            new EkycCheckRequest(bookingId.ToString("N"), transactionId),
+            cancellationToken);
+        var resolved = await phaseOneStore.ResolveVerificationAsync(
+            bookingId,
+            new ResolveVerificationRequest(result.Status == VerificationStatus.Passed, result.TransactionId),
+            cancellationToken);
+
+        return resolved is null
+            ? NotFound()
+            : Accepted(new
+            {
+                accepted = true,
+                passed = result.Status == VerificationStatus.Passed,
+                subCode = result.SubCode
+            });
+    }
 
     [HttpPost("alibaba-ekyc")]
     public async Task<IActionResult> ReceiveAlibabaEkyc(AlibabaEkycWebhookRequest request, CancellationToken cancellationToken)
@@ -396,6 +449,27 @@ public sealed class WebhooksController(
         var actual = Encoding.UTF8.GetBytes(providedSecret);
         return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(actual, expected);
     }
+
+    private bool IsAlibabaCallbackAuthorized(string? providedToken)
+    {
+        var expectedToken = ResolveSecret("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN");
+        if (string.IsNullOrWhiteSpace(expectedToken))
+        {
+            return !environment.IsProduction();
+        }
+
+        if (string.IsNullOrWhiteSpace(providedToken))
+        {
+            return false;
+        }
+
+        var expected = Encoding.UTF8.GetBytes(expectedToken);
+        var actual = Encoding.UTF8.GetBytes(providedToken);
+        return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(actual, expected);
+    }
+
+    private static bool IsAlibabaPassedValue(string? passed) =>
+        passed?.Trim().ToUpperInvariant() is "Y" or "N";
 
     private string? ResolveSecret(string configurationKey, string environmentKey)
     {

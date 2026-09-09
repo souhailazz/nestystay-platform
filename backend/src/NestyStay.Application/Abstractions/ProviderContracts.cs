@@ -8,6 +8,11 @@ public interface IEkycProvider
     Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken);
 }
 
+public interface IEkycResultProvider
+{
+    Task<EkycCheckResult> CheckResultAsync(EkycCheckRequest request, CancellationToken cancellationToken);
+}
+
 public interface IPaymentGateway
 {
     string ProviderName { get; }
@@ -24,6 +29,10 @@ public interface IStorageProvider
     Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken);
     Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken);
     Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken);
+
+    /// <summary>Opens a private object for server-side composition (for example, an authorized ZIP export).</summary>
+    Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("The configured storage provider does not support server-side reads.");
 }
 
 public interface IFileSafetyScanner
@@ -102,6 +111,16 @@ public sealed record EkycStartResult(
     string TransactionId,
     string? TransactionUrl,
     string? ClientPayload);
+
+public sealed record EkycCheckRequest(
+    string MerchantBizId,
+    string TransactionId);
+
+public sealed record EkycCheckResult(
+    string ProviderName,
+    VerificationStatus Status,
+    string TransactionId,
+    string? SubCode);
 
 public sealed record StorageObjectWriteRequest(
     string ObjectKey,

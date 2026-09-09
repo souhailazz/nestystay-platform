@@ -13,6 +13,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="Fido2" Version="4.0.0" />
+    <!-- Pin the security-fix release that overrides Fido2's vulnerable 9.0.0 transitive asset. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>

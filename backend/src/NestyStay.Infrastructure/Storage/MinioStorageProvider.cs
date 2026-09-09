@@ -69,6 +69,23 @@ public sealed class MinioStorageProvider(IConfiguration configuration, IHttpClie
     public Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken) =>
         Task.FromResult(CreatePresignedUrl(HttpMethod.Get, objectKey, expiresAt));
 
+    public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        _ = CanonicalObjectPath(objectKey);
+        using var request = CreateSignedRequest(HttpMethod.Get, objectKey, UnsignedPayload, DateTimeOffset.UtcNow);
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException($"MinIO object read failed ({(int)response.StatusCode}): {Trim(detail)}");
+        }
+
+        var buffer = new MemoryStream();
+        await response.Content.CopyToAsync(buffer, cancellationToken);
+        buffer.Position = 0;
+        return buffer;
+    }
+
     private async Task EnsureBucketAsync(CancellationToken cancellationToken)
     {
         using var request = CreateSignedRequest(HttpMethod.Put, string.Empty, EmptySha256, DateTimeOffset.UtcNow);

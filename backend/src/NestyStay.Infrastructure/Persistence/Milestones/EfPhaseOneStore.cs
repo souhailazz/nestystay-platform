@@ -25,7 +25,7 @@ public sealed class EfPhaseOneStore(
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
     ISecretProtector? secretProtector = null,
     IStorageProvider? storageProvider = null,
-    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore
+    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore, ISessionActivityStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -149,13 +149,14 @@ public sealed class EfPhaseOneStore(
             var directRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
             var directPermissions = ReadAdminPermissions(user);
             var directTokenExpiresAt = now.AddHours(8);
+            var directToken = await IssueSessionAsync(user.Id, directRoles, directTokenExpiresAt, request.DeviceName, request.UserAgent, request.IpAddress, request.RememberDevice, cancellationToken);
             return new LoginResponse(
                 user.Id,
                 user.Email,
                 false,
                 null,
                 null,
-                _accessTokenService.Issue(user.Id, directRoles, directTokenExpiresAt),
+                directToken,
                 directTokenExpiresAt,
                 directRoles,
                 directPermissions);
@@ -316,11 +317,12 @@ public sealed class EfPhaseOneStore(
         }
 
         var tokenExpiresAt = timeProvider.GetUtcNow().AddHours(8);
+        var googleToken = await IssueSessionAsync(user.Id, MilestoneJson.DeserializeList<UserRole>(user.RolesJson), tokenExpiresAt, null, null, null, false, cancellationToken);
         return new GoogleSignInResponse(
             user.Id,
             user.Email,
             user.DisplayName,
-            _accessTokenService.Issue(user.Id, MilestoneJson.DeserializeList<UserRole>(user.RolesJson), tokenExpiresAt),
+            googleToken,
             tokenExpiresAt,
             MilestoneJson.DeserializeList<UserRole>(user.RolesJson),
             "Google",
@@ -355,9 +357,10 @@ public sealed class EfPhaseOneStore(
             var recoveryTokenExpiresAt = now.AddHours(8);
             var recoveryRoles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
             var recoveryPermissions = ReadAdminPermissions(user);
+            var recoveryToken = await IssueSessionAsync(user.Id, recoveryRoles, recoveryTokenExpiresAt, request.DeviceName, request.UserAgent, request.IpAddress, request.RememberDevice, cancellationToken);
             return new VerifyTwoFactorResponse(
                 user.Id,
-                _accessTokenService.Issue(user.Id, recoveryRoles, recoveryTokenExpiresAt),
+                recoveryToken,
                 recoveryTokenExpiresAt,
                 recoveryRoles,
                 recoveryPermissions);
@@ -385,9 +388,10 @@ public sealed class EfPhaseOneStore(
         var tokenExpiresAt = now.AddHours(8);
         var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
         var permissions = ReadAdminPermissions(user);
+        var token = await IssueSessionAsync(user.Id, roles, tokenExpiresAt, request.DeviceName, request.UserAgent, request.IpAddress, request.RememberDevice, cancellationToken);
         return new VerifyTwoFactorResponse(
             user.Id,
-            _accessTokenService.Issue(user.Id, roles, tokenExpiresAt),
+            token,
             tokenExpiresAt,
             roles,
             permissions);
@@ -629,6 +633,135 @@ public sealed class EfPhaseOneStore(
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
         return user?.SessionInvalidatedAt is null || issuedAt > user.SessionInvalidatedAt.Value;
+    }
+
+    public async Task<bool> IsSessionTokenActiveAsync(Guid userId, DateTimeOffset issuedAt, string? tokenId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.AsNoTracking().SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        // Keep compatibility with valid signed tokens issued by an external
+        // identity source before its profile is replicated locally.  Existing
+        // users still receive full timestamp and per-device revocation checks.
+        if (user is null)
+        {
+            return true;
+        }
+        if (user.SessionInvalidatedAt is not null && issuedAt <= user.SessionInvalidatedAt.Value)
+        {
+            return false;
+        }
+
+        // Tokens issued before per-device sessions were introduced continue to
+        // be accepted by the legacy timestamp rule. New tokens are checked
+        // against their hashed JTI, which makes revocation device-specific.
+        if (string.IsNullOrWhiteSpace(tokenId))
+        {
+            return true;
+        }
+
+        var session = await db.MilestoneUserSessions.AsNoTracking().SingleOrDefaultAsync(
+            item => item.UserId == userId && item.TokenIdHash == HashOpaque(tokenId) && !item.IsDeleted,
+            cancellationToken);
+        if (session is null)
+        {
+            return true;
+        }
+
+        return session.RevokedAt is null && session.ExpiresAt > timeProvider.GetUtcNow();
+    }
+
+    private async Task<string> IssueSessionAsync(
+        Guid userId,
+        IReadOnlyList<UserRole> roles,
+        DateTimeOffset expiresAt,
+        string? deviceName,
+        string? userAgent,
+        string? ipAddress,
+        bool trusted,
+        CancellationToken cancellationToken)
+    {
+        var token = _accessTokenService.Issue(userId, roles, expiresAt);
+        var tokenId = _accessTokenService.Validate(token)?.TokenId;
+        if (!string.IsNullOrWhiteSpace(tokenId))
+        {
+            await RecordSessionAsync(userId, tokenId, DateTimeOffset.UtcNow, expiresAt, deviceName, userAgent, ipAddress, trusted, cancellationToken);
+        }
+        return token;
+    }
+
+    public async Task RecordSessionAsync(Guid userId, string tokenId, DateTimeOffset issuedAt, DateTimeOffset expiresAt, string? deviceName, string? userAgent, string? ipAddress, bool trusted, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(tokenId)) return;
+        var now = timeProvider.GetUtcNow();
+        var existing = await db.MilestoneUserSessions.SingleOrDefaultAsync(
+            item => item.UserId == userId && item.TokenIdHash == HashOpaque(tokenId) && !item.IsDeleted,
+            cancellationToken);
+        if (existing is not null) return;
+        db.MilestoneUserSessions.Add(new MilestoneUserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TokenIdHash = HashOpaque(tokenId),
+            DeviceName = NormalizeDeviceName(deviceName),
+            Browser = ResolveBrowser(userAgent),
+            ApproximateLocation = null,
+            IpAddressHash = string.IsNullOrWhiteSpace(ipAddress) ? null : HashOpaque(ipAddress),
+            IssuedAt = issuedAt,
+            LastUsedAt = now,
+            ExpiresAt = expiresAt,
+            TrustedUntil = trusted ? now.AddDays(30) : null,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = userId,
+            UpdatedByUserId = userId
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<UserSessionDto>> GetSessionsAsync(Guid userId, string? currentTokenId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        return await db.MilestoneUserSessions.AsNoTracking()
+            .Where(item => item.UserId == userId && !item.IsDeleted)
+            .OrderByDescending(item => item.LastUsedAt)
+            .Select(item => new UserSessionDto(
+                item.Id,
+                item.DeviceName,
+                item.Browser,
+                item.ApproximateLocation,
+                item.IssuedAt,
+                item.LastUsedAt,
+                item.ExpiresAt,
+                !string.IsNullOrWhiteSpace(currentTokenId) && item.TokenIdHash == HashOpaque(currentTokenId),
+                item.TrustedUntil != null && item.TrustedUntil > now,
+                item.TrustedUntil,
+                item.RevokedAt != null || item.ExpiresAt <= now))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<UserSessionDto?> RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
+    {
+        var session = await db.MilestoneUserSessions.SingleOrDefaultAsync(item => item.Id == sessionId && item.UserId == userId && !item.IsDeleted, cancellationToken);
+        if (session is null) return null;
+        session.RevokedAt ??= timeProvider.GetUtcNow();
+        session.UpdatedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+        return ToSessionDto(session, false);
+    }
+
+    public async Task<int> RevokeOtherSessionsAsync(Guid userId, Guid? keepSessionId, string? keepTokenId, CancellationToken cancellationToken)
+    {
+        var keepTokenHash = string.IsNullOrWhiteSpace(keepTokenId) ? null : HashOpaque(keepTokenId);
+        var sessions = await db.MilestoneUserSessions.Where(item => item.UserId == userId && !item.IsDeleted && item.RevokedAt == null &&
+            (!keepSessionId.HasValue || item.Id != keepSessionId.Value) &&
+            (keepTokenHash == null || item.TokenIdHash != keepTokenHash)).ToListAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        foreach (var session in sessions)
+        {
+            session.RevokedAt = now;
+            session.UpdatedAt = now;
+        }
+        if (sessions.Count > 0) await db.SaveChangesAsync(cancellationToken);
+        return sessions.Count;
     }
 
     public async Task<AdministratorSessionDto?> GetAdministratorSessionAsync(Guid userId, DateTimeOffset issuedAt, CancellationToken cancellationToken)
@@ -936,6 +1069,89 @@ public sealed class EfPhaseOneStore(
 
         await db.SaveChangesAsync(cancellationToken);
         return properties.Select(ToListingDto).ToList();
+    }
+
+    public async Task<BulkPropertyEditPreviewDto> PreviewBulkPropertyEditAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        var ids = ValidateBulkEditRequest(request);
+        var matched = await db.MilestoneProperties.AsNoTracking()
+            .Where(property => ids.Contains(property.Id) && !property.IsDeleted && property.HostUserId == hostUserId)
+            .Select(property => property.Id)
+            .ToListAsync(cancellationToken);
+        if (matched.Count != ids.Length)
+        {
+            throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+        }
+
+        return new BulkPropertyEditPreviewDto(
+            request.PropertyIds.Count,
+            matched.Count,
+            matched,
+            ChangedFields(request),
+            request.NightlyRate,
+            request.CancellationPolicy,
+            request.GuestVerificationEnabled,
+            request.InsuraGuestEnabled);
+    }
+
+    public async Task<IReadOnlyList<PropertyListingDto>> BulkEditPropertiesAsync(Guid hostUserId, BulkPropertyEditRequest request, CancellationToken cancellationToken)
+    {
+        var ids = ValidateBulkEditRequest(request);
+        var properties = await db.MilestoneProperties
+            .Where(property => ids.Contains(property.Id) && !property.IsDeleted && property.HostUserId == hostUserId)
+            .ToListAsync(cancellationToken);
+        if (properties.Count != ids.Length)
+        {
+            throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+        }
+
+        await using var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        var now = timeProvider.GetUtcNow();
+        foreach (var property in properties)
+        {
+            if (request.NightlyRate.HasValue)
+            {
+                if (request.NightlyRate.Value <= 0 || request.NightlyRate.Value > 1_000_000)
+                    throw new InvalidOperationException("Nightly rate must be greater than zero and less than 1,000,000.");
+                property.NightlyRate = decimal.Round(request.NightlyRate.Value, 2);
+            }
+            if (!string.IsNullOrWhiteSpace(request.CancellationPolicy))
+            {
+                property.CancellationPolicy = request.CancellationPolicy.Trim()[..Math.Min(100, request.CancellationPolicy.Trim().Length)];
+            }
+            if (request.GuestVerificationEnabled.HasValue) property.GuestVerificationEnabled = request.GuestVerificationEnabled.Value;
+            if (request.InsuraGuestEnabled.HasValue) property.InsuraGuestEnabled = request.InsuraGuestEnabled.Value;
+            property.UpdatedAt = now;
+            property.UpdatedByUserId = hostUserId;
+            await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        return properties.Select(ToListingDto).ToList();
+    }
+
+    private static Guid[] ValidateBulkEditRequest(BulkPropertyEditRequest request)
+    {
+        if (request.PropertyIds is null || request.PropertyIds.Count == 0 || request.PropertyIds.Count > 100)
+            throw new ArgumentException("Select between 1 and 100 properties.", nameof(request));
+        if (request.PropertyIds.Any(id => id == Guid.Empty) || request.PropertyIds.Distinct().Count() != request.PropertyIds.Count)
+            throw new ArgumentException("Property ids must be unique and valid.", nameof(request));
+        if (request.NightlyRate is null && string.IsNullOrWhiteSpace(request.CancellationPolicy) && !request.GuestVerificationEnabled.HasValue && !request.InsuraGuestEnabled.HasValue)
+            throw new ArgumentException("At least one field must be changed.", nameof(request));
+        return request.PropertyIds.ToArray();
+    }
+
+    private static IReadOnlyList<string> ChangedFields(BulkPropertyEditRequest request)
+    {
+        var fields = new List<string>();
+        if (request.NightlyRate.HasValue) fields.Add(nameof(request.NightlyRate));
+        if (!string.IsNullOrWhiteSpace(request.CancellationPolicy)) fields.Add(nameof(request.CancellationPolicy));
+        if (request.GuestVerificationEnabled.HasValue) fields.Add(nameof(request.GuestVerificationEnabled));
+        if (request.InsuraGuestEnabled.HasValue) fields.Add(nameof(request.InsuraGuestEnabled));
+        return fields;
     }
 
     public async Task<PropertyListingDto> DuplicatePropertyAsync(Guid hostUserId, Guid propertyId, string? title, CancellationToken cancellationToken)
@@ -1610,7 +1826,7 @@ public sealed class EfPhaseOneStore(
                     UserRole.Guest,
                     booking.Id.ToString("N"),
                     request.EkycMetaInfo,
-                    string.IsNullOrWhiteSpace(request.DocumentType) ? "01000000" : request.DocumentType.Trim(),
+                    string.IsNullOrWhiteSpace(request.DocumentType) ? "GLB03002" : request.DocumentType.Trim(),
                     request.EkycCallbackUrl),
                 cancellationToken);
 
@@ -2885,6 +3101,37 @@ public sealed class EfPhaseOneStore(
 
     private static string HashOpaque(string value) =>
         Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant())));
+
+    private static string NormalizeDeviceName(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "Unknown device" : value.Trim()[..Math.Min(100, value.Trim().Length)];
+
+    private static string ResolveBrowser(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown browser";
+        var value = userAgent.Trim();
+        var browser = value.Contains("Edg/", StringComparison.OrdinalIgnoreCase) ? "Microsoft Edge" :
+            value.Contains("Chrome/", StringComparison.OrdinalIgnoreCase) ? "Google Chrome" :
+            value.Contains("Firefox/", StringComparison.OrdinalIgnoreCase) ? "Mozilla Firefox" :
+            value.Contains("Safari/", StringComparison.OrdinalIgnoreCase) ? "Safari" : "Browser";
+        return browser;
+    }
+
+    private static UserSessionDto ToSessionDto(MilestoneUserSession session, bool isCurrent)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return new UserSessionDto(
+            session.Id,
+            session.DeviceName,
+            session.Browser,
+            session.ApproximateLocation,
+            session.IssuedAt,
+            session.LastUsedAt,
+            session.ExpiresAt,
+            isCurrent,
+            session.TrustedUntil is not null && session.TrustedUntil > now,
+            session.TrustedUntil,
+            session.RevokedAt is not null || session.ExpiresAt <= now);
+    }
 
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');

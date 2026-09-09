@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.Access;
 using NestyStay.Application.Directories;
@@ -21,6 +22,8 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using AlibabaCloud.SDK.Cloudauth_intl20220809.Models;
+using AlibabaCloudauthClient = AlibabaCloud.SDK.Cloudauth_intl20220809.Client;
 
 namespace NestyStay.Infrastructure;
 
@@ -32,7 +35,9 @@ public static class DependencyInjection
             options.UseNpgsql(postgresConnectionString ??
                               "Host=localhost;Port=5432;Database=nestystay_dev;Username=nestystay"));
 
-        services.AddSingleton<IEkycProvider, AlibabaEkycProvider>();
+        services.AddSingleton<AlibabaEkycProvider>();
+        services.AddSingleton<IEkycProvider>(provider => provider.GetRequiredService<AlibabaEkycProvider>());
+        services.AddSingleton<IEkycResultProvider>(provider => provider.GetRequiredService<AlibabaEkycProvider>());
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
         services.AddHttpClient("object-storage", client =>
         {
@@ -74,7 +79,10 @@ public static class DependencyInjection
         {
             services.AddHostedService<EmailDeliveryWorker>();
         }
-        services.AddSingleton<ISmsSender, LocalDevelopmentSmsSender>();
+        services.AddSingleton<ISmsSender>(provider =>
+            new LocalDevelopmentSmsSender(
+                provider.GetRequiredService<IConfiguration>(),
+                provider.GetRequiredService<IHostEnvironment>()));
         services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
         services.AddSingleton<IDevelopmentAuthSecretStore, InMemoryDevelopmentAuthSecretStore>();
         services.AddSingleton<IGoogleIdentityValidator, GoogleTokenInfoValidator>();
@@ -96,36 +104,184 @@ public static class DependencyInjection
     }
 }
 
-internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycProvider
+internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycProvider, IEkycResultProvider
 {
+    private const string DefaultRegion = "ap-southeast-1";
+    private const string DefaultEndpoint = "cloudauth-intl.ap-southeast-1.aliyuncs.com";
+    private const string DefaultProductCode = "eKYC_PRO";
+    private const string DefaultSceneCode = "NESTYWEB";
+    private const string GlobalPassportCode = "GLB03002";
+
     public string ProviderName => "Alibaba Cloud eKYC";
 
-    public Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken)
+    public async Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.MerchantBizId))
+        var merchantBizId = RequireValue(request.MerchantBizId, "merchant business id");
+        var callbackUrl = ResolveCallbackUrl(request, merchantBizId);
+        var returnUrl = RequireHttpsUrl(
+            ResolveSetting("Integrations:AlibabaEkycReturnUrl", "ALIBABA_EKYC_RETURN_URL"),
+            "ALIBABA_EKYC_RETURN_URL");
+        var productCode = ResolveSetting("Integrations:AlibabaEkycProductCode", "ALIBABA_EKYC_PRODUCT_CODE") ?? DefaultProductCode;
+        var sceneCode = ResolveSetting("Integrations:AlibabaEkycSceneCode", "ALIBABA_EKYC_SCENE_CODE") ?? DefaultSceneCode;
+        var callbackToken = RequireSetting("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN");
+
+        if (sceneCode.Length > 10)
         {
-            throw new InvalidOperationException("Alibaba Cloud eKYC requires a merchant business id.");
+            throw new InvalidOperationException("Alibaba eKYC scene code must be at most 10 characters.");
         }
 
-        var transactionId = $"aliyun_ekyc_{request.MerchantBizId[..Math.Min(request.MerchantBizId.Length, 24)]}";
-        var baseUrl = ResolveSetting("Integrations:AlibabaEkycTransactionUrlBase", "ALIBABA_EKYC_TRANSACTION_URL_BASE") ??
-                      "https://ekyc.alibaba-cloud.local/start";
-        var transactionUrl =
-            $"{baseUrl}?transactionId={Uri.EscapeDataString(transactionId)}&merchantBizId={Uri.EscapeDataString(request.MerchantBizId)}";
-        var clientPayload = JsonSerializer.Serialize(new
+        cancellationToken.ThrowIfCancellationRequested();
+        var response = await CreateClient().InitializeV2Async(new InitializeV2Request
         {
-            productCode = "eKYC",
-            request.DocumentType,
-            request.CallbackUrl,
-            request.MetaInfo
+            ProductCode = productCode,
+            SceneCode = sceneCode,
+            MerchantBizId = merchantBizId,
+            MerchantUserId = RequireValue(request.SubjectId, "subject id"),
+            MetaInfo = NormalizeMetaInfo(request.MetaInfo),
+            DocType = NormalizeDocumentType(request.DocumentType),
+            Pages = "01",
+            Model = ResolveSetting("Integrations:AlibabaEkycModel", "ALIBABA_EKYC_MODEL") ?? "LIVENESS",
+            DocVideo = "N",
+            FaceAttributeCheck = "N",
+            ShowGuidePage = "1",
+            CallbackUrl = callbackUrl,
+            CallbackToken = callbackToken,
+            SecurityLevel = ResolveSetting("Integrations:AlibabaEkycSecurityLevel", "ALIBABA_EKYC_SECURITY_LEVEL") ?? "01",
+            Authorize = "F",
+            IdThreshold = "2",
+            IdSpoof = "Y",
+            OcrValueStandard = "0",
+            ShowAlbumIcon = "1",
+            ShowOcrResult = "1",
+            EditOcrResult = "1",
+            ReturnUrl = returnUrl,
+            ProcedurePriority = "url"
         });
 
-        return Task.FromResult(new EkycStartResult(
+        var body = response?.Body;
+        if (body is null || !string.Equals(body.Code, "Success", StringComparison.OrdinalIgnoreCase) || body.Result is null)
+        {
+            throw new InvalidOperationException(
+                $"Alibaba InitializeV2 failed ({body?.Code ?? "unknown"}): {body?.Message ?? "No response details."}");
+        }
+
+        if (string.IsNullOrWhiteSpace(body.Result.TransactionId) || string.IsNullOrWhiteSpace(body.Result.TransactionUrl))
+        {
+            throw new InvalidOperationException("Alibaba InitializeV2 returned no transaction id or web transaction URL.");
+        }
+
+        var clientPayload = string.IsNullOrWhiteSpace(body.Result.Protocol)
+            ? null
+            : JsonSerializer.Serialize(new { protocol = body.Result.Protocol });
+
+        return new EkycStartResult(
             ProviderName,
             VerificationStatus.Pending,
-            transactionId,
-            transactionUrl,
-            clientPayload));
+            body.Result.TransactionId,
+            body.Result.TransactionUrl,
+            clientPayload);
+    }
+
+    public async Task<EkycCheckResult> CheckResultAsync(EkycCheckRequest request, CancellationToken cancellationToken)
+    {
+        var merchantBizId = RequireValue(request.MerchantBizId, "merchant business id");
+        var transactionId = RequireValue(request.TransactionId, "transaction id");
+        cancellationToken.ThrowIfCancellationRequested();
+        var response = await CreateClient().CheckResultAsync(new CheckResultRequest
+        {
+            MerchantBizId = merchantBizId,
+            TransactionId = transactionId,
+            IsReturnImage = "N"
+        });
+
+        var body = response?.Body;
+        if (body is null || !string.Equals(body.Code, "Success", StringComparison.OrdinalIgnoreCase) || body.Result is null)
+        {
+            throw new InvalidOperationException(
+                $"Alibaba CheckResult failed ({body?.Code ?? "unknown"}): {body?.Message ?? "No response details."}");
+        }
+
+        var status = body.Result.Passed?.Trim().ToUpperInvariant() switch
+        {
+            "Y" => VerificationStatus.Passed,
+            "N" => VerificationStatus.Failed,
+            _ => throw new InvalidOperationException("Alibaba CheckResult returned an unknown verification result.")
+        };
+
+        return new EkycCheckResult(ProviderName, status, transactionId, body.Result.SubCode);
+    }
+
+    private AlibabaCloudauthClient CreateClient()
+    {
+        var region = ResolveSetting("Integrations:AlibabaEkycRegion", "ALIBABA_EKYC_REGION") ?? DefaultRegion;
+        var endpoint = ResolveSetting("Integrations:AlibabaEkycEndpoint", "ALIBABA_EKYC_ENDPOINT") ?? DefaultEndpoint;
+        var config = new AlibabaCloud.OpenApiClient.Models.Config
+        {
+            AccessKeyId = RequireSetting("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID"),
+            AccessKeySecret = RequireSetting("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
+            SecurityToken = ResolveSetting("Integrations:AlibabaCloudSecurityToken", "ALIBABA_CLOUD_SECURITY_TOKEN"),
+            RegionId = region,
+            Endpoint = endpoint
+        };
+
+        return new AlibabaCloudauthClient(config);
+    }
+
+    private string ResolveCallbackUrl(EkycStartRequest request, string merchantBizId)
+    {
+        var configured = ResolveSetting("Integrations:AlibabaEkycCallbackUrl", "ALIBABA_EKYC_CALLBACK_URL");
+        var callbackUrl = string.IsNullOrWhiteSpace(configured) ? request.CallbackUrl : configured;
+        var validatedUrl = RequireHttpsUrl(callbackUrl, "ALIBABA_EKYC_CALLBACK_URL");
+        var separator = validatedUrl.Contains('?', StringComparison.Ordinal)
+            ? (validatedUrl.EndsWith('?') || validatedUrl.EndsWith('&') ? string.Empty : "&")
+            : "?";
+        return $"{validatedUrl}{separator}bookingId={Uri.EscapeDataString(merchantBizId)}";
+    }
+
+    private static string NormalizeMetaInfo(string? metaInfo)
+    {
+        if (string.IsNullOrWhiteSpace(metaInfo))
+        {
+            return "{\"deviceType\":\"web\"}";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(metaInfo);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                ? metaInfo.Trim()
+                : "{\"deviceType\":\"web\"}";
+        }
+        catch (JsonException)
+        {
+            return "{\"deviceType\":\"web\"}";
+        }
+    }
+
+    private static string NormalizeDocumentType(string? documentType) =>
+        string.IsNullOrWhiteSpace(documentType) ||
+        documentType.Equals("01000000", StringComparison.OrdinalIgnoreCase) ||
+        documentType.Equals("Passport", StringComparison.OrdinalIgnoreCase)
+            ? GlobalPassportCode
+            : documentType.Trim();
+
+    private string RequireSetting(string configurationKey, string environmentKey) =>
+        RequireValue(ResolveSetting(configurationKey, environmentKey), environmentKey);
+
+    private static string RequireValue(string? value, string description) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new InvalidOperationException($"Alibaba eKYC requires {description}.")
+            : value.Trim();
+
+    private static string RequireHttpsUrl(string? value, string settingName)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Alibaba eKYC setting {settingName} must be an absolute HTTPS URL.");
+        }
+
+        return uri.ToString().TrimEnd();
     }
 
     private string? ResolveSetting(string configurationKey, string environmentKey)
@@ -264,9 +420,13 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
 
         var payload = new Dictionary<string, string>
         {
-            ["amount"] = ToMinorUnits(request.Amount).ToString(),
+            ["amount"] = ToMinorUnits(request.Amount).ToString(CultureInfo.InvariantCulture),
             ["currency"] = request.Currency.ToLowerInvariant(),
             ["capture_method"] = "manual",
+            // Let Stripe advertise Apple Pay/Google Pay and any other wallet
+            // enabled on the merchant account. Express Checkout on the web
+            // will hide wallets unavailable for the current device/domain.
+            ["automatic_payment_methods[enabled]"] = "true",
             ["description"] = request.Description,
             ["metadata[booking_id]"] = request.BookingId.ToString("N")
         };
@@ -434,7 +594,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
     }
 }
 
-internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) : IStorageProvider
+internal sealed class CloudflareR2StorageProvider(IConfiguration configuration, IHttpClientFactory httpClientFactory) : IStorageProvider
 {
     private const int BufferSize = 81920;
     private const int HeaderByteLimit = 512;
@@ -534,6 +694,18 @@ internal sealed class CloudflareR2StorageProvider(IConfiguration configuration) 
 
         var expires = expiresAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
         return Task.FromResult($"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}?expires={Uri.EscapeDataString(expires)}");
+    }
+
+    public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        var root = ResolveLocalStorageRoot();
+        var localPath = ResolveObjectPath(root, objectKey);
+        if (File.Exists(localPath)) return new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+
+        var baseUrl = ResolveSetting("Integrations:CloudflareR2DownloadUrlBase", "CLOUDFLARE_R2_DOWNLOAD_URL_BASE");
+        if (string.IsNullOrWhiteSpace(baseUrl)) throw new FileNotFoundException("The requested storage object was not found.", objectKey);
+        var uri = $"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(objectKey)}";
+        return await httpClientFactory.CreateClient("object-storage").GetStreamAsync(uri, cancellationToken);
     }
 
     private string? ResolveSetting(string configurationKey, string environmentKey)
@@ -672,12 +844,28 @@ internal sealed class PersistentNotificationGateway(IServiceScopeFactory scopeFa
     }
 }
 
-internal sealed class LocalDevelopmentSmsSender : ISmsSender
+internal sealed class LocalDevelopmentSmsSender(IConfiguration configuration, IHostEnvironment environment) : ISmsSender
 {
-    public string ProviderName => "Local development SMS";
+    public string ProviderName => environment.IsDevelopment() || environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase)
+        ? "Local development SMS"
+        : "External SMS provider (not configured)";
 
-    public Task SendAsync(SmsMessage message, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+    public Task SendAsync(SmsMessage message, CancellationToken cancellationToken)
+    {
+        var local = environment.IsDevelopment() || environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase);
+        if (!local)
+        {
+            var enabled = ProviderFeatureFlags.From(configuration).SmsEnabled;
+            throw new InvalidOperationException(enabled
+                ? "The configured SMS provider adapter is not installed for this deployment. Register a production ISmsSender before enabling SMS fallback."
+                : "SMS delivery is disabled for this deployment. Configure a production ISmsSender/provider and SMS_ENABLED=true before enabling SMS fallback.");
+        }
+
+        // The local adapter deliberately does not emit real messages. The
+        // development auth-flow secret is the only safe way to retrieve test
+        // OTPs, and it is never exposed in production.
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class AesGcmSecretProtector(IConfiguration configuration) : ISecretProtector

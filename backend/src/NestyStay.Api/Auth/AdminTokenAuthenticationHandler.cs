@@ -57,15 +57,18 @@ public sealed class AdminTokenAuthenticationHandler(
                     return AuthenticateResult.Fail("NestyStay administrator session is not active.");
                 }
 
-                return Success(administrator.UserId, administrator.Roles, administrator.Permissions);
+                return Success(administrator.UserId, administrator.Roles, administrator.Permissions, session.TokenId);
             }
 
-            if (!await phaseOneStore.IsSessionActiveAsync(session.UserId, session.IssuedAt, Context.RequestAborted))
+            var active = phaseOneStore is ISessionActivityStore sessionStore
+                ? await sessionStore.IsSessionTokenActiveAsync(session.UserId, session.IssuedAt, session.TokenId, Context.RequestAborted)
+                : await phaseOneStore.IsSessionActiveAsync(session.UserId, session.IssuedAt, Context.RequestAborted);
+            if (!active)
             {
                 return AuthenticateResult.Fail("NestyStay session has been invalidated.");
             }
 
-            return Success(session.UserId, session.Roles);
+            return Success(session.UserId, session.Roles, null, session.TokenId);
         }
 
         return AuthenticateResult.Fail("Invalid NestyStay bearer token.");
@@ -77,18 +80,22 @@ public sealed class AdminTokenAuthenticationHandler(
     private AuthenticateResult Success(UserRole role, IReadOnlyList<string>? permissions = null) =>
         Success($"{role.ToString().ToLowerInvariant()}-token", [role], permissions);
 
-    private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles) =>
-        Success(userId.ToString(), roles, null);
+    private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles, string? tokenId = null) =>
+        Success(userId.ToString(), roles, null, tokenId);
 
-    private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles, IReadOnlyList<string>? permissions) =>
-        Success(userId.ToString(), roles, permissions);
+    private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles, IReadOnlyList<string>? permissions, string? tokenId = null) =>
+        Success(userId.ToString(), roles, permissions, tokenId);
 
-    private AuthenticateResult Success(string nameIdentifier, IReadOnlyList<UserRole> roles, IReadOnlyList<string>? permissions)
+    private AuthenticateResult Success(string nameIdentifier, IReadOnlyList<UserRole> roles, IReadOnlyList<string>? permissions, string? tokenId = null)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, nameIdentifier)
         };
+        if (!string.IsNullOrWhiteSpace(tokenId))
+        {
+            claims.Add(new Claim("nesty_session_id", tokenId));
+        }
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role.ToString())));
         claims.AddRange((permissions ?? []).Select(permission => new Claim(AdminAuthorizationPolicies.PermissionClaimType, permission)));
         var identity = new ClaimsIdentity(claims, Scheme.Name);

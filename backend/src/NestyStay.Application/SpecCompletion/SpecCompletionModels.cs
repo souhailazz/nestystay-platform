@@ -16,6 +16,10 @@ public interface ISpecCompletionStore
     Task<HostProfileDto?> GetHostProfileAsync(string slug, CancellationToken cancellationToken);
     Task<HostProfileDto> UpsertHostProfileAsync(string slug, UpsertHostProfileRequest request, Guid actorUserId, CancellationToken cancellationToken);
     Task<TravelerWorkspaceDto> GetTravelerWorkspaceAsync(Guid userId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<TravelerRecommendationDto>> GetTravelerRecommendationsAsync(Guid userId, TravelerRecommendationQuery query, CancellationToken cancellationToken);
+    Task<TravelerRecommendationDto> DismissTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken);
+    Task<TravelerRecommendationDto> RestoreTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken);
+    Task<TravelerPreferenceDto> SaveTravelerPreferencesAsync(Guid userId, SaveTravelerPreferencesRequest request, CancellationToken cancellationToken);
     Task<WishlistCollectionDto> CreateWishlistCollectionAsync(Guid userId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken);
     Task<WishlistCollectionDto> RenameWishlistCollectionAsync(Guid userId, Guid collectionId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken);
     Task DeleteWishlistCollectionAsync(Guid userId, Guid collectionId, CancellationToken cancellationToken);
@@ -48,6 +52,7 @@ public interface ISpecCompletionStore
     Task<MessageDto> SendMessageAsync(Guid userId, Guid conversationId, SendMessageRequest request, CancellationToken cancellationToken);
     Task MarkConversationReadAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken);
     Task<HostOperationsDto> GetHostOperationsAsync(Guid hostUserId, CancellationToken cancellationToken);
+    Task<HostPayoutDto?> SettleHostPayoutAsync(Guid payoutId, Guid actorUserId, string? notes, CancellationToken cancellationToken);
     Task<HostPricingRuleDto> SaveHostPricingRuleAsync(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken);
     Task<HostPromotionDto> SaveHostPromotionAsync(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken);
     Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken);
@@ -90,6 +95,10 @@ public sealed record JournalArticleDto(Guid Id, string Slug, string Title, strin
 public sealed record HostProfileDto(Guid Id, Guid HostUserId, string Slug, string DisplayName, string Parish, string Bio, string ResponseTime, IReadOnlyList<BadgeLevel> Badges, IReadOnlyList<Guid> ListingIds, decimal Rating, int ReviewCount, bool IsPublic, IReadOnlyList<string> Highlights);
 public sealed record UpsertHostProfileRequest(Guid HostUserId, string DisplayName, string Parish, string Bio, string ResponseTime, IReadOnlyList<BadgeLevel>? Badges, IReadOnlyList<Guid>? ListingIds, bool IsPublic, IReadOnlyList<string>? Highlights);
 public sealed record TravelerWorkspaceDto(Guid UserId, IReadOnlyList<WishlistCollectionDto> WishlistCollections, IReadOnlyList<PaymentMethodDto> PaymentMethods, IReadOnlyList<IdentityDocumentDto> IdentityDocuments, IReadOnlyList<ReviewDto> Reviews, IReadOnlyList<TravelerNotificationDto> Notifications);
+public sealed record TravelerRecommendationQuery(string? Parish = null, decimal? MaximumNightlyRate = null, string? BadgeLevel = null, int Limit = 12);
+public sealed record TravelerRecommendationDto(Guid PropertyId, string PropertyTitle, string Location, string Country, decimal NightlyRate, string Currency, string BadgeLevel, IReadOnlyList<string> Highlights, int Score, string Reason, bool IsDismissed, DateTimeOffset GeneratedAt);
+public sealed record TravelerPreferenceDto(Guid UserId, string? PreferredParish, decimal? MaximumNightlyRate, string? PreferredBadgeLevel, IReadOnlyList<string> PreferredHighlights, DateTimeOffset UpdatedAt);
+public sealed record SaveTravelerPreferencesRequest(string? PreferredParish = null, decimal? MaximumNightlyRate = null, string? PreferredBadgeLevel = null, IReadOnlyList<string>? PreferredHighlights = null);
 public sealed record WishlistCollectionDto(Guid Id, Guid UserId, string Name, int SortOrder, IReadOnlyList<WishlistItemDto> Items);
 public sealed record WishlistItemDto(Guid Id, Guid CollectionId, Guid UserId, Guid PropertyId, string PropertyTitle, string Status, int SortOrder, DateTimeOffset CreatedAt);
 public sealed record SaveWishlistCollectionRequest(string Name, int SortOrder = 0);
@@ -123,8 +132,10 @@ public sealed record AttachmentDownloadDto(Guid Id, string FileName, string Cont
 public sealed record SendMessageRequest(string Body, IReadOnlyList<MessageAttachmentDto>? Attachments);
 public sealed record MessageDto(Guid Id, Guid ConversationId, Guid SenderUserId, string Body, string Status, DateTimeOffset SentAt, DateTimeOffset? ReadAt, IReadOnlyList<MessageAttachmentDto> Attachments);
 public sealed record MessageAttachmentDto(Guid? AttachmentId, string FileName, string ContentType, long SizeBytes, string? Url, string Status, string? ObjectKey = null, DateTimeOffset? ExpiresAt = null, string ScanStatus = "Clean", string? ThumbnailUrl = null);
-public sealed record HostOperationsDto(Guid HostUserId, HostAnalyticsDto Analytics, IReadOnlyList<HostPricingRuleDto> PricingRules, IReadOnlyList<HostPromotionDto> Promotions, IReadOnlyList<ReviewDto> Reviews);
+public sealed record HostOperationsDto(Guid HostUserId, HostAnalyticsDto Analytics, IReadOnlyList<HostPricingRuleDto> PricingRules, IReadOnlyList<HostPromotionDto> Promotions, IReadOnlyList<ReviewDto> Reviews, HostPayoutSummaryDto? Payouts = null);
 public sealed record HostAnalyticsDto(decimal Revenue, decimal OccupancyPercent, decimal AverageNightlyRate, int BookingCount, decimal ConversionPercent, IReadOnlyList<ChartPointDto> RevenueSeries, IReadOnlyList<ChartPointDto> OccupancySeries);
+public sealed record HostPayoutSummaryDto(decimal PendingAmount, decimal AvailableAmount, decimal PaidAmount, string Currency, string SettlementMode, IReadOnlyList<HostPayoutDto> History);
+public sealed record HostPayoutDto(Guid Id, Guid BookingId, decimal GrossAmount, decimal PlatformFee, decimal NetAmount, string Currency, string Status, DateTimeOffset? EligibleAt, DateTimeOffset? PaidAt, string? SettlementReference, string Notes);
 public sealed record ChartPointDto(string Label, decimal Value);
 public sealed record HostPricingRuleDto(Guid Id, Guid HostUserId, Guid PropertyId, string Name, DateOnly StartsOn, DateOnly EndsOn, decimal NightlyRate, int MinimumStay, bool IsActive);
 public sealed record SaveHostPricingRuleRequest(Guid PropertyId, string Name, DateOnly StartsOn, DateOnly EndsOn, decimal NightlyRate, int MinimumStay, bool IsActive);

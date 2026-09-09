@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -78,19 +79,56 @@ public sealed class CalendarController(
 
         var now = timeProvider.GetUtcNow();
         feed.LastSyncAttemptAt = now;
+        var syncEvent = new MilestoneCalendarSyncEvent
+        {
+            Id = Guid.NewGuid(), FeedId = feed.Id, PropertyId = propertyId, Status = "Started", StartedAt = now,
+            CreatedAt = now, UpdatedAt = now, CreatedByUserId = hostUserId, UpdatedByUserId = hostUserId
+        };
+        db.MilestoneCalendarSyncEvents.Add(syncEvent);
         try
         {
-            var ics = string.IsNullOrWhiteSpace(request.IcsContent)
-                ? await httpClientFactory.CreateClient().GetStringAsync(feed.FeedUrl, cancellationToken)
-                : request.IcsContent;
+            string ics;
+            if (!string.IsNullOrWhiteSpace(request.IcsContent))
+            {
+                ics = request.IcsContent;
+            }
+            else
+            {
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, feed.FeedUrl);
+                if (!string.IsNullOrWhiteSpace(feed.ETag)) httpRequest.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
+                if (feed.LastModifiedAt is not null) httpRequest.Headers.IfModifiedSince = feed.LastModifiedAt;
+                using var response = await httpClientFactory.CreateClient().SendAsync(httpRequest, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.NotModified)
+                {
+                    feed.Status = "Healthy";
+                    feed.LastSyncAt = now;
+                    feed.NextSyncAt = now.AddMinutes(15);
+                    feed.LastError = null;
+                    syncEvent.Status = "NotModified";
+                    syncEvent.CompletedAt = now;
+                    syncEvent.UpdatedAt = now;
+                    await db.SaveChangesAsync(cancellationToken);
+                    return Ok(ToDto(feed, await db.MilestoneCalendarBlocks.CountAsync(block => block.FeedId == feed.Id && !block.IsDeleted, cancellationToken)));
+                }
+                response.EnsureSuccessStatusCode();
+                if (response.Headers.ETag is not null) feed.ETag = response.Headers.ETag.Tag;
+                if (response.Content.Headers.LastModified is not null) feed.LastModifiedAt = response.Content.Headers.LastModified;
+                ics = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
             var blocks = ParseEvents(ics!, feed.Id, propertyId, now);
+            if (blocks.Count > 5000) throw new InvalidOperationException("Calendar feed contains too many events.");
             var oldBlocks = await db.MilestoneCalendarBlocks.Where(block => block.FeedId == feed.Id && !block.IsDeleted).ToListAsync(cancellationToken);
             db.MilestoneCalendarBlocks.RemoveRange(oldBlocks);
             db.MilestoneCalendarBlocks.AddRange(blocks);
             feed.Status = "Healthy";
             feed.LastSyncAt = now;
+            feed.NextSyncAt = now.AddMinutes(15);
             feed.LastError = null;
             feed.UpdatedAt = now;
+            syncEvent.Status = "Healthy";
+            syncEvent.BlockCount = blocks.Count;
+            syncEvent.CompletedAt = now;
+            syncEvent.UpdatedAt = now;
             await db.SaveChangesAsync(cancellationToken);
             return Ok(ToDto(feed, blocks.Count));
         }
@@ -99,9 +137,40 @@ public sealed class CalendarController(
             feed.Status = "Error";
             feed.LastError = exception.Message.Length > 500 ? exception.Message[..500] : exception.Message;
             feed.UpdatedAt = now;
+            syncEvent.Status = "Error";
+            syncEvent.Error = feed.LastError;
+            syncEvent.CompletedAt = now;
+            syncEvent.UpdatedAt = now;
             await db.SaveChangesAsync(cancellationToken);
             return UnprocessableEntity(ToDto(feed, await db.MilestoneCalendarBlocks.CountAsync(block => block.FeedId == feed.Id && !block.IsDeleted, cancellationToken)));
         }
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpDelete("feeds/{feedId:guid}")]
+    public async Task<IActionResult> DisconnectFeed(Guid propertyId, Guid feedId, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireOwnedProperty(propertyId);
+        var feed = await db.MilestoneCalendarFeeds.SingleOrDefaultAsync(item => item.Id == feedId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (feed is null) return NotFound();
+        feed.IsDeleted = true;
+        feed.Status = "Disconnected";
+        feed.UpdatedAt = timeProvider.GetUtcNow();
+        var blocks = await db.MilestoneCalendarBlocks.Where(item => item.FeedId == feedId && !item.IsDeleted).ToListAsync(cancellationToken);
+        foreach (var block in blocks) { block.IsDeleted = true; block.UpdatedAt = feed.UpdatedAt; }
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpGet("feeds/{feedId:guid}/history")]
+    public async Task<ActionResult<IReadOnlyList<CalendarSyncEventDto>>> GetHistory(Guid propertyId, Guid feedId, CancellationToken cancellationToken)
+    {
+        var hostUserId = RequireOwnedProperty(propertyId);
+        var exists = await db.MilestoneCalendarFeeds.AnyAsync(item => item.Id == feedId && item.PropertyId == propertyId && item.HostUserId == hostUserId, cancellationToken);
+        if (!exists) return NotFound();
+        var history = await db.MilestoneCalendarSyncEvents.AsNoTracking().Where(item => item.FeedId == feedId && !item.IsDeleted).OrderByDescending(item => item.StartedAt).Take(50).Select(item => new CalendarSyncEventDto(item.Id, item.Status, item.BlockCount, item.Error, item.StartedAt, item.CompletedAt)).ToListAsync(cancellationToken);
+        return Ok(history);
     }
 
     [Authorize(Roles = "Host")]
@@ -132,7 +201,7 @@ public sealed class CalendarController(
         return host;
     }
 
-    private static string ValidateFeedUrl(string value)
+    internal static string ValidateFeedUrl(string value)
     {
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || string.IsNullOrWhiteSpace(uri.Host))
             throw new InvalidOperationException("Calendar feed must be an HTTP(S) URL.");
@@ -143,14 +212,15 @@ public sealed class CalendarController(
         return uri.ToString();
     }
 
-    private static List<MilestoneCalendarBlock> ParseEvents(string ics, Guid feedId, Guid propertyId, DateTimeOffset now)
+    internal static List<MilestoneCalendarBlock> ParseEvents(string ics, Guid feedId, Guid propertyId, DateTimeOffset now)
     {
         var events = new List<MilestoneCalendarBlock>();
         string? uid = null;
         string? summary = null;
         DateOnly? start = null;
         DateOnly? end = null;
-        foreach (var raw in ics.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        var lines = UnfoldIcsLines(ics);
+        foreach (var raw in lines)
         {
             var line = raw.Trim();
             if (line.Equals("BEGIN:VEVENT", StringComparison.OrdinalIgnoreCase)) { uid = null; summary = null; start = null; end = null; continue; }
@@ -178,6 +248,20 @@ public sealed class CalendarController(
         return DateOnly.ParseExact(dateValue, "yyyyMMdd", CultureInfo.InvariantCulture);
     }
 
+    private static IReadOnlyList<string> UnfoldIcsLines(string ics)
+    {
+        var unfolded = new List<string>();
+        foreach (var line in ics.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n'))
+        {
+            if (line.StartsWith(' ') || line.StartsWith('\t'))
+            {
+                if (unfolded.Count > 0) unfolded[^1] += line[1..];
+            }
+            else unfolded.Add(line);
+        }
+        return unfolded;
+    }
+
     private static void AddEvent(List<string> lines, string uid, DateOnly start, DateOnly end, string summary)
     {
         lines.Add("BEGIN:VEVENT");
@@ -188,12 +272,13 @@ public sealed class CalendarController(
         lines.Add("END:VEVENT");
     }
 
-    private static CalendarFeedDto ToDto(MilestoneCalendarFeed feed, int blockCount) => new(feed.Id, feed.PropertyId, feed.FeedUrl, feed.Status, feed.LastSyncAttemptAt, feed.LastSyncAt, feed.LastError, blockCount);
+    private static CalendarFeedDto ToDto(MilestoneCalendarFeed feed, int blockCount) => new(feed.Id, feed.PropertyId, feed.FeedUrl, feed.Status, feed.LastSyncAttemptAt, feed.LastSyncAt, feed.LastError, blockCount, feed.NextSyncAt, feed.ETag);
 }
 
 public sealed record ConnectCalendarFeedRequest(string FeedUrl);
 public sealed record SyncCalendarFeedRequest(string? IcsContent = null);
-public sealed record CalendarFeedDto(Guid Id, Guid PropertyId, string FeedUrl, string Status, DateTimeOffset? LastSyncAttemptAt, DateTimeOffset? LastSyncAt, string? LastError, int BlockCount);
+public sealed record CalendarFeedDto(Guid Id, Guid PropertyId, string FeedUrl, string Status, DateTimeOffset? LastSyncAttemptAt, DateTimeOffset? LastSyncAt, string? LastError, int BlockCount, DateTimeOffset? NextSyncAt = null, string? ETag = null);
+public sealed record CalendarSyncEventDto(Guid Id, string Status, int BlockCount, string? Error, DateTimeOffset StartedAt, DateTimeOffset? CompletedAt);
 
 internal static class IpAddressExtensions
 {

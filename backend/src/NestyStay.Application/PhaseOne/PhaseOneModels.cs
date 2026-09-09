@@ -14,7 +14,13 @@ public sealed record RegisterUserRequest(
 
 public sealed record RegisterUserResponse(Guid UserId, string Email, string DisplayName, bool RequiresTwoFactor);
 
-public sealed record LoginRequest(string Email, string Password);
+public sealed record LoginRequest(
+    string Email,
+    string Password,
+    string? DeviceName = null,
+    bool RememberDevice = false,
+    string? UserAgent = null,
+    string? IpAddress = null);
 
 public sealed record LoginResponse(
     Guid UserId,
@@ -29,7 +35,13 @@ public sealed record LoginResponse(
 
 public sealed record DevelopmentAuthCodeResponse(string ChallengeId, string Code, DateTimeOffset ExpiresAt);
 
-public sealed record VerifyTwoFactorRequest(string ChallengeId, string Code);
+public sealed record VerifyTwoFactorRequest(
+    string ChallengeId,
+    string Code,
+    string? DeviceName = null,
+    bool RememberDevice = false,
+    string? UserAgent = null,
+    string? IpAddress = null);
 
 public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles, IReadOnlyList<string>? Permissions = null);
 
@@ -89,6 +101,19 @@ public sealed record CompletePasswordResetResponse(string Status, bool PasswordC
 
 public sealed record LogoutResponse(bool LoggedOut, DateTimeOffset InvalidatedAt);
 
+public sealed record UserSessionDto(
+    Guid Id,
+    string DeviceName,
+    string Browser,
+    string? ApproximateLocation,
+    DateTimeOffset IssuedAt,
+    DateTimeOffset LastUsedAt,
+    DateTimeOffset ExpiresAt,
+    bool IsCurrent,
+    bool IsTrusted,
+    DateTimeOffset? TrustedUntil,
+    bool IsRevoked);
+
 public sealed record DevelopmentPasswordResetTokenResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
 
 public sealed record UserProfileDto(
@@ -134,6 +159,28 @@ public sealed record PropertyRevisionDto(
     string SnapshotJson,
     DateTimeOffset CreatedAt,
     Guid? CreatedByUserId);
+
+public sealed record BulkPropertyEditRequest(
+    IReadOnlyCollection<Guid> PropertyIds,
+    decimal? NightlyRate = null,
+    string? CancellationPolicy = null,
+    bool? GuestVerificationEnabled = null,
+    bool? InsuraGuestEnabled = null,
+    string? IdempotencyKey = null);
+
+public sealed record BulkPropertyEditPreviewDto(
+    int RequestedCount,
+    int MatchedCount,
+    IReadOnlyList<Guid> PropertyIds,
+    IReadOnlyList<string> ChangedFields,
+    decimal? NightlyRate,
+    string? CancellationPolicy,
+    bool? GuestVerificationEnabled,
+    bool? InsuraGuestEnabled);
+
+public sealed record PropertyAvailabilityDayDto(DateOnly Date, string Status, string Source, string? Label = null);
+
+public sealed record PropertyAvailabilityDto(Guid PropertyId, DateOnly From, DateOnly To, IReadOnlyList<PropertyAvailabilityDayDto> Days);
 
 public sealed record CreatePropertyRequest(
     Guid HostUserId,
