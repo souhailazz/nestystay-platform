@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CalendarCheck2, CreditCard, ShieldCheck } from "lucide-react";
-import { api, formatMoney, type Booking, type BookingQuote, type PropertyListing } from "../../lib/api";
+import { api, formatMoney, type Booking, type BookingQuote, type PropertyAvailability, type PropertyListing } from "../../lib/api";
 import type { AuthSession } from "../../lib/auth";
 import { AppLink } from "../AppLink";
 import { Badge } from "../ui/Badge";
@@ -30,16 +30,29 @@ export function BookingModal({
 }) {
   const [checkIn, setCheckIn] = useState(isoDate(7));
   const [checkOut, setCheckOut] = useState(isoDate(11));
-  const [documentType, setDocumentType] = useState("01000000");
+  const [documentType, setDocumentType] = useState("GLB03002");
   const [quote, setQuote] = useState<BookingQuote | null>(null);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<PropertyAvailability | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const title = property ? `Book ${property.title}` : "Book your stay";
   const canBook = Boolean(property && session && quote);
 
   const quoteLines = useMemo(() => quote?.priceBreakdown ?? [], [quote]);
+
+  useEffect(() => {
+    if (!open || !property) return;
+    let active = true;
+    setAvailabilityLoading(true);
+    void api.getPropertyAvailability(property.id, new Date().toISOString().slice(0, 10))
+      .then((result) => { if (active) setAvailability(result); })
+      .catch(() => { if (active) setAvailability(null); })
+      .finally(() => { if (active) setAvailabilityLoading(false); });
+    return () => { active = false; };
+  }, [open, property?.id]);
 
   async function handleQuote() {
     if (!property) return;
@@ -115,11 +128,29 @@ export function BookingModal({
             {property.guestVerificationEnabled && (
               <Field label="eKYC document" className="form-grid__full">
                 <Select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
-                  <option value="01000000">Passport</option>
+                  <option value="GLB03002">Passport (global e-passport)</option>
                   <option value="02000000">National ID</option>
                   <option value="03000000">Driver license</option>
                 </Select>
               </Field>
+            )}
+          </div>
+
+          <div aria-label="Property availability" className="rounded-field border border-sand-border bg-shell p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-sm">Availability preview</strong>
+              <span className="text-xs text-sand-600">Green available · amber held · coral booked</span>
+            </div>
+            {availabilityLoading && <div className="text-xs text-sand-600">Loading dates…</div>}
+            {!availabilityLoading && availability && (
+              <div className="grid grid-cols-7 gap-1.5" role="list" aria-label="Next 30 days">
+                {availability.days.slice(0, 35).map((day) => (
+                  <div aria-label={`${day.date}: ${day.label ?? day.status}`} className={`rounded px-1 py-1.5 text-center text-[10px] font-semibold ${day.status === "AVAILABLE" ? "bg-success-tint text-success-text" : day.status === "HELD" ? "bg-amber-tint text-amber-text" : "bg-coral-tint text-coral-text"}`} data-status={day.status} key={day.date} role="listitem" title={day.label ?? day.status}>
+                    <span className="block">{new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { month: "short" })}</span>
+                    <span className="block text-[11px]">{new Date(`${day.date}T00:00:00`).getDate()}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

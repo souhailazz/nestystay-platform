@@ -857,7 +857,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "trav-notifications":
       return <NotificationsCenterPage auth={auth} />;
     case "trav-suggestions":
-      return <TripSuggestionsPage />;
+      return <TripSuggestionsPage auth={auth} />;
     case "host-dashboard":
       return <HostDashboardPage auth={auth} />;
     case "host-wellness":

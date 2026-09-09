@@ -8,6 +8,7 @@ import { getStayImage } from "../../lib/stayImages";
 
 interface HostAnalyticsProps {
   token: string;
+  hostUserId: string;
 }
 
 const outlinePill =
@@ -21,19 +22,21 @@ function isCancelledBooking(booking: Booking) {
 
 /* HOST-01 (DS v2) — "Manage Your Yard" (approved lexicon). Metrics computed
    from the live bookings + properties APIs; logic unchanged. */
-export function HostAnalytics({ token }: HostAnalyticsProps) {
+export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [properties, setProperties] = useState<PropertyListing[]>([]);
+  const [operations, setOperations] = useState<import("../../lib/api").HostOperations | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const [bList, pList] = await Promise.all([api.getBookings(token), api.getProperties()]);
+        const [bList, pList, hostOps] = await Promise.all([api.getBookings(token), api.getOwnedProperties(token), hostUserId ? api.getHostOperations(hostUserId, token) : Promise.resolve(null)]);
         if (active) {
           setBookings(bList);
           setProperties(pList);
+          setOperations(hostOps);
         }
       } catch (err) {
         console.error(err);
@@ -45,7 +48,7 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [hostUserId, token]);
 
   if (loading) {
     return (
@@ -55,7 +58,7 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
     );
   }
 
-  const revenue = bookings.reduce((sum, b) => sum + (/captur|paid/i.test(b.paymentStatus ?? "") ? b.totalAmount : 0), 0);
+  const revenue = operations?.analytics.revenue ?? bookings.reduce((sum, b) => sum + (/captur|paid/i.test(b.paymentStatus ?? "") ? b.totalAmount : 0), 0);
   const currency = bookings[0]?.currency ?? "USD";
   const activeBookings = bookings.filter((booking) => !isCancelledBooking(booking));
   const now = new Date();
@@ -102,13 +105,15 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
         Manage Your <em className="italic text-deep-hover">Yard</em>
       </h1>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
         {(
           [
             ["PROPERTIES", String(properties.length)],
             ["BOOKINGS", String(bookings.length)],
             ["REVENUE", formatMoney(revenue, currency)],
-            ["AVG RATING", "—"],
+            ["AVG NIGHTLY RATE", formatMoney(operations?.analytics.averageNightlyRate ?? 0, currency)],
+            ["AVAILABLE PAYOUT", formatMoney(operations?.payouts?.availableAmount ?? 0, operations?.payouts?.currency ?? currency)],
+            ["PAID OUT", formatMoney(operations?.payouts?.paidAmount ?? 0, operations?.payouts?.currency ?? currency)],
           ] as const
         ).map(([label, value]) => (
           <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={label}>
@@ -165,6 +170,19 @@ export function HostAnalytics({ token }: HostAnalyticsProps) {
           {listingHealth < 100 && <StatusChip value={`Listing health ${listingHealth}%`} />}
           {pendingByProperty.size === 0 && listingHealth === 100 && <StatusChip value="Everything is up to date" />}
         </div>
+      </section>
+
+      <section aria-labelledby="host-payout-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><h2 className="m-0 font-display text-[19px] font-medium" id="host-payout-heading">Payout visibility</h2><p className="m-0 mt-1 text-[12.5px] text-gray-600">Manual settlement ledger backed by captured bookings. Stripe Connect activation remains a client-provider step.</p></div>
+          <StatusChip value={operations?.payouts?.settlementMode ?? "Loading"} />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">Pending</div><strong>{formatMoney(operations?.payouts?.pendingAmount ?? 0, operations?.payouts?.currency ?? currency)}</strong></div>
+          <div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">Available</div><strong>{formatMoney(operations?.payouts?.availableAmount ?? 0, operations?.payouts?.currency ?? currency)}</strong></div>
+          <div className="rounded-field bg-shell p-3"><div className="text-xs text-sand-500">History</div><strong>{operations?.payouts?.history.length ?? 0} records</strong></div>
+        </div>
+        {operations?.payouts?.history.length ? <div className="mt-3 flex flex-col gap-2">{operations.payouts.history.slice(0, 5).map((payout) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-field border border-sand-border bg-white px-3 py-2 text-sm" key={payout.id}><span className="font-mono">{payout.bookingId.slice(0, 8)}</span><span>{formatMoney(payout.netAmount, payout.currency)}</span><StatusChip value={payout.status} /></div>)}</div> : <div className="mt-3 text-sm text-gray-600">Captured bookings will create payout records here.</div>}
       </section>
 
       {properties.length === 0 && (

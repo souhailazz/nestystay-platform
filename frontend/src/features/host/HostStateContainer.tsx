@@ -18,7 +18,7 @@ export function HostStateContainer({ view, auth, propertyId }: HostStateContaine
   const token = auth.session?.accessToken || "";
 
   if (view === "analytics" || view === "dashboard" || view === "metrics") {
-    return <HostAnalytics token={token} />;
+    return <HostAnalytics token={token} hostUserId={auth.session?.userId || ""} />;
   }
 
   if (view === "properties" || view === "archived") {
@@ -57,5 +57,5 @@ export function HostStateContainer({ view, auth, propertyId }: HostStateContaine
     return <HostReviewsBadgesSettings view={view} token={token} hostUserId={auth.session?.userId || ""} />;
   }
 
-  return <HostAnalytics token={token} />;
+  return <HostAnalytics token={token} hostUserId={auth.session?.userId || ""} />;
 }

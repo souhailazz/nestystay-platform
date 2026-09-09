@@ -1,4 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
+import { installCookieSession } from "./helpers/session";
 
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
@@ -32,7 +33,7 @@ test("M4 provider onboarding saves a recoverable draft and requires terms", asyn
 
 test("M4 admin moderation queue is API-backed and supports request changes", async ({ page, baseURL }) => {
   const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
-  if (!adminToken) throw new Error("NESTYSTAY_E2E_ADMIN_TOKEN is required.");
+  test.skip(!adminToken, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the privileged moderation journey.");
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.evaluate((accessToken) => localStorage.setItem("nestyStay.session", JSON.stringify({ userId: "00000000-0000-0000-0000-000000000001", email: "admin@nestystay.local", displayName: "Admin", accessToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), roles: ["Admin"], permissions: ["property_moderation"] })), adminToken);
   await page.goto("/admin/ops/directory", { waitUntil: "networkidle" });
@@ -68,6 +69,5 @@ async function createSession(api: APIRequestContext, role: string, displayName: 
 }
 
 async function installSession(page: Page, session: Record<string, unknown>) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((value) => localStorage.setItem("nestyStay.session", JSON.stringify(value)), session);
+  await installCookieSession(page, session);
 }

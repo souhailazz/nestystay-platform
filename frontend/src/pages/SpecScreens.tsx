@@ -1068,95 +1068,57 @@ export function NotificationsCenterPage({ auth }: { auth?: AuthController }) {
   );
 }
 
-/** TRAV-SUGG (DS v2) — preference-matched stays from the live property list with reason tags. */
-export function TripSuggestionsPage() {
+/** TRAV-SUGG (DS v2) — explainable recommendations persisted by the API. */
+export function TripSuggestionsPage({ auth }: { auth?: AuthController } = {}) {
   const { properties } = useProperties();
   const [filter, setFilter] = useState("All parishes");
   const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [recommendations, setRecommendations] = useState<import("../lib/api").TravelerRecommendation[]>([]);
+  const [loading, setLoading] = useState(Boolean(auth?.session));
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const userId = auth?.session?.userId;
+  const token = auth?.session?.accessToken ?? "";
 
-  const reasons = ["◎ You loved beachfront stays", "◎ Similar to your last stay", "◎ Quiet parishes you browse"];
-  const filtered = properties.filter((p) => {
-    if (filter === "Under $300") return p.nightlyRate < 300;
-    if (filter === "Wellness hosts") return p.badgeLevel.toLowerCase().includes("well");
-    if (filter === "Beachfront") return p.highlights.some((h) => /beach|ocean|sea/i.test(h));
-    return true;
-  });
+  useEffect(() => {
+    if (!userId) { setRecommendations([]); setLoading(false); return; }
+    const query = filter === "Under $300" ? { maximumNightlyRate: 300 } : filter === "Wellness hosts" ? { badgeLevel: "Wellness" } : undefined;
+    let active = true;
+    setLoading(true); setError(null);
+    void api.getTravelerRecommendations(userId, token, query)
+      .then((items) => { if (active) setRecommendations(items); })
+      .catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "Recommendations could not be loaded."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [filter, token, userId]);
+
+  const visible = userId
+    ? recommendations
+    : properties.filter((property) => filter === "Under $300" ? property.nightlyRate < 300 : filter === "Wellness hosts" ? property.badgeLevel.toLowerCase().includes("well") : filter === "Beachfront" ? property.highlights.some((highlight) => /beach|ocean|sea/i.test(highlight)) : true).map((property) => ({ propertyId: property.id, propertyTitle: property.title, location: property.location, country: property.country, nightlyRate: property.nightlyRate, currency: property.currency, badgeLevel: property.badgeLevel, highlights: property.highlights, score: 0, reason: "Sign in to save preferences and receive explainable recommendations.", isDismissed: false, generatedAt: new Date().toISOString() }));
+
+  async function dismiss(propertyId: string) {
+    if (!userId) { setNotice("Sign in to dismiss and restore recommendations."); return; }
+    try { await api.dismissTravelerRecommendation(userId, propertyId, token); setRecommendations((items) => items.filter((item) => item.propertyId !== propertyId)); setNotice("Recommendation dismissed. You can restore it from your preferences later."); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Recommendation could not be dismissed."); }
+  }
+
+  async function savePreference() {
+    if (!userId) { setNotice("Sign in to save recommendation preferences."); return; }
+    try {
+      await api.saveTravelerPreferences(userId, token, { maximumNightlyRate: filter === "Under $300" ? 300 : null, preferredBadgeLevel: filter === "Wellness hosts" ? "Wellness" : null });
+      setNotice("Your recommendation preference was saved.");
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Preference could not be saved."); }
+  }
 
   return (
     <div className="flex flex-col gap-5" id="TRAV-SUGG">
-      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
-        {filtered.length} stay{filtered.length === 1 ? "" : "s"} match your{" "}
-        <em className="italic text-deep-hover">preferences.</em>
-      </h1>
-      <div className="flex flex-wrap gap-2">
-        {["All parishes", "Beachfront", "Under $300", "Wellness hosts"].map((tab) => (
-          <button
-            className={cx(
-              "inline-flex min-h-11 cursor-pointer items-center rounded-pill px-5 font-sans text-[13px] font-semibold transition-colors",
-              filter === tab
-                ? "border-none bg-deep text-on-dark-heading"
-                : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink",
-            )}
-            key={tab}
-            onClick={() => setFilter(tab)}
-            type="button"
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-        {filtered.map((prop, index) => (
-          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={prop.id}>
-            <div className="relative -mx-1.5 -mt-1.5 h-40 overflow-hidden rounded-field">
-              <img alt={prop.title} className="h-full w-full object-cover" src={prop.imageUrl ?? getStayImage(index).src} />
-              <button
-                aria-label={`Save ${prop.title}`}
-                aria-pressed={Boolean(saved[prop.id])}
-                className="absolute right-2.5 top-2.5 grid size-11 cursor-pointer place-items-center rounded-full border-none bg-deep/60 text-base text-on-dark-heading"
-                onClick={() => setSaved((s) => ({ ...s, [prop.id]: !s[prop.id] }))}
-                type="button"
-              >
-                {saved[prop.id] ? "♥" : "♡"}
-              </button>
-            </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <div className="font-display text-lg font-medium">{prop.title}</div>
-              <span className="text-sm">
-                <strong>{formatMoney(prop.nightlyRate, prop.currency)}</strong>{" "}
-                <span className="text-[11.5px] text-sand-500">/ night</span>
-              </span>
-            </div>
-            <div className="text-[12.5px] text-gray-600">
-              {prop.location} · {prop.country}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="rounded-pill bg-shell px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-gray-600">
-                {reasons[index % reasons.length]}
-              </span>
-              <span className="rounded-pill bg-success-tint px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-success-text">
-                Available your dates
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <AppLink
-                className="inline-flex min-h-[46px] items-center rounded-pill bg-deep px-[22px] text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover"
-                href={`/properties/${prop.id}`}
-              >
-                View
-              </AppLink>
-              <button
-                className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
-                onClick={() => setSaved((s) => ({ ...s, [prop.id]: !s[prop.id] }))}
-                type="button"
-              >
-                {saved[prop.id] ? "Saved" : "Save"}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      {filtered.length === 0 && <EmptyState title="No matches for that filter" copy="Try a different filter to see more stays." />}
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">{visible.length} stay{visible.length === 1 ? "" : "s"} match your <em className="italic text-deep-hover">preferences.</em></h1><p className="m-0 mt-2 max-w-[620px] text-sm text-gray-600">Recommendations are ranked from your saved stays, completed trips, and preferences. Every reason is shown so you stay in control.</p></div>{userId && <Button onClick={() => void savePreference()} variant="outline">Save this filter</Button>}</div>
+      <div className="flex flex-wrap gap-2">{["All parishes", "Beachfront", "Under $300", "Wellness hosts"].map((tab) => <button className={cx("inline-flex min-h-11 cursor-pointer items-center rounded-pill px-5 font-sans text-[13px] font-semibold transition-colors", filter === tab ? "border-none bg-deep text-on-dark-heading" : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink")} key={tab} onClick={() => setFilter(tab)} type="button">{tab}</button>)}</div>
+      {notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm text-success-text" role="status">{notice}</div>}
+      {error && <div className="rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}
+      {!userId && <div className="rounded-field bg-amber-tint px-4 py-3 text-sm text-amber-text">Browse sample matches as a guest, or <AppLink className="font-semibold underline" href="/login">sign in</AppLink> to save preferences and dismiss suggestions.</div>}
+      {loading ? <div className="rounded-card border border-sand-border bg-cream p-6 text-sm text-sand-600">Loading recommendations from PostgreSQL…</div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">{visible.map((item, index) => <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={item.propertyId}><div className="relative -mx-1.5 -mt-1.5 h-40 overflow-hidden rounded-field"><img alt={item.propertyTitle} className="h-full w-full object-cover" src={getStayImage(index).src} /></div><div className="flex items-baseline justify-between gap-2.5"><div className="font-display text-lg font-medium">{item.propertyTitle}</div><span className="text-sm"><strong>{formatMoney(item.nightlyRate, item.currency)}</strong> <span className="text-[11.5px] text-sand-500">/ night</span></span></div><div className="text-[12.5px] text-gray-600">{item.location} · {item.country}</div><div className="flex flex-wrap gap-1.5"><span className="rounded-pill bg-shell px-2.5 py-1 text-[10.5px] font-bold tracking-[0.04em] text-gray-600">{item.reason}</span>{item.score > 0 && <span className="rounded-pill bg-success-tint px-2.5 py-1 text-[10.5px] font-bold text-success-text">Match score {item.score}</span>}</div><div className="flex flex-wrap gap-2"><AppLink className="inline-flex min-h-[46px] items-center rounded-pill bg-deep px-[22px] text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover" href={`/properties/${item.propertyId}`}>View</AppLink><button className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep" onClick={() => void dismiss(item.propertyId)} type="button">Dismiss</button></div></div>)}</div>}
+      {!loading && visible.length === 0 && <EmptyState title="No matches for that filter" copy="Try a different filter to see more stays." />}
     </div>
   );
 }

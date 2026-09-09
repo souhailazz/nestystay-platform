@@ -33,8 +33,8 @@ test("M5 property-manager journey uses cookie auth, persisted API data, responsi
   await postJson(api, "/api/property-manager/documents", manager, { ownerUserId: ownerId, propertyId: property.id, title: "M5 statement", category: "Finance", fileName: "m5-statement.pdf", contentType: "application/pdf", sizeBytes: bytes.length, contentBase64: bytes.toString("base64") });
   const issued = await postJson(api, "/api/property-manager/qr", manager, { ownerUserId: ownerId, propertyId: property.id, subjectType: "OWNER", validFrom: new Date(Date.now() - 60_000).toISOString(), validUntil: new Date(Date.now() + 86_400_000).toISOString() }) as { token: string };
 
-  const managerCookie = await loginCookie(managerEmail);
-  const ownerCookie = await loginCookie(ownerEmail);
+  const managerCookie = await loginCookie(managerEmail, baseURL);
+  const ownerCookie = await loginCookie(ownerEmail, baseURL);
   const consoleErrors: string[] = [];
   const serverErrors: string[] = [];
   const onConsole = (message: { type(): string; text(): string }) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); };
@@ -106,8 +106,8 @@ async function loginBearer(api: APIRequestContext, email: string): Promise<Sessi
   return { ...body, ...await verified.json() as Session };
 }
 
-async function loginCookie(email: string): Promise<{ session: Session; cookies: Cookie[] }> {
-  const api = await playwrightRequest.newContext({ baseURL: "http://127.0.0.1:4173" });
+async function loginCookie(email: string, baseURL: string | undefined): Promise<{ session: Session; cookies: Cookie[] }> {
+  const api = await playwrightRequest.newContext({ baseURL });
   const response = await api.post("/api/auth/login", { data: { email, password }, headers: { "X-Session-Mode": "cookie" } });
   expect(response.ok(), await response.text()).toBeTruthy();
   let body = await response.json() as Session & { requiresTwoFactor?: boolean; challengeId?: string };

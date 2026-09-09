@@ -108,6 +108,9 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
   const [otpCode, setOtpCode] = useState("");
+  const [smsCode, setSmsCode] = useState("");
+  const [smsChallenge, setSmsChallenge] = useState<{ flowId: string; maskedPhone: string; expiresAt: string } | null>(null);
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [totpCode, setTotpCode] = useState("");
   const [totpQrUrl, setTotpQrUrl] = useState<string | null>(null);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
@@ -143,7 +146,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     setLoading(true);
     setNotice(null);
     try {
-      const result = await auth.login(email, password);
+      const result = await auth.login(email, password, { deviceName: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 80) : "Browser", rememberDevice });
       if ("challengeId" in result) {
         setMode("2fa-verify");
         showSuccess("Enter your authenticator code to finish signing in.");
@@ -252,6 +255,47 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
       finishSignIn();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Verification failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRequestSmsFallback() {
+    setLoading(true);
+    try {
+      const challenge = await auth.requestSmsFallback();
+      setSmsChallenge(challenge);
+      setSmsCode("");
+      showSuccess(`A verification code was sent to ${challenge.maskedPhone}.`);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "SMS fallback is unavailable.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifySmsFallback(e?: FormEvent) {
+    e?.preventDefault();
+    if (!smsChallenge || smsCode.length < 6) return;
+    setLoading(true);
+    try {
+      await auth.verifySmsFallback(smsChallenge.flowId, smsCode);
+      finishSignIn();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "SMS verification failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setLoading(true);
+    setNotice(null);
+    try {
+      await auth.signInWithPasskey(email.trim() || undefined);
+      finishSignIn();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Passkey sign-in failed.");
     } finally {
       setLoading(false);
     }
@@ -416,6 +460,10 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
                 value={email}
               />
             </label>
+            <label className="flex cursor-pointer items-center gap-2.5 text-[12.5px] text-gray-600">
+              <input checked={rememberDevice} className="size-4 accent-deep-hover" onChange={(event) => setRememberDevice(event.target.checked)} type="checkbox" />
+              Trust this device for 30 days
+            </label>
             <label className="flex flex-col gap-1.5">
               <span className={labelText}>Password</span>
               <input
@@ -451,6 +499,14 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               type="button"
             >
               Email me a passwordless sign-in link
+            </button>
+            <button
+              className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-deep-hover hover:text-deep disabled:opacity-60"
+              disabled={loading || typeof window === "undefined" || !("PublicKeyCredential" in window)}
+              onClick={handlePasskeyLogin}
+              type="button"
+            >
+              Sign in with a passkey
             </button>
             <button
               className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-gray-600 hover:text-deep-hover"
@@ -537,7 +593,17 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
                   Use development 2FA code
                 </button>
               )}
+              <button className="inline-flex min-h-11 cursor-pointer items-center border-none bg-transparent font-sans text-[13.5px] font-semibold text-deep-hover hover:text-deep" disabled={loading} onClick={handleRequestSmsFallback} type="button">
+                Use SMS instead
+              </button>
             </div>
+            {smsChallenge && (
+              <div className="mt-2 flex flex-col gap-3 rounded-field border border-sand-border bg-white p-4">
+                <p className="m-0 text-[13px] text-gray-600">SMS code sent to <strong>{smsChallenge.maskedPhone}</strong>.</p>
+                <CodeBoxes code={smsCode} onChange={setSmsCode} />
+                <button className={deepPill} disabled={loading || smsCode.length < 6} onClick={() => void handleVerifySmsFallback()} type="button">{loading ? "Verifying…" : "Verify SMS code"}</button>
+              </div>
+            )}
           </form>
         )}
 

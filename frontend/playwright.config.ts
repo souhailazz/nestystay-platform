@@ -33,6 +33,26 @@ export default defineConfig({
         viewport: { width: 1440, height: 900 },
       },
     },
+    // Keep the full Chromium matrix as the primary suite. Firefox and WebKit
+    // intentionally run the small critical smoke test only, so provider- or
+    // Chromium-specific evidence does not make cross-browser certification
+    // prohibitively slow while still exercising the core login/directory path.
+    {
+      name: "desktop-firefox",
+      grep: /critical UI smoke works/,
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
+      name: "desktop-webkit",
+      grep: /critical UI smoke works/,
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
     {
       name: "tablet-chromium",
       use: {

@@ -35,6 +35,10 @@ export type RegisterUserResponse = {
 export type LoginRequest = {
   email: string;
   password: string;
+  deviceName?: string;
+  rememberDevice?: boolean;
+  userAgent?: string;
+  ipAddress?: string;
 };
 
 export type LoginResponse = {
@@ -112,6 +116,36 @@ export type UserProfile = {
   photo?: UserProfilePhoto | null;
 };
 
+export type UserSession = {
+  id: string;
+  deviceName: string;
+  browser: string;
+  approximateLocation?: string | null;
+  issuedAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+  isTrusted: boolean;
+  trustedUntil?: string | null;
+  isRevoked: boolean;
+};
+
+export type SmsTwoFactorChallenge = {
+  flowId: string;
+  challengeId: string;
+  maskedPhone: string;
+  expiresAt: string;
+  attemptsRemaining: number;
+};
+
+export type Passkey = {
+  id: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
+  isActive: boolean;
+};
+
 export type UserProfilePhoto = {
   id: string;
   fileName: string;
@@ -184,7 +218,21 @@ export type CalendarFeed = {
   lastSyncAt?: string | null;
   lastError?: string | null;
   blockCount: number;
+  nextSyncAt?: string | null;
+  etag?: string | null;
 };
+
+export type CalendarSyncEvent = {
+  id: string;
+  status: string;
+  blockCount: number;
+  error?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+};
+
+export type PropertyAvailabilityDay = { date: string; status: string; source: string; label?: string | null };
+export type PropertyAvailability = { propertyId: string; from: string; to: string; days: PropertyAvailabilityDay[] };
 
 export type PropertyPhotoUpload = {
   id: string;
@@ -1012,7 +1060,14 @@ export type HostOperations = {
   pricingRules: HostPricingRule[];
   promotions: HostPromotion[];
   reviews: TravelerReview[];
+  payouts?: HostPayoutSummary | null;
 };
+
+export type HostPayout = { id: string; bookingId: string; grossAmount: number; platformFee: number; netAmount: number; currency: string; status: string; eligibleAt?: string | null; paidAt?: string | null; settlementReference?: string | null; notes: string };
+export type HostPayoutSummary = { pendingAmount: number; availableAmount: number; paidAmount: number; currency: string; settlementMode: string; history: HostPayout[] };
+
+export type TravelerRecommendation = { propertyId: string; propertyTitle: string; location: string; country: string; nightlyRate: number; currency: string; badgeLevel: string; highlights: string[]; score: number; reason: string; isDismissed: boolean; generatedAt: string };
+export type TravelerPreference = { userId: string; preferredParish?: string | null; maximumNightlyRate?: number | null; preferredBadgeLevel?: string | null; preferredHighlights: string[]; updatedAt: string };
 
 export type HostAnalytics = {
   revenue: number;
@@ -1199,10 +1254,13 @@ export type PropertyManagerMaintenance = { id: string; ownerUserId: string; prop
 export type PropertyManagerVendor = { id: string; name: string; category: string; contact: string; verificationStatus: string; isActive: boolean; notes: string; serviceAreas?: string[] | null; rate?: number | null; rating?: number; isPreferred?: boolean; isSuspended?: boolean; completedJobCount?: number; spendTotal?: number };
 export type PropertyManagerNotice = { id: string; communityId?: string | null; targetOwnerUserId?: string | null; title: string; body: string; publishAt: string; expiresAt?: string | null; isPinned: boolean; isArchived: boolean; category?: string; audienceRoles?: string[]; audienceOwnerIds?: string[]; acknowledgementDueAt?: string | null };
 export type PropertyManagerProposal = { id: string; communityId?: string | null; title: string; description: string; opensAt: string; closesAt: string; status: string; isAnonymous: boolean; quorum?: number | null; eligibleVoters: number; votesCast: number; results: Record<string, number> };
-export type PropertyManagerDocument = { id: string; ownerUserId?: string | null; propertyId?: string | null; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; accessScope: string; isArchived: boolean; createdAt: string };
+export type PropertyManagerDocument = { id: string; ownerUserId?: string | null; propertyId?: string | null; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; accessScope: string; isArchived: boolean; expiresOn?: string | null; createdAt: string };
 export type PropertyManagerDocumentDownload = { id: string; fileName: string; contentType: string; sizeBytes: number; url: string; expiresAt: string };
+export type PropertyManagerDocumentExport = { id: string; status: string; documentCount: number; fileName?: string | null; url?: string | null; error?: string | null; createdAt: string; completedAt?: string | null; expiresAt?: string | null };
 export type PropertyManagerGateMessage = { id: string; communityId?: string | null; propertyId?: string | null; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string };
-export type PropertyManagerDashboard = { manager: { managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }; totalOwners: number; totalProperties: number; outstandingBalance: number; invoicesDue: number; openMaintenance: number; pendingVerification: number; gateActivity: number; owners: PropertyManagerOwner[]; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; maintenance: PropertyManagerMaintenance[]; utilities: PropertyManagerUtility[]; vendors: PropertyManagerVendor[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[]; gateMessages: PropertyManagerGateMessage[] };
+export type PropertyManagerSubscription = { managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string; pendingSubscriptionTier?: string | null; pendingSubscriptionEffectiveAt?: string | null; autoRenew: boolean; billingProviderStatus: string; unitLimit?: number | null; unitsUsed: number; cancellationReason?: string | null };
+export type PropertyManagerSubscriptionEvent = { id: string; eventType: string; fromTier: string; toTier: string; status: string; reason?: string | null; effectiveAt: string };
+export type PropertyManagerDashboard = { manager: PropertyManagerSubscription; totalOwners: number; totalProperties: number; outstandingBalance: number; invoicesDue: number; openMaintenance: number; pendingVerification: number; gateActivity: number; owners: PropertyManagerOwner[]; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; maintenance: PropertyManagerMaintenance[]; utilities: PropertyManagerUtility[]; vendors: PropertyManagerVendor[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[]; gateMessages: PropertyManagerGateMessage[] };
 export type PropertyManagerStatement = { ownerUserId: string; from: string; to: string; openingBalance: number; entries: { date: string; type: string; description: string; amount: number; invoiceId?: string | null }[]; closingBalance: number; invoices: PropertyManagerInvoice[]; payments: { id: string; invoiceId: string; amount: number; provider: string; providerReference: string; status: string; createdAt: string }[] };
 export type PropertyManagerOwnerPortal = { ownerUserId: string; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; statement: PropertyManagerStatement; utilities: PropertyManagerUtility[]; maintenance: PropertyManagerMaintenance[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[] };
 export type PropertyManagerQr = { id: string; token: string; subjectType: string; propertyId?: string | null; validFrom: string; validUntil: string };
@@ -1399,12 +1457,16 @@ export const api = {
   login: (body: LoginRequest) => request<LoginResponse>("/auth/login", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   googleSignIn: (body: GoogleSignInRequest) =>
     request<GoogleSignInResponse>("/auth/google", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
-  verifyTwoFactor: (challengeId: string, code: string) =>
+  verifyTwoFactor: (challengeId: string, code: string, options?: { deviceName?: string; rememberDevice?: boolean; userAgent?: string; ipAddress?: string }) =>
     request<VerifyTwoFactorResponse>("/auth/2fa/verify", {
       method: "POST",
-      body: { challengeId, code },
+      body: { challengeId, code, ...options },
       headers: { "X-Session-Mode": "cookie" },
     }),
+  requestSmsTwoFactor: (challengeId: string) =>
+    request<SmsTwoFactorChallenge>("/auth/2fa/sms/request", { method: "POST", body: { challengeId }, headers: { "X-Session-Mode": "cookie" } }),
+  verifySmsTwoFactor: (body: { challengeId: string; flowId: string; code: string; deviceName?: string; rememberDevice?: boolean; userAgent?: string; ipAddress?: string }) =>
+    request<VerifyTwoFactorResponse>("/auth/2fa/sms/verify", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   getDevelopmentTwoFactorCode: (challengeId: string) =>
     request<{ challengeId: string; code: string; expiresAt: string }>(`/auth/development/challenges/${challengeId}`),
   beginTwoFactorEnrollment: (token: string) =>
@@ -1415,6 +1477,15 @@ export const api = {
     request<DisableTwoFactorResponse>("/auth/2fa", { method: "DELETE", token, body }),
   logout: (token?: string) =>
     request<{ loggedOut: boolean; invalidatedAt: string }>("/auth/logout", { method: "POST", token }),
+  getSessions: (token?: string) => request<UserSession[]>("/auth/sessions", { token }),
+  revokeSession: (sessionId: string, token?: string) => request<UserSession>(`/auth/sessions/${sessionId}`, { method: "DELETE", token }),
+  revokeOtherSessions: (token?: string) => request<{ revoked: number }>("/auth/sessions/revoke-others", { method: "POST", token }),
+  getPasskeys: (token?: string) => request<Passkey[]>("/auth/passkeys", { token }),
+  beginPasskeyRegistration: (token?: string) => request<{ challengeId: string; options: PublicKeyCredentialCreationOptions; expiresAt: string }>("/auth/passkeys/register/options", { method: "POST", token }),
+  completePasskeyRegistration: (body: { challengeId: string; response: unknown; label?: string }, token?: string) => request<Passkey>("/auth/passkeys/register/complete", { method: "POST", body, token }),
+  beginPasskeyAssertion: (email?: string) => request<{ challengeId: string; options: PublicKeyCredentialRequestOptions; expiresAt: string }>("/auth/passkeys/assertion/options", { method: "POST", body: { email } }),
+  completePasskeyAssertion: (body: { challengeId: string; response: unknown }) => request<VerifyTwoFactorResponse & { email: string; displayName: string }>("/auth/passkeys/assertion/complete", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
+  removePasskey: (id: string, token?: string) => request<void>(`/auth/passkeys/${id}`, { method: "DELETE", token }),
   getProfile: (token?: string) => request<UserProfile>("/auth/profile", { token }),
   updateProfile: (token: string | undefined, body: { displayName: string; phone?: string | null }) =>
     request<UserProfile>("/auth/profile", { method: "PATCH", token, body }),
@@ -1432,9 +1503,9 @@ export const api = {
   completePasswordReset: (body: { requestId: string; token: string; newPassword: string; confirmPassword: string }) =>
     request<CompletePasswordResetResponse>("/auth/password-reset/complete", { method: "POST", body }),
   requestPasswordlessLogin: (email: string) =>
-    request<AuthFlowResult>("/spec/auth/passwordless/request", { method: "POST", body: { email }, headers: { "X-Session-Mode": "cookie" } }),
+    request<AuthFlowResult>("/auth/passwordless/request", { method: "POST", body: { email }, headers: { "X-Session-Mode": "cookie" } }),
   completePasswordlessLogin: (body: { flowId: string; token?: string; code?: string }) =>
-    request<PasswordlessLoginResponse>("/spec/auth/passwordless/complete", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
+    request<PasswordlessLoginResponse>("/auth/passwordless/complete", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   getDevelopmentPasswordResetToken: (requestId: string) =>
     request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
   getProperties: () => request<PropertyListing[]>("/properties"),
@@ -1456,6 +1527,12 @@ export const api = {
     request<PropertyListing>(`/properties/${id}/duplicate`, { method: "POST", token, body: { title } }),
   bulkArchiveProperties: (propertyIds: string[], token: string, isArchived = true) =>
     request<PropertyListing[]>("/properties/bulk/archive", { method: "POST", token, body: { propertyIds, isArchived } }),
+  previewBulkEditProperties: (body: { propertyIds: string[]; nightlyRate?: number; cancellationPolicy?: string; guestVerificationEnabled?: boolean; insuraGuestEnabled?: boolean }, token: string) =>
+    request<{ requestedCount: number; matchedCount: number; propertyIds: string[]; changedFields: string[] }>("/properties/bulk/edit/preview", { method: "POST", token, body }),
+  bulkEditProperties: (body: { propertyIds: string[]; nightlyRate?: number; cancellationPolicy?: string; guestVerificationEnabled?: boolean; insuraGuestEnabled?: boolean; idempotencyKey?: string }, token: string) =>
+    request<PropertyListing[]>("/properties/bulk/edit", { method: "POST", token, body }),
+  getPropertyAvailability: (propertyId: string, from?: string, to?: string) =>
+    request<PropertyAvailability>(withQuery(`/properties/${propertyId}/availability`, { from, to })),
   publishProperty: (id: string, token: string) =>
     request<PropertyListing>(`/properties/${id}/publish`, { method: "POST", token }),
   getPropertyRevisions: (id: string, token: string) =>
@@ -1465,6 +1542,8 @@ export const api = {
   getCalendarFeeds: (propertyId: string, token: string) => request<CalendarFeed[]>(`/properties/${propertyId}/calendar/feeds`, { token }),
   connectCalendarFeed: (propertyId: string, token: string, feedUrl: string) => request<CalendarFeed>(`/properties/${propertyId}/calendar/feeds`, { method: "POST", token, body: { feedUrl } }),
   syncCalendarFeed: (propertyId: string, feedId: string, token: string, icsContent?: string) => request<CalendarFeed>(`/properties/${propertyId}/calendar/feeds/${feedId}/sync`, { method: "POST", token, body: { icsContent } }),
+  disconnectCalendarFeed: (propertyId: string, feedId: string, token: string) => request<void>(`/properties/${propertyId}/calendar/feeds/${feedId}`, { method: "DELETE", token }),
+  getCalendarFeedHistory: (propertyId: string, feedId: string, token: string) => request<CalendarSyncEvent[]>(`/properties/${propertyId}/calendar/feeds/${feedId}/history`, { token }),
   exportCalendarUrl: (propertyId: string) => `${API_BASE_URL}/properties/${propertyId}/calendar/export.ics`,
   deleteProperty: (id: string, token: string) =>
     request<void>(`/properties/${id}`, { method: "DELETE", token }),
@@ -1785,6 +1864,13 @@ export const api = {
     request<void>(withQuery(`/spec/messages/conversations/${conversationId}/read`, { userId }), { method: "POST", token }),
   getHostOperations: (hostUserId: string, token: string) =>
     request<HostOperations>(`/spec/host/${hostUserId}/operations`, { token }),
+  settleHostPayout: (payoutId: string, token: string, notes?: string) =>
+    request<HostPayout>(`/spec/admin/host-payouts/${payoutId}/settle`, { method: "POST", token, body: { notes } }),
+  getTravelerRecommendations: (userId: string, token: string, query?: { parish?: string; maximumNightlyRate?: number; badgeLevel?: string; limit?: number }) =>
+    request<TravelerRecommendation[]>(withQuery(`/spec/traveler/${userId}/recommendations`, { parish: query?.parish, maximumNightlyRate: query?.maximumNightlyRate?.toString(), badgeLevel: query?.badgeLevel, limit: query?.limit?.toString() }), { token }),
+  dismissTravelerRecommendation: (userId: string, propertyId: string, token: string) => request<TravelerRecommendation>(`/spec/traveler/${userId}/recommendations/${propertyId}/dismiss`, { method: "POST", token }),
+  restoreTravelerRecommendation: (userId: string, propertyId: string, token: string) => request<TravelerRecommendation>(`/spec/traveler/${userId}/recommendations/${propertyId}/restore`, { method: "POST", token }),
+  saveTravelerPreferences: (userId: string, token: string, body: { preferredParish?: string | null; maximumNightlyRate?: number | null; preferredBadgeLevel?: string | null; preferredHighlights?: string[] }) => request<TravelerPreference>(`/spec/traveler/${userId}/preferences`, { method: "PUT", token, body }),
   saveHostPricingRule: (hostUserId: string, token: string, body: Omit<HostPricingRule, "id" | "hostUserId">) =>
     request<HostPricingRule>(`/spec/host/${hostUserId}/pricing-rules`, { method: "POST", token, body }),
   saveHostPromotion: (hostUserId: string, token: string, body: Omit<HostPromotion, "id" | "hostUserId">) =>
@@ -1815,7 +1901,7 @@ export const api = {
   getPropertyManagerDashboard: (token: string) => request<PropertyManagerDashboard>("/property-manager/dashboard", { token }),
   invitePropertyManagerOwner: (token: string, body: { email: string; displayName: string; ownerUserId?: string; communityId?: string }) => request<PropertyManagerOwner>("/property-manager/owners", { method: "POST", token, body }),
   reviewPropertyManagerOwner: (token: string, ownerUserId: string, status: string) => request<PropertyManagerOwner>(`/property-manager/owners/${ownerUserId}/verification`, { method: "POST", token, body: { status } }),
-  renewPropertyManagerSubscription: (token: string) => request<{ managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }>("/property-manager/subscription/renew", { method: "POST", token }),
+  renewPropertyManagerSubscription: (token: string) => request<PropertyManagerSubscription>("/property-manager/subscription/renew", { method: "POST", token }),
   addPropertyManagerProperty: (token: string, body: { ownerUserId: string; title: string; unitNumber: string; address: string; communityId?: string }) => request<PropertyManagerProperty>("/property-manager/properties", { method: "POST", token, body }),
   createPropertyManagerInvoice: (token: string, body: { ownerUserId: string; propertyId?: string; dueDate: string; tax: number; lines: { description: string; quantity: number; unitAmount: number }[] }) => request<PropertyManagerInvoice>("/property-manager/invoices", { method: "POST", token, body }),
   bulkIssuePropertyManagerInvoices: (token: string, invoiceIds: string[]) => request<PropertyManagerInvoice[]>("/property-manager/invoices/bulk-issue", { method: "POST", token, body: { invoiceIds } }),
@@ -1835,8 +1921,11 @@ export const api = {
   votePropertyManagerProposal: (token: string, proposalId: string, body: { choice: string; proxyId?: string }) => request<PropertyManagerProposal>(`/property-manager/governance/proposals/${proposalId}/votes`, { method: "POST", token, body }),
   createPropertyManagerProxy: (token: string, body: { proposalId: string; proxyUserId: string; validUntil: string }) => request<{ id: string; proposalId: string; ownerUserId: string; proxyUserId: string; status: string; validUntil: string }>("/property-manager/governance/proxies", { method: "POST", token, body }),
   getPropertyManagerDocuments: (token: string) => request<PropertyManagerDocument[]>("/property-manager/documents", { token }),
-  addPropertyManagerDocument: (token: string, body: { ownerUserId?: string; propertyId?: string; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; contentBase64?: string }) => request<PropertyManagerDocument>("/property-manager/documents", { method: "POST", token, body }),
+  addPropertyManagerDocument: (token: string, body: { ownerUserId?: string; propertyId?: string; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; contentBase64?: string; expiresOn?: string }) => request<PropertyManagerDocument>("/property-manager/documents", { method: "POST", token, body }),
   getPropertyManagerDocumentDownload: (token: string, documentId: string) => request<PropertyManagerDocumentDownload>(`/property-manager/documents/${documentId}/download`, { token }),
+  createPropertyManagerDocumentExport: (token: string, documentIds: string[]) => request<PropertyManagerDocumentExport>("/property-manager/documents/exports", { method: "POST", token, body: { documentIds } }),
+  getPropertyManagerDocumentExport: (token: string, exportId: string) => request<PropertyManagerDocumentExport>(`/property-manager/documents/exports/${exportId}`, { token }),
+  downloadPropertyManagerDocumentExport: (token: string, exportId: string) => requestFile(`/property-manager/documents/exports/${exportId}/download`, token),
   addPropertyManagerDocumentVersion: (token: string, body: { documentId: string; fileName: string; contentType: string; sizeBytes: number; contentBase64: string }) => request<{ id: string; documentId: string; version: number; fileName: string; contentType: string; sizeBytes: number; createdByUserId: string; createdAt: string }>("/property-manager/documents/versions", { method: "POST", token, body }),
   createPropertyManagerGateMessage: (token: string, body: { communityId?: string; propertyId?: string; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string }) => request<PropertyManagerGateMessage>("/property-manager/gate/messages", { method: "POST", token, body }),
   getPropertyManagerGateDelivery: (token: string, gateMessageId: string) => request<{ id: string; gateMessageId: string; recipient: string; status: string; providerReference?: string | null; attemptNumber: number; failureReason?: string | null; createdAt: string }[]>(`/property-manager/gate/messages/${gateMessageId}/delivery`, { token }),
@@ -1860,9 +1949,9 @@ export const api = {
   updatePropertyManagerWorkOrder: (token: string, id: string, body: { status: string; vendorId?: string; approvedAmount?: number; laborAmount?: number; partsAmount?: number; scheduledAt?: string }) => request<PropertyManagerWorkOrder>(`/property-manager/work-orders/${id}`, { method: "PATCH", token, body }),
   getPropertyManagerCalendar: (token: string, query?: { from?: string; to?: string; propertyId?: string }) => request<PropertyManagerCalendarEvent[]>(withQuery("/property-manager/calendar/events", query ?? {}), { token }),
   createPropertyManagerCalendarEvent: (token: string, body: { propertyId?: string; ownerUserId?: string; eventType: string; title: string; startsAt: string; endsAt: string; status?: string }) => request<PropertyManagerCalendarEvent>("/property-manager/calendar/events", { method: "POST", token, body }),
-  changePropertyManagerSubscription: (token: string, body: { action: string; targetTier?: string; reason?: string }) => request<PropertyManagerDashboard["manager"]>("/property-manager/subscription/change", { method: "POST", token, body }),
-  getPropertyManagerSubscriptionEvents: (token: string) => request<{ id: string; eventType: string; fromTier: string; toTier: string; status: string; reason?: string | null; effectiveAt: string }[]>("/property-manager/subscription/events", { token }),
-  retryPropertyManagerSubscriptionPayment: (token: string) => request<{ id: string; eventType: string; fromTier: string; toTier: string; status: string; reason?: string | null; effectiveAt: string }>("/property-manager/subscription/payment-retry", { method: "POST", token }),
+  changePropertyManagerSubscription: (token: string, body: { action: string; targetTier?: string; reason?: string; autoRenew?: boolean }) => request<PropertyManagerDashboard["manager"]>("/property-manager/subscription/change", { method: "POST", token, body }),
+  getPropertyManagerSubscriptionEvents: (token: string) => request<PropertyManagerSubscriptionEvent[]>("/property-manager/subscription/events", { token }),
+  retryPropertyManagerSubscriptionPayment: (token: string) => request<PropertyManagerSubscriptionEvent>("/property-manager/subscription/payment-retry", { method: "POST", token }),
   getPropertyManagerDashboardPreference: (token: string) => request<{ managerUserId: string; kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }>("/property-manager/dashboard/preferences", { token }),
   savePropertyManagerDashboardPreference: (token: string, body: { kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }) => request<{ managerUserId: string; kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }>("/property-manager/dashboard/preferences", { method: "PUT", token, body }),
   archivePropertyManagerDocument: (token: string, documentId: string, restore = false) => request<PropertyManagerDocument>(withQuery(`/property-manager/documents/${documentId}/archive`, { restore: String(restore) }), { method: "POST", token }),

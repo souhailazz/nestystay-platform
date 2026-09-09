@@ -6,6 +6,7 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
+  Camera,
   Check,
   CreditCard,
   Download,
@@ -1075,12 +1076,78 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
   const [expiresOn, setExpiresOn] = useState("");
   const [uploads, setUploads] = useState<IdentityUploadItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const uploadControllers = useRef<Record<string, AbortController>>({});
+  const cameraVideo = useRef<HTMLVideoElement | null>(null);
+  const cameraStream = useRef<MediaStream | null>(null);
   const identityDocuments = data.identityDocuments ?? [];
 
   useEffect(() => () => {
     Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
   }, []);
+
+  useEffect(() => {
+    if (!cameraOpen || !cameraVideo.current || !cameraStream.current) return;
+    cameraVideo.current.srcObject = cameraStream.current;
+    void cameraVideo.current.play().catch(() => undefined);
+  }, [cameraOpen]);
+
+  async function startCamera() {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Live camera access is unavailable in this browser. Use the file picker below instead.");
+      return;
+    }
+    try {
+      cameraStream.current?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      cameraStream.current = stream;
+      setCameraOpen(true);
+      if (cameraVideo.current) {
+        cameraVideo.current.srcObject = stream;
+        await cameraVideo.current.play().catch(() => undefined);
+      }
+    } catch {
+      setCameraError("Camera permission was not granted. You can still upload a photo or PDF with the file picker.");
+      setCameraOpen(false);
+    }
+  }
+
+  function stopCamera() {
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
+    if (cameraVideo.current) cameraVideo.current.srcObject = null;
+    setCameraOpen(false);
+  }
+
+  function captureCameraPhoto() {
+    const video = cameraVideo.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      setCameraError("The camera is still starting. Hold the document steady and try again.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError("Could not capture the camera frame. Use the file picker instead.");
+      return;
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError("Could not encode the camera frame. Use the file picker instead.");
+        return;
+      }
+      const file = new File([blob], `identity-camera-${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+      addFiles([file]);
+      stopCamera();
+    }, "image/jpeg", 0.86);
+  }
 
   function updateUpload(id: string, patch: Partial<IdentityUploadItem>) {
     setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
@@ -1124,7 +1191,7 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
     }
   }
 
-  function addFiles(files: FileList | null) {
+  function addFiles(files: FileList | File[] | null) {
     if (!files?.length) return;
     Array.from(files).forEach((file) => {
       const id = createUploadId();
@@ -1178,11 +1245,22 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
         </Field>
       </div>
       <div className="message-upload-bar">
+        <Button onClick={() => void startCamera()} type="button" variant="outline"><Camera size={17} /> Use live camera</Button>
         <label className={buttonClassName("outline", "message-file-picker")}>
           <Paperclip size={17} /> Upload document
           <input accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
         </label>
       </div>
+      {cameraOpen && (
+        <div className="identity-camera" role="group" aria-label="Identity document camera">
+          <video aria-label="Live document camera preview" autoPlay className="identity-camera__video" muted playsInline ref={cameraVideo} />
+          <div className="identity-camera__actions">
+            <Button onClick={captureCameraPhoto} type="button"><Camera size={16} /> Capture document</Button>
+            <Button onClick={stopCamera} type="button" variant="ghost"><X size={16} /> Close camera</Button>
+          </div>
+        </div>
+      )}
+      {cameraError && <div aria-live="polite" className="notice-panel notice-panel--error">{cameraError}</div>}
       {uploads.length > 0 && (
         <div className="message-upload-list">
           {uploads.map((upload) => (

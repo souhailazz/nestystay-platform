@@ -86,6 +86,7 @@ import {
   type ProfilePhotoUpload,
   type PropertyPhotoUpload,
   type PropertyListing,
+  type PropertyAvailability,
   type SocialAuthConfig,
   type UserProfile,
   type WellnessAdminDashboard,
@@ -1662,6 +1663,10 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
   const [feeds, setFeeds] = useState<import("../lib/api").CalendarFeed[]>([]);
   const [feedUrl, setFeedUrl] = useState("");
   const [feedBusy, setFeedBusy] = useState(false);
+  const [history, setHistory] = useState<Record<string, import("../lib/api").CalendarSyncEvent[]>>({});
+  const [availability, setAvailability] = useState<PropertyAvailability | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!propertyId && propertiesState.properties[0]) {
@@ -1670,6 +1675,21 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
   }, [propertiesState.properties, propertyId]);
 
   const selectedBookings = bookingsState.bookings.filter((booking) => booking.propertyId === propertyId);
+
+  useEffect(() => {
+    if (!propertyId) {
+      setAvailability(null);
+      return;
+    }
+    let active = true;
+    setAvailabilityLoading(true);
+    setAvailabilityError(null);
+    void api.getPropertyAvailability(propertyId, todayPlus(0), todayPlus(35))
+      .then((result) => { if (active) setAvailability(result); })
+      .catch((caught) => { if (active) setAvailabilityError(caught instanceof Error ? caught.message : "Availability calendar could not be loaded."); })
+      .finally(() => { if (active) setAvailabilityLoading(false); });
+    return () => { active = false; };
+  }, [propertyId]);
 
   useEffect(() => {
     if (!propertyId || !auth.session) return;
@@ -1715,6 +1735,32 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
     }
   }
 
+  async function disconnectFeed(feed: import("../lib/api").CalendarFeed) {
+    if (!auth.session) return;
+    if (!window.confirm("Disconnect this calendar and release its blocked dates?")) return;
+    setFeedBusy(true);
+    setError(null);
+    try {
+      await api.disconnectCalendarFeed(propertyId, feed.id, auth.session.accessToken);
+      setFeeds((current) => current.filter((item) => item.id !== feed.id));
+      setHistory((current) => { const next = { ...current }; delete next[feed.id]; return next; });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Calendar feed could not be disconnected.");
+    } finally {
+      setFeedBusy(false);
+    }
+  }
+
+  async function loadHistory(feed: import("../lib/api").CalendarFeed) {
+    if (!auth.session) return;
+    try {
+      const events = await api.getCalendarFeedHistory(propertyId, feed.id, auth.session.accessToken);
+      setHistory((current) => ({ ...current, [feed.id]: events }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sync history could not be loaded.");
+    }
+  }
+
   return (
     <div className="product-page">
       <PageHeader
@@ -1753,10 +1799,21 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
             {formatMoney(quote.totalAmount, quote.currency)}.
           </div>
         )}
+        <Card className="settings-card mt-5" aria-labelledby="availability-calendar-title">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 className="m-0 font-display text-xl" id="availability-calendar-title">35-day availability</h2><p className="m-0 mt-1 text-sm text-sand-600">Live booking holds and external calendar blocks are shown without guest details.</p></div>
+            <div aria-label="Availability legend" className="flex flex-wrap gap-3 text-xs text-sand-600"><span><i className="availability-dot availability-dot--available" /> Available</span><span><i className="availability-dot availability-dot--held" /> Held</span><span><i className="availability-dot availability-dot--booked" /> Booked</span><span><i className="availability-dot availability-dot--blocked" /> Blocked</span></div>
+          </div>
+          {availabilityLoading && <LoadingState />}
+          {availabilityError && <ErrorState message={availabilityError} />}
+          {!availabilityLoading && !availabilityError && availability && <div aria-label="Property availability days" className="availability-grid" role="list">
+            {availability.days.map((day) => <div className={`availability-day availability-day--${day.status.toLowerCase()}`} key={day.date} role="listitem" aria-label={`${day.date}: ${day.label ?? day.status}`}><strong>{new Date(`${day.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong><span>{day.label ?? day.status}</span></div>)}
+          </div>}
+        </Card>
         {auth.session && propertyId && <Card className="settings-card mt-5">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="m-0 font-display text-xl">External calendar sync</h2><p className="m-0 mt-1 text-sm text-sand-600">Import an ICS feed to block dates and export this property calendar to another service.</p></div><a className="btn btn-outline" href={api.exportCalendarUrl(propertyId)} download={`nesty-${propertyId}.ics`}>Export ICS</a></div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input aria-label="External ICS feed URL" onChange={(event) => setFeedUrl(event.target.value)} placeholder="https://calendar.example.com/property.ics" value={feedUrl} /><Button disabled={feedBusy || !feedUrl.trim()} onClick={() => void connectFeed()}>Connect feed</Button></div>
-          {feeds.length > 0 && <div className="mt-4 space-y-2">{feeds.map((feed) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-field border border-sand-border p-3 text-sm" key={feed.id}><div><strong>{feed.feedUrl}</strong><div className="text-xs text-sand-600">{feed.status} · {feed.blockCount} blocked dates{feed.lastSyncAt ? ` · synced ${new Date(feed.lastSyncAt).toLocaleString()}` : ""}{feed.lastError ? ` · ${feed.lastError}` : ""}</div></div><Button disabled={feedBusy} onClick={() => void syncFeed(feed)} variant="outline">Sync now</Button></div>)}</div>}
+          {feeds.length > 0 && <div className="mt-4 space-y-2">{feeds.map((feed) => <div className="rounded-field border border-sand-border p-3 text-sm" key={feed.id}><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><strong className="break-all">{feed.feedUrl}</strong><div className="text-xs text-sand-600">{feed.status} · {feed.blockCount} blocked dates{feed.lastSyncAt ? ` · synced ${new Date(feed.lastSyncAt).toLocaleString()}` : ""}{feed.nextSyncAt ? ` · next ${new Date(feed.nextSyncAt).toLocaleString()}` : ""}{feed.lastError ? ` · ${feed.lastError}` : ""}</div></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void syncFeed(feed)} variant="outline">Sync now</Button><Button disabled={feedBusy} onClick={() => void loadHistory(feed)} variant="ghost">History</Button><Button disabled={feedBusy} onClick={() => void disconnectFeed(feed)} variant="ghost">Disconnect</Button></div></div>{history[feed.id] && <div className="mt-3 border-t border-shell pt-2 text-xs text-sand-600">{history[feed.id].length === 0 ? "No sync attempts recorded yet." : history[feed.id].slice(0, 5).map((event) => <div className="flex flex-wrap justify-between gap-2 py-1" key={event.id}><span>{new Date(event.startedAt).toLocaleString()}</span><span>{event.status} · {event.blockCount} blocks{event.error ? ` · ${event.error}` : ""}</span></div>)}</div>}</div>)}</div>}
         </Card>}
         <div className="calendar-board">
           {selectedBookings.length === 0 ? (
@@ -1984,6 +2041,9 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [sessions, setSessions] = useState<import("../lib/api").UserSession[]>([]);
+  const [passkeys, setPasskeys] = useState<import("../lib/api").Passkey[]>([]);
+  const [securityNotice, setSecurityNotice] = useState<string | null>(null);
   const profileUploadControllers = useRef<Record<string, AbortController>>({});
   const session = auth.session;
 
@@ -2017,6 +2077,17 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   }, [session]);
 
   useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    Promise.all([api.getSessions(session.accessToken), api.getPasskeys(session.accessToken)])
+      .then(([nextSessions, nextPasskeys]) => {
+        if (!cancelled) { setSessions(nextSessions); setPasskeys(nextPasskeys); }
+      })
+      .catch(() => { if (!cancelled) setSecurityNotice("Security devices could not be loaded. Retry shortly."); });
+    return () => { cancelled = true; };
+  }, [session]);
+
+  useEffect(() => {
     let cancelled = false;
     setProfilePhotoUrl("");
     if (!session || !profile?.photo) {
@@ -2038,6 +2109,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   }, [session, profile?.photo?.id]);
 
   if (!session) return <RequireAuth auth={auth} title="Profile settings need an active session." />;
+  const activeSession = session;
 
   function updateProfileUpload(id: string, patch: Partial<ProfilePhotoUploadItem>) {
     setProfileUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
@@ -2114,6 +2186,48 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   function removeProfilePhotoUpload(id: string) {
     profileUploadControllers.current[id]?.abort();
     setProfileUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  async function revokeOtherDevices() {
+    if (!window.confirm("Sign out every other device? This keeps the current device signed in.")) return;
+    setSecurityNotice(null);
+    try {
+      const result = await api.revokeOtherSessions(activeSession.accessToken);
+      setSecurityNotice(`${result.revoked} other session${result.revoked === 1 ? "" : "s"} signed out.`);
+      setSessions(await api.getSessions(activeSession.accessToken));
+    } catch (caught) {
+      setSecurityNotice(caught instanceof Error ? caught.message : "Other sessions could not be signed out.");
+    }
+  }
+
+  async function revokeDevice(item: import("../lib/api").UserSession) {
+    if (!window.confirm(`Revoke ${item.deviceName}?`)) return;
+    try {
+      await api.revokeSession(item.id, activeSession.accessToken);
+      if (item.isCurrent) {
+        // A current-session revocation invalidates the cookie immediately. Do
+        // not leave the UI in a stale authenticated state; clear the local
+        // profile and route through the normal signed-out screen.
+        await auth.logout().catch(() => undefined);
+        navigate("/logout");
+        return;
+      }
+      setSecurityNotice(`${item.deviceName} was signed out.`);
+      setSessions(await api.getSessions(activeSession.accessToken));
+    } catch (caught) {
+      setSecurityNotice(caught instanceof Error ? caught.message : "Device session could not be revoked.");
+    }
+  }
+
+  async function removePasskey(id: string, label: string) {
+    if (!window.confirm(`Remove ${label}? You can add it again from this device.`)) return;
+    try {
+      await api.removePasskey(id, activeSession.accessToken);
+      setPasskeys((items) => items.filter((item) => item.id !== id));
+      setSecurityNotice(`${label} removed.`);
+    } catch (caught) {
+      setSecurityNotice(caught instanceof Error ? caught.message : "Passkey could not be removed.");
+    }
   }
 
   const initials = (profile?.displayName ?? session.displayName)
@@ -2252,6 +2366,25 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
           <span>
             Expires <strong>{new Date(session.expiresAt).toLocaleString()}</strong>
           </span>
+        </div>
+        {securityNotice && <div className="rounded-field bg-coral-tint px-3 py-2 text-xs text-coral-text" role="alert">{securityNotice}</div>}
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold">Signed-in devices</span>
+            <button className="min-h-10 rounded-pill border border-sand-input bg-transparent px-3 text-xs font-semibold text-deep-hover" onClick={() => void revokeOtherDevices()} type="button">Sign out other devices</button>
+          </div>
+          {sessions.length === 0 && <p className="m-0 text-xs text-sand-500">No additional device sessions recorded yet.</p>}
+          {sessions.map((item) => (
+            <div className="flex flex-wrap items-center gap-2 rounded-field border border-sand-border bg-white px-3 py-2 text-xs" key={item.id}>
+              <span className="min-w-0 flex-1"><strong>{item.deviceName}</strong> · {item.browser}<br /><span className="text-sand-500">Last used {new Date(item.lastUsedAt).toLocaleString()}</span></span>
+              {!item.isRevoked && <button className="min-h-9 rounded-pill border border-coral/40 bg-transparent px-3 text-coral-text" onClick={() => void revokeDevice(item)} type="button">{item.isCurrent ? "Revoke current" : "Revoke"}</button>}
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-col gap-2 border-t border-shell pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-semibold">Passkeys</span><button className="min-h-10 rounded-pill bg-deep px-3 text-xs font-semibold text-white disabled:opacity-50" disabled={!auth.registerPasskey || !("PublicKeyCredential" in window)} onClick={async () => { try { const passkey = await auth.registerPasskey(); setPasskeys((items) => [passkey, ...items]); setSecurityNotice("Passkey added. You can now sign in without a password."); } catch (err) { setSecurityNotice(err instanceof Error ? err.message : "Passkey setup failed."); } }} type="button">Add passkey</button></div>
+          {passkeys.length === 0 && <p className="m-0 text-xs text-sand-500">Add a passkey from this device for faster, phishing-resistant sign in.</p>}
+          {passkeys.map((item) => <div className="flex items-center gap-2 rounded-field border border-sand-border bg-white px-3 py-2 text-xs" key={item.id}><span className="flex-1"><strong>{item.label}</strong><br /><span className="text-sand-500">Added {new Date(item.createdAt).toLocaleDateString()}</span></span><button className="min-h-9 rounded-pill border border-coral/40 bg-transparent px-3 text-coral-text" onClick={() => void removePasskey(item.id, item.label)} type="button">Remove</button></div>)}
         </div>
       </div>
     </div>

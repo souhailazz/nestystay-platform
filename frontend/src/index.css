@@ -2098,6 +2098,11 @@ img, svg {
   font-size: 13px;
   font-weight: 760;
 }
+.notice-panel--error {
+  color: #7d1f28;
+  border-color: rgb(190 49 63 / 35%);
+  background: rgb(190 49 63 / 10%);
+}
 .inline-action {
   display: inline-flex;
   align-items: center;
@@ -3340,6 +3345,53 @@ body {
   align-items: center;
   justify-content: space-between;
 }
+.identity-camera {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--ref-line);
+  border-radius: 12px;
+  background: #101b1b;
+}
+.identity-camera__video {
+  width: 100%;
+  max-height: 360px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #000;
+}
+.identity-camera__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.availability-day {
+  display: grid;
+  gap: 4px;
+  min-height: 62px;
+  padding: 9px;
+  border: 1px solid var(--ref-line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 11px;
+}
+.availability-day strong { font-size: 12px; }
+.availability-day span { color: var(--sand-600); }
+.availability-day--available { border-color: rgb(25 125 92 / 35%); background: rgb(25 125 92 / 8%); }
+.availability-day--held { border-color: rgb(190 145 20 / 40%); background: rgb(190 145 20 / 9%); }
+.availability-day--booked, .availability-day--blocked { border-color: rgb(190 49 63 / 32%); background: rgb(190 49 63 / 8%); }
+.availability-dot { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 999px; background: var(--shell); }
+.availability-dot--available { background: #19805f; }
+.availability-dot--held { background: #bd9014; }
+.availability-dot--booked, .availability-dot--blocked { background: #be313f; }
 .message-file-picker {
   position: relative;
   overflow: hidden;

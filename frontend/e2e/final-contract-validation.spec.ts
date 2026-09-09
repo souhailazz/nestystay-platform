@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 const repoRoot = path.resolve(process.cwd(), "..");
 const evidenceRoot = process.env.NESTYSTAY_EVIDENCE_ROOT ?? path.join(repoRoot, "testing-evidence", "milestones-1-2", "final-contract-validation", "screenshots");
@@ -26,7 +27,9 @@ test.beforeAll(async ({ baseURL }) => {
     expect(login.ok(), await login.text()).toBeTruthy();
     const host = await login.json() as { userId: string; accessToken: string };
     const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
-    if (!adminToken) throw new Error("NESTYSTAY_E2E_ADMIN_TOKEN is required for the clean-room eKYC fixture.");
+    // The no-eKYC contract path is self-contained. Leave the privileged
+    // clean-room fixture for the second test to its explicit skip below.
+    if (!adminToken) return;
     const badge = await api.post("/api/badges-pricing/badges/purchase", {
       headers: { Authorization: `Bearer ${adminToken}` },
       data: { subjectType: "Host", subjectId: host.userId, level: "Verified", hostVerificationPassed: true, paymentSucceeded: true },
@@ -56,7 +59,7 @@ test.beforeAll(async ({ baseURL }) => {
 });
 
 test("host creates an owned listing and guest completes the no-eKYC UI booking path", async ({ baseURL, page }, testInfo) => {
-  const host = await registerViaUi(page, "Host", "Contract Host");
+  const host = await registerViaUi(page, "Host", "Contract Host", baseURL);
   await page.goto("/host/properties", { waitUntil: "domcontentloaded" });
   await expect(page.locator("#HOST-05")).toBeVisible();
   const listingTitle = `Contract disabled ${Date.now()}`;
@@ -92,7 +95,7 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
   expect(edited.badgeLevel).toBe("Free");
   await capture(page, testInfo, "host-property-editor");
 
-  await registerViaUi(page, "Guest", "Contract Guest");
+  await registerViaUi(page, "Guest", "Contract Guest", baseURL);
   await page.goto(`/properties/${property!.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   await chooseUniqueDates(page, testInfo.project.name, 8000);
@@ -105,6 +108,7 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
 });
 
 test("guest completes the enabled eKYC UI path through PENDING and held dates", async ({ baseURL, page }, testInfo) => {
+  test.skip(!process.env.NESTYSTAY_E2E_ADMIN_TOKEN, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the clean-room eKYC fixture.");
   const api = await playwrightRequest.newContext({ baseURL });
   const propertiesResponse = await api.get("/api/properties");
   expect(propertiesResponse.ok(), await propertiesResponse.text()).toBeTruthy();
@@ -112,7 +116,7 @@ test("guest completes the enabled eKYC UI path through PENDING and held dates", 
   expect(enabled).toBeTruthy();
   await api.dispose();
 
-  const guest = await registerViaUi(page, "Guest", "Contract eKYC Guest");
+  const guest = await registerViaUi(page, "Guest", "Contract eKYC Guest", baseURL);
   await page.goto(`/properties/${enabled!.id}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByText("eKYC REQUIRED", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
@@ -140,7 +144,7 @@ test("guest completes the enabled eKYC UI path through PENDING and held dates", 
   await verificationApi.dispose();
 });
 
-async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: string) {
+async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: string, baseURL: string | undefined) {
   const email = `contract-${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
   // Establish the app origin before reading localStorage (a fresh Playwright page
   // starts on about:blank, where browser storage access is prohibited).
@@ -164,9 +168,23 @@ async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: st
   await passwords.nth(1).fill(password);
   await page.getByRole("button", { name: "Create my account", exact: true }).click();
   await expect(page).toHaveURL(role === "Host" ? /\/host-dashboard$/ : /\/guest-dashboard$/);
-  const session = await page.evaluate(() => JSON.parse(window.localStorage.getItem("nestyStay.session") ?? "null") as { userId: string; accessToken: string; email: string });
-  expect(session?.accessToken).toBeTruthy();
-  return session;
+  // The browser flow intentionally uses an HttpOnly cookie, so the
+  // compatibility session in localStorage has an empty accessToken. Re-login
+  // through the API's bearer mode only for the test's subsequent direct API
+  // assertions; this never weakens the UI's cookie-session behavior.
+  const api = await playwrightRequest.newContext({ baseURL });
+  try {
+    const login = await api.post("/api/auth/login", { data: { email, password } });
+    expect(login.ok(), await login.text()).toBeTruthy();
+    const session = await login.json() as { userId: string; accessToken: string; email: string };
+    expect(session.accessToken).toBeTruthy();
+    // Keep the UI on the same secure HttpOnly-cookie session used by the
+    // application. The bearer token is retained only for direct API assertions.
+    await installCookieSession(page, { ...session, displayName, roles: [role], permissions: [], expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
+    return session;
+  } finally {
+    await api.dispose();
+  }
 }
 
 async function chooseUniqueDates(page: Page, projectName: string, baseOffset: number) {

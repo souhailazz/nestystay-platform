@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 const repoRoot = path.resolve(process.cwd(), "..");
 const evidenceRoot = process.env.NESTYSTAY_EVIDENCE_ROOT ?? path.join(repoRoot, "testing-evidence", "milestones-1-2", "screenshots", "stripe-test-mode");
@@ -56,9 +57,7 @@ test("Stripe application checkout returns a provider-compatible client secret", 
   }
   await api.dispose();
 
-  await page.addInitScript((value) => {
-    window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
-  }, session);
+  await installCookieSession(page, session);
   await page.goto(`/booking/${bookingResult.id}/checkout`, { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("book-03-page")).toBeVisible({ timeout: 60_000 });
   if (bookingResult.paymentClientSecret?.startsWith("local_client_secret_")) {

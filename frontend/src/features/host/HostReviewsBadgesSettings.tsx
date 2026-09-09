@@ -72,7 +72,10 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
 
   useEffect(() => {
     if (view !== "badges" && view !== "settings") return;
-    if (!token || !hostUserId) {
+    // Cookie-authenticated browser sessions intentionally keep the bearer
+    // token empty in JavaScript. The API client still sends credentials, so
+    // the user id is the only client-side readiness check required here.
+    if (!hostUserId) {
       setLoadError("A signed-in host session is required to load badge access.");
       return;
     }

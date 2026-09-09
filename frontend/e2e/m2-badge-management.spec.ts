@@ -1,7 +1,7 @@
 import { expect, request as playwrightRequest, test } from "@playwright/test";
 import { installCookieSession } from "./helpers/session";
 
-const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN ?? "test-admin-token";
+const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
 
 test.describe.configure({ mode: "serial", timeout: 120_000 });
 
@@ -16,11 +16,12 @@ test.beforeAll(async ({ baseURL }) => {
 });
 
 test("admin can search badge assignments and review expiry and audit surfaces", async ({ page }) => {
+  test.skip(!adminToken, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the privileged badge-management journey.");
   await installCookieSession(page, {
     userId: "00000000-0000-0000-0000-000000000001",
     email: "client-admin@nestystay.local",
     displayName: "NestyStay Administrator",
-    accessToken: adminToken,
+    accessToken: adminToken!,
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     roles: ["Admin"],
     permissions: ["super_administration", "system_configuration", "user_management", "audit_log_access"],
@@ -37,6 +38,7 @@ test("admin can search badge assignments and review expiry and audit surfaces", 
 });
 
 test("host renewal payment is ownership-scoped and persists through the API", async ({ baseURL }) => {
+  test.skip(!adminToken, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the privileged badge-renewal journey.");
   const api = await playwrightRequest.newContext({ baseURL });
   try {
     const host = await createHost(api, "renewal-host");

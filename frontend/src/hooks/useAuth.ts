@@ -7,6 +7,8 @@ type PendingChallenge = {
   email: string;
   displayName?: string;
   expiresAt: string;
+  deviceName?: string;
+  rememberDevice?: boolean;
 };
 
 export function useAuth() {
@@ -66,12 +68,14 @@ export function useAuth() {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, options?: { deviceName?: string; rememberDevice?: boolean }) => {
     setIsAuthBusy(true);
     try {
-      const response = await api.login({ email, password });
+      const response = await api.login({ email, password, ...options });
       if (response.requiresTwoFactor) {
         const challenge = toChallenge(response);
+        challenge.deviceName = options?.deviceName;
+        challenge.rememberDevice = options?.rememberDevice;
         setPendingChallenge(challenge);
         return challenge;
       }
@@ -84,6 +88,55 @@ export function useAuth() {
     } finally {
       setIsAuthBusy(false);
     }
+  }, []);
+
+  const requestSmsFallback = useCallback(async () => {
+    if (!pendingChallenge) throw new Error("Start login before requesting SMS verification.");
+    return api.requestSmsTwoFactor(pendingChallenge.challengeId);
+  }, [pendingChallenge]);
+
+  const verifySmsFallback = useCallback(async (flowId: string, code: string) => {
+    if (!pendingChallenge) throw new Error("Start login before verifying SMS.");
+    setIsAuthBusy(true);
+    try {
+      const verified = await api.verifySmsTwoFactor({
+        challengeId: pendingChallenge.challengeId,
+        flowId,
+        code,
+        deviceName: pendingChallenge.deviceName,
+        rememberDevice: pendingChallenge.rememberDevice,
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+      });
+      const nextSession = createSession(verified, pendingChallenge.email, pendingChallenge.displayName);
+      saveSession(nextSession);
+      setSession(nextSession);
+      setPendingChallenge(null);
+      return nextSession;
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, [pendingChallenge]);
+
+  const registerPasskey = useCallback(async (label?: string) => {
+    const options = await api.beginPasskeyRegistration(session?.accessToken);
+    const publicKey = decodeCreationOptions(options.options as unknown as Record<string, unknown>);
+    const credential = await navigator.credentials.create({ publicKey });
+    if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey registration was cancelled.");
+    const response = credential.response as AuthenticatorAttestationResponse;
+    return api.completePasskeyRegistration({ challengeId: options.challengeId, label, response: serializeCredential(credential, response) }, session?.accessToken);
+  }, [session?.accessToken]);
+
+  const signInWithPasskey = useCallback(async (email?: string) => {
+    const options = await api.beginPasskeyAssertion(email);
+    const publicKey = decodeRequestOptions(options.options as unknown as Record<string, unknown>);
+    const credential = await navigator.credentials.get({ publicKey });
+    if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey sign-in was cancelled.");
+    const response = credential.response as AuthenticatorAssertionResponse;
+    const verified = await api.completePasskeyAssertion({ challengeId: options.challengeId, response: serializeCredential(credential, response) });
+    const nextSession: AuthSession = { userId: verified.userId, email: verified.email, displayName: verified.displayName, accessToken: "", expiresAt: verified.expiresAt, roles: verified.roles, permissions: verified.permissions ?? [] };
+    saveSession(nextSession);
+    setSession(nextSession);
+    return nextSession;
   }, []);
 
   const requestPasswordlessLogin = useCallback(async (email: string) => {
@@ -125,7 +178,11 @@ export function useAuth() {
 
       setIsAuthBusy(true);
       try {
-        const verified = await api.verifyTwoFactor(pendingChallenge.challengeId, code);
+        const verified = await api.verifyTwoFactor(pendingChallenge.challengeId, code, {
+          deviceName: pendingChallenge.deviceName,
+          rememberDevice: pendingChallenge.rememberDevice,
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+        });
         const nextSession = createSession(
           verified,
           pendingChallenge.email,
@@ -180,15 +237,59 @@ export function useAuth() {
       login,
       requestPasswordlessLogin,
       completePasswordlessLogin,
+      requestSmsFallback,
+      verifySmsFallback,
+      registerPasskey,
+      signInWithPasskey,
       signInWithGoogle,
       verify,
       logout,
     }),
-    [completePasswordlessLogin, isAuthBusy, login, logout, pendingChallenge, register, requestPasswordlessLogin, session, signInWithGoogle, verify],
+    [completePasswordlessLogin, isAuthBusy, login, logout, pendingChallenge, register, registerPasskey, requestPasswordlessLogin, requestSmsFallback, session, signInWithGoogle, signInWithPasskey, verify, verifySmsFallback],
   );
 }
 
 export type AuthController = ReturnType<typeof useAuth>;
+
+function decodeBase64Url(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = window.atob(normalized);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function decodeCreationOptions(options: Record<string, unknown>): PublicKeyCredentialCreationOptions {
+  const publicKey = { ...options } as Record<string, unknown>;
+  if (typeof publicKey.challenge === "string") publicKey.challenge = decodeBase64Url(publicKey.challenge);
+  const user = publicKey.user as Record<string, unknown> | undefined;
+  if (user && typeof user.id === "string") user.id = decodeBase64Url(user.id);
+  const excludes = publicKey.excludeCredentials as Array<Record<string, unknown>> | undefined;
+  excludes?.forEach((item) => { if (typeof item.id === "string") item.id = decodeBase64Url(item.id); });
+  return publicKey as unknown as PublicKeyCredentialCreationOptions;
+}
+
+function decodeRequestOptions(options: Record<string, unknown>): PublicKeyCredentialRequestOptions {
+  const publicKey = { ...options } as Record<string, unknown>;
+  if (typeof publicKey.challenge === "string") publicKey.challenge = decodeBase64Url(publicKey.challenge);
+  const allow = publicKey.allowCredentials as Array<Record<string, unknown>> | undefined;
+  allow?.forEach((item) => { if (typeof item.id === "string") item.id = decodeBase64Url(item.id); });
+  return publicKey as unknown as PublicKeyCredentialRequestOptions;
+}
+
+function encodeBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function serializeCredential(credential: PublicKeyCredential, response: AuthenticatorResponse) {
+  const base = { id: credential.id, rawId: encodeBase64Url(credential.rawId), type: credential.type };
+  if (response instanceof AuthenticatorAttestationResponse) {
+    return { ...base, response: { clientDataJSON: encodeBase64Url(response.clientDataJSON), attestationObject: encodeBase64Url(response.attestationObject), transports: response.getTransports?.() ?? [] } };
+  }
+  const assertion = response as AuthenticatorAssertionResponse;
+  return { ...base, response: { clientDataJSON: encodeBase64Url(assertion.clientDataJSON), authenticatorData: encodeBase64Url(assertion.authenticatorData), signature: encodeBase64Url(assertion.signature), userHandle: assertion.userHandle ? encodeBase64Url(assertion.userHandle) : null } };
+}
 
 function toChallenge(login: LoginResponse, displayName?: string): PendingChallenge {
   if (!login.challengeId || !login.challengeExpiresAt) {

@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type APIResponse, type Page } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 type Session = { userId: string; email: string; accessToken: string; roles: string[] };
@@ -220,5 +220,21 @@ async function execute(api: APIRequestContext, item: AuthorizationCase): Promise
 function writeEvidence(relativePath: string, value: unknown) {
   const target = path.join(evidenceRoot, relativePath);
   mkdirSync(path.dirname(target), { recursive: true });
-  writeFileSync(target, JSON.stringify(value, null, 2));
+  const payload = JSON.stringify(value, null, 2);
+  // Evidence is supplementary to the security assertions. A Windows
+  // antivirus/indexer can briefly hold a prior JSON file open; use an atomic
+  // replacement when possible and never turn that transient artifact lock into
+  // a false security failure.
+  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    writeFileSync(temporary, payload);
+    try {
+      renameSync(temporary, target);
+    } catch {
+      try { writeFileSync(target, payload); } catch { /* best effort */ }
+      try { unlinkSync(temporary); } catch { /* best effort */ }
+    }
+  } catch {
+    try { writeFileSync(target, payload); } catch { /* best effort */ }
+  }
 }

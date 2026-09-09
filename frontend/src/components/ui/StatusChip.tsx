@@ -7,8 +7,8 @@ import { cx } from "../../lib/ui";
 
 export type StatusTone = "green" | "coral" | "amber" | "blue" | "mint" | "slate";
 
-export function statusToneOf(value: string): StatusTone {
-  const v = value.toLowerCase();
+export function statusToneOf(value: string | null | undefined): StatusTone {
+  const v = (value ?? "").toLowerCase();
   if (/wellness/.test(v)) return "mint";
   if (/reject|fail|declin|cancel|refund|expired|revoked|invalid|wrongproperty|bookinginvalid/.test(v)) return "coral";
   if (/pending|authoriz|progress|await|hold|submitted|queued|requested|notstarted/.test(v)) return "amber";
@@ -31,7 +31,7 @@ export function StatusChip({
   label,
   className,
 }: {
-  value: string;
+  value?: string | null;
   label?: string;
   className?: string;
 }) {
@@ -43,7 +43,7 @@ export function StatusChip({
         className,
       )}
     >
-      {label ? `${label}: ${value}` : value}
+      {label ? `${label}: ${value ?? "Unknown"}` : value ?? "Unknown"}
     </span>
   );
 }
