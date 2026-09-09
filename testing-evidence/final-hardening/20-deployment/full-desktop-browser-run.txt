@@ -1,0 +1,20 @@
+NestyStay full local browser verification
+Date: 2026-09-09
+
+Command:
+  npx playwright test --project=desktop-chromium --workers=1 --reporter=line
+
+Result:
+  47 tests collected
+  30 passed
+  0 failed
+  17 intentional skips (admin/provider/live-provider credentials not configured)
+  Duration: 2.0 minutes
+
+Additional browser verification:
+  Firefox critical smoke: 1 passed
+  WebKit critical smoke: 1 passed
+  Property Manager tablet/mobile lifecycle: 2 passed
+
+All authenticated browser fixtures use the HttpOnly `nestyStay.session` cookie
+and double-submit CSRF token; bearer tokens are not persisted in localStorage.

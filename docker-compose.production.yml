@@ -36,7 +36,16 @@ services:
       Worker__SidecarEnabled: "true"
       Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
       Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
-      Integrations__AlibabaEkycTransactionUrlBase: ${ALIBABA_EKYC_TRANSACTION_URL_BASE:?Set ALIBABA_EKYC_TRANSACTION_URL_BASE}
+      Integrations__AlibabaCloudAccessKeyId: ${ALIBABA_CLOUD_ACCESS_KEY_ID:?Set ALIBABA_CLOUD_ACCESS_KEY_ID}
+      Integrations__AlibabaCloudAccessKeySecret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:?Set ALIBABA_CLOUD_ACCESS_KEY_SECRET}
+      Integrations__AlibabaCloudSecurityToken: ${ALIBABA_CLOUD_SECURITY_TOKEN:-}
+      Integrations__AlibabaEkycRegion: ${ALIBABA_EKYC_REGION:-ap-southeast-1}
+      Integrations__AlibabaEkycEndpoint: ${ALIBABA_EKYC_ENDPOINT:-cloudauth-intl.ap-southeast-1.aliyuncs.com}
+      Integrations__AlibabaEkycProductCode: ${ALIBABA_EKYC_PRODUCT_CODE:-eKYC_PRO}
+      Integrations__AlibabaEkycSceneCode: ${ALIBABA_EKYC_SCENE_CODE:-NESTYWEB}
+      Integrations__AlibabaEkycCallbackUrl: ${ALIBABA_EKYC_CALLBACK_URL:?Set ALIBABA_EKYC_CALLBACK_URL}
+      Integrations__AlibabaEkycReturnUrl: ${ALIBABA_EKYC_RETURN_URL:?Set ALIBABA_EKYC_RETURN_URL}
+      Integrations__AlibabaEkycCallbackToken: ${ALIBABA_EKYC_CALLBACK_TOKEN:?Set ALIBABA_EKYC_CALLBACK_TOKEN}
       Integrations__InsuraGuestApiBaseUrl: ${INSURAGUEST_API_BASE_URL:?Set INSURAGUEST_API_BASE_URL}
       Integrations__StorageProvider: ${OBJECT_STORAGE_PROVIDER:-minio}
       Integrations__EkycProvider: ${EKYC_PROVIDER:-alibaba}
@@ -95,7 +104,16 @@ services:
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
       Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
-      Integrations__AlibabaEkycTransactionUrlBase: ${ALIBABA_EKYC_TRANSACTION_URL_BASE:?Set ALIBABA_EKYC_TRANSACTION_URL_BASE}
+      Integrations__AlibabaCloudAccessKeyId: ${ALIBABA_CLOUD_ACCESS_KEY_ID:?Set ALIBABA_CLOUD_ACCESS_KEY_ID}
+      Integrations__AlibabaCloudAccessKeySecret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:?Set ALIBABA_CLOUD_ACCESS_KEY_SECRET}
+      Integrations__AlibabaCloudSecurityToken: ${ALIBABA_CLOUD_SECURITY_TOKEN:-}
+      Integrations__AlibabaEkycRegion: ${ALIBABA_EKYC_REGION:-ap-southeast-1}
+      Integrations__AlibabaEkycEndpoint: ${ALIBABA_EKYC_ENDPOINT:-cloudauth-intl.ap-southeast-1.aliyuncs.com}
+      Integrations__AlibabaEkycProductCode: ${ALIBABA_EKYC_PRODUCT_CODE:-eKYC_PRO}
+      Integrations__AlibabaEkycSceneCode: ${ALIBABA_EKYC_SCENE_CODE:-NESTYWEB}
+      Integrations__AlibabaEkycCallbackUrl: ${ALIBABA_EKYC_CALLBACK_URL:?Set ALIBABA_EKYC_CALLBACK_URL}
+      Integrations__AlibabaEkycReturnUrl: ${ALIBABA_EKYC_RETURN_URL:?Set ALIBABA_EKYC_RETURN_URL}
+      Integrations__AlibabaEkycCallbackToken: ${ALIBABA_EKYC_CALLBACK_TOKEN:?Set ALIBABA_EKYC_CALLBACK_TOKEN}
       Integrations__InsuraGuestApiBaseUrl: ${INSURAGUEST_API_BASE_URL:?Set INSURAGUEST_API_BASE_URL}
       Integrations__StorageProvider: ${OBJECT_STORAGE_PROVIDER:-minio}
       Integrations__EkycProvider: ${EKYC_PROVIDER:-alibaba}

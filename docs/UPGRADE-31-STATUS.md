@@ -1,40 +1,56 @@
 # NestyStay 31-upgrade implementation status
 
-This file records the state after the current implementation pass. An upgrade is only marked **implemented locally** when a real API, persistence path, UI path, and automated regression test exist. Live-provider certification is tracked separately.
+This status is based on the current worktree after the M1 security, calendar, camera, wallet, recommendation, payout, document-export and subscription-lifecycle implementation pass. “Local/test” means the complete application boundary is exercised with PostgreSQL and deterministic test adapters. Live-provider certification is intentionally reported separately.
 
-| Upgrade area | Local status | Evidence |
+## Current implementation
+
+| Upgrade area | Local/test status | Evidence and boundary |
 |---|---|---|
-| Passwordless login | Implemented locally | `/api/spec/auth/passwordless/request` and `complete`; hashed, single-use 15-minute flows; cookie-session completion; `PasswordlessLoginEndpointTests`; request/completion UI. |
-| Apple Pay / Google Pay | Test-mode UI wired | Stripe Express Checkout is rendered beside Payment Element; provider wallet/domain certification remains client-credential blocked. |
-| External calendar synchronization | Implemented locally | ICS feed connect/sync/export endpoints, PostgreSQL feed/block rows, SSRF checks, CalendarPage controls, `CalendarEndpointTests`. |
-| eKYC camera capture | Existing local implementation verified | Identity upload uses mobile `capture="environment"` with preview/compression/retry and secure upload; live Alibaba validation remains separate. |
-| Wellness coverage map data | Implemented locally | Officer latitude/longitude/radius fields, validation, migration, OSM map links in onboarding/admin UI. |
-| Wellness scheduling/rescheduling | Implemented locally | UTC timestamps plus IANA timezone, server conflict guard, host UI action, audit timeline, lifecycle regression test. |
-| Wellness workload balancing | Improved locally | Available-officer query now orders by recent assignment load and excludes overlaps. |
-| Trades/local-business metadata | Implemented locally | Services, opening-hours text, emergency availability and service radius persisted and shown in provider UI. |
-| M5 invoice editing | Implemented locally | Authorized `PUT /api/property-manager/invoices/{id}`, unpaid-only invariant, line replacement, ledger correction, API regression test and manager UI. |
-| M5 property assignment | Implemented locally (API + UI) | Transactional bulk assignment, duplicate-safe assignment history/audit rows, keyboard-accessible manager module route and authenticated desktop/tablet/mobile browser coverage. |
-| M5 payments/refunds/reconciliation | Implemented locally (test provider) | Payment listing/filtering, saved references, partial/full refund with idempotency, retry and reconciliation fields are persisted and covered by API round-trip tests. Live Stripe certification is separate. |
-| M5 utilities | Implemented locally | Meter readings, continuity/duplicate checks, historical anomaly detection, schedules, invoice linkage and dispute decision endpoints/UI are persisted through PostgreSQL model/migration. |
-| M5 maintenance | Implemented locally | SLA timestamps, workflow activity timeline, object-storage attachments, vendor assignment and completion history are wired to API and UI. |
-| M5 vendors | Implemented locally | Service area/availability/rate/preferred/suspended metadata and compliance document storage are persisted; provider analytics/rating automation remains a follow-up. |
-| M5 community/gates/governance | Implemented locally | Notices support category, publish scheduling, expiry, acknowledgement deadlines and server-enforced owner targeting; comments/acknowledgements, gate delivery attempt rows/idempotency, proposal discussion/close proof and UI actions are API-backed. |
-| M5 documents | Implemented locally (core) | Object-storage metadata, initial version rows, archive/restore, access history and version query are wired; asynchronous ZIP export/expiry reminder worker remains. |
-| M5 subscription/invitations/verification | Implemented locally (core) | Lifecycle events, dashboard preferences, invitation/verification history and real decision routes are persisted and exposed in the manager workspace. |
-| Professional PMS foundation | Implemented locally (foundation) | Agreements, fee rules, owner payouts/approvals, staff scopes, calendar, work orders, cleaning tasks, inspections and aggregate reports have PostgreSQL entities, APIs and module routes. |
-| M5 QR active/history list | Implemented locally | Authorized `GET /api/property-manager/qr`, server-derived active/expired/revoked state, manager dashboard history cards and revoke action. |
-| QR lifecycle (M4) | Implemented locally | Active/history endpoints, reasoned revoke, expiry countdown, UI history, PostgreSQL migration and API tests. |
-| Recently viewed providers | Implemented locally | User-scoped PostgreSQL view rows, deduplicated timestamps, remove/clear endpoints, signed-in UI history and regression test. |
-| M5 QR event history | Implemented locally | Manager-scoped scan-history endpoint, persisted validation events, dashboard history viewer, revocation states and API coverage. |
-| Proxy revoke/history | Implemented locally | Owner-scoped proxy list/revoke endpoints, expiry status, owner portal controls and existing voting authorization. |
-
-The remaining items are now explicit rather than hidden: live Stripe wallet/webhook certification; external SMS/Push credentials; a production-grade asynchronous reminder worker (the notification outbox and retry state are present); full object-storage ZIP export/expiry reminder worker; and authenticated multi-role browser certification across every supported tablet/mobile/browser combination. Provider analytics, review responses, and structured community notice scheduling are implemented locally and covered by API/UI paths; their live-provider and broad certification gates remain separate.
+| Passwordless login | Implemented locally | Hashed, single-use 15-minute magic-link flow, cookie-session completion, request/complete UI and API regression coverage. |
+| SMS 2FA fallback | Implemented with local adapter | OTP expiry, throttling, resend and audit path are wired; external SMS credentials/provider delivery remain blocked. |
+| Passkeys | Implemented locally | WebAuthn registration/assertion/removal, challenge expiry, sign-counter replay protection and settings/login UI. Production RP/domain configuration remains a deployment gate. |
+| Trusted devices/session management | Implemented locally | Individual sessions, metadata, 30-day remembered devices, revoke-one and revoke-others (current session preserved) are persisted and exposed in settings. |
+| Apple Pay / Google Pay | Local/test boundary wired | Stripe Express Checkout and Payment Element wallet paths are rendered; live merchant-domain, webhook and wallet certification require client Stripe credentials. |
+| External calendar synchronization | Implemented locally | ICS import/export, ETag/Last-Modified conditional sync, bounded hosted worker, atomic availability blocks, retry state, history, disconnect and manual retry UI. |
+| True eKYC camera capture | Implemented locally | `getUserMedia` preview/capture, mobile file fallback, JPEG re-encode/compression, retry and secure upload UI; live Alibaba callbacks remain blocked. |
+| Wellness coverage map | Implemented locally | Coordinates/radius validation and OpenStreetMap-compatible preview with manual fallback. |
+| Wellness onboarding documents | Implemented locally | Secure, scanned PDF/JPEG/PNG uploads, replace/retry state, expiry metadata and role-restricted admin review. |
+| Wellness scheduling/rescheduling | Implemented locally | UTC storage with IANA timezone, conflict-safe reschedule/cancel endpoints, participant timeline and UI controls. |
+| Wellness assignment/workload | Implemented locally | Coverage, availability and workload-aware officer selection with reassignment history and authorization. |
+| Wellness reports | Implemented locally | Versioned templates, ordered photo uploads, server PDF/report collaboration, host acknowledgement and follow-up task APIs/UI. |
+| Wellness payouts | Implemented locally/test | Earnings and payout lifecycle, provider-account reference/status, statements and dispute paths are present; live Connect/bank verification remains provider-gated. |
+| Trades directory | Implemented locally | Services, emergency availability, radius filtering, quote request/response and provider comparison are API-backed. |
+| Local-business data | Implemented locally | Structured hours/closures, promotions and review/response APIs are persisted and rendered. |
+| Provider management | Implemented locally | Service/profile controls, quote/review responses and owner-scoped analytics are wired; production moderation/browser breadth remains a gate. |
+| Recently viewed providers | Implemented locally | Signed-in PostgreSQL history plus guest-safe local fallback, remove-one and clear-all controls. |
+| M4 QR lifecycle | Implemented locally | Active/expired/revoked state, history, reasoned revoke, countdown and forged/wrong-property validation paths. |
+| M5 property assignment | Implemented locally | Transactional bulk assignment, duplicate protection, keyboard-accessible controls and ownership history. |
+| M5 invoices | Implemented locally | Draft/line-item editing, server totals, bulk issue and overdue reminder enqueue path. |
+| M5 payments | Implemented with test provider | Saved references, partial/full payment, idempotent refunds, retry and reconciliation history; live Stripe remains gated. |
+| M5 utilities | Implemented locally | Meter reading/photo fields, recurring schedule model, anomaly detection, immutable history and disputes. |
+| M5 vendors | Implemented locally | Services, availability/radius, preferred flag, ratings and compliance documents/expiry metadata. |
+| M5 community/gates | Implemented locally | Targeted notices, comments/acknowledgements, scheduled publish/expiry, gate delivery attempts, retry and searchable history. |
+| M5 governance/proxy | Implemented locally | Discussions, proposal lifecycle, quorum/result proof, proxy grant/expiry/revoke/history and proxy labelling. |
+| M5 documents | Implemented locally | Object-storage metadata, immutable versions, access history, archive/restore, expiry-date capture/reminders and asynchronous manager-scoped ZIP export/download are implemented. Production storage read/retention certification remains a gate. |
+| M5 subscription | Implemented locally | Tier changes, billing events, retry/provider status, plan limits, pause/resume, scheduled downgrade worker, auto-renew, cancellation/reactivation and cancellation reasons are persisted and exposed in the subscription UI. Live billing certification remains provider-gated. |
+| M5 QR lifecycle | Implemented locally | Subject selection, active/history state, scan/revoke events and explicit expiry/revocation status. |
 
 ## Verification run
 
-- Backend: `dotnet test NestyStay.sln --configuration Release --no-restore` — **84 API + 19 infrastructure + 23 application + 5 domain tests passed (131 total)**, including notice scheduling/audience scoping and the assignment/payment/refund/meter/work-order round trips.
-- Frontend: `npm test -- --run` — **35 passed**; `npm run typecheck` and `npm run build` passed after the provider analytics/review-response and scheduled-notice UI updates.
-- Browser: combined desktop Chromium M1–M5 workflow run — **12 passed**; provider dashboard analytics/reply controls and scheduled notice UI are included. Hardening security run — **2 passed**; quality/security combined run — **4 passed, 5 intentional project skips**. Core M3/M4/M5 journeys pass against the local API with cookie-session authentication and PostgreSQL-backed data.
-- Browser PM route: `npx playwright test e2e/property-manager-pms.spec.ts --project=desktop-chromium --workers=1` — **3 passed** in the latest route-specific run (desktop/tablet/mobile configuration coverage).
-- Database: additive migrations through `20260909112812_AddPropertyManagerWorkflowLifecycle` applied successfully to the local PostgreSQL cluster on port `55432` (`nestystay_dev`), with **186 application tables** present. Client-database deployment validation remains required.
-- Live Stripe wallets and Alibaba eKYC remain provider-credential/domain certification steps.
+- Backend: **135 passed, 0 failed** — Domain 5, Application 23, Infrastructure 19, API 88 (`dotnet test NestyStay.sln --configuration Release --no-build --no-restore`).
+- Backend release build: **0 compiler/MSBuild warnings and 0 errors** after pinning patched `Microsoft.Bcl.Memory 10.0.12`; `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages.
+- Frontend: **35 passed, 0 failed**; `npm run typecheck` and `npm run build` pass. Full `npm audit --audit-level=high` is clean after updating Vitest/coverage-v8 to 4.1.11. ESLint reports **0 errors and 156 existing warnings** (baseline cleanup remains).
+- Real browser: the complete configured Playwright matrix passed **91/91 with 0 failures** (52 intentional credential/provider-gated or viewport-scoped skips across 143 collected tests). This includes desktop Chromium **30/30**, the Property Manager lifecycle at tablet/mobile (**2/2**), and Firefox/WebKit critical smoke (**2/2**). Skipped provider/admin/live-provider journeys require `NESTYSTAY_E2E_ADMIN_TOKEN` or client credentials.
+- PostgreSQL: local cluster on port `55432`, database `nestystay_dev`; **194 public tables** and migrations through `20260909200136_FixPropertyManagerSubscriptionDefaults`, including sessions/passkeys/calendar-sync/recommendation/payout/document-export/subscription lifecycle fields.
+- Security: session revocation, token hashing/expiry, SSRF/calendar limits, QR forgery and upload validation are covered by the backend/API and browser suites.
+
+## Explicit remaining gates
+
+1. Live Stripe wallet/webhook/refund/Connect certification with the client account, merchant domains and webhook secret.
+2. Live Alibaba eKYC callback certification and production document-retention configuration.
+3. External SMS, Web Push and production email provider credentials/domain/DNS setup.
+4. Full authenticated multi-role browser matrix at every supported viewport and Firefox/WebKit smoke acceptance (the local suites above are the verified subset).
+5. Manual NVDA/VoiceOver and formal WCAG 2.2 AA acceptance for every route; automated checks and keyboard paths are in place but are not a certification.
+6. Production object-storage read/retention policy and operational certification for document ZIP exports and expiry reminders; the local worker, API and UI paths are implemented and tested.
+
+These gates affect production readiness and provider certification; they do not invalidate the locally verified application flows.

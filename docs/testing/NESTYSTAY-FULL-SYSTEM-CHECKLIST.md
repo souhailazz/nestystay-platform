@@ -1,18 +1,18 @@
 # NestyStay full-system enhancement checklist
 
-Updated 2026-09-01 from the current repository state. This is the active checklist; the July strict gap matrix is retained as historical audit evidence. Statuses intentionally distinguish local application completion from external-provider, client-decision and optional work.
+Updated 2026-09-09 from the current repository state. This is the active checklist; the July strict gap matrix is retained as historical audit evidence. Statuses intentionally distinguish local application completion from external-provider, client-decision and optional work.
 
 ## Source and quality gates
 
 | Area | Status | Evidence |
 |---|---|---|
 | Signed contract source | PASS | 11-page readable PDF copied byte-for-byte; SHA-256 `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`. |
-| Backend/API | PASS | 96 tests passed / 0 failed. |
-| Frontend unit/component | PASS | 26 Vitest tests passed / 0 failed. |
+| Backend/API | PASS | 135 tests passed / 0 failed. |
+| Frontend unit/component | PASS | 35 Vitest 4.1.11 tests passed / 0 failed; npm audit clean. |
 | TypeScript/Vite build | PASS | `npm run typecheck` and `npm run build`. |
-| Lint | PASS | 0 errors; 162 non-blocking legacy warnings. |
+| Lint | PASS | 0 errors; 156 non-blocking legacy warnings. |
 | PostgreSQL migration | PASS | `nestystay_dev` updated through `20260901173721_AddDirectoryProviderDocuments`; state queried by API tests. |
-| Responsive browser | PASS | M4/M5 targeted suite 18/18; usability suite 13 passed and 2 intentional mobile skips. |
+| Responsive browser | PASS | Configured Playwright matrix 91 passed / 0 failed / 52 intentional credential/provider-gated or viewport-scoped skips across 143 tests; desktop Chromium 30/30, PM lifecycle desktop/tablet/mobile, Firefox/WebKit smoke passed. |
 | Fresh disposable database | BLOCKED EXTERNAL | Local `nestystay` role lacks `CREATEDB`; run with an operator-created disposable database before release. |
 
 ## M1 Core
@@ -89,7 +89,7 @@ Updated 2026-09-01 from the current repository state. This is the active checkli
 | Vendors, community notices, gate messages and delivery history | PASS | Scoped APIs and UI presets/history. |
 | Governance, anonymous voting, quorum, results and proxy lifecycle | PASS | Eligibility, hash/count privacy, conflict/expiry/revoke and audit tests. |
 | Documents upload, metadata, scoped storage and download | PASS | Validated PDF/JPEG/PNG storage plus new download endpoint/UI. |
-| PM subscription status/renewal action | PASS | Configurable Portfolio tier and renewal state. |
+| PM subscription lifecycle | PASS locally / BLOCKED EXTERNAL for live billing | Tier changes, usage limits, pause/resume, auto-renew, scheduled downgrade, retry, cancellation/reactivation and billing history are API/UI-backed; live provider certification remains separate. |
 | PM QR issue/validate/revoke and guard-first interface | PASS | API-backed QR journey and camera/manual guard UI. |
 | Smart-meter, bank reconciliation, live delivery or native mobile apps | OPTIONAL OUT-OF-SCOPE | Requires external products or Phase 6 scope; not silently represented as complete. |
 
@@ -103,7 +103,7 @@ Updated 2026-09-01 from the current repository state. This is the active checkli
 | Global stay/directory/workspace search with authorization | PASS | Public query routes and role-scoped workspace search. |
 | In-app messaging persistence, participants, read state and attachments | PASS | Conversation/message/attachment APIs and UI. |
 | In-app notifications with unread/read/deep-link state | PASS | Notification store, inbox UI and preference test. |
-| Keyboard/focus/labels/ARIA/responsive touch targets | PASS locally | Accessibility report and 13 Playwright usability checks; no formal certification claimed. |
+| Keyboard/focus/labels/ARIA/responsive touch targets | PASS locally | Accessibility report, Chromium responsive journeys and Firefox/WebKit critical smoke; no formal certification claimed. |
 | External email/SMS/push notifications | BLOCKED EXTERNAL | Provider credentials and delivery operations required. |
 | Production readiness | NO | Managed Postgres/storage, backups, monitoring, secrets, provider validation and independent security review remain release gates. |
 

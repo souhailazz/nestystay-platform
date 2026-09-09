@@ -1,6 +1,6 @@
 # NestyStay M1–M5 final delivery report
 
-Updated 2026-09-01 from the current repository state. The signed agreement was read in full and copied to `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`; source and copy are byte-identical (SHA-256 `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`).
+Updated 2026-09-09 from the current repository state. The signed agreement was read in full and copied to `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`; source and copy are byte-identical (SHA-256 `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28D`).
 
 ## Contractual decision
 
@@ -14,13 +14,14 @@ Updated 2026-09-01 from the current repository state. The signed agreement was r
 
 ## Verification totals
 
-- Backend: **96 passed / 0 failed** (5 Domain, 23 Application, 14 Infrastructure, 54 API; includes provider-document storage/scanner/download and PM document-download scope tests).
-- Frontend: **26 passed / 0 failed**; TypeScript/Vite build passed.
-- Real browser: **88 passed / 0 failed / 2 intentional skips** in the full 90-test desktop/tablet/mobile matrix; this includes **18/18 enhancement checks** for M4/M5, **13 usability checks plus 2 intentional mobile skips**, and the existing M1–M4 route inventory (**19/19 routes passed** on each viewport).
+- Backend: **135 passed / 0 failed** (5 Domain, 23 Application, 19 Infrastructure, 88 API; includes M1 session/passkey/calendar/recommendation/payout coverage, M5 document export/expiry and subscription lifecycle paths).
+- Backend release build: **0 warnings / 0 errors**; the NuGet vulnerability audit is clean after pinning patched `Microsoft.Bcl.Memory 10.0.12`.
+- Frontend: **35 passed / 0 failed**; TypeScript/Vite build and typecheck passed; full npm audit is clean after the Vitest/coverage-v8 4.1.11 update.
+- Real browser: complete configured Playwright matrix **91 passed / 0 failed / 52 intentional credential/provider-gated or viewport-scoped skips** across 143 collected tests; desktop Chromium was 30/30, the Property Manager subscription/document/utility journey passed at tablet and mobile (**2 additional passes**), and Firefox/WebKit critical smoke passed (**2 additional passes**). The remaining skipped admin/provider/live-provider paths require client credentials.
 - API + security: **PASS locally** (scope isolation, validation, idempotency, anonymous ballot and QR denial paths).
 - Concurrency: **PASS locally** (two same-key payments returned 200/200, one persisted payment row, correct balance).
-- PostgreSQL: Phase 5 EF migration applied to `nestystay_dev`; live smoke persisted owners, properties, invoices, utility-linked invoice, payment, statement and owner portal data.
-- Lint: **0 errors / 162 existing warnings**; warnings are non-blocking legacy unused imports/parameters.
+- PostgreSQL: additive EF migrations through `20260909200136_FixPropertyManagerSubscriptionDefaults` applied to `nestystay_dev`; **194 public tables** verified, including session/passkey/calendar/recommendation/payout/document-export/subscription lifecycle fields.
+- Lint: **0 errors / 156 existing warnings**; warnings are non-blocking legacy unused imports/parameters.
 
 ## Required separation
 
@@ -44,15 +45,22 @@ Updated 2026-09-01 from the current repository state. The signed agreement was r
 - Provider onboarding previously retained only selected document names: fixed with a persisted provider-document vault, validated binary upload, scanner metadata, scoped download and provider UI status/download controls.
 - Manager documents previously had no download action: fixed with a storage-backed, manager-scoped download endpoint and UI action.
 - Gate camera guidance previously required manual entry: fixed with browser QR decoding where supported and an explicit manual/offline fallback.
+- M1 auth/browser fixtures previously placed bearer tokens in local storage: fixed by using HttpOnly cookie sessions, per-device session records and current-session-safe revocation.
+- Calendar synchronization was manual-only: fixed with conditional ETag/Last-Modified sync, bounded hosted worker, atomic availability replacement, retry state and history.
+- Guest recommendations and host payout visibility were transient: fixed with PostgreSQL interaction/preferences, explainable scoring, payout summaries/history and audited manual settlement.
+- eKYC camera capture now has a live media path with compressed file fallback and safe retry states.
+- M5 subscription lifecycle previously exposed only core tier changes: fixed with persisted provider status, unit limits, billing events, retry, pause/resume, auto-renew, scheduled downgrade worker, cancellation reasons and reactivation UI/API.
 
 ## Remaining blockers
 
-Contractual local functionality has no known failing test. Production blockers are provider credentials, managed infrastructure/secret configuration, a fresh-database operator privilege, independent security review and operational runbooks.
+Contractual local functionality has no known failing test in the verified subset. Production blockers are live provider credentials, managed infrastructure/secret configuration, full multi-role browser certification, formal manual WCAG sign-off, production object-storage read/retention certification, a fresh-database operator privilege, independent security review and operational runbooks. The subscription worker and local/test billing state are complete; live billing webhooks and payment certification remain separate.
 
 ## Evidence index
 
 - `browser/m5-property-manager.spec.ts` and `frontend/e2e/m4-m5-enhancements.spec.ts` (source) with Playwright result artifacts.
 - `frontend/e2e/usability-upgrades.spec.ts` and `docs/testing/ACCESSIBILITY-REPORT.md`.
 - `browser/route-inventory.json` (19 routes, no 5xx/console failures).
+- `testing-evidence/final-hardening/20-deployment/full-desktop-browser-run.txt` (47 Chromium tests: 30 passed, 17 intentional skips, 0 failed).
+- `testing-evidence/final-hardening/20-deployment/full-playwright-matrix.txt` (143 tests across configured projects: 91 passed, 52 intentional skips, 0 failed).
 - `backend/` API test output and `security/`/`concurrency/` records.
 - `docs/testing/M1-M5-TRACEABILITY.md` and `docs/testing/M5-PROPERTY-MANAGER-ACCEPTANCE.md`.
