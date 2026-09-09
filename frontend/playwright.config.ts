@@ -50,7 +50,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "dotnet run --project ../backend/src/NestyStay.Api --launch-profile http --no-build",
+      command: "dotnet run --project ../backend/src/NestyStay.Api --configuration Release --launch-profile http --no-build",
       url: apiURL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

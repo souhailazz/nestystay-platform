@@ -25,6 +25,7 @@ TestResults/
 
 # Local runtime state
 .postgres-data/
+.local-storage/
 
 # Temporary nested Git metadata backups
 .git.nested-backup/

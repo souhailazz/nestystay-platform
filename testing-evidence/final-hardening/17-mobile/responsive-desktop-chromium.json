@@ -1,105 +1,105 @@
 {
-  "generatedAt": "2026-09-02T17:40:50.581Z",
+  "generatedAt": "2026-09-09T15:12:12.562Z",
   "project": "desktop-chromium",
   "viewport": {
-    "width": 1920,
-    "height": 1080
+    "width": 1440,
+    "height": 900
   },
   "screens": 12,
   "failures": 0,
   "results": [
     {
       "route": "/",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 21,
       "undersized": []
     },
     {
       "route": "/explore",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 42,
+      "controlCount": 50,
       "undersized": []
     },
     {
       "route": "/login",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 10,
+      "controlCount": 11,
       "undersized": []
     },
     {
       "route": "/register",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 13,
       "undersized": []
     },
     {
       "route": "/directory/custodians",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 43,
+      "controlCount": 39,
       "undersized": []
     },
     {
       "route": "/directory/trades",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 43,
+      "controlCount": 39,
       "undersized": []
     },
     {
       "route": "/directory/businesses",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 47,
+      "controlCount": 39,
       "undersized": []
     },
     {
       "route": "/directory/police",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 29,
       "undersized": []
     },
     {
       "route": "/gate/qr",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 12,
       "undersized": []
     },
     {
       "route": "/help",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 8,
       "undersized": []
     },
     {
       "route": "/401",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 11,
       "undersized": []
     },
     {
       "route": "/404",
-      "viewportWidth": 1920,
-      "scrollWidth": 1920,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
       "horizontalOverflow": 0,
       "controlCount": 10,
       "undersized": []
