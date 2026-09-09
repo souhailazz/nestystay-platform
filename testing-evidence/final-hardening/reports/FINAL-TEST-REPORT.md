@@ -2,14 +2,12 @@
 
 | Suite | Result |
 |---|---|
-| `dotnet test backend/NestyStay.sln` | 111 passed, 0 failed |
-| `npm test` | 30 passed, 0 failed |
-| Frontend lint/typecheck/build | Passed; lint has warnings only, no errors; build has no chunk warning |
-| Original Playwright desktop suite | 31 passed, 0 failed, 8 skipped |
-| Final hardening Playwright matrix | 24 passed, 0 failed, 60 intentional skips (84 planned), 0 flaky; includes real MinIO UI upload/download |
-| Authorization/security browser harness | 54/54 and 7/7 |
-| Financial correctness harness | 16/16 |
-| API concurrency harness | 4/4 |
-| PostgreSQL integrity/FK audit | 0 violations; 45 reviewed FKs, 0 enforced M5 orphans |
+| `dotnet test backend/NestyStay.sln --configuration Release --no-restore` | 131 passed, 0 failed (84 API, 19 infrastructure, 23 application, 5 domain) |
+| `npm test -- --run` | 35 passed, 0 failed |
+| Frontend typecheck/build | Passed; production Vite build completed without errors |
+| M1–M5 desktop Chromium workflow suite | 12 passed, 0 failed (includes provider analytics/replies and scheduled notices) |
+| Hardening security suite | 2 passed, 0 failed |
+| Quality suite | 2 passed, 0 failed, 5 intentional project skips |
+| PostgreSQL migration/schema verification | Applied through `20260909112812_AddPropertyManagerWorkflowLifecycle`; 186 tables, 51 migrations, 359 indexes and 50 foreign keys |
 
-Skipped browser cases are deliberate: route/axe/performance/security checks are laptop-only where specified, responsive checks run on the five Chromium viewport projects, and cross-browser smoke is limited to stable representative journeys. No skipped case is counted as a pass.
+Skipped browser cases are deliberate project-specific coverage gates; no skipped case is counted as a pass. Live Stripe wallet/webhook and Alibaba eKYC certification remain blocked until client provider credentials and domains are supplied.

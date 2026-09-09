@@ -18,6 +18,7 @@ import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
 const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
 const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
+const PasswordlessCompletionPage = lazy(() => import("./features/auth/AuthStateContainer").then(({ PasswordlessCompletionPage }) => ({ default: PasswordlessCompletionPage })));
 const BookingManagementPage = lazy(() => import("./pages/ProductPages").then(({ BookingManagementPage }) => ({ default: BookingManagementPage })));
 const CalendarPage = lazy(() => import("./pages/ProductPages").then(({ CalendarPage }) => ({ default: CalendarPage })));
 const ExplorePage = lazy(() => import("./pages/ProductPages").then(({ ExplorePage }) => ({ default: ExplorePage })));
@@ -33,6 +34,7 @@ const PropertyManagementPage = lazy(() => import("./pages/ProductPages").then(({
 const OwnerPortalPage = lazy(() => import("./pages/PropertyManagerPages").then(({ OwnerPortalPage }) => ({ default: OwnerPortalPage })));
 const PropertyManagerDashboardPage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerDashboardPage }) => ({ default: PropertyManagerDashboardPage })));
 const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerGatePage }) => ({ default: PropertyManagerGatePage })));
+const PropertyManagerPmsPage = lazy(() => import("./pages/PropertyManagerPmsPage").then(({ PropertyManagerPmsPage }) => ({ default: PropertyManagerPmsPage })));
 
 const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
 const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
@@ -67,9 +69,6 @@ const NotFoundPage = lazy(() => import("./pages/SpecScreens").then(({ NotFoundPa
 const NotificationsCenterPage = lazy(() => import("./pages/SpecScreens").then(({ NotificationsCenterPage }) => ({ default: NotificationsCenterPage })));
 const OfficerIdResetPage = lazy(() => import("./pages/SpecScreens").then(({ OfficerIdResetPage }) => ({ default: OfficerIdResetPage })));
 const PendingReviewsPage = lazy(() => import("./pages/SpecScreens").then(({ PendingReviewsPage }) => ({ default: PendingReviewsPage })));
-const PropertyManagerReportsPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerReportsPage }) => ({ default: PropertyManagerReportsPage })));
-const PropertyManagerUtilitiesPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerUtilitiesPage }) => ({ default: PropertyManagerUtilitiesPage })));
-const PropertyManagerVerificationPage = lazy(() => import("./pages/SpecScreens").then(({ PropertyManagerVerificationPage }) => ({ default: PropertyManagerVerificationPage })));
 const ServerErrorPage = lazy(() => import("./pages/SpecScreens").then(({ ServerErrorPage }) => ({ default: ServerErrorPage })));
 const SignInRequiredPage = lazy(() => import("./pages/SpecScreens").then(({ SignInRequiredPage }) => ({ default: SignInRequiredPage })));
 const TripSuggestionsPage = lazy(() => import("./pages/SpecScreens").then(({ TripSuggestionsPage }) => ({ default: TripSuggestionsPage })));
@@ -110,6 +109,7 @@ type Route =
   | { name: "property"; propertyId?: string }
   | { name: "login" }
   | { name: "register" }
+  | { name: "passwordless-complete" }
   | { name: "auth-post" }
   | { name: "logout" }
   | { name: "guest-dashboard" }
@@ -131,6 +131,17 @@ type Route =
   | { name: "pm-maintenance" }
   | { name: "pm-governance" }
   | { name: "pm-documents" }
+  | { name: "pm-payments" }
+  | { name: "pm-vendors" }
+  | { name: "pm-community" }
+  | { name: "pm-subscription" }
+  | { name: "pm-calendar" }
+  | { name: "pm-work-orders" }
+  | { name: "pm-agreements" }
+  | { name: "pm-approvals" }
+  | { name: "pm-team" }
+  | { name: "pm-inspections" }
+  | { name: "pm-cleaning" }
   | { name: "owner-dashboard" }
   | { name: "pm-gate" }
   | { name: "pm-utilities" }
@@ -180,6 +191,7 @@ function parseRoute(): Route {
   if (path === "/auth/otp") return { name: "auth-spec", kind: "otp" };
   if (path === "/auth/forgot-password") return { name: "auth-spec", kind: "forgot" };
   if (path === "/auth/reset-password") return { name: "auth-spec", kind: "reset" };
+  if (path === "/auth/passwordless") return { name: "passwordless-complete" };
   if (path === "/auth/2fa-setup") return { name: "auth-spec", kind: "twofa" };
   if (path === "/auth/recovery-codes") return { name: "auth-spec", kind: "recovery" };
   if (path === "/auth/social-consent") return { name: "auth-spec", kind: "social" };
@@ -252,6 +264,17 @@ function parseRoute(): Route {
   if (path === "/pm/maintenance") return { name: "pm-maintenance" };
   if (path === "/pm/governance") return { name: "pm-governance" };
   if (path === "/pm/documents") return { name: "pm-documents" };
+  if (path === "/pm/payments") return { name: "pm-payments" };
+  if (path === "/pm/vendors") return { name: "pm-vendors" };
+  if (path === "/pm/community") return { name: "pm-community" };
+  if (path === "/pm/subscription") return { name: "pm-subscription" };
+  if (path === "/pm/calendar") return { name: "pm-calendar" };
+  if (path === "/pm/work-orders") return { name: "pm-work-orders" };
+  if (path === "/pm/agreements") return { name: "pm-agreements" };
+  if (path === "/pm/approvals") return { name: "pm-approvals" };
+  if (path === "/pm/team") return { name: "pm-team" };
+  if (path === "/pm/inspections") return { name: "pm-inspections" };
+  if (path === "/pm/cleaning") return { name: "pm-cleaning" };
   if (path === "/owner/dashboard") return { name: "owner-dashboard" };
   if (path === "/gate") return { name: "pm-gate" };
   if (path === "/pm/utilities") return { name: "pm-utilities" };
@@ -819,6 +842,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <AuthPage auth={auth} mode="login" />;
     case "register":
       return <AuthPage auth={auth} mode="register" />;
+    case "passwordless-complete":
+      return <PasswordlessCompletionPage auth={auth} />;
     case "auth-post":
       return <AuthPostLoginToastPage />;
     case "logout":
@@ -830,7 +855,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "trav-reviews":
       return <PendingReviewsPage />;
     case "trav-notifications":
-      return <NotificationsCenterPage />;
+      return <NotificationsCenterPage auth={auth} />;
     case "trav-suggestions":
       return <TripSuggestionsPage />;
     case "host-dashboard":
@@ -850,23 +875,49 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "host-reports":
       return <HostReportsPage />;
     case "pm-gates":
-      return <PropertyManagerDashboardPage auth={auth} />;
+      return <PropertyManagerPmsPage auth={auth} module="gates" />;
     case "pm-dashboard":
-    case "pm-invoices":
-    case "pm-maintenance":
-    case "pm-governance":
-    case "pm-documents":
       return <PropertyManagerDashboardPage auth={auth} />;
+    case "pm-invoices":
+      return <PropertyManagerPmsPage auth={auth} module="invoices" />;
+    case "pm-maintenance":
+      return <PropertyManagerPmsPage auth={auth} module="maintenance" />;
+    case "pm-governance":
+      return <PropertyManagerPmsPage auth={auth} module="governance" />;
+    case "pm-documents":
+      return <PropertyManagerPmsPage auth={auth} module="documents" />;
     case "owner-dashboard":
       return <OwnerPortalPage auth={auth} />;
     case "pm-gate":
       return <PropertyManagerGatePage auth={auth} />;
     case "pm-utilities":
-      return <PropertyManagerUtilitiesPage />;
+      return <PropertyManagerPmsPage auth={auth} module="utilities" />;
     case "pm-verification":
-      return <PropertyManagerVerificationPage />;
+      return <PropertyManagerPmsPage auth={auth} module="verification" />;
     case "pm-reports":
-      return <PropertyManagerReportsPage />;
+      return <PropertyManagerPmsPage auth={auth} module="reports" />;
+    case "pm-payments":
+      return <PropertyManagerPmsPage auth={auth} module="payments" />;
+    case "pm-vendors":
+      return <PropertyManagerPmsPage auth={auth} module="vendors" />;
+    case "pm-community":
+      return <PropertyManagerPmsPage auth={auth} module="community" />;
+    case "pm-subscription":
+      return <PropertyManagerPmsPage auth={auth} module="subscription" />;
+    case "pm-calendar":
+      return <PropertyManagerPmsPage auth={auth} module="calendar" />;
+    case "pm-work-orders":
+      return <PropertyManagerPmsPage auth={auth} module="work-orders" />;
+    case "pm-agreements":
+      return <PropertyManagerPmsPage auth={auth} module="agreements" />;
+    case "pm-approvals":
+      return <PropertyManagerPmsPage auth={auth} module="approvals" />;
+    case "pm-team":
+      return <PropertyManagerPmsPage auth={auth} module="team" />;
+    case "pm-inspections":
+      return <PropertyManagerPmsPage auth={auth} module="inspections" />;
+    case "pm-cleaning":
+      return <PropertyManagerPmsPage auth={auth} module="cleaning" />;
     case "pm-insurance":
       return <InsuraGuestPage />;
     case "business-directory":

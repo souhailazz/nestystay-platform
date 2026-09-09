@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Calendar, MapPin, QrCode, MessageSquare, Download, RotateCcw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "../../components/ui/Button";
-import { api, formatMoney, type Booking, type QrIssueResult } from "../../lib/api";
+import { api, formatMoney, type Booking, type QrAccess, type QrHistoryEvent, type QrIssueResult } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 
 interface TravelerReservationsProps {
@@ -17,6 +17,10 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
   const [qrByBooking, setQrByBooking] = useState<Record<string, QrIssueResult | null>>({});
   const [qrImageByBooking, setQrImageByBooking] = useState<Record<string, string | null>>({});
   const [qrError, setQrError] = useState<string | null>(null);
+  const [qrRevokeReason, setQrRevokeReason] = useState("No longer needed");
+  const [qrAccessList, setQrAccessList] = useState<QrAccess[]>([]);
+  const [qrHistory, setQrHistory] = useState<Record<string, QrHistoryEvent[]>>({});
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
@@ -36,6 +40,14 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
     load();
     return () => { active = false; };
   }, [token]);
+
+  useEffect(() => {
+    if (view !== "qr") return;
+    let active = true;
+    void api.listBookingQrs(token).then((list) => { if (active) setQrAccessList(list); }).catch(() => undefined);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [token, view]);
 
   const filteredBookings = bookings.filter((b) => {
     if (view === "reservations-upcoming") return b.status === "APPROVED" || b.status === "CONFIRMED" || b.paymentStatus === "CAPTURED";
@@ -67,6 +79,7 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
       const image = await QRCode.toDataURL(gateUrl, { margin: 1, width: 220 });
       setQrByBooking((current) => ({ ...current, [selectedBooking.id]: issued }));
       setQrImageByBooking((current) => ({ ...current, [selectedBooking.id]: image }));
+      setQrAccessList((current) => [{ ...issued, isRevoked: false, validationCount: 0, lastValidatedAt: null }, ...current.filter((item) => item.id !== issued.id)]);
     } catch (caught) {
       setQrError(caught instanceof Error ? caught.message : "Gate pass could not be issued.");
     }
@@ -76,9 +89,15 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
     if (!selectedQr || !selectedBooking) return;
     setQrError(null);
     try {
-      await api.revokeBookingQr(selectedQr.id, token);
+      const reason = qrRevokeReason.trim();
+      if (!reason) {
+        setQrError("Enter a reason before revoking this gate pass.");
+        return;
+      }
+      await api.revokeBookingQr(selectedQr.id, token, reason);
       setQrByBooking((current) => ({ ...current, [selectedBooking.id]: null }));
       setQrImageByBooking((current) => ({ ...current, [selectedBooking.id]: null }));
+      setQrAccessList((current) => current.map((item) => item.id === selectedQr.id ? { ...item, isRevoked: true, status: "Revoked", revokeReason: reason } : item));
     } catch (caught) {
       setQrError(caught instanceof Error ? caught.message : "Gate pass could not be revoked.");
     }
@@ -175,8 +194,11 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
                       <div className="text-left text-xs">
                         <div className="font-semibold">Gate QR active</div>
                         <div>Valid through {new Date(selectedQr.expiresAt).toLocaleDateString()}</div>
+                        <div aria-live="polite">{Math.max(0, new Date(selectedQr.expiresAt).getTime() - now) > 0 ? `Expires in ${Math.floor(Math.max(0, new Date(selectedQr.expiresAt).getTime() - now) / 3600000)}h ${Math.floor((Math.max(0, new Date(selectedQr.expiresAt).getTime() - now) % 3600000) / 60000)}m` : "Expired"}</div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <a className="btn btn-outline" href={`/gate/qr?token=${encodeURIComponent(selectedQr.token)}&propertyId=${encodeURIComponent(selectedQr.propertyId)}`}>Open gate validator</a>
+                          <label className="sr-only" htmlFor="qr-revoke-reason">Revoke reason</label>
+                          <input id="qr-revoke-reason" className="min-h-10 rounded-field border border-sand-input bg-white px-3" value={qrRevokeReason} onChange={(event) => setQrRevokeReason(event.target.value)} />
                           <Button onClick={() => void revokeQr()} variant="outline">Revoke</Button>
                         </div>
                       </div>
@@ -194,6 +216,22 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
                   <Download size={16} /> View Invoice
                 </a>
               </div>
+
+              {view === "qr" && qrAccessList.length > 0 && (
+                <div className="mt-5 border-t pt-4" data-testid="traveler-qr-history-list">
+                  <h4 className="mb-2 font-semibold">Your QR history</h4>
+                  <div className="space-y-2 text-xs">
+                    {qrAccessList.map((entry) => (
+                      <div className="rounded-field border border-sand-border p-3" key={entry.id}>
+                        <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">{entry.status}</span><span>{new Date(entry.expiresAt).toLocaleString()}</span></div>
+                        <div className="mt-1 text-sand-600">Scans: {entry.validationCount}{entry.revokeReason ? ` · Reason: ${entry.revokeReason}` : ""}</div>
+                        <button className="mt-1 font-semibold underline" onClick={() => void api.getBookingQrHistory(entry.id, token).then((events) => setQrHistory((current) => ({ ...current, [entry.id]: events }))).catch(() => setQrError("QR history could not be loaded."))} type="button">View event history</button>
+                        {qrHistory[entry.id] && <div className="mt-2 space-y-1 border-l-2 border-sand-border pl-2">{qrHistory[entry.id].map((event) => <div key={event.id}>{event.eventType} · {event.status} · {new Date(event.occurredAt).toLocaleString()}{event.reason ? ` · ${event.reason}` : ""}</div>)}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

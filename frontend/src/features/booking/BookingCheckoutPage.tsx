@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, ExpressCheckoutElement, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import { LoadingState } from "../../components/ui/LoadingState";
@@ -61,6 +61,30 @@ function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
+  async function confirmPayment() {
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    setError(null);
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret: booking.paymentClientSecret!,
+      confirmParams: {
+        return_url: `${window.location.origin}/booking/${booking.id}/success`,
+      },
+      redirect: "if_required",
+    });
+    if (confirmError) {
+      const msg = confirmError.message || "Payment authorization failed.";
+      setError(msg);
+      onFailure(booking.id, msg);
+      setProcessing(false);
+    } else if (paymentIntent && (paymentIntent.status === "requires_capture" || paymentIntent.status === "succeeded")) {
+      onSuccess(booking.id);
+    } else {
+      setProcessing(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
@@ -75,25 +99,7 @@ function CheckoutForm({
       return;
     }
 
-    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      clientSecret: booking.paymentClientSecret!,
-      confirmParams: {
-        return_url: `${window.location.origin}/booking/${booking.id}/success`,
-      },
-      redirect: "if_required",
-    });
-
-    if (confirmError) {
-      const msg = confirmError.message || "Payment authorization failed.";
-      setError(msg);
-      onFailure(booking.id, msg);
-      setProcessing(false);
-    } else if (paymentIntent && (paymentIntent.status === "requires_capture" || paymentIntent.status === "succeeded")) {
-      onSuccess(booking.id);
-    } else {
-      setProcessing(false);
-    }
+    await confirmPayment();
   };
 
   return (
@@ -102,6 +108,11 @@ function CheckoutForm({
         <div className="mb-3 flex items-center justify-between text-[11px] text-sand-500">
           <span className="font-semibold tracking-[0.08em]">SECURE CARD DETAILS</span>
           <span>PCI handled by Stripe</span>
+        </div>
+        <div className="mb-4 rounded-field border border-sand-border bg-shell p-3">
+          <div className="mb-2 text-[11px] font-semibold tracking-[0.08em] text-sand-500">QUICK CHECKOUT</div>
+          <ExpressCheckoutElement onConfirm={() => void confirmPayment()} options={{ buttonType: { applePay: "buy", googlePay: "buy" } }} />
+          <p className="m-0 mt-2 text-[11px] text-sand-500">Apple Pay and Google Pay appear automatically when supported by this device, browser and Stripe account.</p>
         </div>
         <PaymentElement />
       </div>

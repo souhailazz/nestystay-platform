@@ -27,6 +27,51 @@ public sealed class PropertiesController(
         return Ok(phaseOneStore.GetProperties(hostUserId));
     }
 
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/duplicate")]
+    public async Task<IActionResult> DuplicateProperty(Guid id, [FromBody] DuplicatePropertyRequest? request, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.DuplicatePropertyAsync(authorization.RequireHost(), id, request?.Title, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/publish")]
+    public async Task<IActionResult> PublishProperty(Guid id, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.PublishPropertyAsync(authorization.RequireHost(), id, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("bulk/archive")]
+    public async Task<IActionResult> BulkArchiveProperties(BulkPropertyArchiveRequest request, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.BulkArchivePropertiesAsync(authorization.RequireHost(), request.PropertyIds, request.IsArchived, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpGet("{id:guid}/revisions")]
+    public async Task<IActionResult> GetPropertyRevisions(Guid id, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.GetPropertyRevisionsAsync(authorization.RequireHost(), id, cancellationToken));
+    }
+
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/revisions/{revisionId:guid}/restore")]
+    public async Task<IActionResult> RestorePropertyRevision(Guid id, Guid revisionId, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IPropertyEnhancementStore
+            ?? throw new InvalidOperationException("Property enhancement store is unavailable.");
+        return Ok(await store.RestorePropertyRevisionAsync(authorization.RequireHost(), id, revisionId, cancellationToken));
+    }
+
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateProperty(CreatePropertyRequest request, CancellationToken cancellationToken)
@@ -142,3 +187,6 @@ public sealed class PropertiesController(
     }
 
 }
+
+public sealed record DuplicatePropertyRequest(string? Title);
+public sealed record BulkPropertyArchiveRequest(IReadOnlyCollection<Guid> PropertyIds, bool IsArchived = true);

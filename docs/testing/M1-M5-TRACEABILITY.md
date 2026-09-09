@@ -6,9 +6,9 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 |---|---|---|---|---|---|
 | M1 Core | Auth/2FA, property, booking, payment, eKYC, persisted dashboards | Implemented and regression-tested | Connected routes and workflows | Existing M1–M4 suites plus 19-route inventory | PASS locally |
 | M2 Badges | Four badge levels, pricing/eligibility/renewal and restrictions | Implemented and regression-tested | Connected badge/dashboard surfaces | Existing M1–M4 suites | PASS locally |
-| M3 Wellness | Officer lifecycle, assignment/report, subscription/commission state | Implemented and regression-tested | Connected host/officer/admin routes with guided wizard, live quote/availability, report drafts/photos, privacy controls and payout desk | Existing wellness lifecycle suite plus `frontend/e2e/m3-wellness-enhancements.spec.ts` (DB-backed run requires configured PostgreSQL) | PASS locally |
-| M4 Directories + QR | Four directories, provider moderation, badge gates, QR lifecycle | Implemented and regression-tested | Connected directory/provider/QR routes | Existing M1–M4 suites and route inventory | PASS locally |
-| M5 Property Manager | Multi-owner portfolio, owner portal, finance, maintenance, utilities, governance, documents, gate and subscription | Implemented with manager/owner scope, idempotency and reviewed FK relationships | `/pm/*`, `/owner/dashboard`, `/gate` call real API with HttpOnly cookie sessions and CSRF protection | 64 API tests, 30 Vitest, dedicated persisted M5 workflow 7/7 browser projects; full hardening matrix 22 passed/0 failed/48 intentional skips | PASS locally |
+| M3 Wellness | Officer lifecycle, assignment/report, subscription/commission state | Implemented and regression-tested | Connected host/officer/admin routes with guided wizard, coverage coordinates, secure documents, live quote/availability, conflict-safe rescheduling, report drafts/photos, privacy controls and payout desk | Wellness lifecycle/enhancement suites, 84 API tests and PostgreSQL-backed browser runs | PASS locally |
+| M4 Directories + QR | Four directories, provider moderation, badge gates, QR lifecycle | Implemented and regression-tested | Connected directory/provider/QR routes, provider analytics/quote responses/review replies, recent views and lifecycle history | M1–M5 browser suites, provider dashboard browser test and API/PostgreSQL regression coverage | PASS locally |
+| M5 Property Manager | Multi-owner portfolio, owner portal, finance, maintenance, utilities, governance, documents, gate and subscription | Implemented with manager/owner scope, idempotency and reviewed FK relationships | `/pm/*`, `/owner/dashboard`, `/gate` call real API with HttpOnly cookie sessions and CSRF protection; notices support scheduling, audience targeting and acknowledgement deadlines | 84 API tests, 35 Vitest, combined M1–M5 workflow 12/12 desktop Chromium; hardening/security 4 passed with 5 intentional project skips | PASS locally |
 
 ## Provider and launch separation
 
@@ -24,7 +24,7 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 - Host: three-step booking flow (service → schedule → confirm), real quote and available-officer lookup, property selector, subscription comparison/renewal/cancellation, persisted visit timeline, cancellation/rebooking action, report print/save, and explicit local-payment mode copy.
 - Officer: three-step onboarding wizard with autosaved draft/resume, document checklist, coverage preview, availability calendar, consent/privacy copy, assignment timeline, offline report draft, multi-photo upload with progress/retry/cancel, client-side image compression, captions, and secure visibility messaging.
 - Admin: live officer search/status/parish filters, side-by-side review checklist, approval templates, notification/audit messaging, bulk approval/rejection/suspension, SLA/open-report/payout KPIs, assignment and completion controls, and payout desk.
-- Honest boundaries: backend currently exposes no structured map coordinates, report PDF endpoint, reminder scheduler, bank-account/dispute workflow, or live provider payment rail. The UI calls these out rather than presenting mock completion; print/save produces a local report that can be saved as PDF by the browser.
+- Honest boundaries: coverage coordinates, server-rendered report PDFs, payout statements and dispute state are now available locally. Live provider payment rails, external bank verification, SMS/push delivery and production reminder/expiry workers remain separate certification/deployment gates.
 
 ## M4/M5 enhancement checklist (2026-09-02)
 
@@ -42,8 +42,8 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 
 ### Honest M4/M5 boundaries
 
-- The current API model has no latitude/longitude, so the directory map toggle is a responsive map-style provider board rather than a geocoded map provider.
-- Saved-search/favorite persistence, review responses, plan selection and recurring reminders remain configurable/client-side enhancements where no signed-contract persistence rule exists; core provider profile, moderation, document binary storage/download, manager portfolio, invoice, utility, maintenance, notice, governance and QR actions are real API calls.
+- The current API stores wellness coverage coordinates and service radius; map tiles/geocoding remain configurable provider integrations with manual fallback.
+- Saved-search/favorite persistence and plan selection remain configurable/client-side enhancements where no signed-contract persistence rule exists; provider analytics, quote responses, review responses, scheduled/audience-targeted notices and recurring workflow records now use real API calls. Asynchronous ZIP export/expiry-reminder workers remain a production follow-up.
 - Real Stripe/Alibaba credentials, live payment rails, SMS/push delivery, geocoding network, bank reconciliation and production deployment controls remain separate production validation gates. QR image decoding is implemented with the browser `BarcodeDetector` API and keeps a manual fallback.
 - Browser session storage is an HttpOnly `nestyStay.session` cookie with a strict double-submit CSRF token; legacy bearer values are cleared from localStorage. PostgreSQL relationship hardening added 45 reviewed FKs with 0 enforced M5 orphan rows; the contextual QR mismatch value is intentionally retained without an FK.
 

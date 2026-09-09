@@ -1,4 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
+import { installCookieSession } from "./helpers/session";
 
 const password = "NestyStay1";
 
@@ -97,7 +98,31 @@ test("M4 QR gate UI issues, validates, rejects wrong property, and shows revocat
   await api.dispose();
 });
 
-async function createSession(api: APIRequestContext, role: "Host" | "Guest", displayName: string) {
+test("provider dashboard loads owner-scoped analytics and response controls", async ({ baseURL, page }) => {
+  const api = await playwrightRequest.newContext({ baseURL });
+  const providerSession = await createSession(api, "ServiceProvider", "Analytics Provider");
+  const slug = `provider-${providerSession.userId.slice(0, 8)}`;
+  const saved = await api.post("/api/directories/providers", {
+    headers: bearer(providerSession.accessToken),
+    data: {
+      slug, kind: "Trades", category: "Plumbing", name: "Analytics Provider", parish: "Kingston",
+      badgeLevel: "Trusted", description: "Provider analytics fixture", availabilitySummary: "Mon-Fri",
+      contactMode: "Platform messaging", isBrickAndMortar: true, isActive: false, services: ["Repairs"],
+      openingHours: "Mon-Fri 08:00-17:00", emergencyAvailable: true, serviceRadiusKm: 25,
+    },
+  });
+  expect(saved.ok(), await saved.text()).toBeTruthy();
+  await api.dispose();
+
+  await installCookieSession(page, providerSession);
+  await page.goto("/directory/provider", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Requests and performance", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Quote requests", { exact: true })).toBeVisible();
+  await expect(page.getByText("Review responses", { exact: true })).toBeVisible();
+  await expect(page.getByText("No quote requests yet.", { exact: true })).toBeVisible();
+});
+
+async function createSession(api: APIRequestContext, role: "Host" | "Guest" | "ServiceProvider", displayName: string) {
   const email = `m4-qr-${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
   const registration = await api.post("/api/auth/register", {
     data: { email, password, confirmPassword: password, displayName, phone: "+15550102030", acceptedTerms: true, acceptedPrivacy: true, role },
@@ -114,6 +139,5 @@ function bearer(token: string) {
 }
 
 async function installSession(page: Page, session: Record<string, unknown>) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((value) => localStorage.setItem("nestyStay.session", JSON.stringify(value)), session);
+  await installCookieSession(page, session);
 }

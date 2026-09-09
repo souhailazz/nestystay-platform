@@ -16,6 +16,9 @@ type ListControlsProps = {
   onPageChange: (page: number) => void;
   onExport?: () => void;
   exportLabel?: string;
+  selectable?: boolean;
+  allVisibleSelected?: boolean;
+  onToggleAllVisible?: () => void;
   className?: string;
 };
 
@@ -32,6 +35,9 @@ export function ListControls({
   onPageChange,
   onExport,
   exportLabel = "Export",
+  selectable = false,
+  allVisibleSelected = false,
+  onToggleAllVisible,
   className,
 }: ListControlsProps) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -41,6 +47,7 @@ export function ListControls({
   return (
     <div className={cx("grid gap-3 rounded-card border border-sand-border bg-cream p-3", className)}>
       <div className="flex flex-wrap items-center gap-2">
+        {selectable && onToggleAllVisible && <label className="inline-flex min-h-11 items-center gap-2 rounded-field border-[1.5px] border-sand-input bg-white px-3 text-xs font-semibold text-ink"><input aria-label="Select all visible rows" checked={allVisibleSelected} onChange={onToggleAllVisible} type="checkbox" /> Select page</label>}
         <label className="flex min-h-11 min-w-[min(100%,300px)] flex-1 items-center gap-2 rounded-field border-[1.5px] border-sand-input bg-white px-3 transition-colors focus-within:border-deep-hover">
           <Search aria-hidden="true" className="shrink-0 text-sand-500" size={16} />
           <span className="sr-only">{label}</span>

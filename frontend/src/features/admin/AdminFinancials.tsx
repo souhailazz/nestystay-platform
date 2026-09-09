@@ -46,7 +46,7 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
         <h2>Financial Management & Refund Controls</h2>
         <PatoisPhrase phrase="Platform Payouts & Stripe Refunds" translation="Monitor transaction ledgers, process full/partial refunds, and inspect founding benefits." />
         <div className="mt-3 flex items-center gap-3">
-          <span className="badge badge-outline text-xs">Evidence Documentation</span>
+          <span className="badge badge-outline text-xs">Evidence</span>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 type UserRole = "Guest" | "Host";
 
@@ -253,9 +254,7 @@ async function seedProviderProfile(api: APIRequestContext, session: AuthSession)
 }
 
 async function installSession(page: Page, session: AuthSession) {
-  await page.addInitScript((value) => {
-    window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
-  }, session);
+  await installCookieSession(page, session);
 }
 
 function collectPageErrors(page: Page) {

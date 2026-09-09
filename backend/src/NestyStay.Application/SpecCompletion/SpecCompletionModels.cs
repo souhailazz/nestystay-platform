@@ -104,8 +104,8 @@ public sealed record ReviewDto(Guid Id, Guid UserId, Guid? PropertyId, Guid? Boo
 public sealed record SaveReviewRequest(Guid? PropertyId, Guid? BookingId, string SubjectTitle, int Rating, string Text);
 public sealed record SaveReviewReplyRequest(string Reply);
 public sealed record TravelerNotificationDto(Guid Id, Guid UserId, string Type, string Title, string Body, string DeepLink, bool IsRead, DateTimeOffset CreatedAt, DateTimeOffset? ReadAt);
-public sealed record DirectoryProviderDto(Guid Id, Guid? OwnerUserId, string Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, decimal Rating, int ReviewCount, bool IsActive, string VerificationStatus = "Verified", string Status = "Published", bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null);
-public sealed record UpsertDirectoryProviderRequest(string? Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, bool IsActive = false, bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null);
+public sealed record DirectoryProviderDto(Guid Id, Guid? OwnerUserId, string Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, decimal Rating, int ReviewCount, bool IsActive, string VerificationStatus = "Verified", string Status = "Published", bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null, IReadOnlyList<string>? Services = null, string? OpeningHours = null, bool EmergencyAvailable = false, decimal? ServiceRadiusKm = null);
+public sealed record UpsertDirectoryProviderRequest(string? Slug, string Kind, string Category, string Name, string Parish, string BadgeLevel, string Description, string AvailabilitySummary, string ContactMode, bool IsActive = false, bool IsBrickAndMortar = false, string? PoliceBadgeNumber = null, IReadOnlyList<string>? Services = null, string? OpeningHours = null, bool EmergencyAvailable = false, decimal? ServiceRadiusKm = null);
 public sealed record PrepareDirectoryProviderDocumentUploadRequest(string DocumentType, string FileName, string ContentType, long SizeBytes);
 public sealed record DirectoryProviderDocumentDto(Guid Id, Guid ProviderId, string DocumentType, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset? UploadedAt, DateTimeOffset CreatedAt);
 public sealed record DirectoryProviderDocumentUploadDto(Guid Id, Guid ProviderId, string DocumentType, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null);
@@ -161,9 +161,20 @@ public sealed record AuthFlowResultDto(
     string DeliveryChannel,
     DateTimeOffset ExpiresAt,
     DateTimeOffset? LastSentAt,
-    int AttemptsRemaining);
+    int AttemptsRemaining,
+    string? Message = null);
+
+public sealed record PasswordlessLoginResponse(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string AccessToken,
+    DateTimeOffset ExpiresAt,
+    IReadOnlyList<UserRole> Roles,
+    IReadOnlyList<string>? Permissions = null);
 public sealed record DevelopmentAuthFlowSecretDto(Guid Id, string Code, string Token, DateTimeOffset ExpiresAt);
 public sealed record StartAuthFlowRequest(Guid? UserId, string FlowType, string Destination, string? RequestIp = null);
+public sealed record PasswordlessLoginRequest(string Email, string? RequestIp = null);
 public sealed record CompleteAuthFlowRequest(Guid FlowId, string Code = "", string? Token = null);
 public sealed record RecoveryCodeDto(string Code, bool Used);
 public sealed record SocialAuthConfigDto(bool GoogleEnabled, bool AppleEnabled, bool FacebookEnabled, IReadOnlyList<string> RequiredEnvironmentVariables);

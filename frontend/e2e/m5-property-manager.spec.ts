@@ -1,4 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
+import { installCookieSession } from "./helpers/session";
 
 type Session = {
   userId: string;
@@ -105,6 +106,5 @@ async function login(api: APIRequestContext, email: string, password: string): P
 }
 
 async function setSession(page: Page, session: Session) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate(value => window.localStorage.setItem("nestyStay.session", JSON.stringify(value)), session);
+  await installCookieSession(page, session);
 }

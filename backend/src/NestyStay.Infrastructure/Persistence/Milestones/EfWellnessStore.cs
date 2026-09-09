@@ -68,6 +68,10 @@ public sealed class EfWellnessStore(
         {
             throw new InvalidOperationException("Officer badge number, parish, and coverage area are required.");
         }
+        if (request.Latitude is < -90 or > 90 || request.Longitude is < -180 or > 180)
+            throw new InvalidOperationException("Coverage coordinates are invalid.");
+        if (request.ServiceRadiusKm is <= 0 or > 500)
+            throw new InvalidOperationException("Coverage radius must be between 0 and 500 km.");
 
         var badgeNumber = NormalizeBadge(request.BadgeNumber);
         if (await db.MilestoneWellnessOfficers.AnyAsync(officer => officer.BadgeNumber == badgeNumber, cancellationToken))
@@ -84,6 +88,9 @@ public sealed class EfWellnessStore(
             BadgeNumber = badgeNumber,
             Parish = request.Parish.Trim(),
             CoverageArea = request.CoverageArea.Trim(),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            ServiceRadiusKm = request.ServiceRadiusKm,
             IsActiveOffDuty = request.IsActiveOffDuty,
             IsRetired = request.IsRetired,
             VerificationStatus = isEligible ? OfficerStatusPending : OfficerStatusRejected,
@@ -245,8 +252,17 @@ public sealed class EfWellnessStore(
                 !officer.IsRetired)
             .ToListAsync(cancellationToken);
 
+        var activeVisits = await db.MilestoneWellnessVisits
+            .AsNoTracking()
+            .Where(visit => visit.OfficerId != null && (visit.VisitStatus == VisitScheduled || visit.VisitStatus == "Accepted" || visit.VisitStatus == "InProgress") && visit.ScheduledAt >= scheduledAt.AddDays(-30))
+            .GroupBy(visit => visit.OfficerId!.Value)
+            .Select(group => new { OfficerId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.OfficerId, item => item.Count, cancellationToken);
+
         return officers
             .Where(officer => ParishMatches(officer.Parish, parish) && !HasOfficerOverlap(officer.Id, scheduledAt, 60))
+            .OrderBy(officer => activeVisits.GetValueOrDefault(officer.Id))
+            .ThenBy(officer => officer.UpdatedAt)
             .Select(ToOfficerDto)
             .ToList();
     }
@@ -313,6 +329,7 @@ public sealed class EfWellnessStore(
             Area = string.IsNullOrWhiteSpace(request.Area) ? request.Parish.Trim() : request.Area.Trim(),
             VisitType = quote.VisitType,
             ScheduledAt = request.ScheduledAt,
+            ScheduledTimeZone = "America/Jamaica",
             DurationMinutes = quote.DurationMinutes,
             Price = quote.Price,
             PlatformFee = quote.PlatformFee,
@@ -434,6 +451,34 @@ public sealed class EfWellnessStore(
         await db.SaveChangesAsync(cancellationToken);
         await QueueEventAsync("Visit cancelled", $"Wellness visit {visit.Id:N} was cancelled.", cancellationToken);
 
+        return ToVisitDto(visit);
+    }
+
+    public async Task<WellnessVisitDto?> RescheduleVisitAsync(Guid visitId, RescheduleWellnessVisitRequest request, CancellationToken cancellationToken)
+    {
+        var visit = await db.MilestoneWellnessVisits.SingleOrDefaultAsync(item => item.Id == visitId, cancellationToken);
+        if (visit is null) return null;
+        if (visit.VisitStatus is VisitCompleted or VisitCancelled)
+            throw new InvalidOperationException("Completed or cancelled visits cannot be rescheduled.");
+        if (request.ScheduledAt <= timeProvider.GetUtcNow().AddMinutes(15))
+            throw new InvalidOperationException("Choose a future time at least 15 minutes from now.");
+        var timeZone = string.IsNullOrWhiteSpace(request.TimeZone) ? "America/Jamaica" : request.TimeZone.Trim();
+        try { _ = TimeZoneInfo.FindSystemTimeZoneById(timeZone); }
+        catch (TimeZoneNotFoundException) { throw new InvalidOperationException("The selected timezone is not supported."); }
+        catch (InvalidTimeZoneException) { throw new InvalidOperationException("The selected timezone is not supported."); }
+
+        if (visit.OfficerId is { } officerId && HasOfficerOverlap(officerId, request.ScheduledAt, visit.DurationMinutes, visit.Id))
+            throw new InvalidOperationException("The assigned officer is unavailable at that time. Choose another slot.");
+
+        var previous = visit.ScheduledAt;
+        visit.ScheduledAt = request.ScheduledAt.ToUniversalTime();
+        visit.ScheduledTimeZone = timeZone;
+        visit.UpdatedAt = timeProvider.GetUtcNow();
+        var reason = string.IsNullOrWhiteSpace(request.Reason) ? "Schedule changed" : request.Reason.Trim();
+        AddVisitTimeline(visit, $"Visit rescheduled from {previous:u} to {visit.ScheduledAt:u} ({timeZone})", $"Reason: {reason}");
+        AddVisitEvent(visit, "Wellness visit rescheduled");
+        await db.SaveChangesAsync(cancellationToken);
+        await QueueEventAsync("Wellness visit rescheduled", $"Wellness visit {visit.Id:N} was moved to {visit.ScheduledAt:u}.", cancellationToken);
         return ToVisitDto(visit);
     }
 
@@ -1091,7 +1136,10 @@ public sealed class EfWellnessStore(
             MilestoneJson.DeserializeList<string>(officer.FreeBadgesJson),
             officer.CreatedAt,
             officer.UpdatedAt,
-            officer.AdminReviewMetadataJson == "{}" ? null : officer.AdminReviewMetadataJson);
+            officer.AdminReviewMetadataJson == "{}" ? null : officer.AdminReviewMetadataJson,
+            officer.Latitude,
+            officer.Longitude,
+            officer.ServiceRadiusKm);
 
     private static WellnessSubscriptionDto ToSubscriptionDto(MilestoneWellnessSubscription subscription, DateTimeOffset now) =>
         new(subscription.Id, subscription.HostUserId, subscription.PlanKey, subscription.MonthlyAmount, subscription.Currency,
@@ -1122,7 +1170,8 @@ public sealed class EfWellnessStore(
             string.IsNullOrWhiteSpace(visit.PaymentCaptureReference) ? null : visit.PaymentCaptureReference,
             MilestoneJson.DeserializeList<string>(visit.TimelineJson),
             visit.CreatedAt,
-            visit.UpdatedAt);
+            visit.UpdatedAt,
+            string.IsNullOrWhiteSpace(visit.ScheduledTimeZone) ? "America/Jamaica" : visit.ScheduledTimeZone);
 
     private static WellnessReportPhotoUploadDto ToDto(MilestoneWellnessReportPhoto photo) =>
         new(

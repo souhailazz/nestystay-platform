@@ -71,6 +71,37 @@ public sealed class MilestoneProperty : BaseEntity
     public string CancellationPolicy { get; set; } = string.Empty;
     public string HighlightsJson { get; set; } = "[]";
     public bool IsArchived { get; set; }
+    public bool IsDraft { get; set; }
+}
+
+public sealed class MilestonePropertyRevision : BaseEntity
+{
+    public Guid PropertyId { get; set; }
+    public Guid HostUserId { get; set; }
+    public int Version { get; set; }
+    public string SnapshotJson { get; set; } = "{}";
+}
+
+public sealed class MilestoneCalendarFeed : BaseEntity
+{
+    public Guid PropertyId { get; set; }
+    public Guid HostUserId { get; set; }
+    public string FeedUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "Connected";
+    public string? ETag { get; set; }
+    public DateTimeOffset? LastSyncAttemptAt { get; set; }
+    public DateTimeOffset? LastSyncAt { get; set; }
+    public string? LastError { get; set; }
+}
+
+public sealed class MilestoneCalendarBlock : BaseEntity
+{
+    public Guid FeedId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string ExternalId { get; set; } = string.Empty;
+    public DateOnly StartsOn { get; set; }
+    public DateOnly EndsOn { get; set; }
+    public string Summary { get; set; } = "Unavailable";
 }
 
 public sealed class MilestonePropertyPhoto : BaseEntity
@@ -247,6 +278,9 @@ public sealed class MilestoneWellnessOfficer : BaseEntity
     public string BadgeNumber { get; set; } = string.Empty;
     public string Parish { get; set; } = string.Empty;
     public string CoverageArea { get; set; } = string.Empty;
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public decimal? ServiceRadiusKm { get; set; }
     public bool IsActiveOffDuty { get; set; }
     public bool IsRetired { get; set; }
     public string VerificationStatus { get; set; } = "Pending";
@@ -268,6 +302,7 @@ public sealed class MilestoneWellnessVisit : BaseEntity
     public string Area { get; set; } = string.Empty;
     public string VisitType { get; set; } = string.Empty;
     public DateTimeOffset ScheduledAt { get; set; }
+    public string ScheduledTimeZone { get; set; } = "America/Jamaica";
     public int DurationMinutes { get; set; }
     public decimal Price { get; set; }
     public decimal PlatformFee { get; set; }
@@ -319,6 +354,62 @@ public sealed class MilestoneWellnessReportPhoto : BaseEntity
     public DateTimeOffset? UploadedAt { get; set; }
 }
 
+public sealed class MilestoneWellnessOfficerDocument : BaseEntity
+{
+    public Guid OfficerId { get; set; }
+    public string DocumentType { get; set; } = string.Empty;
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string SafeFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
+    public string ObjectKey { get; set; } = string.Empty;
+    public string UploadUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "PendingUpload";
+    public string StorageProviderName { get; set; } = string.Empty;
+    public string ScanStatus { get; set; } = "PendingScan";
+    public string? Sha256Hash { get; set; }
+    public DateOnly? ExpiresOn { get; set; }
+    public string ReviewStatus { get; set; } = "Pending";
+    public string? ReviewReason { get; set; }
+    public DateTimeOffset UploadExpiresAt { get; set; }
+    public DateTimeOffset? UploadedAt { get; set; }
+}
+
+public sealed class MilestoneWellnessReportTemplate : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public int Version { get; set; }
+    public string DefinitionJson { get; set; } = "{}";
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class MilestoneWellnessReportComment : BaseEntity
+{
+    public Guid ReportId { get; set; }
+    public Guid AuthorUserId { get; set; }
+    public string Body { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneWellnessReportAcknowledgement : BaseEntity
+{
+    public Guid ReportId { get; set; }
+    public Guid AcknowledgedByUserId { get; set; }
+    public DateTimeOffset AcknowledgedAt { get; set; }
+}
+
+public sealed class MilestoneWellnessFollowUpTask : BaseEntity
+{
+    public Guid ReportId { get; set; }
+    public Guid VisitId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Priority { get; set; } = "Normal";
+    public Guid? AssigneeUserId { get; set; }
+    public DateTimeOffset? DueAt { get; set; }
+    public string Status { get; set; } = "Open";
+}
+
 public sealed class MilestoneWellnessPayout : BaseEntity
 {
     public Guid VisitId { get; set; }
@@ -332,6 +423,19 @@ public sealed class MilestoneWellnessPayout : BaseEntity
     public DateTimeOffset? PaidAt { get; set; }
     public string ProviderReference { get; set; } = string.Empty;
     public string LedgerNotes { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneWellnessPayoutDispute : BaseEntity
+{
+    public Guid PayoutId { get; set; }
+    public Guid OfficerId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? EvidenceJson { get; set; }
+    public string Status { get; set; } = "Open";
+    public string? Decision { get; set; }
+    public string? DecisionNotes { get; set; }
+    public Guid? DecidedByUserId { get; set; }
+    public DateTimeOffset? ResolvedAt { get; set; }
 }
 
 public sealed class MilestoneAuthFlow : BaseEntity
@@ -586,6 +690,48 @@ public sealed class MilestoneDirectoryProvider : BaseEntity
     public string Status { get; set; } = "PendingReview";
     public bool IsBrickAndMortar { get; set; }
     public string? PoliceBadgeNumber { get; set; }
+    public string ServicesJson { get; set; } = "[]";
+    public string? OpeningHours { get; set; }
+    public bool EmergencyAvailable { get; set; }
+    public decimal? ServiceRadiusKm { get; set; }
+    /// <summary>Structured, provider-managed business information.</summary>
+    public string WeeklyHoursJson { get; set; } = "{}";
+    public string HolidayClosuresJson { get; set; } = "[]";
+    public string PromotionsJson { get; set; } = "[]";
+    public string? AccessibilityInfo { get; set; }
+}
+
+public sealed class MilestoneDirectoryQuote : BaseEntity
+{
+    public Guid ProviderId { get; set; }
+    public Guid RequesterUserId { get; set; }
+    public string Scope { get; set; } = string.Empty;
+    public DateTimeOffset? PreferredAt { get; set; }
+    public decimal? Budget { get; set; }
+    public decimal? ResponseAmount { get; set; }
+    public string Status { get; set; } = "OPEN";
+    public string? Message { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public DateTimeOffset? RespondedAt { get; set; }
+}
+
+public sealed class MilestoneDirectoryReview : BaseEntity
+{
+    public Guid ProviderId { get; set; }
+    public Guid ReviewerUserId { get; set; }
+    public int Rating { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public string Status { get; set; } = "PUBLISHED";
+    public string? ProviderResponse { get; set; }
+    public DateTimeOffset? RespondedAt { get; set; }
+}
+
+/// <summary>Privacy-scoped provider history for signed-in directory users.</summary>
+public sealed class MilestoneDirectoryRecentView : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public Guid ProviderId { get; set; }
+    public DateTimeOffset ViewedAt { get; set; }
 }
 
 /// <summary>
@@ -739,6 +885,18 @@ public sealed class MilestoneManagerProperty : BaseEntity
     public string OccupancyStatus { get; set; } = "VACANT";
 }
 
+public sealed class MilestoneManagerPropertyAssignmentHistory : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public Guid? PreviousOwnerUserId { get; set; }
+    public Guid NewOwnerUserId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public Guid BatchId { get; set; }
+    public DateTimeOffset ChangedAt { get; set; }
+}
+
 public sealed class MilestoneManagerInvoice : BaseEntity
 {
     public Guid ManagerUserId { get; set; }
@@ -776,6 +934,38 @@ public sealed class MilestoneManagerPayment : BaseEntity
     public string Provider { get; set; } = "Local/Stripe";
     public string ProviderReference { get; set; } = string.Empty;
     public string Status { get; set; } = "CAPTURED";
+    public string? SavedPaymentMethodReference { get; set; }
+    public decimal RefundedAmount { get; set; }
+    public string? RefundReason { get; set; }
+    public DateTimeOffset? RefundedAt { get; set; }
+    public string ReconciliationStatus { get; set; } = "PENDING";
+    public string? ReconciliationReference { get; set; }
+    public int AttemptNumber { get; set; } = 1;
+}
+
+public sealed class MilestoneManagerPaymentMethod : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public string Provider { get; set; } = "Local/Stripe";
+    public string ProviderReference { get; set; } = string.Empty;
+    public string Brand { get; set; } = "card";
+    public string Last4 { get; set; } = string.Empty;
+    public int ExpMonth { get; set; }
+    public int ExpYear { get; set; }
+    public bool IsDefault { get; set; }
+}
+
+public sealed class MilestoneManagerPaymentAttempt : BaseEntity
+{
+    public Guid PaymentId { get; set; }
+    public Guid InvoiceId { get; set; }
+    public Guid ManagerUserId { get; set; }
+    public string Status { get; set; } = "PENDING";
+    public string? FailureReason { get; set; }
+    public string? ProviderReference { get; set; }
+    public int AttemptNumber { get; set; }
+    public string? IdempotencyKey { get; set; }
 }
 
 public sealed class MilestoneManagerLedgerEntry : BaseEntity
@@ -804,6 +994,49 @@ public sealed class MilestoneManagerUtilityCharge : BaseEntity
     public string Status { get; set; } = "ALLOCATED";
 }
 
+public sealed class MilestoneManagerMeterReading : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string UtilityType { get; set; } = string.Empty;
+    public string BillingPeriod { get; set; } = string.Empty;
+    public decimal PreviousReading { get; set; }
+    public decimal CurrentReading { get; set; }
+    public decimal Usage { get; set; }
+    public string? PhotoObjectKey { get; set; }
+    public string? BillObjectKey { get; set; }
+    public string ReadingHash { get; set; } = string.Empty;
+    public bool IsAnomaly { get; set; }
+    public string Status { get; set; } = "RECORDED";
+}
+
+public sealed class MilestoneManagerUtilitySchedule : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string UtilityType { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public int DayOfMonth { get; set; } = 1;
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset? LastRunAt { get; set; }
+}
+
+public sealed class MilestoneManagerUtilityDispute : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid UtilityChargeId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? EvidenceObjectKey { get; set; }
+    public string Status { get; set; } = "OPEN";
+    public string? Decision { get; set; }
+    public decimal AdjustmentAmount { get; set; }
+    public Guid? DecidedByUserId { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+}
+
 public sealed class MilestoneManagerVendor : BaseEntity
 {
     public Guid ManagerUserId { get; set; }
@@ -813,6 +1046,26 @@ public sealed class MilestoneManagerVendor : BaseEntity
     public string VerificationStatus { get; set; } = "PENDING";
     public bool IsActive { get; set; } = true;
     public string Notes { get; set; } = string.Empty;
+    public string ServiceAreasJson { get; set; } = "[]";
+    public string AvailabilityJson { get; set; } = "{}";
+    public decimal? Rate { get; set; }
+    public decimal Rating { get; set; }
+    public bool IsPreferred { get; set; }
+    public bool IsSuspended { get; set; }
+    public int CompletedJobCount { get; set; }
+    public decimal SpendTotal { get; set; }
+}
+
+public sealed class MilestoneManagerVendorDocument : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid VendorId { get; set; }
+    public string DocumentType { get; set; } = "LICENSE";
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/pdf";
+    public string StorageKey { get; set; } = string.Empty;
+    public DateOnly? ExpiresOn { get; set; }
+    public string Status { get; set; } = "ACTIVE";
 }
 
 public sealed class MilestoneManagerMaintenance : BaseEntity
@@ -829,6 +1082,27 @@ public sealed class MilestoneManagerMaintenance : BaseEntity
     public DateTimeOffset? ScheduledAt { get; set; }
     public decimal Cost { get; set; }
     public string Notes { get; set; } = string.Empty;
+    public DateTimeOffset? SlaDueAt { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+}
+
+public sealed class MilestoneManagerMaintenanceActivity : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid MaintenanceId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneManagerMaintenanceAttachment : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid MaintenanceId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public string StorageKey { get; set; } = string.Empty;
+    public string Status { get; set; } = "UPLOADED";
 }
 
 public sealed class MilestoneManagerNotice : BaseEntity
@@ -842,6 +1116,24 @@ public sealed class MilestoneManagerNotice : BaseEntity
     public DateTimeOffset? ExpiresAt { get; set; }
     public bool IsPinned { get; set; }
     public bool IsArchived { get; set; }
+    public string Category { get; set; } = "GENERAL";
+    public string AudienceRolesJson { get; set; } = "[]";
+    public string AudienceOwnerIdsJson { get; set; } = "[]";
+    public DateTimeOffset? AcknowledgementDueAt { get; set; }
+}
+
+public sealed class MilestoneManagerNoticeComment : BaseEntity
+{
+    public Guid NoticeId { get; set; }
+    public Guid AuthorUserId { get; set; }
+    public string Body { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneManagerNoticeAcknowledgement : BaseEntity
+{
+    public Guid NoticeId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public DateTimeOffset AcknowledgedAt { get; set; }
 }
 
 public sealed class MilestoneManagerProposal : BaseEntity
@@ -856,6 +1148,25 @@ public sealed class MilestoneManagerProposal : BaseEntity
     public bool IsAnonymous { get; set; }
     public int? Quorum { get; set; }
     public string ResultJson { get; set; } = "{}";
+    public DateTimeOffset? ClosedAt { get; set; }
+    public string? ResultProofHash { get; set; }
+}
+
+public sealed class MilestoneManagerProposalAttachment : BaseEntity
+{
+    public Guid ProposalId { get; set; }
+    public Guid ManagerUserId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/pdf";
+    public string StorageKey { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneManagerProposalDiscussion : BaseEntity
+{
+    public Guid ProposalId { get; set; }
+    public Guid AuthorUserId { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public bool IsModerated { get; set; }
 }
 
 public sealed class MilestoneManagerEligibleVoter : BaseEntity
@@ -898,6 +1209,27 @@ public sealed class MilestoneManagerDocument : BaseEntity
     public string StorageKey { get; set; } = string.Empty;
     public string AccessScope { get; set; } = "OWNER";
     public bool IsArchived { get; set; }
+    public DateOnly? ExpiresOn { get; set; }
+    public int CurrentVersion { get; set; } = 1;
+}
+
+public sealed class MilestoneManagerDocumentVersion : BaseEntity
+{
+    public Guid DocumentId { get; set; }
+    public Guid ManagerUserId { get; set; }
+    public int Version { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/pdf";
+    public long SizeBytes { get; set; }
+    public string StorageKey { get; set; } = string.Empty;
+    public new Guid CreatedByUserId { get; set; }
+}
+
+public sealed class MilestoneManagerDocumentAccessEvent : BaseEntity
+{
+    public Guid DocumentId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string Action { get; set; } = "VIEW";
 }
 
 public sealed class MilestoneManagerGateMessage : BaseEntity
@@ -910,6 +1242,17 @@ public sealed class MilestoneManagerGateMessage : BaseEntity
     public string VisitorType { get; set; } = "VISITOR";
     public DateTimeOffset ValidFrom { get; set; }
     public DateTimeOffset ValidUntil { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneManagerGateDeliveryAttempt : BaseEntity
+{
+    public Guid GateMessageId { get; set; }
+    public string Recipient { get; set; } = string.Empty;
+    public string Status { get; set; } = "QUEUED";
+    public string? ProviderReference { get; set; }
+    public int AttemptNumber { get; set; }
+    public string? FailureReason { get; set; }
 }
 
 public sealed class MilestoneManagerQrAccess : BaseEntity
@@ -922,6 +1265,7 @@ public sealed class MilestoneManagerQrAccess : BaseEntity
     public DateTimeOffset ValidFrom { get; set; }
     public DateTimeOffset ValidUntil { get; set; }
     public bool IsRevoked { get; set; }
+    public string? RevokeReason { get; set; }
     public DateTimeOffset? LastValidatedAt { get; set; }
     public int ValidationCount { get; set; }
 }
@@ -933,4 +1277,160 @@ public sealed class MilestoneManagerQrScan : BaseEntity
     public Guid? PropertyId { get; set; }
     public string Result { get; set; } = string.Empty;
     public DateTimeOffset ScannedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public sealed class MilestoneManagerSubscriptionEvent : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string FromTier { get; set; } = string.Empty;
+    public string ToTier { get; set; } = string.Empty;
+    public string Status { get; set; } = "COMPLETED";
+    public string? Reason { get; set; }
+    public DateTimeOffset EffectiveAt { get; set; }
+}
+
+public sealed class MilestoneManagerInvitationEvent : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string? ProviderReference { get; set; }
+}
+
+public sealed class MilestoneManagerOwnerVerification : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public string Requirement { get; set; } = string.Empty;
+    public string Status { get; set; } = "PENDING";
+    public string? Reason { get; set; }
+    public string? DocumentKey { get; set; }
+    public Guid ActorUserId { get; set; }
+}
+
+public sealed class MilestoneManagerDashboardPreference : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public string KpiOrderJson { get; set; } = "[]";
+    public string VisibleKpisJson { get; set; } = "[]";
+    public string SavedFiltersJson { get; set; } = "{}";
+    public string SavedViewsJson { get; set; } = "[]";
+}
+
+public sealed class MilestoneManagementAgreement : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid? PropertyId { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public string FeeRuleJson { get; set; } = "{}";
+    public decimal MaintenanceApprovalLimit { get; set; }
+    public decimal ExpenseApprovalLimit { get; set; }
+    public string? SignedDocumentKey { get; set; }
+    public string Status { get; set; } = "ACTIVE";
+    public int Version { get; set; } = 1;
+}
+
+public sealed class MilestoneManagementFeeRule : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid? PropertyId { get; set; }
+    public string RuleType { get; set; } = "PERCENTAGE";
+    public decimal Percentage { get; set; }
+    public decimal FixedAmount { get; set; }
+    public decimal CleaningMarkup { get; set; }
+    public decimal MaintenanceMarkup { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+}
+
+public sealed class MilestoneOwnerPayout : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public DateOnly PeriodFrom { get; set; }
+    public DateOnly PeriodTo { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = "PAYABLE";
+    public string? ProviderReference { get; set; }
+    public string? FailureReason { get; set; }
+}
+
+public sealed class MilestoneOwnerApproval : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid? PropertyId { get; set; }
+    public string ApprovalType { get; set; } = "MAINTENANCE";
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal Limit { get; set; }
+    public string Status { get; set; } = "PENDING";
+    public string? DecisionReason { get; set; }
+    public Guid? DecidedByUserId { get; set; }
+}
+
+public sealed class MilestoneManagerStaff : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid StaffUserId { get; set; }
+    public string Role { get; set; } = "ASSISTANT";
+    public string PropertyScopeJson { get; set; } = "[]";
+    public string OwnerScopeJson { get; set; } = "[]";
+    public bool CanManageFinance { get; set; }
+    public decimal ApprovalLimit { get; set; }
+    public string Status { get; set; } = "INVITED";
+}
+
+public sealed class MilestoneManagerCalendarEvent : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid? PropertyId { get; set; }
+    public Guid? OwnerUserId { get; set; }
+    public string EventType { get; set; } = "BOOKING";
+    public string Title { get; set; } = string.Empty;
+    public DateTimeOffset StartsAt { get; set; }
+    public DateTimeOffset EndsAt { get; set; }
+    public string Status { get; set; } = "CONFIRMED";
+    public string SourceType { get; set; } = "MANUAL";
+    public Guid? SourceId { get; set; }
+}
+
+public sealed class MilestoneWorkOrder : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public Guid? VendorId { get; set; }
+    public string WorkOrderNumber { get; set; } = string.Empty;
+    public string Scope { get; set; } = string.Empty;
+    public string Status { get; set; } = "REQUEST";
+    public decimal? QuoteAmount { get; set; }
+    public decimal? ApprovedAmount { get; set; }
+    public decimal LaborAmount { get; set; }
+    public decimal PartsAmount { get; set; }
+    public DateTimeOffset? SlaDueAt { get; set; }
+    public DateTimeOffset? ScheduledAt { get; set; }
+}
+
+public sealed class MilestoneCleaningTask : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string Status { get; set; } = "OPEN";
+    public DateTimeOffset DueAt { get; set; }
+    public Guid? AssignedStaffUserId { get; set; }
+    public string Notes { get; set; } = string.Empty;
+}
+
+public sealed class MilestoneInspection : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string Status { get; set; } = "INSPECTION_REQUIRED";
+    public string ChecklistJson { get; set; } = "[]";
+    public string? IssuesJson { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 }

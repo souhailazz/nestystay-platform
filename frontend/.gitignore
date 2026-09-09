@@ -4,3 +4,13 @@ dist/
 vite.config.js
 vite.config.d.ts
 .DS_Store
+.env
+.env.local
+.env.*
+!.env.example
+!.env.production.example
+coverage/
+playwright-report/
+*.log
+qa-*.png
+preview.png

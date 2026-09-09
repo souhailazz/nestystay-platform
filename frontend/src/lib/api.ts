@@ -161,8 +161,29 @@ export type PropertyListing = {
   cancellationPolicy: string;
   highlights: string[];
   isArchived?: boolean;
+  isDraft?: boolean;
   minimumNights?: number;
   imageUrl?: string;
+};
+
+export type PropertyRevision = {
+  id: string;
+  propertyId: string;
+  version: number;
+  snapshotJson: string;
+  createdAt: string;
+  createdByUserId?: string | null;
+};
+
+export type CalendarFeed = {
+  id: string;
+  propertyId: string;
+  feedUrl: string;
+  status: string;
+  lastSyncAttemptAt?: string | null;
+  lastSyncAt?: string | null;
+  lastError?: string | null;
+  blockCount: number;
 };
 
 export type PropertyPhotoUpload = {
@@ -475,6 +496,9 @@ export type WellnessOfficer = {
   createdAt: string;
   updatedAt: string;
   adminReviewSummary?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  serviceRadiusKm?: number | null;
 };
 
 export type OnboardOfficerRequest = {
@@ -485,6 +509,9 @@ export type OnboardOfficerRequest = {
   isActiveOffDuty: boolean;
   isRetired: boolean;
   verificationMetadata?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  serviceRadiusKm?: number | null;
 };
 
 export type WellnessQuote = {
@@ -536,6 +563,7 @@ export type WellnessVisit = {
   timeline: string[];
   createdAt: string;
   updatedAt: string;
+  scheduledTimeZone?: string;
 };
 
 export type WellnessReportPhotoUpload = {
@@ -763,9 +791,21 @@ export type DirectoryProvider = {
   status?: string;
   isBrickAndMortar?: boolean;
   policeBadgeNumber?: string | null;
+  services?: string[] | null;
+  openingHours?: string | null;
+  emergencyAvailable?: boolean;
+  serviceRadiusKm?: number | null;
+  weeklyHoursJson?: string;
+  holidayClosuresJson?: string;
+  promotionsJson?: string;
+  accessibilityInfo?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type DirectoryQuote = { id: string; providerId: string; providerSlug: string; requesterUserId: string; scope: string; preferredAt?: string | null; budget?: number | null; responseAmount?: number | null; status: string; message?: string | null; createdAt: string; expiresAt?: string | null; respondedAt?: string | null };
+export type DirectoryReview = { id: string; providerId: string; providerSlug: string; reviewerUserId: string; rating: number; body: string; status: string; providerResponse?: string | null; createdAt: string; respondedAt?: string | null };
+export type DirectoryProviderInsights = { providerSlug: string; quoteRequests: number; acceptedQuotes: number; reviews: number; averageRating: number; responses: number; quotes: DirectoryQuote[]; reviewsList: DirectoryReview[] };
 
 export type DirectoryProviderDocument = {
   id: string;
@@ -796,6 +836,29 @@ export type WellnessReport = {
   notes: string;
   photos: string[];
 };
+
+export type WellnessOfficerDocument = {
+  id: string;
+  officerId: string;
+  documentType: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  scanStatus: string;
+  expiresOn?: string | null;
+  reviewStatus: string;
+  reviewReason?: string | null;
+  createdAt: string;
+  uploadedAt?: string | null;
+};
+export type WellnessOfficerDocumentUpload = WellnessOfficerDocument & { objectKey: string; uploadUrl: string; expiresAt: string; sha256Hash?: string | null };
+export type WellnessReportTemplate = { id: string; name: string; version: number; definitionJson: string; isActive: boolean; createdAt: string; createdByUserId: string };
+export type WellnessReportComment = { id: string; reportId: string; authorUserId: string; body: string; createdAt: string };
+export type WellnessReportCollaboration = { reportId: string; comments: WellnessReportComment[]; acknowledgement?: { reportId: string; acknowledgedByUserId: string; acknowledgedAt: string } | null; followUpTasks: WellnessFollowUpTask[] };
+export type WellnessFollowUpTask = { id: string; reportId: string; visitId: string; propertyId: string; title: string; description: string; priority: string; assigneeUserId?: string | null; dueAt?: string | null; status: string; createdAt: string };
+export type WellnessPayoutStatement = { officerUserId: string; from: string; to: string; grossTotal: number; platformFeeTotal: number; officerTotal: number; rows: Array<{ payoutId: string; visitId: string; eligibleAt?: string | null; grossAmount: number; platformFee: number; officerAmount: number; currency: string; status: string; paidAt?: string | null; providerReference?: string | null }>; format: string; downloadFileName?: string | null; downloadBase64?: string | null };
+export type WellnessPayoutDispute = { id: string; payoutId: string; officerId: string; reason: string; evidenceJson?: string | null; status: string; decision?: string | null; decisionNotes?: string | null; decidedByUserId?: string | null; createdAt: string; resolvedAt?: string | null };
 
 export type WellnessSubscription = {
   id: string;
@@ -834,8 +897,19 @@ export type QrAccess = {
   validationCount: number;
   lastValidatedAt?: string | null;
   status: string;
+  revokeReason?: string | null;
   token?: string | null;
   validationUrl?: string | null;
+};
+
+export type QrHistoryEvent = {
+  id: string;
+  qrAccessCodeId: string;
+  eventType: string;
+  status: string;
+  occurredAt: string;
+  reason?: string | null;
+  deviceMetadata?: string | null;
 };
 
 export type QrValidationResult = {
@@ -1059,6 +1133,17 @@ export type AuthFlowResult = {
   expiresAt: string;
   lastSentAt?: string | null;
   attemptsRemaining: number;
+  message?: string | null;
+};
+
+export type PasswordlessLoginResponse = {
+  userId: string;
+  email: string;
+  displayName: string;
+  accessToken?: string | null;
+  expiresAt: string;
+  roles: UserRole[];
+  permissions?: AdminPermission[] | null;
 };
 
 export type SocialAuthConfig = {
@@ -1111,8 +1196,8 @@ export type PropertyManagerInvoiceLine = { id: string; description: string; quan
 export type PropertyManagerInvoice = { id: string; ownerUserId: string; propertyId?: string | null; invoiceNumber: string; issueDate: string; dueDate: string; subtotal: number; tax: number; total: number; amountPaid: number; balance: number; currency: string; status: string; lines: PropertyManagerInvoiceLine[] };
 export type PropertyManagerUtility = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number; amount: number; invoiceId?: string | null; status: string };
 export type PropertyManagerMaintenance = { id: string; ownerUserId: string; propertyId: string; vendorId?: string | null; title: string; description: string; category: string; urgency: string; status: string; scheduledAt?: string | null; cost: number; notes: string };
-export type PropertyManagerVendor = { id: string; name: string; category: string; contact: string; verificationStatus: string; isActive: boolean; notes: string };
-export type PropertyManagerNotice = { id: string; communityId?: string | null; targetOwnerUserId?: string | null; title: string; body: string; publishAt: string; expiresAt?: string | null; isPinned: boolean; isArchived: boolean };
+export type PropertyManagerVendor = { id: string; name: string; category: string; contact: string; verificationStatus: string; isActive: boolean; notes: string; serviceAreas?: string[] | null; rate?: number | null; rating?: number; isPreferred?: boolean; isSuspended?: boolean; completedJobCount?: number; spendTotal?: number };
+export type PropertyManagerNotice = { id: string; communityId?: string | null; targetOwnerUserId?: string | null; title: string; body: string; publishAt: string; expiresAt?: string | null; isPinned: boolean; isArchived: boolean; category?: string; audienceRoles?: string[]; audienceOwnerIds?: string[]; acknowledgementDueAt?: string | null };
 export type PropertyManagerProposal = { id: string; communityId?: string | null; title: string; description: string; opensAt: string; closesAt: string; status: string; isAnonymous: boolean; quorum?: number | null; eligibleVoters: number; votesCast: number; results: Record<string, number> };
 export type PropertyManagerDocument = { id: string; ownerUserId?: string | null; propertyId?: string | null; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; accessScope: string; isArchived: boolean; createdAt: string };
 export type PropertyManagerDocumentDownload = { id: string; fileName: string; contentType: string; sizeBytes: number; url: string; expiresAt: string };
@@ -1121,7 +1206,14 @@ export type PropertyManagerDashboard = { manager: { managerUserId: string; busin
 export type PropertyManagerStatement = { ownerUserId: string; from: string; to: string; openingBalance: number; entries: { date: string; type: string; description: string; amount: number; invoiceId?: string | null }[]; closingBalance: number; invoices: PropertyManagerInvoice[]; payments: { id: string; invoiceId: string; amount: number; provider: string; providerReference: string; status: string; createdAt: string }[] };
 export type PropertyManagerOwnerPortal = { ownerUserId: string; properties: PropertyManagerProperty[]; invoices: PropertyManagerInvoice[]; statement: PropertyManagerStatement; utilities: PropertyManagerUtility[]; maintenance: PropertyManagerMaintenance[]; notices: PropertyManagerNotice[]; proposals: PropertyManagerProposal[]; documents: PropertyManagerDocument[] };
 export type PropertyManagerQr = { id: string; token: string; subjectType: string; propertyId?: string | null; validFrom: string; validUntil: string };
+export type PropertyManagerQrAccessRecord = { id: string; subjectType: string; propertyId?: string | null; validFrom: string; validUntil: string; isRevoked: boolean; validationCount: number; lastValidatedAt?: string | null; status: string };
+export type PropertyManagerQrScan = { id: string; qrAccessId: string; gateGuardUserId?: string | null; propertyId?: string | null; result: string; scannedAt: string };
 export type PropertyManagerQrValidation = { result: string; status: string; propertyId?: string | null; subjectType: string; validUntil?: string | null; qrId?: string | null; message?: string | null };
+export type PropertyManagerPaymentOperation = { id: string; invoiceId: string; ownerUserId: string; amount: number; refundedAmount: number; provider: string; providerReference: string; status: string; reconciliationStatus: string; reconciliationReference?: string | null; refundReason?: string | null; createdAt: string };
+export type PropertyManagerMeterReading = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; previousReading: number; currentReading: number; usage: number; isAnomaly: boolean; status: string; createdAt: string };
+export type PropertyManagerReport = { from: string; to: string; propertiesManaged: number; owners: number; openMaintenance: number; openWorkOrders: number; grossInvoiceRevenue: number; paymentRevenue: number; maintenanceSpend: number; utilityRevenue: number; outstandingBalance: number; pmFeeRevenue: number; invoiceIds: string[]; maintenanceIds: string[] };
+export type PropertyManagerWorkOrder = { id: string; propertyId: string; ownerUserId: string; vendorId?: string | null; workOrderNumber: string; scope: string; status: string; quoteAmount?: number | null; approvedAmount?: number | null; laborAmount: number; partsAmount: number; slaDueAt?: string | null; scheduledAt?: string | null };
+export type PropertyManagerCalendarEvent = { id: string; propertyId?: string | null; ownerUserId?: string | null; eventType: string; title: string; startsAt: string; endsAt: string; status: string; sourceType: string };
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
@@ -1324,13 +1416,13 @@ export const api = {
   logout: (token?: string) =>
     request<{ loggedOut: boolean; invalidatedAt: string }>("/auth/logout", { method: "POST", token }),
   getProfile: (token?: string) => request<UserProfile>("/auth/profile", { token }),
-  updateProfile: (token: string, body: { displayName: string; phone?: string | null }) =>
+  updateProfile: (token: string | undefined, body: { displayName: string; phone?: string | null }) =>
     request<UserProfile>("/auth/profile", { method: "PATCH", token, body }),
-  prepareProfilePhotoUpload: (token: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
+  prepareProfilePhotoUpload: (token: string | undefined, body: { fileName: string; contentType: string; sizeBytes: number }) =>
     request<ProfilePhotoUpload>("/auth/profile/photo/uploads", { method: "POST", token, body }),
-  uploadProfilePhotoContent: (token: string, photoId: string, file: File, options?: UploadOptions) =>
+  uploadProfilePhotoContent: (token: string | undefined, photoId: string, file: File, options?: UploadOptions) =>
     requestUpload<ProfilePhotoUpload>(`/auth/profile/photo/uploads/${photoId}/content`, token, file, options),
-  getProfilePhotoDownload: (token: string, photoId: string) =>
+  getProfilePhotoDownload: (token: string | undefined, photoId: string) =>
     request<ProfilePhotoDownload>(`/auth/profile/photo/${photoId}/download`, { token }),
   requestPasswordReset: (email: string) =>
     request<PasswordResetRequestResponse>("/auth/password-reset/request", {
@@ -1339,6 +1431,10 @@ export const api = {
     }),
   completePasswordReset: (body: { requestId: string; token: string; newPassword: string; confirmPassword: string }) =>
     request<CompletePasswordResetResponse>("/auth/password-reset/complete", { method: "POST", body }),
+  requestPasswordlessLogin: (email: string) =>
+    request<AuthFlowResult>("/spec/auth/passwordless/request", { method: "POST", body: { email }, headers: { "X-Session-Mode": "cookie" } }),
+  completePasswordlessLogin: (body: { flowId: string; token?: string; code?: string }) =>
+    request<PasswordlessLoginResponse>("/spec/auth/passwordless/complete", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   getDevelopmentPasswordResetToken: (requestId: string) =>
     request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
   getProperties: () => request<PropertyListing[]>("/properties"),
@@ -1356,6 +1452,20 @@ export const api = {
     request<PropertyListing>(`/properties/${id}/archive`, { method: "POST", token }),
   restoreProperty: (id: string, token: string) =>
     request<PropertyListing>(`/properties/${id}/restore`, { method: "POST", token }),
+  duplicateProperty: (id: string, token: string, title?: string) =>
+    request<PropertyListing>(`/properties/${id}/duplicate`, { method: "POST", token, body: { title } }),
+  bulkArchiveProperties: (propertyIds: string[], token: string, isArchived = true) =>
+    request<PropertyListing[]>("/properties/bulk/archive", { method: "POST", token, body: { propertyIds, isArchived } }),
+  publishProperty: (id: string, token: string) =>
+    request<PropertyListing>(`/properties/${id}/publish`, { method: "POST", token }),
+  getPropertyRevisions: (id: string, token: string) =>
+    request<PropertyRevision[]>(`/properties/${id}/revisions`, { token }),
+  restorePropertyRevision: (id: string, revisionId: string, token: string) =>
+    request<PropertyListing>(`/properties/${id}/revisions/${revisionId}/restore`, { method: "POST", token }),
+  getCalendarFeeds: (propertyId: string, token: string) => request<CalendarFeed[]>(`/properties/${propertyId}/calendar/feeds`, { token }),
+  connectCalendarFeed: (propertyId: string, token: string, feedUrl: string) => request<CalendarFeed>(`/properties/${propertyId}/calendar/feeds`, { method: "POST", token, body: { feedUrl } }),
+  syncCalendarFeed: (propertyId: string, feedId: string, token: string, icsContent?: string) => request<CalendarFeed>(`/properties/${propertyId}/calendar/feeds/${feedId}/sync`, { method: "POST", token, body: { icsContent } }),
+  exportCalendarUrl: (propertyId: string) => `${API_BASE_URL}/properties/${propertyId}/calendar/export.ics`,
   deleteProperty: (id: string, token: string) =>
     request<void>(`/properties/${id}`, { method: "DELETE", token }),
   getBookings: (token?: string) =>
@@ -1452,6 +1562,14 @@ export const api = {
     request<WellnessOfficer>("/wellness/officers", { method: "POST", body }),
   getWellnessOfficers: (token: string, status?: string) =>
     request<WellnessOfficer[]>(withQuery("/wellness/officers", { status }), { token }),
+  getWellnessOfficerDocuments: (officerId: string, token?: string) =>
+    request<WellnessOfficerDocument[]>(`/wellness/officers/${officerId}/documents`, { token }),
+  prepareWellnessOfficerDocumentUpload: (officerId: string, body: { documentType: string; fileName: string; contentType: string; sizeBytes: number; expiresOn?: string | null }, token?: string) =>
+    request<WellnessOfficerDocumentUpload>(`/wellness/officers/${officerId}/documents/uploads`, { method: "POST", body, token }),
+  uploadWellnessOfficerDocumentContent: (officerId: string, documentId: string, file: File, token?: string, options?: UploadOptions) =>
+    requestUpload<WellnessOfficerDocumentUpload>(`/wellness/officers/${officerId}/documents/${documentId}/content`, token, file, options),
+  reviewWellnessOfficerDocument: (documentId: string, body: { decision: string; reason?: string | null }, token: string) =>
+    request<WellnessOfficerDocument>(`/wellness/officers/documents/${documentId}/review`, { method: "POST", body, token }),
   getAvailableWellnessOfficers: (token: string, parish: string, scheduledAt: string) =>
     request<WellnessOfficer[]>(withQuery("/wellness/officers/available", { parish, scheduledAt }), { token }),
   approveWellnessOfficer: (officerId: string, token: string, reason?: string) =>
@@ -1483,6 +1601,14 @@ export const api = {
   getWellnessVisits: (params: { hostUserId?: string; propertyId?: string; officerId?: string } = {}, token?: string) =>
     request<WellnessVisit[]>("/wellness/visits" + withQuery("", params), { token }),
   getWellnessReport: (visitId: string, token: string) => request<WellnessReport>(`/wellness/visits/${visitId}/report`, { token }),
+  getWellnessReportCollaboration: (reportId: string, token?: string) => request<WellnessReportCollaboration>(`/wellness/reports/${reportId}/collaboration`, { token }),
+  downloadWellnessReportPdf: (reportId: string, token?: string) => requestFile(`/wellness/reports/${reportId}/pdf`, token),
+  addWellnessReportComment: (reportId: string, body: { body: string }, token?: string) => request<WellnessReportComment>(`/wellness/reports/${reportId}/comments`, { method: "POST", body, token }),
+  acknowledgeWellnessReport: (reportId: string, token?: string) => request<{ reportId: string; acknowledgedByUserId: string; acknowledgedAt: string }>(`/wellness/reports/${reportId}/acknowledge`, { method: "POST", token }),
+  createWellnessFollowUpTask: (reportId: string, body: { title: string; description: string; priority?: string; assigneeUserId?: string | null; dueAt?: string | null }, token?: string) => request<WellnessFollowUpTask>(`/wellness/reports/${reportId}/follow-up`, { method: "POST", body, token }),
+  getWellnessFollowUpTasks: (token?: string) => request<WellnessFollowUpTask[]>("/wellness/follow-up-tasks", { token }),
+  getWellnessReportTemplates: (token?: string, activeOnly = true) => request<WellnessReportTemplate[]>(withQuery("/wellness/report-templates", { activeOnly: String(activeOnly) }), { token }),
+  saveWellnessReportTemplate: (body: { name: string; definitionJson: string; isActive?: boolean }, token: string) => request<WellnessReportTemplate>("/wellness/report-templates", { method: "POST", body, token }),
   assignWellnessOfficer: (visitId: string, officerId: string, token: string) =>
     request<WellnessVisit>(`/wellness/visits/${visitId}/assign`, {
       method: "POST",
@@ -1494,6 +1620,12 @@ export const api = {
       method: "POST",
       token,
       body: { reason },
+    }),
+  rescheduleWellnessVisit: (visitId: string, token: string, scheduledAt: string, timeZone = "America/Jamaica", reason?: string) =>
+    request<WellnessVisit>(`/wellness/visits/${visitId}/reschedule`, {
+      method: "POST",
+      token,
+      body: { scheduledAt, timeZone, reason },
     }),
   prepareWellnessReportPhotoUpload: (visitId: string, tokenOrBody: string | { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }, bodyMaybe?: { officerBadgeNumber: string; fileName: string; contentType: string; sizeBytes: number }) => {
     const token = typeof tokenOrBody === "string" ? tokenOrBody : undefined;
@@ -1533,6 +1665,9 @@ export const api = {
     }),
   getWellnessPayouts: (token: string, status?: string) =>
     request<WellnessPayout[]>(withQuery("/wellness/payouts", { status }), { token }),
+  getWellnessPayoutStatement: (token?: string, format = "json", from?: string, to?: string) => request<WellnessPayoutStatement>(withQuery("/wellness/payouts/statement", { format, from, to }), { token }),
+  createWellnessPayoutDispute: (payoutId: string, body: { reason: string; evidenceJson?: string | null }, token?: string) => request<WellnessPayoutDispute>(`/wellness/payouts/${payoutId}/disputes`, { method: "POST", body, token }),
+  resolveWellnessPayoutDispute: (disputeId: string, body: { decision: string; notes?: string | null }, token: string) => request<WellnessPayoutDispute>(`/wellness/payout-disputes/${disputeId}/resolve`, { method: "POST", body, token }),
   getWellnessAdminDashboard: (token: string) =>
     request<WellnessAdminDashboard>("/wellness/admin/dashboard", { token }),
   seedSpecCompletion: () => request<unknown>("/spec/seed", { method: "POST" }),
@@ -1592,8 +1727,12 @@ export const api = {
   getM4DirectoryModerationQueue: (token: string, params: { kind?: string; status?: string; query?: string } = {}) =>
     request<DirectoryProvider[]>(withQuery("/directories/providers/moderation", params), { token }),
   getM4DirectoryProvider: (slug: string, token?: string) => request<DirectoryProvider>(`/directories/providers/${slug}`, { token }),
+  recordDirectoryRecentView: (providerId: string, token: string) => request<void>(`/directories/recent-views/${providerId}`, { method: "POST", token }),
+  getDirectoryRecentViews: (token: string) => request<DirectoryProvider[]>("/directories/recent-views", { token }),
+  removeDirectoryRecentView: (providerId: string, token: string) => request<void>(`/directories/recent-views/${providerId}`, { method: "DELETE", token }),
+  clearDirectoryRecentViews: (token: string) => request<void>("/directories/recent-views", { method: "DELETE", token }),
   getM4DirectoryMine: (token: string) => request<DirectoryProvider[]>("/directories/providers/mine", { token }),
-  saveM4DirectoryProvider: (token: string, body: { slug?: string; kind: string; category: string; name: string; parish: string; badgeLevel?: string; description: string; availabilitySummary: string; contactMode?: string; isBrickAndMortar?: boolean; policeBadgeNumber?: string | null; isActive?: boolean }) =>
+  saveM4DirectoryProvider: (token: string, body: { slug?: string; kind: string; category: string; name: string; parish: string; badgeLevel?: string; description: string; availabilitySummary: string; contactMode?: string; isBrickAndMortar?: boolean; policeBadgeNumber?: string | null; isActive?: boolean; services?: string[]; openingHours?: string; emergencyAvailable?: boolean; serviceRadiusKm?: number }) =>
     request<DirectoryProvider>("/directories/providers", { method: "POST", token, body }),
   getM4DirectoryProviderDocuments: (providerId: string, token: string) =>
     request<DirectoryProviderDocument[]>(`/spec/directories/providers/${providerId}/documents`, { token }),
@@ -1605,10 +1744,25 @@ export const api = {
     request<{ id: string; fileName: string; contentType: string; sizeBytes: number; url: string; expiresAt: string }>(`/spec/directories/providers/${providerId}/documents/${documentId}/download`, { token }),
   moderateM4DirectoryProvider: (slug: string, token: string, status: string, reason?: string) =>
     request<DirectoryProvider>(`/directories/providers/${slug}/moderate`, { method: "POST", token, body: { status, reason } }),
+  createDirectoryQuote: (slug: string, token: string, body: { scope: string; preferredAt?: string; budget?: number; expiresAt?: string }) =>
+    request<DirectoryQuote>(`/directories/providers/${slug}/quotes`, { method: "POST", token, body }),
+  getDirectoryQuotes: (token: string) => request<DirectoryQuote[]>("/directories/quotes", { token }),
+  respondDirectoryQuote: (quoteId: string, token: string, body: { status: string; amount?: number; message?: string }) =>
+    request<DirectoryQuote>(`/directories/quotes/${quoteId}/respond`, { method: "POST", token, body }),
+  getDirectoryReviews: (slug: string) => request<DirectoryReview[]>(`/directories/providers/${slug}/reviews`),
+  createDirectoryReview: (slug: string, token: string, body: { rating: number; body: string }) =>
+    request<DirectoryReview>(`/directories/providers/${slug}/reviews`, { method: "POST", token, body }),
+  respondDirectoryReview: (reviewId: string, token: string, response: string) =>
+    request<DirectoryReview>(`/directories/reviews/${reviewId}/respond`, { method: "POST", token, body: { response } }),
+  saveDirectoryBusinessDetails: (slug: string, token: string, body: { weeklyHoursJson: string; holidayClosuresJson?: string; promotionsJson?: string; accessibilityInfo?: string }) =>
+    request<DirectoryProvider>(`/directories/providers/${slug}/business-details`, { method: "PUT", token, body }),
+  getDirectoryProviderInsights: (slug: string, token: string) => request<DirectoryProviderInsights>(`/directories/providers/${slug}/insights`, { token }),
   issueBookingQr: (bookingId: string, token: string) =>
     request<QrIssueResult>(`/access/qr/bookings/${bookingId}`, { method: "POST", token }),
   getBookingQr: (qrId: string, token: string) => request<QrAccess>(`/access/qr/${qrId}`, { token }),
-  revokeBookingQr: (qrId: string, token: string) => request<QrAccess>(`/access/qr/${qrId}/revoke`, { method: "POST", token }),
+  listBookingQrs: (token: string) => request<QrAccess[]>("/access/qr", { token }),
+  getBookingQrHistory: (qrId: string, token: string) => request<QrHistoryEvent[]>(`/access/qr/${qrId}/history`, { token }),
+  revokeBookingQr: (qrId: string, token: string, reason?: string) => request<QrAccess>(`/access/qr/${qrId}/revoke`, { method: "POST", token, body: { reason } }),
   validateQr: (token: string, propertyId: string, deviceMetadata?: string) =>
     request<QrValidationResult>("/access/qr/validate", { method: "POST", body: { token, propertyId, deviceMetadata } }),
   getInbox: (userId: string, token: string) =>
@@ -1664,6 +1818,9 @@ export const api = {
   renewPropertyManagerSubscription: (token: string) => request<{ managerUserId: string; businessName: string; subscriptionTier: string; monthlyAmount: number; subscriptionStatus: string; nextBillingAt: string }>("/property-manager/subscription/renew", { method: "POST", token }),
   addPropertyManagerProperty: (token: string, body: { ownerUserId: string; title: string; unitNumber: string; address: string; communityId?: string }) => request<PropertyManagerProperty>("/property-manager/properties", { method: "POST", token, body }),
   createPropertyManagerInvoice: (token: string, body: { ownerUserId: string; propertyId?: string; dueDate: string; tax: number; lines: { description: string; quantity: number; unitAmount: number }[] }) => request<PropertyManagerInvoice>("/property-manager/invoices", { method: "POST", token, body }),
+  bulkIssuePropertyManagerInvoices: (token: string, invoiceIds: string[]) => request<PropertyManagerInvoice[]>("/property-manager/invoices/bulk-issue", { method: "POST", token, body: { invoiceIds } }),
+  markPropertyManagerInvoicesOverdue: (token: string) => request<PropertyManagerInvoice[]>("/property-manager/invoices/mark-overdue", { method: "POST", token }),
+  updatePropertyManagerInvoice: (token: string, invoiceId: string, body: { dueDate: string; tax: number; lines: { description: string; quantity: number; unitAmount: number }[] }) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}`, { method: "PUT", token, body }),
   getPropertyManagerInvoice: (token: string, invoiceId: string) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}`, { token }),
   payPropertyManagerInvoice: (token: string, invoiceId: string, body: { amount: number; idempotencyKey: string }) => request<PropertyManagerInvoice>(`/property-manager/invoices/${invoiceId}/payments`, { method: "POST", token, body }),
   getPropertyManagerStatement: (token: string, ownerUserId: string, from?: string, to?: string) => request<PropertyManagerStatement>(withQuery(`/property-manager/owners/${ownerUserId}/statement`, { from, to }), { token }),
@@ -1671,7 +1828,8 @@ export const api = {
   createPropertyManagerMaintenance: (token: string, body: { ownerUserId: string; propertyId: string; title: string; description: string; category: string; urgency: string }) => request<PropertyManagerMaintenance>("/property-manager/maintenance", { method: "POST", token, body }),
   updatePropertyManagerMaintenance: (token: string, id: string, body: { status: string; vendorId?: string; scheduledAt?: string; cost: number; notes: string }) => request<PropertyManagerMaintenance>(`/property-manager/maintenance/${id}`, { method: "PATCH", token, body }),
   createPropertyManagerVendor: (token: string, body: { name: string; category: string; contact: string; notes: string }) => request<PropertyManagerVendor>("/property-manager/vendors", { method: "POST", token, body }),
-  createPropertyManagerNotice: (token: string, body: { communityId?: string; targetOwnerUserId?: string; title: string; body: string; expiresAt?: string; isPinned: boolean }) => request<PropertyManagerNotice>("/property-manager/notices", { method: "POST", token, body }),
+  updatePropertyManagerVendor: (token: string, id: string, body: { contact?: string; notes?: string; serviceAreas?: string[]; availabilityJson?: string; rate?: number; rating?: number; isPreferred?: boolean; isSuspended?: boolean; isActive?: boolean }) => request<PropertyManagerVendor>(`/property-manager/vendors/${id}`, { method: "PATCH", token, body }),
+  createPropertyManagerNotice: (token: string, body: { communityId?: string; targetOwnerUserId?: string; title: string; body: string; expiresAt?: string; isPinned: boolean; publishAt?: string; category?: string; audienceRoles?: string[]; audienceOwnerIds?: string[]; acknowledgementDueAt?: string }) => request<PropertyManagerNotice>("/property-manager/notices", { method: "POST", token, body }),
   getPropertyManagerNotices: (token: string) => request<PropertyManagerNotice[]>("/property-manager/notices", { token }),
   createPropertyManagerProposal: (token: string, body: { communityId?: string; title: string; description: string; opensAt: string; closesAt: string; isAnonymous: boolean; quorum?: number }) => request<PropertyManagerProposal>("/property-manager/governance/proposals", { method: "POST", token, body }),
   votePropertyManagerProposal: (token: string, proposalId: string, body: { choice: string; proxyId?: string }) => request<PropertyManagerProposal>(`/property-manager/governance/proposals/${proposalId}/votes`, { method: "POST", token, body }),
@@ -1679,11 +1837,39 @@ export const api = {
   getPropertyManagerDocuments: (token: string) => request<PropertyManagerDocument[]>("/property-manager/documents", { token }),
   addPropertyManagerDocument: (token: string, body: { ownerUserId?: string; propertyId?: string; title: string; category: string; fileName: string; contentType: string; sizeBytes: number; contentBase64?: string }) => request<PropertyManagerDocument>("/property-manager/documents", { method: "POST", token, body }),
   getPropertyManagerDocumentDownload: (token: string, documentId: string) => request<PropertyManagerDocumentDownload>(`/property-manager/documents/${documentId}/download`, { token }),
+  addPropertyManagerDocumentVersion: (token: string, body: { documentId: string; fileName: string; contentType: string; sizeBytes: number; contentBase64: string }) => request<{ id: string; documentId: string; version: number; fileName: string; contentType: string; sizeBytes: number; createdByUserId: string; createdAt: string }>("/property-manager/documents/versions", { method: "POST", token, body }),
   createPropertyManagerGateMessage: (token: string, body: { communityId?: string; propertyId?: string; recipient: string; message: string; visitorType: string; validFrom: string; validUntil: string }) => request<PropertyManagerGateMessage>("/property-manager/gate/messages", { method: "POST", token, body }),
+  getPropertyManagerGateDelivery: (token: string, gateMessageId: string) => request<{ id: string; gateMessageId: string; recipient: string; status: string; providerReference?: string | null; attemptNumber: number; failureReason?: string | null; createdAt: string }[]>(`/property-manager/gate/messages/${gateMessageId}/delivery`, { token }),
+  retryPropertyManagerGateDelivery: (token: string, gateMessageId: string) => request<{ id: string; gateMessageId: string; recipient: string; status: string; providerReference?: string | null; attemptNumber: number; failureReason?: string | null; createdAt: string }>(`/property-manager/gate/messages/${gateMessageId}/delivery/retry`, { method: "POST", token }),
   issuePropertyManagerQr: (token: string, body: { ownerUserId?: string; propertyId?: string; subjectType: string; validFrom: string; validUntil: string }) => request<PropertyManagerQr>("/property-manager/qr", { method: "POST", token, body }),
+  listPropertyManagerQrs: (token: string) => request<PropertyManagerQrAccessRecord[]>("/property-manager/qr", { token }),
+  listPropertyManagerQrHistory: (token: string, qrId: string) => request<PropertyManagerQrScan[]>(`/property-manager/qr/${qrId}/history`, { token }),
   validatePropertyManagerQr: (body: { token: string; propertyId?: string }) => request<PropertyManagerQrValidation>("/property-manager/qr/validate", { method: "POST", body }),
-  revokePropertyManagerQr: (token: string, qrId: string) => request<PropertyManagerQrValidation>(`/property-manager/qr/${qrId}/revoke`, { method: "POST", token }),
+  revokePropertyManagerQr: (token: string, qrId: string, reason = "No longer needed") => request<PropertyManagerQrValidation>(`/property-manager/qr/${qrId}/revoke`, { method: "POST", token, body: { reason } }),
+  listPropertyManagerProxies: (token: string) => request<{ id: string; proposalId: string; ownerUserId: string; proxyUserId: string; status: string; validUntil: string; acceptedAt?: string | null }[]>("/property-manager/governance/proxies", { token }),
+  revokePropertyManagerProxy: (token: string, proxyId: string) => request<{ id: string; status: string }>(`/property-manager/governance/proxies/${proxyId}/revoke`, { method: "POST", token }),
   getOwnerPortal: (token: string) => request<PropertyManagerOwnerPortal>("/property-manager/owner/portal", { token }),
+  bulkAssignPropertyManagerProperties: (token: string, body: { propertyIds: string[]; ownerUserId: string; reason: string; batchId?: string }) => request<PropertyManagerProperty[]>("/property-manager/properties/bulk-assign", { method: "POST", token, body }),
+  getPropertyManagerPayments: (token: string, query?: { ownerUserId?: string; status?: string }) => request<PropertyManagerPaymentOperation[]>(withQuery("/property-manager/payments", query ?? {}), { token }),
+  refundPropertyManagerPayment: (token: string, paymentId: string, body: { amount?: number; reason: string; idempotencyKey: string }) => request<PropertyManagerPaymentOperation>(`/property-manager/payments/${paymentId}/refund`, { method: "POST", token, body }),
+  retryPropertyManagerPayment: (token: string, paymentId: string) => request<PropertyManagerPaymentOperation>(`/property-manager/payments/${paymentId}/retry`, { method: "POST", token }),
+  recordPropertyManagerMeterReading: (token: string, body: { ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; previousReading: number; currentReading: number; rate?: number }) => request<PropertyManagerMeterReading>("/property-manager/utilities/readings", { method: "POST", token, body }),
+  getPropertyManagerMeterReadings: (token: string, propertyId: string, utilityType?: string) => request<PropertyManagerMeterReading[]>(withQuery(`/property-manager/utilities/${propertyId}/readings`, { utilityType }), { token }),
+  getPropertyManagerReport: (token: string, from?: string, to?: string) => request<PropertyManagerReport>(withQuery("/property-manager/reports", { from, to }), { token }),
+  createPropertyManagerWorkOrder: (token: string, body: { propertyId: string; ownerUserId: string; scope: string; vendorId?: string; quoteAmount?: number; slaDueAt?: string }) => request<PropertyManagerWorkOrder>("/property-manager/work-orders", { method: "POST", token, body }),
+  updatePropertyManagerWorkOrder: (token: string, id: string, body: { status: string; vendorId?: string; approvedAmount?: number; laborAmount?: number; partsAmount?: number; scheduledAt?: string }) => request<PropertyManagerWorkOrder>(`/property-manager/work-orders/${id}`, { method: "PATCH", token, body }),
+  getPropertyManagerCalendar: (token: string, query?: { from?: string; to?: string; propertyId?: string }) => request<PropertyManagerCalendarEvent[]>(withQuery("/property-manager/calendar/events", query ?? {}), { token }),
+  createPropertyManagerCalendarEvent: (token: string, body: { propertyId?: string; ownerUserId?: string; eventType: string; title: string; startsAt: string; endsAt: string; status?: string }) => request<PropertyManagerCalendarEvent>("/property-manager/calendar/events", { method: "POST", token, body }),
+  changePropertyManagerSubscription: (token: string, body: { action: string; targetTier?: string; reason?: string }) => request<PropertyManagerDashboard["manager"]>("/property-manager/subscription/change", { method: "POST", token, body }),
+  getPropertyManagerSubscriptionEvents: (token: string) => request<{ id: string; eventType: string; fromTier: string; toTier: string; status: string; reason?: string | null; effectiveAt: string }[]>("/property-manager/subscription/events", { token }),
+  retryPropertyManagerSubscriptionPayment: (token: string) => request<{ id: string; eventType: string; fromTier: string; toTier: string; status: string; reason?: string | null; effectiveAt: string }>("/property-manager/subscription/payment-retry", { method: "POST", token }),
+  getPropertyManagerDashboardPreference: (token: string) => request<{ managerUserId: string; kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }>("/property-manager/dashboard/preferences", { token }),
+  savePropertyManagerDashboardPreference: (token: string, body: { kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }) => request<{ managerUserId: string; kpiOrder: string[]; visibleKpis: string[]; savedFiltersJson: string; savedViews: string[] }>("/property-manager/dashboard/preferences", { method: "PUT", token, body }),
+  archivePropertyManagerDocument: (token: string, documentId: string, restore = false) => request<PropertyManagerDocument>(withQuery(`/property-manager/documents/${documentId}/archive`, { restore: String(restore) }), { method: "POST", token }),
+  getPropertyManagerDocumentVersions: (token: string, documentId: string) => request<{ id: string; documentId: string; version: number; fileName: string; contentType: string; sizeBytes: number; createdByUserId: string; createdAt: string }[]>(`/property-manager/documents/${documentId}/versions`, { token }),
+  closePropertyManagerProposal: (token: string, proposalId: string) => request<PropertyManagerProposal>(`/property-manager/governance/proposals/${proposalId}/close`, { method: "POST", token }),
+  addPropertyManagerNoticeComment: (token: string, noticeId: string, body: string) => request<{ id: string; subjectId: string; actorUserId: string; type: string; body: string; createdAt: string }>(`/property-manager/notices/${noticeId}/comments`, { method: "POST", token, body: { noticeId, body } }),
+  decidePropertyManagerVerification: (token: string, body: { ownerUserId: string; requirement: string; status: string; reason?: string }) => request<{ id: string; ownerUserId: string; requirement: string; status: string; reason?: string | null; documentKey?: string | null; createdAt: string }>("/property-manager/owners/verification-requirements", { method: "POST", token, body }),
 };
 
 export function formatMoney(amount: number, currency = "USD") {

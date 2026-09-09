@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Camera, Save } from "lucide-react";
 import { api } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import type { PropertyWizardData } from "./types";
+import { ActionBar } from "../../components/ui/ActionBar";
 
 interface HostPropertyWizardProps {
   token: string;
@@ -95,6 +96,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
   const [error, setError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<PropertyWizardData>(initial.data);
   const completeness = getCompleteness(formData);
@@ -135,6 +137,36 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    const query = formData.location.trim();
+    if (currentStep !== 2 || query.length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      const geocoderUrl = (import.meta.env.VITE_GEOCODER_URL ?? "https://nominatim.openstreetmap.org/search").replace(/\/$/, "");
+      void fetch(`${geocoderUrl}?format=jsonv2&addressdetails=1&limit=5&countrycodes=jm&q=${encodeURIComponent(query)}`, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      }).then(async (response) => {
+        if (!response.ok) return [] as Array<{ display_name?: string }>;
+        return await response.json() as Array<{ display_name?: string }>;
+      }).then((results) => {
+        setLocationSuggestions(results.map((item) => item.display_name?.trim()).filter((item): item is string => Boolean(item)));
+      }).catch(() => {
+        // Geocoder outages never block manual location entry.
+        setLocationSuggestions([]);
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [currentStep, formData.location]);
 
   async function handlePhotoFiles(files: FileList | File[]) {
     setPhotoError(null);
@@ -268,8 +300,14 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         {currentStep === 2 && (
           <div className="space-y-4">
             <div className="field-group">
-              <label className="field-label">Location / Parish</label>
-              <input type="text" className="input-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
+              <label className="field-label" htmlFor="wizard-property-location">Location / Parish</label>
+              <div className="relative">
+                <input id="wizard-property-location" type="text" autoComplete="address-level2" className="input-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} aria-autocomplete="list" aria-controls="wizard-location-suggestions" />
+                {locationSuggestions.length > 0 && <ul id="wizard-location-suggestions" className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-field border border-sand-border bg-white p-1 shadow-lg" role="listbox" aria-label="Location suggestions">
+                  {locationSuggestions.map((suggestion) => <li key={suggestion}><button className="w-full rounded-field px-3 py-2 text-left text-sm hover:bg-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deep-hover" onClick={() => { setFormData({ ...formData, location: suggestion }); setLocationSuggestions([]); }} role="option" type="button">{suggestion}</button></li>)}
+                </ul>}
+              </div>
+              <small className="text-xs text-sand-600">Search suggestions use an OpenStreetMap-compatible geocoder. You can always enter the parish manually.</small>
             </div>
             <div className="field-group">
               <label className="field-label">Country</label>
@@ -409,7 +447,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
       </div>
 
       {/* Stepper Navigation Controls */}
-      <footer className="wizard-footer flex justify-between max-w-3xl mx-auto">
+      <ActionBar className="wizard-footer mx-auto max-w-3xl justify-between" sticky>
         <button 
           type="button" 
           className="btn btn-ghost" 
@@ -437,7 +475,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
             {publishing ? "Publishing Property..." : "Publish Listing"}
           </button>
         )}
-      </footer>
+      </ActionBar>
 
       {previewOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewOpen(false); }}>

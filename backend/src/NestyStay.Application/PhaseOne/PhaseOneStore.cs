@@ -52,6 +52,20 @@ public interface IPhaseOneStore
     Task<BookingDto?> ApplyPaymentWebhookAsync(PaymentWebhookUpdateRequest request, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Optional lifecycle extensions for persisted property listings. Kept separate
+/// from the contractual Phase One interface so legacy test adapters remain
+/// source-compatible while the EF store exposes the richer workflow.
+/// </summary>
+public interface IPropertyEnhancementStore
+{
+    Task<PropertyListingDto> DuplicatePropertyAsync(Guid hostUserId, Guid propertyId, string? title, CancellationToken cancellationToken);
+    Task<PropertyListingDto> PublishPropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PropertyRevisionDto>> GetPropertyRevisionsAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PropertyListingDto>> BulkArchivePropertiesAsync(Guid hostUserId, IReadOnlyCollection<Guid> propertyIds, bool isArchived, CancellationToken cancellationToken);
+    Task<PropertyListingDto> RestorePropertyRevisionAsync(Guid hostUserId, Guid propertyId, Guid revisionId, CancellationToken cancellationToken);
+}
+
 public sealed class PhaseOneStore(
     IEkycProvider ekycProvider,
     IPaymentGateway paymentGateway,
@@ -833,7 +847,7 @@ public sealed class PhaseOneStore(
         _properties
             .Where(property =>
                 !property.IsDeleted &&
-                !property.IsArchived &&
+                (hostUserId is not null || !property.IsArchived) &&
                 (hostUserId is null || property.HostUserId == hostUserId))
             .Select(ToListingDto)
             .ToList();
@@ -932,6 +946,36 @@ public sealed class PhaseOneStore(
             return Task.FromResult(ToListingDto(updated));
         }
     }
+
+    public Task<IReadOnlyList<PropertyListingDto>> BulkArchivePropertiesAsync(Guid hostUserId, IReadOnlyCollection<Guid> propertyIds, bool isArchived, CancellationToken cancellationToken)
+    {
+        if (propertyIds.Count == 0 || propertyIds.Count > 100)
+        {
+            throw new ArgumentException("Select between 1 and 100 properties.", nameof(propertyIds));
+        }
+
+        lock (_gate)
+        {
+            var distinctIds = propertyIds.Distinct().ToArray();
+            var properties = _properties.Where(property => distinctIds.Contains(property.Id) && !property.IsDeleted).ToList();
+            if (properties.Count != distinctIds.Length || properties.Any(property => property.HostUserId != hostUserId))
+            {
+                throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+            }
+
+            var updated = properties.Select(property => property with { IsArchived = isArchived }).ToList();
+            foreach (var property in updated)
+            {
+                var index = _properties.FindIndex(item => item.Id == property.Id);
+                _properties[index] = property;
+            }
+
+            return Task.FromResult<IReadOnlyList<PropertyListingDto>>(updated.Select(ToListingDto).ToList());
+        }
+    }
+
+    public Task<PropertyListingDto> RestorePropertyRevisionAsync(Guid hostUserId, Guid propertyId, Guid revisionId, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Property revision restore requires the persisted property store.");
 
     public Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
     {

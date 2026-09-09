@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
@@ -41,13 +41,14 @@ export function PageHeader({
   copy?: string;
   actions?: ReactNode;
 }) {
+  const reducedMotion = useReducedMotion();
   return (
     <header className="flex flex-wrap items-end justify-between gap-6">
       <div className="max-w-2xl">
         <motion.span
           animate={{ opacity: 1, y: 0 }}
-          className="mb-3 inline-flex items-center gap-3 font-sans text-xs font-semibold uppercase tracking-[0.28em] text-sand-500"
-          initial={{ opacity: 0, y: 16 }}
+          className="mb-3 inline-flex items-center gap-3 font-sans text-xs font-semibold uppercase tracking-[0.28em] text-sand-600"
+          initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           transition={{ duration: 0.6 }}
         >
           <span aria-hidden="true" className="inline-block h-px w-[34px] bg-sand-500" />
@@ -56,7 +57,7 @@ export function PageHeader({
         <motion.h1
           animate={{ opacity: 1, y: 0 }}
           className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal leading-[1.12] text-ink"
-          initial={{ opacity: 0, y: 22 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 22 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
           {renderAccentTitle(title)}
@@ -65,7 +66,7 @@ export function PageHeader({
           <motion.p
             animate={{ opacity: 1, y: 0 }}
             className="mb-0 mt-3 font-sans text-[15px] leading-[1.55] text-ink"
-            initial={{ opacity: 0, y: 18 }}
+            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
             {copy}
@@ -76,7 +77,7 @@ export function PageHeader({
         <motion.div
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-wrap items-center gap-3"
-          initial={{ opacity: 0, y: 16 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           {actions}

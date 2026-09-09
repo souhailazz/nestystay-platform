@@ -212,6 +212,45 @@ describe("api client", () => {
     });
   });
 
+  it("loads and updates persisted traveler notifications", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ userId: "traveler-1", notifications: [{ id: "notification-1", isRead: false }] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const workspace = await api.getTravelerWorkspace("traveler-1", "signed-session-token");
+    await api.markNotificationRead("traveler-1", "notification-1", "signed-session-token");
+    await api.markAllNotificationsRead("traveler-1", "signed-session-token");
+
+    expect(fetchMock.mock.calls[0][0] as string).toBe("/api/spec/traveler/traveler-1");
+    expect(fetchMock.mock.calls[1][0] as string).toBe("/api/spec/traveler/traveler-1/notifications/notification-1/read");
+    expect(fetchMock.mock.calls[2][0] as string).toBe("/api/spec/traveler/traveler-1/notifications/read-all");
+    expect(workspace.notifications[0].isRead).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it("supports property lifecycle actions through the host API", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ id: "draft-1", isDraft: true }))
+      .mockResolvedValueOnce(jsonResponse([{ id: "revision-1", version: 1 }]))
+      .mockResolvedValueOnce(jsonResponse({ id: "draft-1", isDraft: true }))
+      .mockResolvedValueOnce(jsonResponse([{ id: "property-1", isArchived: true }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.duplicateProperty("property-1", "signed-host-token", "Draft copy");
+    await api.getPropertyRevisions("draft-1", "signed-host-token");
+    await api.restorePropertyRevision("draft-1", "revision-1", "signed-host-token");
+    await api.bulkArchiveProperties(["property-1"], "signed-host-token");
+
+    expect((fetchMock.mock.calls[0][0] as string)).toBe("/api/properties/property-1/duplicate");
+    expect((fetchMock.mock.calls[1][0] as string)).toBe("/api/properties/draft-1/revisions");
+    expect((fetchMock.mock.calls[2][0] as string)).toBe("/api/properties/draft-1/revisions/revision-1/restore");
+    expect((fetchMock.mock.calls[3][0] as string)).toBe("/api/properties/bulk/archive");
+    expect(JSON.parse(fetchMock.mock.calls[3][1]?.body as string)).toEqual({ propertyIds: ["property-1"], isArchived: true });
+    vi.unstubAllGlobals();
+  });
+
   it("prepares officer wellness report photos without bearer tokens", async () => {
     const fetchMock = stubFetch(jsonResponse({ id: "wellness-photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
 

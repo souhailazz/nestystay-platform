@@ -17,15 +17,22 @@ public static class SessionCookieAuth
     public const string CookieSessionMode = "cookie";
     public const string CsrfHeaderName = "X-CSRF-Token";
 
-    public static void Issue(HttpResponse response, string accessToken, DateTimeOffset expiresAt, bool secure)
+    public static void Issue(
+        HttpResponse response,
+        string accessToken,
+        DateTimeOffset expiresAt,
+        bool secure,
+        string? domain = null,
+        SameSiteMode sameSite = SameSiteMode.Lax)
     {
         var shared = new CookieOptions
         {
             Secure = secure,
-            SameSite = SameSiteMode.Lax,
+            SameSite = sameSite,
             HttpOnly = true,
             IsEssential = true,
             Path = "/",
+            Domain = NormalizeDomain(domain),
             Expires = expiresAt
         };
         response.Cookies.Append(SessionCookieName, accessToken, shared);
@@ -33,18 +40,20 @@ public static class SessionCookieAuth
         response.Cookies.Append(CsrfCookieName, CreateToken(), new CookieOptions
         {
             Secure = secure,
-            SameSite = SameSiteMode.Strict,
+            SameSite = sameSite,
             HttpOnly = false,
             IsEssential = true,
             Path = "/",
+            Domain = NormalizeDomain(domain),
             Expires = expiresAt
         });
     }
 
-    public static void Clear(HttpResponse response)
+    public static void Clear(HttpResponse response, string? domain = null)
     {
-        response.Cookies.Delete(SessionCookieName, new CookieOptions { Path = "/" });
-        response.Cookies.Delete(CsrfCookieName, new CookieOptions { Path = "/" });
+        var options = new CookieOptions { Path = "/", Domain = NormalizeDomain(domain) };
+        response.Cookies.Delete(SessionCookieName, options);
+        response.Cookies.Delete(CsrfCookieName, options);
     }
 
     public static bool IsCookieMode(HttpRequest request) =>
@@ -55,4 +64,7 @@ public static class SessionCookieAuth
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+
+    private static string? NormalizeDomain(string? domain) =>
+        string.IsNullOrWhiteSpace(domain) ? null : domain.Trim();
 }

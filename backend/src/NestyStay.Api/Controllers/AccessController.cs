@@ -31,11 +31,21 @@ public sealed class AccessController(
     }
 
     [Authorize]
+    [HttpGet("qr")]
+    public async Task<ActionResult<IReadOnlyList<QrAccessDto>>> List(CancellationToken cancellationToken) =>
+        Ok(await qrAccessStore.ListAsync(authorization.RequireSignedInUser(), cancellationToken));
+
+    [Authorize]
+    [HttpGet("qr/{qrId:guid}/history")]
+    public async Task<ActionResult<IReadOnlyList<QrHistoryEventDto>>> History(Guid qrId, CancellationToken cancellationToken) =>
+        Ok(await qrAccessStore.HistoryAsync(qrId, authorization.RequireSignedInUser(), cancellationToken));
+
+    [Authorize]
     [HttpPost("qr/{qrId:guid}/revoke")]
-    public async Task<ActionResult<QrAccessDto>> Revoke(Guid qrId, CancellationToken cancellationToken)
+    public async Task<ActionResult<QrAccessDto>> Revoke(Guid qrId, [FromBody] RevokeQrRequest? request, CancellationToken cancellationToken)
     {
         var actor = authorization.RequireSignedInUser();
-        return await qrAccessStore.RevokeAsync(qrId, actor, cancellationToken) is { } access ? Ok(access) : NotFound();
+        return await qrAccessStore.RevokeAsync(qrId, actor, request?.Reason, cancellationToken) is { } access ? Ok(access) : NotFound();
     }
 
     // Gate-facing validation deliberately returns no guest name, email, or private contact data.
@@ -46,4 +56,5 @@ public sealed class AccessController(
         Ok(await qrAccessStore.ValidateAsync(request.Token, request.PropertyId, request.DeviceMetadata, cancellationToken));
 
     public sealed record ValidateQrRequest(string Token, Guid PropertyId, string? DeviceMetadata = null);
+    public sealed record RevokeQrRequest(string? Reason = null);
 }

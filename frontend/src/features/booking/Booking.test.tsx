@@ -27,7 +27,8 @@ vi.mock('../../lib/patois', () => ({
 
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: any) => <div data-testid="stripe-elements">{children}</div>,
-  PaymentElement: () => <div data-testid="payment-element" />,
+    PaymentElement: () => <div data-testid="payment-element" />,
+    ExpressCheckoutElement: () => <div data-testid="express-checkout-element" />,
   useStripe: () => ({
     confirmPayment: vi.fn(),
   }),

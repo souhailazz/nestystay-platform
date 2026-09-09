@@ -86,6 +86,37 @@ export function useAuth() {
     }
   }, []);
 
+  const requestPasswordlessLogin = useCallback(async (email: string) => {
+    setIsAuthBusy(true);
+    try {
+      return await api.requestPasswordlessLogin(email);
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, []);
+
+  const completePasswordlessLogin = useCallback(async (flowId: string, token: string) => {
+    setIsAuthBusy(true);
+    try {
+      const response = await api.completePasswordlessLogin({ flowId, token });
+      const nextSession: AuthSession = {
+        userId: response.userId,
+        email: response.email,
+        displayName: response.displayName,
+        accessToken: "",
+        expiresAt: response.expiresAt,
+        roles: response.roles,
+        permissions: response.permissions ?? [],
+      };
+      saveSession(nextSession);
+      setSession(nextSession);
+      setPendingChallenge(null);
+      return nextSession;
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, []);
+
   const verify = useCallback(
     async (code: string) => {
       if (!pendingChallenge) {
@@ -147,11 +178,13 @@ export function useAuth() {
       isAuthBusy,
       register,
       login,
+      requestPasswordlessLogin,
+      completePasswordlessLogin,
       signInWithGoogle,
       verify,
       logout,
     }),
-    [isAuthBusy, login, logout, pendingChallenge, register, session, signInWithGoogle, verify],
+    [completePasswordlessLogin, isAuthBusy, login, logout, pendingChallenge, register, requestPasswordlessLogin, session, signInWithGoogle, verify],
   );
 }
 

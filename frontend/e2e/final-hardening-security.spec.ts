@@ -11,7 +11,7 @@ const password = "NestyStay1";
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
 test("authorization matrix rejects anonymous, wrong-role, and cross-owner access", async ({ baseURL }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(!testInfo.project.name.includes("chromium"));
   const api = await playwrightRequest.newContext({ baseURL });
   const guestA = await createSession(api, "Guest");
   const guestB = await createSession(api, "Guest");
@@ -164,7 +164,7 @@ test("authorization matrix rejects anonymous, wrong-role, and cross-owner access
 });
 
 test("CORS, injection, malformed JSON, and output encoding resist common attacks", async ({ baseURL, page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(!testInfo.project.name.includes("chromium"));
   const api = await playwrightRequest.newContext({ baseURL });
   const checks: Array<{ name: string; passed: boolean; evidence: unknown }> = [];
 

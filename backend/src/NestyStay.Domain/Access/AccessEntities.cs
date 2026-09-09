@@ -14,6 +14,7 @@ public sealed class QrAccessCode : BaseEntity
     public DateTimeOffset ExpiresAt { get; set; }
     public bool IsRevoked { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
+    public string? RevokeReason { get; set; }
     public DateTimeOffset? LastValidatedAt { get; set; }
     public int ValidationCount { get; set; }
 }

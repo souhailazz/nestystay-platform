@@ -27,7 +27,7 @@ public sealed class AuthController(
         var result = await phaseOneStore.LoginAsync(request, cancellationToken);
         if (SessionCookieAuth.IsCookieMode(Request) && result.AccessToken is not null && result.ExpiresAt is not null)
         {
-            SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt.Value, IsSecureCookie());
+            SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt.Value, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
         }
 
         return Ok(SanitizeForBrowser(result));
@@ -38,7 +38,7 @@ public sealed class AuthController(
     public async Task<IActionResult> Google(GoogleSignInRequest request, CancellationToken cancellationToken)
     {
         var result = await phaseOneStore.GoogleSignInAsync(request, cancellationToken);
-        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie());
+        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
         return Ok(SanitizeForBrowser(result));
     }
 
@@ -47,7 +47,7 @@ public sealed class AuthController(
     public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequest request, CancellationToken cancellationToken)
     {
         var result = await phaseOneStore.VerifyTwoFactorAsync(request, cancellationToken);
-        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie());
+        if (SessionCookieAuth.IsCookieMode(Request)) SessionCookieAuth.Issue(Response, result.AccessToken, result.ExpiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
         return Ok(SanitizeForBrowser(result));
     }
 
@@ -156,9 +156,22 @@ public sealed class AuthController(
     private bool IsSecureCookie() =>
         configuration.GetValue<bool?>("Security:SessionCookieSecure") ?? environment.IsProduction();
 
+    private string? ResolveCookieDomain() =>
+        configuration["Security:SessionCookieDomain"] ??
+        Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_DOMAIN");
+
+    private Microsoft.AspNetCore.Http.SameSiteMode ResolveCookieSameSite()
+    {
+        var configured = configuration["Security:SessionCookieSameSite"] ??
+                         Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_SAMESITE");
+        return Enum.TryParse<Microsoft.AspNetCore.Http.SameSiteMode>(configured, true, out var sameSite)
+            ? sameSite
+            : Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+    }
+
     private IActionResult LogoutAndClearCookies(object result)
     {
-        SessionCookieAuth.Clear(Response);
+        SessionCookieAuth.Clear(Response, ResolveCookieDomain());
         return Ok(result);
     }
 

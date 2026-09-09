@@ -4,7 +4,8 @@ const hostSession = {
   userId: "usability-host",
   email: "usability-host@nestystay.local",
   displayName: "Usability Host",
-  accessToken: "local-usability-token",
+  // Browser sessions intentionally do not persist bearer secrets. API calls use the secure cookie mode.
+  accessToken: "",
   expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   roles: ["Host"],
   permissions: [],

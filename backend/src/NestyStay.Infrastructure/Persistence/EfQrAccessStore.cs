@@ -88,7 +88,7 @@ public sealed class EfQrAccessStore(
         return ToDto(entity);
     }
 
-    public async Task<QrAccessDto?> RevokeAsync(Guid qrId, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<QrAccessDto?> RevokeAsync(Guid qrId, Guid actorUserId, string? reason, CancellationToken cancellationToken)
     {
         var entity = await db.QrAccessCodes.SingleOrDefaultAsync(code => code.Id == qrId && !code.IsDeleted, cancellationToken);
         if (entity is null)
@@ -105,10 +105,43 @@ public sealed class EfQrAccessStore(
         var now = timeProvider.GetUtcNow();
         entity.IsRevoked = true;
         entity.RevokedAt = now;
+        entity.RevokeReason = string.IsNullOrWhiteSpace(reason) ? "Revoked by account holder." : reason.Trim()[..Math.Min(reason.Trim().Length, 256)];
         entity.UpdatedAt = now;
         entity.UpdatedByUserId = actorUserId;
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
+    }
+
+    public async Task<IReadOnlyList<QrAccessDto>> ListAsync(Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var codes = await db.QrAccessCodes.AsNoTracking()
+            .Where(code => !code.IsDeleted && (code.GuestUserId == actorUserId || code.CreatedByUserId == actorUserId))
+            .OrderByDescending(code => code.CreatedAt)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+        return codes.Select(ToDto).ToArray();
+    }
+
+    public async Task<IReadOnlyList<QrHistoryEventDto>> HistoryAsync(Guid qrId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await db.QrAccessCodes.AsNoTracking().SingleOrDefaultAsync(code => code.Id == qrId && !code.IsDeleted, cancellationToken);
+        if (entity is null) return [];
+        if (entity.GuestUserId != actorUserId && entity.CreatedByUserId != actorUserId && phaseOneStore.GetBooking(entity.BookingId)?.HostUserId != actorUserId)
+            throw new UnauthorizedAccessException("This gate pass is not available to the current user.");
+
+        var history = new List<QrHistoryEventDto>
+        {
+            new(Guid.NewGuid(), entity.Id, "Issued", Status(entity), entity.CreatedAt),
+        };
+        if (entity.IsRevoked && entity.RevokedAt is not null)
+            history.Add(new(Guid.NewGuid(), entity.Id, "Revoked", "Revoked", entity.RevokedAt.Value, entity.RevokeReason));
+
+        var scans = await db.QrScanLogs.AsNoTracking()
+            .Where(scan => scan.QrAccessCodeId == qrId && !scan.IsDeleted)
+            .OrderBy(scan => scan.ScannedAt)
+            .ToListAsync(cancellationToken);
+        history.AddRange(scans.Select(scan => new QrHistoryEventDto(scan.Id, entity.Id, "Scanned", scan.Result, scan.ScannedAt, DeviceMetadata: scan.DeviceMetadataJson)));
+        return history.OrderBy(item => item.OccurredAt).ToArray();
     }
 
     public async Task<QrValidationResult> ValidateAsync(string token, Guid propertyId, string? deviceMetadata, CancellationToken cancellationToken)
@@ -197,7 +230,7 @@ public sealed class EfQrAccessStore(
         new(code.Id, code.BookingId, code.PropertyId, code.ValidFrom, code.ExpiresAt, Status(code), token, $"/api/access/qr/validate?token={Uri.EscapeDataString(token)}&propertyId={code.PropertyId}");
 
     private static QrAccessDto ToDto(QrAccessCode code) =>
-        new(code.Id, code.BookingId, code.PropertyId, code.ValidFrom, code.ExpiresAt, code.IsRevoked, code.ValidationCount, code.LastValidatedAt, Status(code));
+        new(code.Id, code.BookingId, code.PropertyId, code.ValidFrom, code.ExpiresAt, code.IsRevoked, code.ValidationCount, code.LastValidatedAt, Status(code), code.RevokeReason);
 
     private static string Status(QrAccessCode code)
     {

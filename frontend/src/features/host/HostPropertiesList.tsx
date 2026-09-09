@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Archive, RotateCcw, Edit, MapPin, Eye } from "lucide-react";
-import { api, formatMoney, type PropertyListing } from "../../lib/api";
+import { Plus, Archive, RotateCcw, Edit, MapPin, Eye, Copy, Upload, History } from "lucide-react";
+import { api, formatMoney, type PropertyListing, type PropertyRevision } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { announceFeedback } from "../../lib/feedback";
+import { Modal } from "../../components/ui/Modal";
 
 interface HostPropertiesListProps {
   view: string;
@@ -19,6 +20,9 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [undo, setUndo] = useState<{ id: string; archived: boolean } | null>(null);
+  const [historyProperty, setHistoryProperty] = useState<PropertyListing | null>(null);
+  const [historyRevisions, setHistoryRevisions] = useState<PropertyRevision[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -76,10 +80,73 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
     setSelected((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
   }
 
+  function toggleAllVisible() {
+    const visibleIds = visible.filter((property) => !property.isArchived).map((property) => property.id);
+    setSelected((items) => visibleIds.every((id) => items.includes(id)) ? items.filter((id) => !visibleIds.includes(id)) : [...new Set([...items, ...visibleIds])]);
+  }
+
   async function bulkArchive() {
     if (selected.length === 0 || !window.confirm(`Archive ${selected.length} selected propert${selected.length === 1 ? "y" : "ies"}?`)) return;
-    await Promise.all(selected.map((id) => handleArchiveToggle(id, false, true)));
-    setSelected([]);
+    try {
+      await api.bulkArchiveProperties(selected, token, true);
+      setProperties((items) => items.map((item) => selected.includes(item.id) ? { ...item, isArchived: true } : item));
+      setSelected([]);
+      setNotice(`${selected.length} propert${selected.length === 1 ? "y" : "ies"} archived.`);
+      announceFeedback("Selected properties archived.");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not archive selected properties.");
+    }
+  }
+
+  async function duplicateProperty(id: string, title: string) {
+    if (!window.confirm(`Duplicate “${title}” as a draft?`)) return;
+    try {
+      const duplicate = await api.duplicateProperty(id, token);
+      setProperties((items) => [...items, duplicate]);
+      setNotice(`Draft “${duplicate.title}” created. Review it before publishing.`);
+      announceFeedback("Property draft duplicated.");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not duplicate property.");
+    }
+  }
+
+  async function publishDraft(id: string, title: string) {
+    if (!window.confirm(`Publish “${title}” to the public listings?`)) return;
+    try {
+      const published = await api.publishProperty(id, token);
+      setProperties((items) => items.map((item) => item.id === id ? published : item));
+      setNotice(`“${published.title}” is now published.`);
+      announceFeedback("Property published.");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not publish property.");
+    }
+  }
+
+  async function openHistory(property: PropertyListing) {
+    setHistoryProperty(property);
+    setHistoryRevisions([]);
+    setHistoryLoading(true);
+    try {
+      setHistoryRevisions(await api.getPropertyRevisions(property.id, token));
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not load property history.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function restoreRevision(revision: PropertyRevision) {
+    if (!historyProperty || !window.confirm(`Restore version ${revision.version} as a new draft?`)) return;
+    try {
+      const restored = await api.restorePropertyRevision(historyProperty.id, revision.id, token);
+      setProperties((items) => items.map((item) => item.id === restored.id ? restored : item));
+      setHistoryProperty(restored);
+      setHistoryRevisions(await api.getPropertyRevisions(restored.id, token));
+      setNotice(`Version ${revision.version} restored as a draft. Review and publish when ready.`);
+      announceFeedback("Property revision restored as a draft.");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not restore property revision.");
+    }
   }
 
   return (
@@ -121,14 +188,17 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
         <>
           <ListControls
             className="mb-5"
+            allVisibleSelected={visible.length > 0 && visible.filter((property) => !property.isArchived).every((property) => selected.includes(property.id))}
             label="Filter properties"
             onExport={() => downloadCsv("nesty-properties.csv", ["Title", "Location", "Country", "Badge", "Nightly rate", "Archived"], filtered.map((prop) => [prop.title, prop.location, prop.country, prop.badgeLevel, prop.nightlyRate, prop.isArchived ? "Yes" : "No"]))}
             onPageChange={setPage}
             onQueryChange={setQuery}
             onSortChange={setSort}
+            onToggleAllVisible={isArchivedView ? undefined : toggleAllVisible}
             page={page}
             pageSize={pageSize}
             query={query}
+            selectable={!isArchivedView}
             sort={sort}
             sortOptions={[{ value: "name", label: "Name" }, { value: "price", label: "Nightly price" }]}
             total={filtered.length}
@@ -140,7 +210,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
               <div>
                 {!isArchivedView && <label className="mb-3 inline-flex items-center gap-2 text-xs font-semibold"><input aria-label={`Select ${prop.title}`} checked={selected.includes(prop.id)} onChange={() => toggleSelected(prop.id)} type="checkbox" /> Select property</label>}
                 <div className="flex justify-between items-start mb-2">
-                  <span className="badge badge-green">{prop.badgeLevel} Badge</span>
+                  <span className={`badge ${prop.isDraft ? "badge-sun" : "badge-green"}`}>{prop.isDraft ? "Draft" : `${prop.badgeLevel} Badge`}</span>
                   <span className="badge badge-sun">{prop.cancellationPolicy}</span>
                 </div>
                 <h3 className="font-bold text-xl">{prop.title}</h3>
@@ -152,12 +222,15 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
 
               <div className="flex justify-between items-center mt-6 pt-3 border-t">
                 <div className="flex gap-2">
-                  <a href={`/properties/${prop.id}`} className="btn btn-outline btn-sm">
+                  {!prop.isDraft && <a href={`/properties/${prop.id}`} className="btn btn-outline btn-sm">
                     <Eye size={14} /> Preview
-                  </a>
+                  </a>}
                   <a href={`/host/properties/edit?id=${prop.id}`} className="btn btn-outline btn-sm">
                     <Edit size={14} /> Edit
                   </a>
+                  {prop.isDraft && <button className="btn btn-primary btn-sm" onClick={() => void publishDraft(prop.id, prop.title)} type="button"><Upload size={14} /> Publish</button>}
+                  {!prop.isDraft && <button className="btn btn-outline btn-sm" onClick={() => void duplicateProperty(prop.id, prop.title)} type="button"><Copy size={14} /> Duplicate</button>}
+                  <button className="btn btn-ghost btn-sm" onClick={() => void openHistory(prop)} type="button"><History size={14} /> History</button>
                 </div>
 
                 <button 
@@ -173,6 +246,16 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
           </div>
         </>
       )}
+
+      <Modal open={historyProperty !== null} onClose={() => setHistoryProperty(null)} title={historyProperty ? `${historyProperty.title} history` : "Property history"}>
+        {historyLoading ? <div className="loading-shimmer p-5 text-center">Loading revision history…</div> : historyRevisions.length === 0 ? <p className="text-sm text-sand-600">No revisions have been recorded yet.</p> : <div className="grid gap-3">
+          <p className="m-0 text-sm text-sand-600">Every save, archive, publish and restore is preserved. Restoring always creates a new draft revision.</p>
+          {historyRevisions.map((revision) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border bg-white p-3" key={revision.id}>
+            <div><strong>Version {revision.version}</strong><div className="text-xs text-sand-600">{new Date(revision.createdAt).toLocaleString()}</div></div>
+            <button className="btn btn-outline btn-sm" onClick={() => void restoreRevision(revision)} type="button">Restore as draft</button>
+          </div>)}
+        </div>}
+      </Modal>
     </div>
   );
 }

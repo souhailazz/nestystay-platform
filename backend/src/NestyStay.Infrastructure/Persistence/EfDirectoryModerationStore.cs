@@ -119,6 +119,11 @@ public sealed class EfDirectoryModerationStore(
         entity.AvailabilitySummary = Require(request.AvailabilitySummary, "Availability");
         entity.ContactMode = "Platform messaging only";
         entity.IsBrickAndMortar = request.IsBrickAndMortar;
+        if (request.ServiceRadiusKm is <= 0 or > 500) throw new InvalidOperationException("Service radius must be between 0 and 500 km.");
+        entity.ServicesJson = MilestoneJson.Serialize((request.Services ?? Array.Empty<string>()).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToArray());
+        entity.OpeningHours = string.IsNullOrWhiteSpace(request.OpeningHours) ? null : request.OpeningHours.Trim();
+        entity.EmergencyAvailable = request.EmergencyAvailable;
+        entity.ServiceRadiusKm = request.ServiceRadiusKm;
         entity.PoliceBadgeNumber = null;
         entity.IsActive = adminOverride && request.IsActive;
         entity.VerificationStatus = adminOverride ? "Verified" : "Pending";
@@ -155,8 +160,71 @@ public sealed class EfDirectoryModerationStore(
         return ToRecord(entity);
     }
 
+    public async Task RecordRecentViewAsync(Guid userId, Guid providerId, CancellationToken cancellationToken)
+    {
+        if (userId == Guid.Empty || providerId == Guid.Empty) throw new InvalidOperationException("A signed-in user and provider are required.");
+        var providerExists = await db.MilestoneDirectoryProviders.AnyAsync(item => item.Id == providerId && !item.IsDeleted && item.IsActive && item.Status == "Published" && item.VerificationStatus == "Verified", cancellationToken)
+            || await db.MilestoneWellnessOfficers.AnyAsync(item => item.Id == providerId && !item.IsDeleted && item.VerificationStatus == "Verified" && item.OnboardingStatus == "Verified" && item.IsActiveOffDuty && !item.IsRetired, cancellationToken);
+        if (!providerExists) throw new KeyNotFoundException("Published provider not found.");
+        var view = await db.MilestoneDirectoryRecentViews.SingleOrDefaultAsync(item => item.UserId == userId && item.ProviderId == providerId, cancellationToken);
+        if (view is null)
+        {
+            view = new MilestoneDirectoryRecentView { Id = Guid.NewGuid(), UserId = userId, ProviderId = providerId, ViewedAt = timeProvider.GetUtcNow() };
+            db.MilestoneDirectoryRecentViews.Add(view);
+        }
+        else
+        {
+            view.ViewedAt = timeProvider.GetUtcNow();
+            view.UpdatedAt = view.ViewedAt;
+            view.IsDeleted = false;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DirectoryProviderRecord>> GetRecentViewsAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var views = await db.MilestoneDirectoryRecentViews.AsNoTracking()
+            .Where(item => item.UserId == userId && !item.IsDeleted)
+            .OrderByDescending(item => item.ViewedAt)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+        var providerIds = views.Select(item => item.ProviderId).ToArray();
+        var providers = await db.MilestoneDirectoryProviders.AsNoTracking()
+            .Where(item => providerIds.Contains(item.Id) && !item.IsDeleted && item.IsActive && item.Status == "Published" && item.VerificationStatus == "Verified")
+            .ToListAsync(cancellationToken);
+        var officers = await db.MilestoneWellnessOfficers.AsNoTracking()
+            .Where(item => providerIds.Contains(item.Id) && !item.IsDeleted && item.VerificationStatus == "Verified" && item.OnboardingStatus == "Verified" && item.IsActiveOffDuty && !item.IsRetired)
+            .ToListAsync(cancellationToken);
+        var result = new List<DirectoryProviderRecord>(views.Count);
+        foreach (var view in views)
+        {
+            var provider = providers.FirstOrDefault(item => item.Id == view.ProviderId);
+            if (provider is not null) { result.Add(ToRecord(provider)); continue; }
+            var officer = officers.FirstOrDefault(item => item.Id == view.ProviderId);
+            if (officer is not null) result.Add(ToPoliceRecord(officer));
+        }
+        return result;
+    }
+
+    public async Task RemoveRecentViewAsync(Guid userId, Guid providerId, CancellationToken cancellationToken)
+    {
+        var view = await db.MilestoneDirectoryRecentViews.SingleOrDefaultAsync(item => item.UserId == userId && item.ProviderId == providerId && !item.IsDeleted, cancellationToken);
+        if (view is null) return;
+        view.IsDeleted = true;
+        view.UpdatedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ClearRecentViewsAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var views = await db.MilestoneDirectoryRecentViews.Where(item => item.UserId == userId && !item.IsDeleted).ToListAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        foreach (var view in views) { view.IsDeleted = true; view.UpdatedAt = now; }
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private static DirectoryProviderRecord ToRecord(MilestoneDirectoryProvider item) =>
-        new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.VerificationStatus, item.Status, item.IsActive, item.IsBrickAndMortar, item.Kind == "Police" ? item.PoliceBadgeNumber : null, item.CreatedAt, item.UpdatedAt);
+        new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.VerificationStatus, item.Status, item.IsActive, item.IsBrickAndMortar, item.Kind == "Police" ? item.PoliceBadgeNumber : null, item.CreatedAt, item.UpdatedAt, MilestoneJson.DeserializeList<string>(item.ServicesJson), item.OpeningHours, item.EmergencyAvailable, item.ServiceRadiusKm, item.WeeklyHoursJson, item.HolidayClosuresJson, item.PromotionsJson, item.AccessibilityInfo);
 
     private static DirectoryProviderRecord ToPoliceRecord(MilestoneWellnessOfficer officer) =>
         new(officer.Id, null, $"police-{NormalizeSlug(officer.BadgeNumber)}", "Police", "Police Wellness", officer.BadgeNumber, officer.Parish, "Wellness", "Active off-duty JCF officer", officer.CoverageArea, "Platform messaging only", 0, 0, "Verified", "Published", true, false, officer.BadgeNumber, officer.CreatedAt, officer.UpdatedAt);

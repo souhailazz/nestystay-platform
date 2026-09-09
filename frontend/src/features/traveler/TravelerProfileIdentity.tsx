@@ -38,14 +38,12 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
     let active = true;
     async function load() {
       try {
-        if (token) {
-          const u = await api.getProfile(token);
-          if (active) {
-            setDisplayName(u.displayName);
-            setEmail(u.email);
-            setPhone(u.phone ?? "");
-            setTwoFactorEnabled(u.isTwoFactorEnabled);
-          }
+        const u = await api.getProfile(token);
+        if (active) {
+          setDisplayName(u.displayName);
+          setEmail(u.email);
+          setPhone(u.phone ?? "");
+          setTwoFactorEnabled(u.isTwoFactorEnabled);
         }
       } catch (err) {
         console.error(err);
@@ -56,10 +54,6 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
   }, [userId, token]);
 
   async function handleSaveProfile() {
-    if (!token) {
-      setNotice("Sign in to save profile changes.");
-      return;
-    }
     setNotice(null);
     try {
       const updated = await api.updateProfile(token, { displayName, phone: phone || null });
@@ -72,7 +66,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !token) return;
+    if (!file) return;
     setUploadingPhoto(true);
     setNotice(null);
     try {
@@ -105,7 +99,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
           {/* Profile Photo & Info */}
           <div className="card-box">
             <h3>Personal Information</h3>
-            <div className="flex items-center gap-4 my-4">
+            <div className="profile-photo-picker flex items-center gap-4 my-4">
               <div className="avatar-preview-box w-20 h-20 bg-sun-light rounded-full flex items-center justify-center border-2 border-sun relative">
                 <User size={40} className="text-sun" />
                 <button
@@ -126,7 +120,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
                 onChange={handlePhotoUpload} 
               />
               <div>
-                <strong>Profile Photo</strong>
+                <strong>Profile photo</strong>
                 <p className="subtext">JPG, PNG or WebP up to 10MB.</p>
                 {uploadingPhoto && <span className="text-xs text-sun">Uploading photo...</span>}
               </div>

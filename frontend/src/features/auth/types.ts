@@ -4,5 +4,6 @@ export type AuthModalMode =
   | "otp" 
   | "2fa-enroll" 
   | "2fa-verify" 
-  | "forgot-password" 
-  | "reset-password";
+  | "forgot-password"
+  | "reset-password"
+  | "passwordless-request";

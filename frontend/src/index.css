@@ -1879,6 +1879,76 @@ img, svg {
   align-items: center;
   gap: 10px;
 }
+
+/* Legacy surfaces use these classes; keep them on the same accessible recipe
+   as the shared React Button component so action hierarchy is consistent. */
+.btn {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  padding: 0 24px;
+  color: var(--ink);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-outline:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--green, #0E4A45) 28%, transparent);
+  outline-offset: 2px;
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.btn-primary {
+  color: var(--cream, #FFF9E9);
+  background: var(--deep, #061F1D);
+}
+.btn-primary:hover { background: var(--deep-hover, #0E4A45); }
+.btn-outline {
+  border-color: var(--sand-input, #C7BC9C);
+  background: transparent;
+  color: var(--deep-hover, #0E4A45);
+}
+.btn-outline:hover { border-color: var(--deep-hover, #0E4A45); background: var(--shell, #F3EEDC); }
+.btn-ghost { background: transparent; color: var(--ink, #1F302B); }
+.btn-ghost:hover { background: var(--shell, #F3EEDC); }
+.btn-sm { min-height: 40px; padding-inline: 14px; font-size: 13px; }
+.btn-lg { min-height: 54px; padding-inline: 28px; font-size: 16px; }
+.action-bar { align-items: center; }
+.action-bar--sticky { position: sticky; bottom: 0; z-index: 20; padding: 12px; border: 1px solid var(--sand-border, #E4DDC8); border-radius: 18px; background: color-mix(in srgb, var(--cream, #FFF9E9) 94%, transparent); box-shadow: 0 -12px 30px rgb(20 45 38 / 10%); backdrop-filter: blur(12px); }
+
+/* Tables remain readable on small screens without horizontal page overflow. */
+.responsive-table { width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.responsive-table > table { min-width: 640px; }
+
+@media (max-width: 767px) {
+  .action-bar--sticky { margin-inline: -8px; }
+  .action-bar--sticky > .btn,
+  .action-bar--sticky > button,
+  .action-bar--sticky > a { flex: 1 1 160px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
+@media (forced-colors: active) {
+  .btn, .btn-primary, .btn-outline, .btn-ghost { border: 1px solid ButtonText; forced-color-adjust: auto; }
+  .btn-primary { color: ButtonText; background: ButtonFace; }
+  .btn:focus-visible { outline: 2px solid Highlight; }
+}
 .search-panel {
   display: grid;
   align-items: end;

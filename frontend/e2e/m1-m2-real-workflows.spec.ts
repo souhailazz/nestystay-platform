@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 const repoRoot = path.resolve(process.cwd(), "..");
 const evidenceRoot = process.env.NESTYSTAY_EVIDENCE_ROOT ?? path.join(repoRoot, "testing-evidence", "milestones-1-2", "screenshots", "real-workflows");
@@ -76,9 +77,7 @@ test("host badge page renders live ownership-scoped assignment and feature acces
   const api = await playwrightRequest.newContext({ baseURL });
   const session = await createSession(api, "Host");
   await api.dispose();
-  await page.addInitScript((value) => {
-    window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
-  }, session);
+  await installCookieSession(page, session);
 
   await page.goto("/host/badges", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("host-13-page")).toBeVisible();

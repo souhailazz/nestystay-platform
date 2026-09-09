@@ -8,6 +8,11 @@ NestyStay is a full-stack property booking and host-services platform built with
 - `backend`: ASP.NET Core .NET API with Domain, Application, Infrastructure, and Api layers.
 - `artifacts`: Local QA notes, proof files, and recorded walkthrough videos.
 
+The `frontend` and `backend` directories are independently deployable and may
+be pushed to separate repositories. See [the split-repository handoff](docs/deployment/SPLIT-REPOSITORY-HANDOFF.md),
+the [frontend README](frontend/README.md), and the [backend README](backend/README.md)
+before creating the client repositories.
+
 ## Local Run
 
 Backend:

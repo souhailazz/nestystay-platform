@@ -61,7 +61,10 @@ export function AdminBadges({ token }: AdminBadgesProps) {
   }
 
   useEffect(() => {
-    if (token) void load();
+    // Browser sessions use the HttpOnly cookie, so the compatibility token
+    // field may intentionally be empty. The API request still carries the
+    // cookie credentials and remains server-authorized.
+    void load();
   }, [token]);
 
   const filteredAssignments = useMemo(() => assignments.filter((assignment) => {

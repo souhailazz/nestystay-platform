@@ -25,7 +25,7 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
             badgeLevel = "Free", description = "A real persisted provider awaiting review.", availabilitySummary = "Daily",
             contactMode = "email@test.invalid", isBrickAndMortar = true, isActive = true
         });
-        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        Assert.True(save.IsSuccessStatusCode, await save.Content.ReadAsStringAsync());
         using var savedJson = JsonDocument.Parse(await save.Content.ReadAsStringAsync());
         var slug = savedJson.RootElement.GetProperty("slug").GetString()!;
         Assert.Equal("PendingReview", savedJson.RootElement.GetProperty("status").GetString());
@@ -52,6 +52,33 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         client.DefaultRequestHeaders.Authorization = null;
         var policePublic = await client.GetAsync("/api/directories/providers?kind=Police");
         Assert.Equal(HttpStatusCode.Unauthorized, policePublic.StatusCode);
+    }
+
+    [Fact]
+    public async Task SignedInDirectoryUserCanPersistAndClearRecentlyViewedProviders()
+    {
+        using var client = _factory.CreateClient();
+        var owner = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(owner, UserRole.Host));
+        var save = await client.PostAsJsonAsync("/api/directories/providers", new
+        {
+            kind = "LocalBusiness", category = "Cafe", name = $"Recent Cafe {owner:N}", parish = "St. Ann",
+            badgeLevel = "Verified", description = "Published recent-view provider.", availabilitySummary = "Daily", contactMode = "Platform messaging only", isBrickAndMortar = true
+        });
+        Assert.True(save.IsSuccessStatusCode, await save.Content.ReadAsStringAsync());
+        var saved = await save.Content.ReadFromJsonAsync<JsonElement>();
+        var providerId = saved.GetProperty("id").GetGuid();
+        var slug = saved.GetProperty("slug").GetString();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync($"/api/directories/providers/{slug}/moderate", new { status = "approve" })).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(owner, UserRole.Host));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/directories/recent-views/{providerId}", null)).StatusCode);
+        var recent = await client.GetFromJsonAsync<JsonElement[]>("/api/directories/recent-views");
+        Assert.Contains(recent!, item => item.GetProperty("id").GetGuid() == providerId);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/directories/recent-views/{providerId}")).StatusCode);
+        var cleared = await client.GetFromJsonAsync<JsonElement[]>("/api/directories/recent-views");
+        Assert.DoesNotContain(cleared!, item => item.GetProperty("id").GetGuid() == providerId);
     }
 
     [Fact]
@@ -119,10 +146,14 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         var provider = await client.PostAsJsonAsync("/api/directories/providers", new
         {
             kind = "Trades", category = "Electrician", name = "Provider Account Services", parish = "St. Ann", badgeLevel = "Free",
-            description = "Reviewable provider profile", availabilitySummary = "Weekdays", contactMode = "direct", isBrickAndMortar = false
+            description = "Reviewable provider profile", availabilitySummary = "Weekdays", contactMode = "direct", isBrickAndMortar = false,
+            services = new[] { "Emergency electrical", "Generator repair" }, openingHours = "Mon-Sat 08:00-18:00", emergencyAvailable = true, serviceRadiusKm = 40
         });
         Assert.True(provider.IsSuccessStatusCode, await provider.Content.ReadAsStringAsync());
-        Assert.Equal("PendingReview", (await provider.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        var saved = await provider.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("PendingReview", saved.GetProperty("status").GetString());
+        Assert.True(saved.GetProperty("emergencyAvailable").GetBoolean());
+        Assert.Equal(2, saved.GetProperty("services").GetArrayLength());
     }
 
     [Fact]
@@ -186,6 +217,51 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         var review = await client.PostAsJsonAsync($"/api/directories/providers/{slug}/moderate", new { status = "request-changes", reason = "Upload a current business document." });
         Assert.Equal(HttpStatusCode.OK, review.StatusCode);
         Assert.Equal("ChangesRequested", (await review.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task DirectoryQuotesReviewsAndBusinessDetailsArePersistedAndOwnerScoped()
+    {
+        using var client = _factory.CreateClient();
+        var providerOwner = Guid.NewGuid();
+        var requester = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(providerOwner, UserRole.ServiceProvider));
+        var save = await client.PostAsJsonAsync("/api/directories/providers", new
+        {
+            kind = "Trades", category = "Plumbing", name = $"Workflow Trades {providerOwner:N}", parish = "Kingston", badgeLevel = "Trusted", description = "Quote and review workflow", availabilitySummary = "Daily", contactMode = "Platform messaging only", isBrickAndMortar = false,
+            services = new[] { "Leak repair" }, emergencyAvailable = true, serviceRadiusKm = 35
+        });
+        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        var saved = await save.Content.ReadFromJsonAsync<JsonElement>();
+        var slug = saved.GetProperty("slug").GetString()!;
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync($"/api/directories/providers/{slug}/moderate", new { status = "approve" })).StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(requester, UserRole.Host));
+        var quote = await client.PostAsJsonAsync($"/api/directories/providers/{slug}/quotes", new { scope = "Repair kitchen leak", budget = 120m });
+        Assert.Equal(HttpStatusCode.OK, quote.StatusCode);
+        var quoteJson = await quote.Content.ReadFromJsonAsync<JsonElement>();
+        var quoteId = quoteJson.GetProperty("id").GetGuid();
+        var review = await client.PostAsJsonAsync($"/api/directories/providers/{slug}/reviews", new { rating = 5, body = "Fast and professional." });
+        Assert.Equal(HttpStatusCode.OK, review.StatusCode);
+        Assert.Equal(5, (await review.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("rating").GetInt32());
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(providerOwner, UserRole.ServiceProvider));
+        var response = await client.PostAsJsonAsync($"/api/directories/quotes/{quoteId}/respond", new { status = "accepted", amount = 110m, message = "Can attend tomorrow." });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var details = await client.PutAsJsonAsync($"/api/directories/providers/{slug}/business-details", new { weeklyHoursJson = "{\"monday\":\"08:00-17:00\"}", holidayClosuresJson = "[\"2026-12-25\"]", promotionsJson = "[{\"title\":\"Winter offer\"}]", accessibilityInfo = "Step-free entrance" });
+        Assert.Equal(HttpStatusCode.OK, details.StatusCode);
+        var insights = await client.GetFromJsonAsync<JsonElement>($"/api/directories/providers/{slug}/insights");
+        Assert.Equal(1, insights.GetProperty("quoteRequests").GetInt32());
+        Assert.Equal(1, insights.GetProperty("acceptedQuotes").GetInt32());
+        Assert.Equal(1, insights.GetProperty("reviews").GetInt32());
+        client.DefaultRequestHeaders.Authorization = null;
+        var publicProvider = await client.GetFromJsonAsync<JsonElement>($"/api/directories/providers/{slug}");
+        Assert.Equal("{\"monday\":\"08:00-17:00\"}", publicProvider.GetProperty("weeklyHoursJson").GetString());
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(requester, UserRole.Host));
+        Assert.Contains((await client.GetAsync($"/api/directories/providers/{slug}/insights")).StatusCode, new[] { HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized });
     }
 
     [Fact]
@@ -271,6 +347,10 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         var token = issued.GetProperty("token").GetString()!;
         Assert.True(token.Length >= 40);
 
+        var activeList = await client.GetFromJsonAsync<List<JsonElement>>("/api/access/qr");
+        Assert.NotNull(activeList);
+        Assert.Contains(activeList, item => item.GetProperty("id").GetGuid() == qrId);
+
         var wrongProperty = await client.PostAsJsonAsync("/api/access/qr/validate", new { token, propertyId = Guid.NewGuid() });
         Assert.Equal("WrongProperty", (await wrongProperty.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("result").GetString());
         var valid = await client.PostAsJsonAsync("/api/access/qr/validate", new { token, propertyId });
@@ -278,8 +358,11 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.True(validBody.GetProperty("valid").GetBoolean());
         Assert.Equal(bookingId, validBody.GetProperty("bookingId").GetGuid());
 
-        var revoke = await client.PostAsync($"/api/access/qr/{qrId}/revoke", null);
+        var revoke = await client.PostAsJsonAsync($"/api/access/qr/{qrId}/revoke", new { reason = "Guest cancelled trip" });
         Assert.Equal(HttpStatusCode.OK, revoke.StatusCode);
+        var history = await client.GetFromJsonAsync<List<JsonElement>>($"/api/access/qr/{qrId}/history");
+        Assert.NotNull(history);
+        Assert.Contains(history, item => item.GetProperty("eventType").GetString() == "Revoked" && item.GetProperty("reason").GetString() == "Guest cancelled trip");
         var rejected = await client.PostAsJsonAsync("/api/access/qr/validate", new { token, propertyId });
         Assert.Equal("Revoked", (await rejected.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("result").GetString());
     }

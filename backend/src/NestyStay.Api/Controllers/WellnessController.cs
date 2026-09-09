@@ -14,6 +14,7 @@ namespace NestyStay.Api.Controllers;
 [Route("api/wellness")]
 public sealed class WellnessController(
     IWellnessStore wellnessStore,
+    IWellnessEnhancementStore enhancementStore,
     IResourceAuthorizationService authorization,
     IPrivilegedAuditStore auditStore) : ControllerBase
 {
@@ -237,6 +238,24 @@ public sealed class WellnessController(
     }
 
     [Authorize]
+    [HttpPost("visits/{visitId:guid}/reschedule")]
+    public async Task<IActionResult> RescheduleVisit(Guid visitId, RescheduleWellnessVisitRequest request, CancellationToken cancellationToken)
+    {
+        var previous = await wellnessStore.GetVisitAsync(visitId, cancellationToken);
+        if (previous is null) return NotFound();
+        if (authorization.IsInRole(UserRole.Admin)) { }
+        else if (authorization.IsInRole(UserRole.Officer))
+        {
+            var officer = await wellnessStore.GetOfficerForUserAsync(authorization.RequireSignedInUser(), cancellationToken);
+            if (officer?.Id != previous.OfficerId) return Forbid();
+        }
+        else authorization.RequireHostOwner(previous.HostUserId);
+        var visit = await wellnessStore.RescheduleVisitAsync(visitId, request, cancellationToken);
+        await RecordVisitAuditAsync("WellnessVisitRescheduled", visitId, request.Reason ?? "Wellness visit rescheduled.", previous, visit, cancellationToken);
+        return visit is null ? NotFound() : Ok(visit);
+    }
+
+    [Authorize]
     [HttpPost("visits/{visitId:guid}/report/photos/uploads")]
     public async Task<IActionResult> PrepareReportPhotoUpload(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, CancellationToken cancellationToken) =>
         Ok(await PrepareOfficerResultAsync(visitId, request.OfficerBadgeNumber, () => wellnessStore.PrepareReportPhotoUploadAsync(visitId, request, adminOverride: false, cancellationToken), cancellationToken));
@@ -340,6 +359,98 @@ public sealed class WellnessController(
     [Authorize(Policy = AdminAuthorizationPolicies.FinancialReporting)]
     public async Task<IActionResult> GetAdminDashboard(CancellationToken cancellationToken) =>
         Ok(await wellnessStore.GetAdminDashboardAsync(cancellationToken));
+
+    [Authorize]
+    [HttpGet("officers/{officerId:guid}/documents")]
+    public async Task<IActionResult> GetOfficerDocuments(Guid officerId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await enhancementStore.ListOfficerDocumentsAsync(officerId, actor, authorization.IsInRole(UserRole.Admin), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("officers/{officerId:guid}/documents/uploads")]
+    public async Task<IActionResult> PrepareOfficerDocumentUpload(Guid officerId, PrepareWellnessOfficerDocumentUploadRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await enhancementStore.PrepareOfficerDocumentUploadAsync(officerId, actor, request, authorization.IsInRole(UserRole.Admin), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPut("officers/{officerId:guid}/documents/{documentId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    public async Task<IActionResult> UploadOfficerDocumentContent(Guid officerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await enhancementStore.UploadOfficerDocumentContentAsync(officerId, documentId, actor, Request.ContentType ?? string.Empty, Request.ContentLength ?? 0, Request.Body, authorization.IsInRole(UserRole.Admin), cancellationToken));
+    }
+
+    [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
+    [HttpPost("officers/documents/{documentId:guid}/review")]
+    public async Task<IActionResult> ReviewOfficerDocument(Guid documentId, ReviewWellnessOfficerDocumentRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return await enhancementStore.ReviewOfficerDocumentAsync(documentId, actor, request, cancellationToken) is { } document ? Ok(document) : NotFound();
+    }
+
+    [Authorize]
+    [HttpGet("report-templates")]
+    public async Task<IActionResult> GetReportTemplates([FromQuery] bool activeOnly, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.ListReportTemplatesAsync(activeOnly, cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.OfficerManagement)]
+    [HttpPost("report-templates")]
+    public async Task<IActionResult> SaveReportTemplate(SaveWellnessReportTemplateRequest request, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.SaveReportTemplateAsync(authorization.RequireSignedInUser(), request, cancellationToken));
+
+    [Authorize]
+    [HttpGet("reports/{reportId:guid}/collaboration")]
+    public async Task<IActionResult> GetReportCollaboration(Guid reportId, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.GetReportCollaborationAsync(reportId, authorization.RequireSignedInUser(), authorization.IsInRole(UserRole.Admin), cancellationToken));
+
+    [Authorize]
+    [HttpGet("reports/{reportId:guid}/pdf")]
+    public async Task<IActionResult> DownloadReportPdf(Guid reportId, CancellationToken cancellationToken)
+    {
+        var pdf = await enhancementStore.RenderReportPdfAsync(reportId, authorization.RequireSignedInUser(), authorization.IsInRole(UserRole.Admin), cancellationToken);
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
+    }
+
+    [Authorize]
+    [HttpPost("reports/{reportId:guid}/comments")]
+    public async Task<IActionResult> AddReportComment(Guid reportId, AddWellnessReportCommentRequest request, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.AddReportCommentAsync(reportId, authorization.RequireSignedInUser(), request, authorization.IsInRole(UserRole.Admin), cancellationToken));
+
+    [Authorize]
+    [HttpPost("reports/{reportId:guid}/acknowledge")]
+    public async Task<IActionResult> AcknowledgeReport(Guid reportId, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.AcknowledgeReportAsync(reportId, authorization.RequireSignedInUser(), cancellationToken));
+
+    [Authorize]
+    [HttpPost("reports/{reportId:guid}/follow-up")]
+    public async Task<IActionResult> CreateFollowUpTask(Guid reportId, CreateWellnessFollowUpTaskRequest request, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.CreateFollowUpTaskAsync(reportId, authorization.RequireSignedInUser(), request, authorization.IsInRole(UserRole.Admin), cancellationToken));
+
+    [Authorize]
+    [HttpGet("follow-up-tasks")]
+    public async Task<IActionResult> GetFollowUpTasks(CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.ListFollowUpTasksAsync(authorization.RequireSignedInUser(), authorization.IsInRole(UserRole.Admin), cancellationToken));
+
+    [Authorize]
+    [HttpGet("payouts/statement")]
+    public async Task<IActionResult> GetPayoutStatement([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string format = "json", CancellationToken cancellationToken = default) =>
+        Ok(await enhancementStore.GetPayoutStatementAsync(authorization.RequireSignedInUser(), authorization.IsInRole(UserRole.Admin), from, to, format, cancellationToken));
+
+    [Authorize]
+    [HttpPost("payouts/{payoutId:guid}/disputes")]
+    public async Task<IActionResult> CreatePayoutDispute(Guid payoutId, CreateWellnessPayoutDisputeRequest request, CancellationToken cancellationToken) =>
+        Ok(await enhancementStore.CreatePayoutDisputeAsync(payoutId, authorization.RequireSignedInUser(), request, cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.FinancialReporting)]
+    [HttpPost("payout-disputes/{disputeId:guid}/resolve")]
+    public async Task<IActionResult> ResolvePayoutDispute(Guid disputeId, ResolveWellnessPayoutDisputeRequest request, CancellationToken cancellationToken) =>
+        await enhancementStore.ResolvePayoutDisputeAsync(disputeId, authorization.RequireSignedInUser(), request, cancellationToken) is { } dispute ? Ok(dispute) : NotFound();
 
     private async Task RecordOfficerAuditAsync(
         string action,

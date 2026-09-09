@@ -124,7 +124,16 @@ public sealed record PropertyListingDto(
     bool InsuraGuestEnabled,
     string CancellationPolicy,
     IReadOnlyList<string> Highlights,
-    bool IsArchived = false);
+    bool IsArchived = false,
+    bool IsDraft = false);
+
+public sealed record PropertyRevisionDto(
+    Guid Id,
+    Guid PropertyId,
+    int Version,
+    string SnapshotJson,
+    DateTimeOffset CreatedAt,
+    Guid? CreatedByUserId);
 
 public sealed record CreatePropertyRequest(
     Guid HostUserId,

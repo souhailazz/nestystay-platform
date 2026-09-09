@@ -170,6 +170,22 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     }
   }
 
+  async function handleRequestPasswordless(e: FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    setNotice(null);
+    try {
+      await auth.requestPasswordlessLogin(email.trim());
+      setMode("passwordless-request");
+      showSuccess("If that email is registered, a secure sign-in link has been sent. It expires in 15 minutes.");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Could not send the sign-in link.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -410,6 +426,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
                 type="password"
                 value={password}
               />
+            </label>
               <button
                 className="inline-flex min-h-11 cursor-pointer items-center self-end border-none bg-transparent font-sans text-[12.5px] font-semibold text-deep-hover hover:text-deep"
                 onClick={() => {
@@ -420,10 +437,20 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               >
                 Forgot password?
               </button>
-            </label>
             {noticePanel}
             <button className={deepPill} disabled={loading} type="submit">
               {loading ? "Signing in…" : "Log in"} <span aria-hidden="true">→</span>
+            </button>
+            <button
+              className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-deep-hover hover:text-deep"
+              disabled={loading}
+              onClick={() => {
+                setMode("passwordless-request");
+                setNotice(null);
+              }}
+              type="button"
+            >
+              Email me a passwordless sign-in link
             </button>
             <button
               className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-gray-600 hover:text-deep-hover"
@@ -431,6 +458,41 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
               type="button"
             >
               Enable 2FA Authenticator (TOTP)
+            </button>
+          </form>
+        )}
+
+        {mode === "passwordless-request" && (
+          <form className={cardClass} onSubmit={handleRequestPasswordless}>
+            <h2 className="m-0 font-display text-[26px] font-medium">Sign in without a password</h2>
+            <p className="m-0 text-[13.5px] text-gray-600">
+              We&apos;ll email a single-use link to open your NestyStay session. Links expire after 15 minutes.
+            </p>
+            <label className="flex flex-col gap-1.5">
+              <span className={labelText}>Email</span>
+              <input
+                autoComplete="email"
+                className={inputClass}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                type="email"
+                value={email}
+              />
+            </label>
+            {noticePanel}
+            <button className={deepPill} disabled={loading || auth.isAuthBusy} type="submit">
+              {loading || auth.isAuthBusy ? "Sending…" : "Send secure link"} <span aria-hidden="true">→</span>
+            </button>
+            <button
+              className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-gray-600 hover:text-deep-hover"
+              onClick={() => {
+                setMode("login");
+                setNotice(null);
+              }}
+              type="button"
+            >
+              Back to password login
             </button>
           </form>
         )}

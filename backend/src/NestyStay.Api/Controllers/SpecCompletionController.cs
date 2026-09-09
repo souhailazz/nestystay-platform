@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NestyStay.Api.Auth;
 using NestyStay.Api.Configuration;
 using NestyStay.Application.Admin;
+using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Application.SpecCompletion;
 
@@ -13,10 +14,56 @@ namespace NestyStay.Api.Controllers;
 [Route("api/spec")]
 public sealed class SpecCompletionController(
     ISpecCompletionStore store,
+    IPhaseOneStore phaseOneStore,
+    IAccessTokenService accessTokenService,
     IResourceAuthorizationService authorization,
     IHostEnvironment environment,
     IConfiguration configuration) : ControllerBase
 {
+    [HttpPost("auth/passwordless/request")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> RequestPasswordlessLogin(
+        PasswordlessLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var flow = await store.StartAuthFlowAsync(
+            new StartAuthFlowRequest(null, "PasswordlessLogin", request.Email, ResolveRequesterIp()),
+            cancellationToken);
+        // Do not disclose whether an account exists. The random flow id is
+        // safe to return and is required by the development/test adapter.
+        return Ok(flow with { UserId = null, Message = "If that email is registered, a sign-in link has been sent." });
+    }
+
+    [HttpPost("auth/passwordless/complete")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<IActionResult> CompletePasswordlessLogin(
+        CompleteAuthFlowRequest request,
+        CancellationToken cancellationToken)
+    {
+        var flow = await store.CompleteAuthFlowAsync(request, cancellationToken);
+        if (!flow.FlowType.Equals("PasswordlessLogin", StringComparison.OrdinalIgnoreCase) || flow.UserId is null)
+        {
+            throw new InvalidOperationException("This authentication flow cannot create a session.");
+        }
+
+        var profile = await phaseOneStore.GetUserProfileAsync(flow.UserId.Value, cancellationToken);
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
+        var accessToken = accessTokenService.Issue(profile.UserId, profile.Roles, expiresAt);
+        if (SessionCookieAuth.IsCookieMode(Request))
+        {
+            SessionCookieAuth.Issue(Response, accessToken, expiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
+        }
+
+        var response = new PasswordlessLoginResponse(
+            profile.UserId,
+            profile.Email,
+            profile.DisplayName,
+            accessToken,
+            expiresAt,
+            profile.Roles);
+        return Ok(SessionCookieAuth.IsCookieMode(Request) ? response with { AccessToken = string.Empty } : response);
+    }
+
     [HttpPost("seed")]
     public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken)
     {
@@ -492,6 +539,22 @@ public sealed class SpecCompletionController(
         HttpContext.Connection.RemoteIpAddress?.ToString() ??
         Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
         "unknown";
+
+    private bool IsSecureCookie() =>
+        configuration.GetValue<bool?>("Security:SessionCookieSecure") ?? environment.IsProduction();
+
+    private string? ResolveCookieDomain() =>
+        configuration["Security:SessionCookieDomain"] ??
+        Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_DOMAIN");
+
+    private Microsoft.AspNetCore.Http.SameSiteMode ResolveCookieSameSite()
+    {
+        var configured = configuration["Security:SessionCookieSameSite"] ??
+                         Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_SAMESITE");
+        return Enum.TryParse<Microsoft.AspNetCore.Http.SameSiteMode>(configured, true, out var sameSite)
+            ? sameSite
+            : Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+    }
 
     private AuditActorContext AuditActor(string effectivePermission) => new(
         authorization.TryGetSignedInUser(),

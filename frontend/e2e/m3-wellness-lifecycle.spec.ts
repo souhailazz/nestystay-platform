@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 type Session = { userId: string; email: string; displayName: string; accessToken: string; expiresAt?: string; roles: string[]; permissions: string[] };
 const password = "NestyStay1";
@@ -119,8 +120,7 @@ async function createSession(api: APIRequestContext, role: "Guest" | "Host" | "O
 }
 
 async function installSession(page: Page, session: Session) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((value) => localStorage.setItem("nestyStay.session", JSON.stringify(value)), session);
+  await installCookieSession(page, session);
 }
 
 async function capture(page: Page, testInfo: { project: { name: string } }, name: string) {

@@ -82,12 +82,14 @@ public static class DependencyInjection
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
         services.AddScoped<IWellnessStore, EfWellnessStore>();
+        services.AddScoped<IWellnessEnhancementStore, EfWellnessEnhancementStore>();
         services.AddScoped<EfSpecCompletionStore>();
         services.AddScoped<ISpecCompletionStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
         services.AddScoped<IPrivilegedAuditStore>(provider => provider.GetRequiredService<EfSpecCompletionStore>());
         services.AddScoped<IProviderEventStore, EfProviderEventStore>();
         services.AddScoped<IQrAccessStore, EfQrAccessStore>();
         services.AddScoped<IDirectoryModerationStore, EfDirectoryModerationStore>();
+        services.AddScoped<IDirectoryEnhancementStore, EfDirectoryEnhancementStore>();
         services.AddScoped<IPropertyManagerStore, EfPropertyManagerStore>();
 
         return services;

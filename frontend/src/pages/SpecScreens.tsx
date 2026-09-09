@@ -44,7 +44,8 @@ import { PatoisToast } from "../components/ui/PatoisToast";
 import { EmblemRoundel, TierBadge, deepPatternBackground } from "../components/layout/PublicShell";
 import { StatusChip } from "../components/ui/StatusChip";
 import { useProperties } from "../hooks/useProperties";
-import { formatMoney } from "../lib/api";
+import { api, formatMoney, type TravelerNotification } from "../lib/api";
+import type { AuthController } from "../hooks/useAuth";
 import { usePatois } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
@@ -907,8 +908,18 @@ export function PendingReviewsPage() {
 }
 
 /** TRAV-NOTIF (DS v2) — notifications center with filters, unread markers and read controls. */
-export function NotificationsCenterPage() {
+export function NotificationsCenterPage({ auth }: { auth?: AuthController }) {
   type Notif = { id: string; icon: string; iconTone: string; title: string; body: string; category: string; time: string; unread: boolean };
+  const toNotification = (item: TravelerNotification): Notif => ({
+    id: item.id,
+    icon: item.type.toLowerCase().includes("payment") ? "$" : item.type.toLowerCase().includes("message") ? "✉" : "✓",
+    iconTone: item.type.toLowerCase().includes("payment") ? "bg-info-tint text-info-text" : item.type.toLowerCase().includes("message") ? "bg-amber-tint text-amber-text" : "bg-success-tint text-success-text",
+    title: item.title,
+    body: item.body,
+    category: item.type || "Updates",
+    time: new Date(item.createdAt).toLocaleString(),
+    unread: !item.isRead,
+  });
   const [items, setItems] = useState<Notif[]>([
     { id: "n1", icon: "✓", iconTone: "bg-success-tint text-success-text", title: "Booking confirmed", body: "Cliffside Retreat is locked in for Dec 12 – 18.", category: "Bookings", time: "2 min ago", unread: true },
     { id: "n2", icon: "$", iconTone: "bg-info-tint text-info-text", title: "Payment captured", body: "$2,970 charged to Visa ····4242 — receipt NST-2026-0148.", category: "Payments", time: "2 min ago", unread: true },
@@ -925,6 +936,26 @@ export function NotificationsCenterPage() {
       return { email: true, push: true, sms: false };
     }
   });
+  const [loading, setLoading] = useState(Boolean(auth?.session));
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const session = auth?.session;
+  useEffect(() => {
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+    void api.getTravelerWorkspace(session.userId, session.accessToken).then((workspace) => {
+      if (active) setItems(workspace.notifications.map(toNotification));
+    }).catch((caught) => {
+      if (active) setLoadError(caught instanceof Error ? caught.message : "Notifications could not be loaded.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [session?.accessToken, session?.userId]);
   const unreadCount = items.filter((n) => n.unread).length;
   const visible = items.filter((n) => {
     if (filter === "All") return true;
@@ -958,7 +989,10 @@ export function NotificationsCenterPage() {
             {tab}
           </button>
         ))}
+        {session && unreadCount > 0 && <Button onClick={() => { void api.markAllNotificationsRead(session.userId, session.accessToken).then(() => { setItems((all) => all.map((item) => ({ ...item, unread: false }))); announceFeedback("All notifications marked as read."); }).catch((caught) => announceFeedback(caught instanceof Error ? caught.message : "Could not mark notifications as read.", "error")); }} variant="outline">Mark all as read</Button>}
       </div>
+      {loading && <div className="loading-shimmer rounded-card p-5 text-center" role="status">Loading your notifications…</div>}
+      {loadError && <div className="notice-panel" role="alert">{loadError}</div>}
       <div className="overflow-hidden rounded-card border border-sand-border bg-cream">
         {visible.length === 0 && <div className="p-6 text-center text-[13.5px] text-gray-600">Nothing here — you&apos;re all caught up.</div>}
         {visible.map((n) => (
@@ -981,7 +1015,7 @@ export function NotificationsCenterPage() {
               {n.unread && (
                 <button
                   className="inline-flex min-h-8 cursor-pointer items-center border-none bg-transparent p-0 text-[11.5px] font-bold text-deep-hover hover:text-deep"
-                  onClick={() => setItems((all) => all.map((x) => (x.id === n.id ? { ...x, unread: false } : x)))}
+                  onClick={() => { if (session) void api.markNotificationRead(session.userId, n.id, session.accessToken).catch(() => undefined); setItems((all) => all.map((x) => (x.id === n.id ? { ...x, unread: false } : x))); }}
                   type="button"
                 >
                   Mark as read

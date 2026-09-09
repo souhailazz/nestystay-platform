@@ -1,4 +1,5 @@
 import { expect, request as playwrightRequest, test } from "@playwright/test";
+import { installCookieSession } from "./helpers/session";
 
 const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN ?? "test-admin-token";
 
@@ -15,9 +16,7 @@ test.beforeAll(async ({ baseURL }) => {
 });
 
 test("admin can search badge assignments and review expiry and audit surfaces", async ({ page }) => {
-  await page.addInitScript((value) => {
-    window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
-  }, {
+  await installCookieSession(page, {
     userId: "00000000-0000-0000-0000-000000000001",
     email: "client-admin@nestystay.local",
     displayName: "NestyStay Administrator",

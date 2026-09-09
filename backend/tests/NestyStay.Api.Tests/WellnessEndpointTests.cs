@@ -372,6 +372,38 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal("Paid", duplicate.Status);
     }
 
+    [Fact]
+    public async Task HostCanRescheduleWellnessVisitWithTimezoneAndConflictGuard()
+    {
+        using var client = _factory.CreateClient();
+        var hostUserId = Guid.NewGuid();
+        var property = await CreatePropertyAsync(client, hostUserId, "Wellness");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var officer = await OnboardOfficerAsync(client, "St. Ann");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var approve = await client.PostAsJsonAsync($"/api/wellness/officers/{officer.Id}/approve", new { reason = "Reschedule test" });
+        Assert.Equal(HttpStatusCode.OK, approve.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
+        var scheduledAt = DateTimeOffset.UtcNow.AddHours(2);
+        var create = await client.PostAsJsonAsync("/api/wellness/visits", new { hostUserId, propertyId = property.Id, visitType = "DriveByPatrol", scheduledAt, parish = "St. Ann", area = "Ocho Rios" });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        var visit = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var visitId = visit.GetProperty("id").GetGuid();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var assign = await client.PostAsJsonAsync($"/api/wellness/visits/{visitId}/assign", new { officerId = officer.Id });
+        Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(hostUserId, UserRole.Host));
+        var next = DateTimeOffset.UtcNow.AddHours(5);
+        var reschedule = await client.PostAsJsonAsync($"/api/wellness/visits/{visitId}/reschedule", new { scheduledAt = next, timeZone = "America/Jamaica", reason = "Guest arrival changed" });
+        Assert.Equal(HttpStatusCode.OK, reschedule.StatusCode);
+        var updated = await reschedule.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("America/Jamaica", updated.GetProperty("scheduledTimeZone").GetString());
+        Assert.Contains(updated.GetProperty("timeline").EnumerateArray().Select(item => item.GetString()), item => item?.Contains("rescheduled", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private static async Task<PropertyResponse> CreatePropertyAsync(HttpClient client, Guid hostUserId, string badgeLevel)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(

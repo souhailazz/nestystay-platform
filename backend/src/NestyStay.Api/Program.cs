@@ -15,19 +15,44 @@ var builder = WebApplication.CreateBuilder(args);
 
 ProductionIntegrationValidator.Validate(builder.Configuration, builder.Environment);
 
+var defaultCorsOrigins = new[]
+{
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "https://localhost:5174"
+};
+
+// A split deployment (for example app.example.com + api.example.com) cannot
+// use the old localhost-only policy.  Keep the local defaults, while allowing
+// the operator to provide an explicit comma-separated production allow-list.
+var configuredCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins")
+    .GetChildren()
+    .Select(child => child.Value)
+    .Concat((builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    .Concat((Environment.GetEnvironmentVariable("NESTYSTAY_CORS_ALLOWED_ORIGINS") ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin!.TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+var corsOrigins = configuredCorsOrigins.Length == 0 ? defaultCorsOrigins : configuredCorsOrigins;
+if (corsOrigins.Any(origin => origin == "*"))
+{
+    throw new InvalidOperationException("CORS credentials require explicit origins; wildcard origins are not allowed.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000",
-                "https://localhost:3000",
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "https://localhost:5173",
-                "http://localhost:5174",
-                "http://127.0.0.1:5174",
-                "https://localhost:5174")
+        policy.WithOrigins(corsOrigins)
             .AllowAnyHeader()
             .AllowCredentials()
             .AllowAnyMethod());

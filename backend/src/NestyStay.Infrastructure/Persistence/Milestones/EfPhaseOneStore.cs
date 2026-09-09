@@ -25,7 +25,7 @@ public sealed class EfPhaseOneStore(
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
     ISecretProtector? secretProtector = null,
     IStorageProvider? storageProvider = null,
-    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore
+    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -833,7 +833,7 @@ public sealed class EfPhaseOneStore(
             .AsNoTracking()
             .Where(property =>
                 !property.IsDeleted &&
-                !property.IsArchived &&
+                (hostUserId != null || (!property.IsArchived && !property.IsDraft)) &&
                 (hostUserId == null || property.HostUserId == hostUserId))
             .OrderBy(property => property.Title)
             .ToList()
@@ -846,7 +846,7 @@ public sealed class EfPhaseOneStore(
         EnsurePhaseOneSeeded();
         return db.MilestoneProperties
             .AsNoTracking()
-            .SingleOrDefault(property => property.Id == id && !property.IsDeleted && !property.IsArchived) is { } property
+            .SingleOrDefault(property => property.Id == id && !property.IsDeleted && !property.IsArchived && !property.IsDraft) is { } property
             ? ToListingDto(property)
             : null;
     }
@@ -877,6 +877,7 @@ public sealed class EfPhaseOneStore(
         };
 
         db.MilestoneProperties.Add(property);
+        await AddPropertyRevisionAsync(property, request.HostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return ToListingDto(property);
@@ -888,9 +889,11 @@ public sealed class EfPhaseOneStore(
 
         var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
         ApplyPropertyChanges(property, request);
+        property.IsDraft = false;
         property.UpdatedAt = timeProvider.GetUtcNow();
         property.UpdatedByUserId = hostUserId;
 
+        await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToListingDto(property);
     }
@@ -902,9 +905,205 @@ public sealed class EfPhaseOneStore(
         property.UpdatedAt = timeProvider.GetUtcNow();
         property.UpdatedByUserId = hostUserId;
 
+        await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToListingDto(property);
     }
+
+    public async Task<IReadOnlyList<PropertyListingDto>> BulkArchivePropertiesAsync(Guid hostUserId, IReadOnlyCollection<Guid> propertyIds, bool isArchived, CancellationToken cancellationToken)
+    {
+        if (propertyIds.Count == 0 || propertyIds.Count > 100)
+        {
+            throw new ArgumentException("Select between 1 and 100 properties.", nameof(propertyIds));
+        }
+
+        var distinctIds = propertyIds.Distinct().ToArray();
+        var properties = await db.MilestoneProperties
+            .Where(property => distinctIds.Contains(property.Id) && !property.IsDeleted && property.HostUserId == hostUserId)
+            .ToListAsync(cancellationToken);
+        if (properties.Count != distinctIds.Length)
+        {
+            throw new UnauthorizedAccessException("One or more properties are not available to this host.");
+        }
+
+        foreach (var property in properties)
+        {
+            property.IsArchived = isArchived;
+            property.UpdatedAt = timeProvider.GetUtcNow();
+            property.UpdatedByUserId = hostUserId;
+            await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return properties.Select(ToListingDto).ToList();
+    }
+
+    public async Task<PropertyListingDto> DuplicatePropertyAsync(Guid hostUserId, Guid propertyId, string? title, CancellationToken cancellationToken)
+    {
+        var source = await db.MilestoneProperties.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Property is not available to this host.");
+        var now = timeProvider.GetUtcNow();
+        var duplicate = new MilestoneProperty
+        {
+            Id = Guid.NewGuid(),
+            HostUserId = hostUserId,
+            HostName = source.HostName,
+            HostEmail = source.HostEmail,
+            Title = string.IsNullOrWhiteSpace(title) ? $"Copy of {source.Title}" : title.Trim(),
+            Location = source.Location,
+            Country = source.Country,
+            NightlyRate = source.NightlyRate,
+            Currency = source.Currency,
+            BadgeLevel = source.BadgeLevel,
+            GuestVerificationEnabled = source.GuestVerificationEnabled,
+            InsuraGuestEnabled = source.InsuraGuestEnabled,
+            CancellationPolicy = source.CancellationPolicy,
+            HighlightsJson = source.HighlightsJson,
+            IsDraft = true,
+            IsArchived = false,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedByUserId = hostUserId,
+            UpdatedByUserId = hostUserId
+        };
+        db.MilestoneProperties.Add(duplicate);
+        var photos = await db.MilestonePropertyPhotos.AsNoTracking()
+            .Where(photo => photo.PropertyId == propertyId && photo.HostUserId == hostUserId && !photo.IsDeleted && photo.Status == UploadStatusUploaded && photo.ScanStatus == ScanStatusClean)
+            .OrderBy(photo => photo.SortOrder)
+            .ToListAsync(cancellationToken);
+        foreach (var photo in photos)
+        {
+            db.MilestonePropertyPhotos.Add(new MilestonePropertyPhoto
+            {
+                Id = Guid.NewGuid(),
+                PropertyId = duplicate.Id,
+                HostUserId = hostUserId,
+                OriginalFileName = photo.OriginalFileName,
+                SafeFileName = photo.SafeFileName,
+                ContentType = photo.ContentType,
+                SizeBytes = photo.SizeBytes,
+                SortOrder = photo.SortOrder,
+                ObjectKey = photo.ObjectKey,
+                UploadUrl = photo.UploadUrl,
+                Status = photo.Status,
+                StorageProviderName = photo.StorageProviderName,
+                VerifiedContentType = photo.VerifiedContentType,
+                UploadedSizeBytes = photo.UploadedSizeBytes,
+                Sha256Hash = photo.Sha256Hash,
+                ScanStatus = photo.ScanStatus,
+                ScanProviderName = photo.ScanProviderName,
+                ScanCheckedAt = photo.ScanCheckedAt,
+                ThumbnailObjectKey = photo.ThumbnailObjectKey,
+                UploadExpiresAt = now.Add(PropertyPhotoUploadLifetime),
+                UploadedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedByUserId = hostUserId,
+                UpdatedByUserId = hostUserId
+            });
+        }
+        await AddPropertyRevisionAsync(duplicate, hostUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(duplicate);
+    }
+
+    public async Task<PropertyListingDto> PublishPropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        property.IsDraft = false;
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = hostUserId;
+        await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(property);
+    }
+
+    public async Task<IReadOnlyList<PropertyRevisionDto>> GetPropertyRevisionsAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        _ = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        return await db.MilestonePropertyRevisions.AsNoTracking()
+            .Where(item => item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted)
+            .OrderByDescending(item => item.Version)
+            .Select(item => new PropertyRevisionDto(item.Id, item.PropertyId, item.Version, item.SnapshotJson, item.CreatedAt, item.CreatedByUserId))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<PropertyListingDto> RestorePropertyRevisionAsync(Guid hostUserId, Guid propertyId, Guid revisionId, CancellationToken cancellationToken)
+    {
+        var property = await FindHostPropertyAsync(hostUserId, propertyId, cancellationToken);
+        var revision = await db.MilestonePropertyRevisions.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == revisionId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Property revision is not available to this host.");
+        var snapshot = MilestoneJson.Deserialize<PropertyRevisionSnapshot>(revision.SnapshotJson)
+            ?? throw new InvalidOperationException("Property revision snapshot is invalid.");
+
+        property.Title = snapshot.Title.Trim();
+        property.Location = snapshot.Location.Trim();
+        property.Country = string.IsNullOrWhiteSpace(snapshot.Country) ? "Jamaica" : snapshot.Country.Trim();
+        property.NightlyRate = decimal.Round(snapshot.NightlyRate, 2);
+        property.Currency = snapshot.Currency.Trim().ToUpperInvariant();
+        property.BadgeLevel = snapshot.BadgeLevel;
+        property.GuestVerificationEnabled = snapshot.GuestVerificationEnabled;
+        property.InsuraGuestEnabled = snapshot.InsuraGuestEnabled;
+        property.CancellationPolicy = snapshot.CancellationPolicy.Trim();
+        property.HighlightsJson = MilestoneJson.Serialize(snapshot.Highlights ?? []);
+        property.IsArchived = snapshot.IsArchived;
+        property.IsDraft = true;
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = hostUserId;
+        await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(property);
+    }
+
+    private async Task AddPropertyRevisionAsync(MilestoneProperty property, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var version = (await db.MilestonePropertyRevisions
+            .Where(item => item.PropertyId == property.Id)
+            .Select(item => (int?)item.Version)
+            .MaxAsync(cancellationToken) ?? 0) + 1;
+        db.MilestonePropertyRevisions.Add(new MilestonePropertyRevision
+        {
+            Id = Guid.NewGuid(),
+            PropertyId = property.Id,
+            HostUserId = property.HostUserId,
+            Version = version,
+            SnapshotJson = MilestoneJson.Serialize(new
+            {
+                property.Title,
+                property.Location,
+                property.Country,
+                property.NightlyRate,
+                property.Currency,
+                property.BadgeLevel,
+                property.GuestVerificationEnabled,
+                property.InsuraGuestEnabled,
+                property.CancellationPolicy,
+                Highlights = MilestoneJson.DeserializeList<string>(property.HighlightsJson),
+                property.IsArchived,
+                property.IsDraft
+            }),
+            CreatedAt = timeProvider.GetUtcNow(),
+            UpdatedAt = timeProvider.GetUtcNow(),
+            CreatedByUserId = actorUserId,
+            UpdatedByUserId = actorUserId
+        });
+    }
+
+    private sealed record PropertyRevisionSnapshot(
+        string Title,
+        string Location,
+        string Country,
+        decimal NightlyRate,
+        string Currency,
+        BadgeLevel BadgeLevel,
+        bool GuestVerificationEnabled,
+        bool InsuraGuestEnabled,
+        string CancellationPolicy,
+        IReadOnlyList<string>? Highlights,
+        bool IsArchived,
+        bool IsDraft);
 
     public async Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
     {
@@ -1926,7 +2125,8 @@ public sealed class EfPhaseOneStore(
             property.InsuraGuestEnabled,
             property.CancellationPolicy,
             MilestoneJson.DeserializeList<string>(property.HighlightsJson),
-            property.IsArchived);
+            property.IsArchived,
+            property.IsDraft);
 
     private static UserProfileDto ToProfileDto(MilestoneUser user, MilestoneUserProfilePhoto? photo) =>
         new(

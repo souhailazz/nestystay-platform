@@ -53,6 +53,7 @@ public sealed class EfSpecCompletionStore(
         ["application/pdf"] = [".pdf"]
     };
     private static readonly TimeSpan VerificationCodeLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan PasswordlessLoginLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan OwnerInvitationLifetime = TimeSpan.FromDays(7);
     private static readonly Guid SeedHostUserId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
@@ -613,6 +614,11 @@ public sealed class EfSpecCompletionStore(
         entity.Description = RequireText(request.Description, "Description");
         entity.AvailabilitySummary = RequireText(request.AvailabilitySummary, "Availability");
         entity.ContactMode = RequireText(request.ContactMode, "Contact mode");
+        if (request.ServiceRadiusKm is <= 0 or > 500) throw new InvalidOperationException("Service radius must be between 0 and 500 km.");
+        entity.ServicesJson = MilestoneJson.Serialize((request.Services ?? Array.Empty<string>()).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToArray());
+        entity.OpeningHours = string.IsNullOrWhiteSpace(request.OpeningHours) ? null : request.OpeningHours.Trim();
+        entity.EmergencyAvailable = request.EmergencyAvailable;
+        entity.ServiceRadiusKm = request.ServiceRadiusKm;
         entity.IsActive = request.IsActive;
         entity.Rating = entity.Rating == 0 ? 4.8m : entity.Rating;
         entity.ReviewCount = entity.ReviewCount == 0 ? 12 : entity.ReviewCount;
@@ -1475,16 +1481,24 @@ public sealed class EfSpecCompletionStore(
         var destination = RequireText(request.Destination, "Destination");
         var deliveryChannel = ResolveDeliveryChannel(flowType, destination);
         var normalizedDestination = NormalizeDestination(destination, deliveryChannel);
+        var flowUserId = request.UserId;
+        if (flowType.Equals("PasswordlessLogin", StringComparison.OrdinalIgnoreCase) && deliveryChannel == "Email")
+        {
+            flowUserId = await db.MilestoneUsers
+                .Where(item => !item.IsDeleted && item.NormalizedEmail == normalizedDestination)
+                .Select(item => (Guid?)item.Id)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
         var requestIpHash = HashOpaque(string.IsNullOrWhiteSpace(request.RequestIp) ? "unknown" : request.RequestIp.Trim());
         var now = timeProvider.GetUtcNow();
         var cooldownThreshold = now.Subtract(AuthFlowResendCooldown);
 
-        await EnforceAuthFlowRateLimitsAsync(request.UserId, normalizedDestination, requestIpHash, now, cancellationToken);
+        await EnforceAuthFlowRateLimitsAsync(flowUserId, normalizedDestination, requestIpHash, now, cancellationToken);
 
         var recentFlow = await db.MilestoneAuthFlows
             .Where(item =>
                 !item.IsDeleted &&
-                item.UserId == request.UserId &&
+                item.UserId == flowUserId &&
                 item.FlowType == flowType &&
                 item.NormalizedDestination == normalizedDestination &&
                 item.Status == AuthStatusPending)
@@ -1498,7 +1512,7 @@ public sealed class EfSpecCompletionStore(
                 "AuthFlow",
                 recentFlow.Id,
                 $"{flowType} request was throttled by resend cooldown.",
-                request.UserId,
+                flowUserId,
                 cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Please wait before requesting another verification code.");
@@ -1507,7 +1521,7 @@ public sealed class EfSpecCompletionStore(
         var pendingFlows = await db.MilestoneAuthFlows
             .Where(item =>
                 !item.IsDeleted &&
-                item.UserId == request.UserId &&
+                item.UserId == flowUserId &&
                 item.FlowType == flowType &&
                 item.NormalizedDestination == normalizedDestination &&
                 item.Status == AuthStatusPending)
@@ -1525,13 +1539,13 @@ public sealed class EfSpecCompletionStore(
         var flow = new MilestoneAuthFlow
         {
             Id = Guid.NewGuid(),
-            UserId = request.UserId,
+            UserId = flowUserId,
             FlowType = flowType,
             Destination = NormalizeDisplayDestination(destination, deliveryChannel),
             NormalizedDestination = normalizedDestination,
             DestinationHash = HashOpaque(normalizedDestination),
-            CodeHash = HashBoundSecret(flowType, request.UserId, normalizedDestination, code, salt),
-            TokenHash = HashBoundSecret(flowType, request.UserId, normalizedDestination, token, salt),
+            CodeHash = HashBoundSecret(flowType, flowUserId, normalizedDestination, code, salt),
+            TokenHash = HashBoundSecret(flowType, flowUserId, normalizedDestination, token, salt),
             SecretSalt = Convert.ToBase64String(salt),
             Status = AuthStatusPending,
             DeliveryChannel = deliveryChannel,
@@ -1540,7 +1554,9 @@ public sealed class EfSpecCompletionStore(
                 ? PasswordResetLifetime
                 : flowType.Equals("OwnerInvitation", StringComparison.OrdinalIgnoreCase)
                     ? OwnerInvitationLifetime
-                    : VerificationCodeLifetime),
+                    : flowType.Equals("PasswordlessLogin", StringComparison.OrdinalIgnoreCase)
+                        ? PasswordlessLoginLifetime
+                        : VerificationCodeLifetime),
             LastSentAt = now
         };
 
@@ -1554,7 +1570,7 @@ public sealed class EfSpecCompletionStore(
             flow.ExpiresAt,
             now));
         await SendAuthFlowAsync(flow, code, token, cancellationToken);
-        await AddAuditAsync("AuthFlowStarted", "AuthFlow", flow.Id, $"{flowType} code delivered by {deliveryChannel}.", request.UserId, cancellationToken);
+        await AddAuditAsync("AuthFlowStarted", "AuthFlow", flow.Id, $"{flowType} code delivered by {deliveryChannel}.", flowUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(flow);
     }
@@ -2490,6 +2506,7 @@ public sealed class EfSpecCompletionStore(
     {
         var purpose = flow.FlowType switch
         {
+            "PasswordlessLogin" => "passwordless sign-in",
             "PasswordReset" => "password reset",
             "OwnerInvitation" => "owner invitation",
             "PhoneVerification" => "phone verification",
@@ -2512,6 +2529,7 @@ public sealed class EfSpecCompletionStore(
         var appUrl = (configuration["PublicAppUrl"] ?? Environment.GetEnvironmentVariable("PUBLIC_APP_URL") ?? "http://localhost:5173").TrimEnd('/');
         var (templateKey, actionUrl) = flow.FlowType switch
         {
+            "PasswordlessLogin" => ("passwordless-login", $"{appUrl}/auth/passwordless?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}"),
             "PasswordReset" => ("password-reset", $"{appUrl}/auth/reset-password?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}"),
             "OwnerInvitation" => ("owner-invitation", $"{appUrl}/owner/invitation?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}"),
             _ => ("auth-code", $"{appUrl}/auth/email-verification?flowId={flow.Id:N}&token={Uri.EscapeDataString(token)}")
@@ -2544,6 +2562,7 @@ public sealed class EfSpecCompletionStore(
         return normalized.ToLowerInvariant() switch
         {
             "email" or "emailverification" => "EmailVerification",
+            "passwordless" or "magiclink" or "passwordlesslogin" or "magiclogin" => "PasswordlessLogin",
             "phone" or "phoneverification" => "PhoneVerification",
             "otp" or "onetimepasscode" => "OneTimePasscode",
             "forgot" or "reset" or "passwordreset" or "resetpassword" => "PasswordReset",
@@ -2667,7 +2686,7 @@ public sealed class EfSpecCompletionStore(
     private static IdentityDocumentDto ToDto(MilestoneIdentityDocumentUpload item) => new(item.IdentityDocumentId ?? item.Id, item.UserId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt ?? item.UpdatedAt, string.IsNullOrWhiteSpace(item.IssuingCountry) ? null : item.IssuingCountry, item.ExpiresOn);
     private static ReviewDto ToDto(MilestoneReview item) => new(item.Id, item.UserId, item.PropertyId, item.BookingId, item.SubjectTitle, item.Rating, item.Text, item.Status, item.HostReply, item.CreatedAt, item.EditableUntil);
     private static TravelerNotificationDto ToDto(MilestoneTravelerNotification item) => new(item.Id, item.UserId, item.Type, item.Title, item.Body, item.DeepLink, item.IsRead, item.CreatedAt, item.ReadAt);
-    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive, item.VerificationStatus, item.Status, item.IsBrickAndMortar, item.Kind.Equals("Police", StringComparison.OrdinalIgnoreCase) ? item.PoliceBadgeNumber : null);
+    private static DirectoryProviderDto ToDto(MilestoneDirectoryProvider item) => new(item.Id, item.OwnerUserId, item.Slug, item.Kind, item.Category, item.Name, item.Parish, item.BadgeLevel, item.Description, item.AvailabilitySummary, item.ContactMode, item.Rating, item.ReviewCount, item.IsActive, item.VerificationStatus, item.Status, item.IsBrickAndMortar, item.Kind.Equals("Police", StringComparison.OrdinalIgnoreCase) ? item.PoliceBadgeNumber : null, MilestoneJson.DeserializeList<string>(item.ServicesJson), item.OpeningHours, item.EmergencyAvailable, item.ServiceRadiusKm);
     private static ConversationParticipantDto ToDto(MilestoneConversationParticipant item) => new(item.UserId, item.DisplayName, item.Role, item.LastReadAt, item.OnlineStatus);
     private static AttachmentUploadDto ToUploadDto(MilestoneMessageAttachment item) => new(
         item.Id,

@@ -84,6 +84,7 @@ public static class DependencyInjection
         public Task<WellnessReportDto?> GetReportAsync(Guid visitId, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> AssignOfficerAsync(Guid visitId, AssignOfficerRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> CancelVisitAsync(Guid visitId, CancelWellnessVisitRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
+        public Task<WellnessVisitDto?> RescheduleVisitAsync(Guid visitId, RescheduleWellnessVisitRequest request, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessReportPhotoUploadDto> PrepareReportPhotoUploadAsync(Guid visitId, PrepareWellnessReportPhotoUploadRequest request, bool adminOverride, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessReportPhotoUploadDto> UploadReportPhotoContentAsync(Guid visitId, Guid photoId, string officerBadgeNumber, string contentType, long sizeBytes, Stream content, bool adminOverride, CancellationToken cancellationToken) => throw MissingInfrastructure();
         public Task<WellnessVisitDto?> SubmitReportAsync(Guid visitId, SubmitWellnessReportRequest request, bool adminOverride, CancellationToken cancellationToken) => throw MissingInfrastructure();
