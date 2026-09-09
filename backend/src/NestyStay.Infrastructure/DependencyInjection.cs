@@ -104,7 +104,7 @@ public static class DependencyInjection
     }
 }
 
-internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycProvider, IEkycResultProvider
+internal sealed class AlibabaEkycProvider(IConfiguration configuration, IHostEnvironment environment) : IEkycProvider, IEkycResultProvider
 {
     private const string DefaultRegion = "ap-southeast-1";
     private const string DefaultEndpoint = "cloudauth-intl.ap-southeast-1.aliyuncs.com";
@@ -117,6 +117,13 @@ internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycP
     public async Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken)
     {
         var merchantBizId = RequireValue(request.MerchantBizId, "merchant business id");
+        if (!environment.IsProduction() &&
+            string.IsNullOrWhiteSpace(ResolveSetting("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID")) &&
+            string.IsNullOrWhiteSpace(ResolveSetting("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET")))
+        {
+            return CreateDevelopmentResult(request, merchantBizId);
+        }
+
         var callbackUrl = ResolveCallbackUrl(request, merchantBizId);
         var returnUrl = RequireHttpsUrl(
             ResolveSetting("Integrations:AlibabaEkycReturnUrl", "ALIBABA_EKYC_RETURN_URL"),
@@ -209,6 +216,26 @@ internal sealed class AlibabaEkycProvider(IConfiguration configuration) : IEkycP
         };
 
         return new EkycCheckResult(ProviderName, status, transactionId, body.Result.SubCode);
+    }
+
+    private EkycStartResult CreateDevelopmentResult(EkycStartRequest request, string merchantBizId)
+    {
+        var transactionId = $"aliyun_ekyc_dev_{merchantBizId[..Math.Min(merchantBizId.Length, 24)]}";
+        var transactionUrl =
+            $"https://ekyc.alibaba-cloud.local/start?transactionId={Uri.EscapeDataString(transactionId)}&merchantBizId={Uri.EscapeDataString(merchantBizId)}";
+        var clientPayload = JsonSerializer.Serialize(new
+        {
+            productCode = DefaultProductCode,
+            documentType = NormalizeDocumentType(request.DocumentType),
+            mode = "development"
+        });
+
+        return new EkycStartResult(
+            ProviderName,
+            VerificationStatus.Pending,
+            transactionId,
+            transactionUrl,
+            clientPayload);
     }
 
     private AlibabaCloudauthClient CreateClient()
