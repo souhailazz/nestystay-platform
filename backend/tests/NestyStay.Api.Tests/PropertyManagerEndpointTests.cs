@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -161,13 +163,16 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         var managerId = Guid.NewGuid();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(managerId, UserRole.PropertyManager));
         var bytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\nstatement\n");
+        var expiresOn = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(6));
         var response = await client.PostAsJsonAsync("/api/property-manager/documents", new
         {
             title = "Annual statement", category = "Finance", fileName = "statement.pdf", contentType = "application/pdf",
-            sizeBytes = bytes.Length, contentBase64 = Convert.ToBase64String(bytes)
+            sizeBytes = bytes.Length, contentBase64 = Convert.ToBase64String(bytes), expiresOn = expiresOn.ToString("yyyy-MM-dd")
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var documentId = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var createdDocument = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var documentId = createdDocument.GetProperty("id").GetGuid();
+        Assert.Equal(expiresOn, DateOnly.Parse(createdDocument.GetProperty("expiresOn").GetString()!));
 
         var download = await client.GetAsync($"/api/property-manager/documents/{documentId}/download");
         Assert.Equal(HttpStatusCode.OK, download.StatusCode);
@@ -175,9 +180,148 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         Assert.Equal(documentId, body.GetProperty("id").GetGuid());
         Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("url").GetString()));
 
+        var exportResponse = await client.PostAsJsonAsync("/api/property-manager/documents/exports", new { documentIds = new[] { documentId } });
+        Assert.Equal(HttpStatusCode.OK, exportResponse.StatusCode);
+        var export = await exportResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var exportId = export.GetProperty("id").GetGuid();
+        var exportService = factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NestyStay.Api.Services.PropertyManagerDocumentExportService>().Single();
+        _ = await exportService.ProcessOneAsync();
+        JsonElement exportState = default;
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var stateResponse = await client.GetAsync($"/api/property-manager/documents/exports/{exportId}");
+            exportState = await stateResponse.Content.ReadFromJsonAsync<JsonElement>();
+            if (exportState.GetProperty("status").GetString() is "COMPLETED" or "FAILED") break;
+            await Task.Delay(25);
+        }
+        Assert.Equal("COMPLETED", exportState.GetProperty("status").GetString());
+        var exportDownload = await client.GetAsync($"/api/property-manager/documents/exports/{exportId}/download");
+        Assert.Equal(HttpStatusCode.OK, exportDownload.StatusCode);
+        Assert.Equal("application/zip", exportDownload.Content.Headers.ContentType?.MediaType);
+        var archiveBytes = await exportDownload.Content.ReadAsByteArrayAsync();
+        Assert.True(archiveBytes.Length > 4 && archiveBytes[0] == (byte)'P' && archiveBytes[1] == (byte)'K');
+
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(Guid.NewGuid(), UserRole.Owner));
         var denied = await client.GetAsync($"/api/property-manager/documents/{documentId}/download");
         Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
+    }
+
+    [Fact]
+    public async Task ManagerDocumentExpiryReminderIsQueuedIdempotently()
+    {
+        using var client = factory.CreateClient();
+        var email = $"expiry-manager-{Guid.NewGuid():N}@nestystay.local";
+        var registration = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email, password = "NestyStay1", confirmPassword = "NestyStay1", displayName = "Expiry manager",
+            phone = "+15550104111", acceptedTerms = true, acceptedPrivacy = true, role = "PropertyManager"
+        });
+        Assert.Equal(HttpStatusCode.OK, registration.StatusCode);
+        var managerId = (await registration.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("userId").GetGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(managerId, UserRole.PropertyManager));
+        var bytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\nexpiry\n");
+        var expiresOn = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7));
+        var document = await client.PostAsJsonAsync("/api/property-manager/documents", new
+        {
+            title = "Insurance certificate", category = "Compliance", fileName = "insurance.pdf", contentType = "application/pdf",
+            sizeBytes = bytes.Length, contentBase64 = Convert.ToBase64String(bytes), expiresOn = expiresOn.ToString("yyyy-MM-dd")
+        });
+        Assert.Equal(HttpStatusCode.OK, document.StatusCode);
+
+        var reminderService = factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NestyStay.Api.Services.PropertyManagerDocumentExpiryService>().Single();
+        Assert.Equal(1, await reminderService.RunOnceAsync());
+        Assert.Equal(0, await reminderService.RunOnceAsync());
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NestyStay.Infrastructure.Persistence.NestyStayDbContext>();
+        Assert.Contains(await db.NotificationQueue.Where(item => item.Channel == "Email" && item.IdempotencyKey != null && item.IdempotencyKey.StartsWith("pm-document-expiry:")).ToListAsync(), item => item.Recipient == email);
+    }
+
+    [Fact]
+    public async Task ManagerSubscriptionLifecyclePersistsStateEventsAndPlanLimit()
+    {
+        using var client = factory.CreateClient();
+        var managerId = Guid.NewGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(managerId, UserRole.PropertyManager));
+
+        var initial = await client.GetFromJsonAsync<JsonElement>("/api/property-manager/dashboard");
+        Assert.Equal("Portfolio", initial.GetProperty("manager").GetProperty("subscriptionTier").GetString());
+        Assert.True(initial.GetProperty("manager").GetProperty("autoRenew").GetBoolean());
+        Assert.Equal("LOCAL_TEST_READY", initial.GetProperty("manager").GetProperty("billingProviderStatus").GetString());
+
+        var downgrade = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new
+        {
+            action = "DOWNGRADE", targetTier = "Standard", reason = "Reduce portfolio size"
+        });
+        Assert.Equal(HttpStatusCode.OK, downgrade.StatusCode);
+        var scheduled = await downgrade.Content.ReadFromJsonAsync<JsonElement>();
+        var scheduledManager = scheduled;
+        Assert.Equal("Portfolio", scheduledManager.GetProperty("subscriptionTier").GetString());
+        Assert.Equal("Standard", scheduledManager.GetProperty("pendingSubscriptionTier").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(scheduledManager.GetProperty("pendingSubscriptionEffectiveAt").GetString()));
+        Assert.Equal(0, scheduledManager.GetProperty("unitsUsed").GetInt32());
+        Assert.Equal(JsonValueKind.Null, scheduledManager.GetProperty("unitLimit").ValueKind);
+
+        var disableAutoRenew = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new
+        {
+            action = "AUTO_RENEW", autoRenew = false, reason = "Pause at term end"
+        });
+        Assert.Equal(HttpStatusCode.OK, disableAutoRenew.StatusCode);
+        Assert.False((await disableAutoRenew.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("autoRenew").GetBoolean());
+
+        var paused = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new { action = "PAUSE", reason = "Seasonal pause" });
+        Assert.Equal(HttpStatusCode.OK, paused.StatusCode);
+        Assert.Equal("PAUSED", (await paused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("subscriptionStatus").GetString());
+
+        var resumed = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new { action = "RESUME", reason = "Operations resumed" });
+        Assert.Equal(HttpStatusCode.OK, resumed.StatusCode);
+        Assert.Equal("ACTIVE", (await resumed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("subscriptionStatus").GetString());
+
+        var cancelled = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new { action = "CANCEL", reason = "Moving to another provider" });
+        Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);
+        var cancelledManager = await cancelled.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("CANCELLED", cancelledManager.GetProperty("subscriptionStatus").GetString());
+        Assert.Equal("Moving to another provider", cancelledManager.GetProperty("cancellationReason").GetString());
+        Assert.False(cancelledManager.GetProperty("autoRenew").GetBoolean());
+
+        var reactivated = await client.PostAsJsonAsync("/api/property-manager/subscription/change", new { action = "REACTIVATE", reason = "Keep portfolio active" });
+        Assert.Equal(HttpStatusCode.OK, reactivated.StatusCode);
+        var reactivatedManager = await reactivated.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("ACTIVE", reactivatedManager.GetProperty("subscriptionStatus").GetString());
+        Assert.True(reactivatedManager.GetProperty("autoRenew").GetBoolean());
+        Assert.Equal("LOCAL_TEST_READY", reactivatedManager.GetProperty("billingProviderStatus").GetString());
+
+        var retry = await client.PostAsync("/api/property-manager/subscription/payment-retry", null);
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        var retryEvent = await retry.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("PAYMENT_RETRY", retryEvent.GetProperty("eventType").GetString());
+        Assert.Equal("RETRY_QUEUED", retryEvent.GetProperty("status").GetString());
+
+        var dashboard = await client.GetFromJsonAsync<JsonElement>("/api/property-manager/dashboard");
+        Assert.Equal("RETRY_QUEUED", dashboard.GetProperty("manager").GetProperty("billingProviderStatus").GetString());
+        var events = await client.GetFromJsonAsync<JsonElement[]>("/api/property-manager/subscription/events");
+        Assert.NotNull(events);
+        Assert.Contains(events!, item => item.GetProperty("eventType").GetString() == "DOWNGRADE" && item.GetProperty("status").GetString() == "SCHEDULED");
+        Assert.Contains(events!, item => item.GetProperty("eventType").GetString() == "PAYMENT_RETRY");
+        Assert.Contains(events!, item => item.GetProperty("eventType").GetString() == "REACTIVATE");
+
+        // Move the scheduled change into the past and exercise the same worker
+        // that runs in production, rather than relying only on a dashboard read.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<NestyStay.Infrastructure.Persistence.NestyStayDbContext>();
+            var row = await db.MilestonePropertyManagers.SingleAsync(item => item.ManagerUserId == managerId);
+            row.PendingSubscriptionTier = "Standard";
+            row.PendingSubscriptionEffectiveAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+            row.AutoRenew = true;
+            await db.SaveChangesAsync();
+        }
+        var subscriptionWorker = factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NestyStay.Api.Services.PropertyManagerSubscriptionMaintenanceService>().Single();
+        Assert.Equal(1, await subscriptionWorker.RunOnceAsync());
+        var appliedDashboard = await client.GetFromJsonAsync<JsonElement>("/api/property-manager/dashboard");
+        Assert.Equal("Standard", appliedDashboard.GetProperty("manager").GetProperty("subscriptionTier").GetString());
+        Assert.Equal(JsonValueKind.Null, appliedDashboard.GetProperty("manager").GetProperty("pendingSubscriptionTier").ValueKind);
+        var appliedEvents = await client.GetFromJsonAsync<JsonElement[]>("/api/property-manager/subscription/events");
+        Assert.Contains(appliedEvents!, item => item.GetProperty("eventType").GetString() == "DOWNGRADE_APPLIED");
     }
 
     [Fact]

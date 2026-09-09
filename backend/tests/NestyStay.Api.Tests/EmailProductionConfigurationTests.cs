@@ -54,7 +54,15 @@ public sealed class EmailProductionConfigurationTests
             ["Webhooks:StripeSigningSecret"] = "production-stripe-webhook-secret",
             ["Integrations:StripeSecretKey"] = "production-stripe-secret-key",
             ["Integrations:StripePublishableKey"] = "production-stripe-publishable-key",
-            ["Integrations:AlibabaEkycTransactionUrlBase"] = "https://ekyc.provider.invalid",
+            ["Integrations:AlibabaCloudAccessKeyId"] = "ram-access-key-id",
+            ["Integrations:AlibabaCloudAccessKeySecret"] = "ram-access-key-secret",
+            ["Integrations:AlibabaEkycRegion"] = "ap-southeast-1",
+            ["Integrations:AlibabaEkycEndpoint"] = "cloudauth-intl.ap-southeast-1.aliyuncs.com",
+            ["Integrations:AlibabaEkycProductCode"] = "eKYC_PRO",
+            ["Integrations:AlibabaEkycSceneCode"] = "NESTYWEB",
+            ["Integrations:AlibabaEkycCallbackUrl"] = "https://api.example.test/api/webhooks/alibaba-ekyc/callback",
+            ["Integrations:AlibabaEkycReturnUrl"] = "https://app.example.test/ekyc/complete",
+            ["Integrations:AlibabaEkycCallbackToken"] = "callback-token",
             ["Integrations:InsuraGuestApiBaseUrl"] = "https://insurance.provider.invalid"
         };
         foreach (var (key, value) in overrides) values[key] = value;
