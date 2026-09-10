@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NestyStay.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NestyStay.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NestyStayDbContext))]
-    partial class NestyStayDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909235056_AddPropertyManagerP0Model")]
+    partial class AddPropertyManagerP0Model
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -12440,9 +12443,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("ManagerUserId", "IdempotencyKey")
                         .IsUnique();
 
-                    b.HasIndex("ManagerUserId", "ReversalOfJournalId")
-                        .IsUnique();
-
                     b.HasIndex("ManagerUserId", "AccountingDate", "Currency");
 
                     b.ToTable("milestone_p0_journal");
@@ -12882,12 +12882,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("billing_address");
 
-                    b.Property<string>("BillingMetadataJson")
-                        .IsRequired()
-                        .HasMaxLength(20000)
-                        .HasColumnType("jsonb")
-                        .HasColumnName("billing_metadata_json");
-
                     b.Property<string>("ContactEmail")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -12937,11 +12931,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
-
-                    b.Property<string>("PaymentProviderCustomerReference")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("payment_provider_customer_reference");
 
                     b.Property<string>("PreferredCurrency")
                         .IsRequired()
@@ -13096,8 +13085,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("OwnerUserId");
 
@@ -13549,11 +13536,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("finalized_by_user_id");
 
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("idempotency_key");
-
                     b.Property<decimal>("Income")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -13628,9 +13610,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.HasIndex("PropertyId");
-
-                    b.HasIndex("ManagerUserId", "IdempotencyKey")
-                        .IsUnique();
 
                     b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Currency", "PeriodFrom", "PeriodTo")
                         .IsUnique();
@@ -17115,11 +17094,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
                         .WithMany()
                         .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)

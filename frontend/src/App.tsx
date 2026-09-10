@@ -32,9 +32,11 @@ const PropertyDetailsPage = lazy(() => import("./pages/ProductPages").then(({ Pr
 const PropertyManagementPage = lazy(() => import("./pages/ProductPages").then(({ PropertyManagementPage }) => ({ default: PropertyManagementPage })));
 
 const OwnerPortalPage = lazy(() => import("./pages/PropertyManagerPages").then(({ OwnerPortalPage }) => ({ default: OwnerPortalPage })));
+const OwnerP0PortalPage = lazy(() => import("./pages/OwnerP0PortalPage").then(({ default: page }) => ({ default: page })));
 const PropertyManagerDashboardPage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerDashboardPage }) => ({ default: PropertyManagerDashboardPage })));
 const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerGatePage }) => ({ default: PropertyManagerGatePage })));
 const PropertyManagerPmsPage = lazy(() => import("./pages/PropertyManagerPmsPage").then(({ PropertyManagerPmsPage }) => ({ default: PropertyManagerPmsPage })));
+const PropertyManagerP0Page = lazy(() => import("./pages/PropertyManagerP0Page").then(({ default: page }) => ({ default: page })));
 
 const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
 const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
@@ -127,6 +129,7 @@ type Route =
   | { name: "host-reports" }
   | { name: "pm-gates" }
   | { name: "pm-dashboard" }
+  | { name: "pm-p0" }
   | { name: "pm-invoices" }
   | { name: "pm-maintenance" }
   | { name: "pm-governance" }
@@ -143,6 +146,7 @@ type Route =
   | { name: "pm-inspections" }
   | { name: "pm-cleaning" }
   | { name: "owner-dashboard" }
+  | { name: "owner-p0" }
   | { name: "pm-gate" }
   | { name: "pm-utilities" }
   | { name: "pm-verification" }
@@ -260,6 +264,7 @@ function parseRoute(): Route {
   if (path === "/host/reports") return { name: "host-reports" };
   if (path === "/pm/gates") return { name: "pm-gates" };
   if (path === "/pm/dashboard") return { name: "pm-dashboard" };
+  if (path === "/pm/p0" || path === "/pm/finance") return { name: "pm-p0" };
   if (path === "/pm/invoices") return { name: "pm-invoices" };
   if (path === "/pm/maintenance") return { name: "pm-maintenance" };
   if (path === "/pm/governance") return { name: "pm-governance" };
@@ -276,6 +281,7 @@ function parseRoute(): Route {
   if (path === "/pm/inspections") return { name: "pm-inspections" };
   if (path === "/pm/cleaning") return { name: "pm-cleaning" };
   if (path === "/owner/dashboard") return { name: "owner-dashboard" };
+  if (path === "/owner/p0") return { name: "owner-p0" };
   if (path === "/gate") return { name: "pm-gate" };
   if (path === "/pm/utilities") return { name: "pm-utilities" };
   if (path === "/pm/verification") return { name: "pm-verification" };
@@ -512,11 +518,13 @@ function isWorkspaceRoute(route: Route) {
     "host-reports",
     "pm-gates",
     "pm-dashboard",
+    "pm-p0",
     "pm-invoices",
     "pm-maintenance",
     "pm-governance",
     "pm-documents",
     "owner-dashboard",
+    "owner-p0",
     "pm-gate",
     "pm-utilities",
     "pm-verification",
@@ -878,6 +886,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PropertyManagerPmsPage auth={auth} module="gates" />;
     case "pm-dashboard":
       return <PropertyManagerDashboardPage auth={auth} />;
+    case "pm-p0":
+      return <PropertyManagerP0Page auth={auth} />;
     case "pm-invoices":
       return <PropertyManagerPmsPage auth={auth} module="invoices" />;
     case "pm-maintenance":
@@ -888,6 +898,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PropertyManagerPmsPage auth={auth} module="documents" />;
     case "owner-dashboard":
       return <OwnerPortalPage auth={auth} />;
+    case "owner-p0":
+      return <OwnerP0PortalPage auth={auth} />;
     case "pm-gate":
       return <PropertyManagerGatePage auth={auth} />;
     case "pm-utilities":
@@ -909,11 +921,11 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "pm-work-orders":
       return <PropertyManagerPmsPage auth={auth} module="work-orders" />;
     case "pm-agreements":
-      return <PropertyManagerPmsPage auth={auth} module="agreements" />;
+      return <PropertyManagerP0Page auth={auth} />;
     case "pm-approvals":
-      return <PropertyManagerPmsPage auth={auth} module="approvals" />;
+      return <PropertyManagerP0Page auth={auth} />;
     case "pm-team":
-      return <PropertyManagerPmsPage auth={auth} module="team" />;
+      return <PropertyManagerP0Page auth={auth} />;
     case "pm-inspections":
       return <PropertyManagerPmsPage auth={auth} module="inspections" />;
     case "pm-cleaning":
