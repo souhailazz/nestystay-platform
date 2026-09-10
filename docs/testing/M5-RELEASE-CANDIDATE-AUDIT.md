@@ -67,5 +67,4 @@ M5 is **not yet a professional/deployable PMS**: the money foundation is locally
 
 - Backend (`codex/pm-p0-money-authority`): `9aa66883e194ad5dc1d469e635740c2307eec5ec` (prior release `310ab47`; inspection/evidence hardening in `9aa6688`).
 - Frontend (`codex/pm-p0-money-authority`): `3288ccd052d754ef9fabc85cc082db7a126fb028` (maintenance evidence and inspection checklist UI/API client).
-- Root/evidence (`codex/pm-p0-money-authority-root`): `769cb88385968d0cb0e0055fc805698cc829b4f5`.
 - Generated browser screenshots/reports and runtime evidence were intentionally excluded from the commits.
