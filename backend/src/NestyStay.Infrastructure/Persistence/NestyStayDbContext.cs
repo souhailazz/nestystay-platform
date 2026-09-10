@@ -275,6 +275,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneP0StaffEvent> MilestoneP0StaffEvents => Set<MilestoneP0StaffEvent>();
     public DbSet<MilestonePmOwnerBlock> MilestonePmOwnerBlocks => Set<MilestonePmOwnerBlock>();
     public DbSet<MilestonePmReservationNote> MilestonePmReservationNotes => Set<MilestonePmReservationNote>();
+    public DbSet<MilestonePmReservationEvent> MilestonePmReservationEvents => Set<MilestonePmReservationEvent>();
     public DbSet<MilestonePmMaintenanceCase> MilestonePmMaintenanceCases => Set<MilestonePmMaintenanceCase>();
     public DbSet<MilestonePmMaintenanceQuote> MilestonePmMaintenanceQuotes => Set<MilestonePmMaintenanceQuote>();
     public DbSet<MilestonePmMaintenanceEvent> MilestonePmMaintenanceEvents => Set<MilestonePmMaintenanceEvent>();
@@ -410,11 +411,13 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => evidence.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestoneAdminCaseEvidence>().HasIndex(evidence => new { evidence.CaseId, evidence.Status });
         modelBuilder.Entity<MilestoneAuditEvent>().HasIndex(audit => new { audit.SubjectType, audit.SubjectId, audit.CreatedAt });
+        modelBuilder.Entity<MilestoneAuditEvent>().HasIndex(audit => new { audit.ManagerUserId, audit.CreatedAt });
         modelBuilder.Entity<MilestonePropertyManager>().Property(item => item.AutoRenew).HasDefaultValue(true);
         modelBuilder.Entity<MilestonePropertyManager>().Property(item => item.BillingProviderStatus).HasDefaultValue("LOCAL_TEST");
         modelBuilder.Entity<MilestonePropertyManager>().HasIndex(item => item.ManagerUserId).IsUnique();
         modelBuilder.Entity<MilestoneManagerOwner>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId }).IsUnique();
         modelBuilder.Entity<MilestoneManagerProperty>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId });
+        modelBuilder.Entity<MilestoneManagerProperty>().HasIndex(item => item.RentalListingId).IsUnique();
         modelBuilder.Entity<MilestoneManagerPropertyAssignmentHistory>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.ChangedAt });
         modelBuilder.Entity<MilestoneManagerInvoice>().HasIndex(item => new { item.ManagerUserId, item.InvoiceNumber }).IsUnique();
         modelBuilder.Entity<MilestoneManagerInvoice>().HasIndex(item => new { item.OwnerUserId, item.DueDate });
@@ -494,6 +497,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestonePmOwnerBlock>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.StartsAt, item.EndsAt });
         modelBuilder.Entity<MilestonePmOwnerBlock>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestonePmReservationNote>().HasIndex(item => new { item.ManagerUserId, item.BookingId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmReservationEvent>().HasIndex(item => new { item.ManagerUserId, item.BookingId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmReservationEvent>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
         modelBuilder.Entity<MilestonePmMaintenanceCase>().HasIndex(item => new { item.ManagerUserId, item.Number }).IsUnique();
         modelBuilder.Entity<MilestonePmMaintenanceCase>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestonePmMaintenanceQuote>().HasIndex(item => new { item.MaintenanceId, item.VendorId }).IsUnique();

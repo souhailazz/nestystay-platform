@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NestyStay.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NestyStay.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NestyStayDbContext))]
-    partial class NestyStayDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910130734_AddManagerAuditScope")]
+    partial class AddManagerAuditScope
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -14757,11 +14760,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("from_status");
 
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("idempotency_key");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -14791,9 +14789,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ManagerUserId", "IdempotencyKey")
-                        .IsUnique();
 
                     b.HasIndex("ManagerUserId", "BookingId", "CreatedAt");
 

@@ -1,5 +1,7 @@
 # NestyStay M5 professional PMS completion pass
 
+> Release-candidate status is superseded by the fresh 34-area audit in [`M5-RELEASE-CANDIDATE-AUDIT.md`](./M5-RELEASE-CANDIDATE-AUDIT.md). The earlier matrix below is retained as historical evidence; it must not be read as a production-readiness decision.
+
 This matrix records the state of the Property Manager scope after the additive professional-operations implementation. `FULL` means the persistence, API authorization, frontend journey and automated evidence are complete for the stated local/test scope. `PARTIAL` means a usable slice exists but one or more professional workflow requirements remain. Live Stripe, Alibaba, SMS, push and production deployment are reported separately.
 
 | # | Area | Status | Evidence / exact remaining gap |
@@ -41,10 +43,23 @@ This matrix records the state of the Property Manager scope after the additive p
 
 ## Verification evidence
 
-- Backend Release tests: `dotnet test backend/NestyStay.sln --configuration Release --no-restore` — 148 passed, 0 failed (5 Domain, 23 Application, 19 Infrastructure, 101 API).
+- Backend Release tests: `dotnet test backend/NestyStay.sln --configuration Release --no-restore` — 150 passed, 0 failed (5 Domain, 23 Application, 19 Infrastructure, 103 API).
 - EF/PostgreSQL: migrations `20260910095406_AddProfessionalPropertyManagerOperations`, `20260910103500_AddProfessionalOperationalConcurrency` and `20260910111240_AddAssetRegisterDetails`; `dotnet ef migrations has-pending-model-changes` reports no pending model changes against local PostgreSQL.
 - Frontend: `npm test -- --run` (37 passed), `npm run typecheck`, and `npm run build` pass. `npm run lint` has 0 errors and 156 pre-existing warnings.
-- Browser: `property-manager-professional.spec.ts` passes on desktop, tablet and mobile Chromium (3/3); the complete Playwright suite passes 106 with 52 intentionally skipped. The manager-scoped invitation rate-limit fix removes cross-test network throttling without weakening account/destination limits.
+- Browser: `property-manager-professional.spec.ts` passes on desktop, tablet and mobile Chromium (6/6); `final-hardening-m5.spec.ts` passes on desktop, tablet and mobile Chromium (3/3). The complete configured Playwright suite is the release gate and its final run is recorded with the commit evidence.
 - Security/package checks: `dotnet list NestyStay.sln package --vulnerable --include-transitive` and `npm audit --omit=dev`.
 
 This document does not claim Jamaican legal trust-accounting compliance and does not certify live external providers.
+
+## Release-candidate reproducibility
+
+Run from the repository root with PostgreSQL available on `127.0.0.1:55432`:
+
+```powershell
+$env:ConnectionStrings__Postgres='Host=127.0.0.1;Port=55432;Database=nestystay_dev;Username=nestystay;Password=nestystay'
+dotnet ef database update --project backend/src/NestyStay.Infrastructure --startup-project backend/src/NestyStay.Api
+dotnet test backend/NestyStay.sln --configuration Release --no-restore
+cd frontend; npm ci; npm test -- --run; npm run typecheck; npm run build
+```
+
+The release branch commits are recorded in [`M5-RELEASE-CANDIDATE-AUDIT.md`](./M5-RELEASE-CANDIDATE-AUDIT.md). Keep provider credentials, object-storage contents, logs and Playwright artifacts outside both repositories.

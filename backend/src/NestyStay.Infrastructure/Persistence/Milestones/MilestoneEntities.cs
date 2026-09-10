@@ -936,6 +936,7 @@ public sealed class MilestoneAdminCaseEvidence : BaseEntity
 
 public sealed class MilestoneAuditEvent : BaseEntity
 {
+    public Guid? ManagerUserId { get; set; }
     public Guid? ActorUserId { get; set; }
     public string ActorRole { get; set; } = "System";
     public string Action { get; set; } = string.Empty;
@@ -984,6 +985,9 @@ public sealed class MilestoneManagerProperty : BaseEntity
     public string Address { get; set; } = string.Empty;
     public string Status { get; set; } = "ACTIVE";
     public string OccupancyStatus { get; set; } = "VACANT";
+    /// <summary>Optional link to the M1/M2 rental listing used for bookings and availability.</summary>
+    public Guid? RentalListingId { get; set; }
+    public DateTimeOffset? RentalListingLinkedAt { get; set; }
 }
 
 public sealed class MilestoneManagerPropertyAssignmentHistory : BaseEntity

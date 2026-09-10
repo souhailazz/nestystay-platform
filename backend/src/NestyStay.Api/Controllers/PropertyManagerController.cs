@@ -32,6 +32,10 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     public async Task<IActionResult> AddProperty(AddPropertyRequest request, CancellationToken cancellationToken) => Ok(await store.AddPropertyAsync(Actor(), request, cancellationToken));
 
     [Authorize(Roles = "PropertyManager,Admin")]
+    [HttpPatch("properties/{propertyId:guid}/rental-listing")]
+    public async Task<IActionResult> LinkRentalListing(Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken) => (await store.LinkRentalListingAsync(Actor(), propertyId, request, cancellationToken)) is { } result ? Ok(result) : NotFound();
+
+    [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("properties/bulk-assign")]
     public async Task<IActionResult> BulkAssignProperties(BulkAssignPropertiesRequest request, CancellationToken cancellationToken) => Ok(await store.BulkAssignPropertiesAsync(Actor(), request, cancellationToken));
 

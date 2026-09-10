@@ -29,6 +29,18 @@ public sealed class MilestonePmReservationNote : BaseEntity
     public string Visibility { get; set; } = "INTERNAL";
 }
 
+public sealed class MilestonePmReservationEvent : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid BookingId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string FromStatus { get; set; } = string.Empty;
+    public string ToStatus { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string? IdempotencyKey { get; set; }
+}
+
 public sealed class MilestonePmMaintenanceCase : BaseEntity
 {
     public Guid ManagerUserId { get; set; }
@@ -48,6 +60,10 @@ public sealed class MilestonePmMaintenanceCase : BaseEntity
     public DateTimeOffset? CompletedAt { get; set; }
     public string Currency { get; set; } = "JMD";
     public Guid? OwnerApprovalId { get; set; }
+    public Guid? SelectedQuoteId { get; set; }
+    public string CostBreakdownJson { get; set; } = "{}";
+    public bool FinanciallyPosted { get; set; }
+    public Guid? FinancialJournalId { get; set; }
     public long RowVersion { get; set; } = 1;
 }
 
@@ -88,6 +104,8 @@ public sealed class MilestonePmCleaningReadiness : BaseEntity
     public string Issues { get; set; } = string.Empty;
     public DateTimeOffset? CompletedAt { get; set; }
     public long RowVersion { get; set; } = 1;
+    public string TemplateName { get; set; } = "DEFAULT";
+    public int TemplateVersion { get; set; } = 1;
 }
 
 public sealed class MilestonePmAsset : BaseEntity

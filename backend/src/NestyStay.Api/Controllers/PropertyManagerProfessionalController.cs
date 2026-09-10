@@ -23,10 +23,20 @@ public sealed class PropertyManagerProfessionalController(IPropertyManagerProfes
     public async Task<IActionResult> Reservations([FromQuery] string? search, [FromQuery] string? status, [FromQuery] Guid? propertyId, [FromQuery] Guid? ownerUserId, CancellationToken ct) => Ok(await store.ListReservationsAsync(Actor(), search, status, propertyId, ownerUserId, ct));
     [HttpPatch("reservations/{bookingId:guid}")]
     public async Task<IActionResult> UpdateReservation(Guid bookingId, UpdatePmReservationRequest request, CancellationToken ct) => (await store.UpdateReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("reservations/{bookingId:guid}/date-change-preview")]
+    public async Task<IActionResult> PreviewReservationDateChange(Guid bookingId, PreviewPmReservationDateChangeRequest request, CancellationToken ct) => (await store.PreviewReservationDateChangeAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("reservations/{bookingId:guid}/cancel")]
+    public async Task<IActionResult> CancelReservation(Guid bookingId, CancelPmReservationRequest request, CancellationToken ct) => (await store.CancelReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpGet("reservations/{bookingId:guid}/history")]
+    public async Task<IActionResult> ReservationHistory(Guid bookingId, CancellationToken ct) => Ok(await store.ListReservationHistoryAsync(Actor(), bookingId, ct));
     [HttpPost("reservations/{bookingId:guid}/notes")]
     public async Task<IActionResult> ReservationNote(Guid bookingId, AddPmReservationNoteRequest request, CancellationToken ct) => Ok(await store.AddReservationNoteAsync(Actor(), bookingId, request, ct));
     [HttpGet("calendar")]
     public async Task<IActionResult> MasterCalendar([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to, [FromQuery] Guid? propertyId, CancellationToken ct) => Ok(await store.ListMasterCalendarAsync(Actor(), from == default ? DateTimeOffset.UtcNow.Date : from, to == default ? DateTimeOffset.UtcNow.Date.AddDays(45) : to, propertyId, ct));
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> Dashboard(CancellationToken ct) => Ok(await store.GetOperationalDashboardAsync(Actor(), ct));
+    [HttpGet("timeline")]
+    public async Task<IActionResult> Timeline([FromQuery] Guid? propertyId, [FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to, CancellationToken ct) => Ok(await store.ListOperationalTimelineAsync(Actor(), propertyId, from, to, ct));
 
     [HttpGet("maintenance")]
     public async Task<IActionResult> Maintenance([FromQuery] string? status, [FromQuery] Guid? propertyId, CancellationToken ct) => Ok(await store.ListMaintenanceAsync(Actor(), status, propertyId, ct));

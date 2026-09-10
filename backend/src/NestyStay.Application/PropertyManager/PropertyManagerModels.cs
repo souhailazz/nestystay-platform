@@ -7,6 +7,7 @@ public interface IPropertyManagerStore
     Task<OwnerDto?> ReviewOwnerAsync(Guid managerUserId, Guid ownerUserId, string status, CancellationToken cancellationToken);
     Task<ManagerProfileDto> RenewSubscriptionAsync(Guid managerUserId, CancellationToken cancellationToken);
     Task<PropertyDto> AddPropertyAsync(Guid managerUserId, AddPropertyRequest request, CancellationToken cancellationToken);
+    Task<PropertyDto?> LinkRentalListingAsync(Guid managerUserId, Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<PropertyDto>> BulkAssignPropertiesAsync(Guid managerUserId, BulkAssignPropertiesRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<PropertyAssignmentHistoryDto>> GetPropertyAssignmentHistoryAsync(Guid managerUserId, Guid? propertyId, CancellationToken cancellationToken);
     Task<InvoiceDto> CreateInvoiceAsync(Guid managerUserId, CreateInvoiceRequest request, CancellationToken cancellationToken);
@@ -93,7 +94,8 @@ public interface IPropertyManagerStore
 }
 
 public sealed record InviteOwnerRequest(string Email, string DisplayName, Guid? OwnerUserId = null, Guid? CommunityId = null);
-public sealed record AddPropertyRequest(Guid OwnerUserId, string Title, string UnitNumber, string Address, Guid? CommunityId = null);
+public sealed record AddPropertyRequest(Guid OwnerUserId, string Title, string UnitNumber, string Address, Guid? CommunityId = null, Guid? RentalListingId = null);
+public sealed record LinkRentalListingRequest(Guid? RentalListingId);
 public sealed record BulkAssignPropertiesRequest(IReadOnlyList<Guid> PropertyIds, Guid OwnerUserId, string Reason, Guid? BatchId = null);
 public sealed record CreateInvoiceLineRequest(string Description, decimal Quantity, decimal UnitAmount);
 public sealed record CreateInvoiceRequest(Guid OwnerUserId, Guid? PropertyId, DateOnly DueDate, decimal Tax, IReadOnlyList<CreateInvoiceLineRequest> Lines);
@@ -188,7 +190,7 @@ public sealed record ManagerProfileDto(
     int UnitsUsed = 0,
     string? CancellationReason = null);
 public sealed record OwnerDto(Guid Id, Guid OwnerUserId, string DisplayName, string Email, string VerificationStatus, string InvitationStatus, Guid? CommunityId);
-public sealed record PropertyDto(Guid Id, Guid OwnerUserId, Guid? CommunityId, string Title, string UnitNumber, string Address, string Status, string OccupancyStatus);
+public sealed record PropertyDto(Guid Id, Guid OwnerUserId, Guid? CommunityId, string Title, string UnitNumber, string Address, string Status, string OccupancyStatus, Guid? RentalListingId = null);
 public sealed record PropertyAssignmentHistoryDto(Guid Id, Guid PropertyId, Guid? PreviousOwnerUserId, Guid NewOwnerUserId, Guid ActorUserId, string Reason, Guid BatchId, DateTimeOffset ChangedAt);
 public sealed record InvoiceLineDto(Guid Id, string Description, decimal Quantity, decimal UnitAmount, decimal Amount);
 public sealed record InvoiceDto(Guid Id, Guid OwnerUserId, Guid? PropertyId, string InvoiceNumber, DateOnly IssueDate, DateOnly DueDate, decimal Subtotal, decimal Tax, decimal Total, decimal AmountPaid, decimal Balance, string Currency, string Status, IReadOnlyList<InvoiceLineDto> Lines);

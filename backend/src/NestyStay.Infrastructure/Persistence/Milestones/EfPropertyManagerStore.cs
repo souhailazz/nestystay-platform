@@ -114,9 +114,35 @@ public sealed class EfPropertyManagerStore(
             throw new InvalidOperationException($"The {manager.SubscriptionTier} plan allows {limit} units. Upgrade the subscription to add another property.");
         await RequireOwnerScopeAsync(managerUserId, request.OwnerUserId, cancellationToken);
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.UnitNumber)) throw new InvalidOperationException("Property title and unit number are required.");
-        var property = new MilestoneManagerProperty { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, CommunityId = request.CommunityId, Title = request.Title.Trim(), UnitNumber = request.UnitNumber.Trim(), Address = request.Address.Trim(), Status = "ACTIVE", OccupancyStatus = "VACANT" };
+        if (request.RentalListingId is { } listingId)
+        {
+            var listing = await db.MilestoneProperties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == listingId && !x.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Rental listing is not available.");
+            if (listing.HostUserId != request.OwnerUserId) throw new UnauthorizedAccessException("Rental listing is not owned by this owner.");
+            if (await db.MilestoneManagerProperties.AnyAsync(x => x.RentalListingId == listingId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Rental listing is already linked to a managed property.");
+        }
+        var property = new MilestoneManagerProperty { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, CommunityId = request.CommunityId, Title = request.Title.Trim(), UnitNumber = request.UnitNumber.Trim(), Address = request.Address.Trim(), Status = "ACTIVE", OccupancyStatus = "VACANT", RentalListingId = request.RentalListingId, RentalListingLinkedAt = request.RentalListingId.HasValue ? timeProvider.GetUtcNow() : null };
         db.MilestoneManagerProperties.Add(property);
         await AuditAsync(managerUserId, "PropertyAssigned", "ManagerProperty", property.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(property);
+    }
+
+    public async Task<PropertyDto?> LinkRentalListingAsync(Guid managerUserId, Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var property = await db.MilestoneManagerProperties.SingleOrDefaultAsync(x => x.Id == propertyId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (property is null) return null;
+        if (request.RentalListingId is { } listingId)
+        {
+            var listing = await db.MilestoneProperties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == listingId && !x.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Rental listing is not available.");
+            if (listing.HostUserId != property.OwnerUserId) throw new UnauthorizedAccessException("Rental listing is not owned by this owner.");
+            if (await db.MilestoneManagerProperties.AnyAsync(x => x.Id != propertyId && x.RentalListingId == listingId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Rental listing is already linked to another managed property.");
+        }
+        property.RentalListingId = request.RentalListingId;
+        property.RentalListingLinkedAt = request.RentalListingId.HasValue ? timeProvider.GetUtcNow() : null;
+        await AuditAsync(managerUserId, request.RentalListingId.HasValue ? "PropertyListingLinked" : "PropertyListingUnlinked", "ManagerProperty", property.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(property);
     }
@@ -1247,7 +1273,7 @@ public sealed class EfPropertyManagerStore(
         return true;
     }
     private static OwnerDto ToDto(MilestoneManagerOwner x) => new(x.Id, x.OwnerUserId, x.DisplayName, x.Email, x.VerificationStatus, x.InvitationStatus, x.CommunityId);
-    private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus);
+    private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus, x.RentalListingId);
     private static InvoiceDto ToDto(MilestoneManagerInvoice x, IEnumerable<MilestoneManagerInvoiceLine> lines) => new(x.Id, x.OwnerUserId, x.PropertyId, x.InvoiceNumber, x.IssueDate, x.DueDate, x.Subtotal, x.Tax, x.Total, x.AmountPaid, x.Balance, x.Currency, x.Status, lines.Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitAmount, l.Amount)).ToList());
     private static UtilityChargeDto ToDto(MilestoneManagerUtilityCharge x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.UtilityType, x.BillingPeriod, x.Usage, x.Rate, x.Amount, x.InvoiceId, x.Status);
     private static MaintenanceDto ToDto(MilestoneManagerMaintenance x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.VendorId, x.Title, x.Description, x.Category, x.Urgency, x.Status, x.ScheduledAt, x.Cost, x.Notes);
