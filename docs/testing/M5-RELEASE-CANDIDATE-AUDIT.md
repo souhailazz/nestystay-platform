@@ -56,6 +56,7 @@ This is the release-candidate assessment after the operational hardening slice. 
 - Frontend Vitest: 38 passed; typecheck and production build pass; lint has 0 errors and 156 pre-existing warnings.
 - PostgreSQL: migrations applied; `dotnet ef migrations has-pending-model-changes` reports no pending model changes.
 - Browser: dedicated professional operations 6/6 and final-hardening M5 3/3 across desktop/tablet/mobile Chromium; the complete configured Playwright suite passed 106 tests with 52 intentional provider/credential skips and 0 failures.
+- Concurrency: the PostgreSQL-backed harness passed 4/4 checks (parallel duplicate registration and parallel QR validation); the backend suite includes the existing idempotency, overlap, refund, proxy and revocation scenarios. A true two-independent-server distributed concurrency certification is still outstanding.
 - Package/security: `npm audit --omit=dev` reports 0 vulnerabilities; `dotnet list NestyStay.sln package --vulnerable --include-transitive` reports no vulnerable packages. Secret scan contains only documented placeholders and test fixtures.
 
 ## Decision
@@ -66,4 +67,5 @@ M5 is **not yet a professional/deployable PMS**: the money foundation is locally
 
 - Backend (`codex/pm-p0-money-authority`): `9aa66883e194ad5dc1d469e635740c2307eec5ec` (prior release `310ab47`; inspection/evidence hardening in `9aa6688`).
 - Frontend (`codex/pm-p0-money-authority`): `3288ccd052d754ef9fabc85cc082db7a126fb028` (maintenance evidence and inspection checklist UI/API client).
+- Root/evidence (`codex/pm-p0-money-authority-root`): `769cb88385968d0cb0e0055fc805698cc829b4f5`.
 - Generated browser screenshots/reports and runtime evidence were intentionally excluded from the commits.
