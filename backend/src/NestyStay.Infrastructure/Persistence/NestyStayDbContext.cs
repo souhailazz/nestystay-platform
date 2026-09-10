@@ -273,6 +273,16 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneP0ApprovalEvent> MilestoneP0ApprovalEvents => Set<MilestoneP0ApprovalEvent>();
     public DbSet<MilestoneP0StaffMembership> MilestoneP0StaffMemberships => Set<MilestoneP0StaffMembership>();
     public DbSet<MilestoneP0StaffEvent> MilestoneP0StaffEvents => Set<MilestoneP0StaffEvent>();
+    public DbSet<MilestonePmOwnerBlock> MilestonePmOwnerBlocks => Set<MilestonePmOwnerBlock>();
+    public DbSet<MilestonePmReservationNote> MilestonePmReservationNotes => Set<MilestonePmReservationNote>();
+    public DbSet<MilestonePmMaintenanceCase> MilestonePmMaintenanceCases => Set<MilestonePmMaintenanceCase>();
+    public DbSet<MilestonePmMaintenanceQuote> MilestonePmMaintenanceQuotes => Set<MilestonePmMaintenanceQuote>();
+    public DbSet<MilestonePmMaintenanceEvent> MilestonePmMaintenanceEvents => Set<MilestonePmMaintenanceEvent>();
+    public DbSet<MilestonePmCleaningReadiness> MilestonePmCleaningReadiness => Set<MilestonePmCleaningReadiness>();
+    public DbSet<MilestonePmAsset> MilestonePmAssets => Set<MilestonePmAsset>();
+    public DbSet<MilestonePmIncident> MilestonePmIncidents => Set<MilestonePmIncident>();
+    public DbSet<MilestonePmInspectionRecord> MilestonePmInspectionRecords => Set<MilestonePmInspectionRecord>();
+    public DbSet<MilestonePmTeamEvent> MilestonePmTeamEvents => Set<MilestonePmTeamEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -481,6 +491,22 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneP0PayoutBatch>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestoneP0Approval>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestoneP0StaffMembership>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmOwnerBlock>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.StartsAt, item.EndsAt });
+        modelBuilder.Entity<MilestonePmOwnerBlock>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmReservationNote>().HasIndex(item => new { item.ManagerUserId, item.BookingId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmMaintenanceCase>().HasIndex(item => new { item.ManagerUserId, item.Number }).IsUnique();
+        modelBuilder.Entity<MilestonePmMaintenanceCase>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmMaintenanceQuote>().HasIndex(item => new { item.MaintenanceId, item.VendorId }).IsUnique();
+        modelBuilder.Entity<MilestonePmMaintenanceEvent>().HasIndex(item => new { item.MaintenanceId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmCleaningReadiness>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.DueAt });
+        modelBuilder.Entity<MilestonePmCleaningReadiness>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmAsset>().HasIndex(item => new { item.ManagerUserId, item.AssetTag }).IsUnique();
+        modelBuilder.Entity<MilestonePmAsset>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmIncident>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.OccurredAt });
+        modelBuilder.Entity<MilestonePmIncident>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmInspectionRecord>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.ScheduledAt });
+        modelBuilder.Entity<MilestonePmInspectionRecord>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmTeamEvent>().HasIndex(item => new { item.MembershipId, item.CreatedAt });
 
         // Phase 5 relationship constraints.  These are intentionally explicit
         // because the milestone entities use scalar ids (rather than navigation

@@ -1416,7 +1416,8 @@ public sealed class EfPhaseOneStore(
         var now = timeProvider.GetUtcNow();
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
-        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
+        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null ||
+            await HasOwnerBlockAsync(property.Id, request.CheckIn, request.CheckOut, cancellationToken))
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
         }
@@ -1539,7 +1540,8 @@ public sealed class EfPhaseOneStore(
         var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
-        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
+        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null ||
+            await HasOwnerBlockAsync(property.Id, request.CheckIn, request.CheckOut, cancellationToken))
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
         }
@@ -2170,6 +2172,12 @@ public sealed class EfPhaseOneStore(
             booking.CheckIn < checkOut &&
             checkIn < booking.CheckOut,
             cancellationToken);
+
+    private Task<bool> HasOwnerBlockAsync(Guid propertyId, DateOnly checkIn, DateOnly checkOut, CancellationToken cancellationToken) =>
+        db.MilestonePmOwnerBlocks.AnyAsync(block =>
+            block.PropertyId == propertyId && block.Status == "ACTIVE" && !block.IsDeleted &&
+            block.StartsAt < new DateTimeOffset(checkOut.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) &&
+            block.EndsAt > new DateTimeOffset(checkIn.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero), cancellationToken);
 
     private async Task ExpirePendingHoldsAsync(DateTimeOffset now, CancellationToken cancellationToken)
     {

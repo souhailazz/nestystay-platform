@@ -100,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<IDirectoryEnhancementStore, EfDirectoryEnhancementStore>();
         services.AddScoped<IPropertyManagerStore, EfPropertyManagerStore>();
         services.AddScoped<IPropertyManagerP0Store, EfPropertyManagerP0Store>();
+        services.AddScoped<IPropertyManagerProfessionalStore, EfPropertyManagerProfessionalStore>();
 
         return services;
     }

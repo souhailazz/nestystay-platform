@@ -61,7 +61,13 @@ public sealed class EfPropertyManagerStore(
         await AuditAsync(managerUserId, "OwnerInvited", "ManagerOwner", owner.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await specCompletionStore.StartAuthFlowAsync(
-            new StartAuthFlowRequest(user.Id, "OwnerInvitation", user.Email, RequestIp: "manager"),
+            // Use a stable manager-scoped bucket rather than the literal
+            // string "manager".  Otherwise every local/test manager shares
+            // one IP bucket and an unrelated test run can throttle all owner
+            // invitations.  The auth-flow store still applies account and
+            // destination limits, while this keeps network throttling scoped
+            // to the authenticated manager.
+            new StartAuthFlowRequest(user.Id, "OwnerInvitation", user.Email, RequestIp: $"manager:{managerUserId:N}"),
             cancellationToken);
         return ToDto(owner);
     }

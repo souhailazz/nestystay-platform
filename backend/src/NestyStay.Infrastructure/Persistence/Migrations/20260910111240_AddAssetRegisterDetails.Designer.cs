@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NestyStay.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NestyStay.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NestyStayDbContext))]
-    partial class NestyStayDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910111240_AddAssetRegisterDetails")]
+    partial class AddAssetRegisterDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -14239,10 +14242,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20000)
                         .HasColumnType("jsonb")
                         .HasColumnName("checklist_json");
-
-                    b.Property<Guid?>("CorrectiveWorkOrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("corrective_work_order_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")

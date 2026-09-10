@@ -1,0 +1,63 @@
+namespace NestyStay.Application.PropertyManager;
+
+public interface IPropertyManagerProfessionalStore
+{
+    Task<IReadOnlyList<PmOwnerBlockDto>> ListOwnerBlocksAsync(Guid managerUserId, DateTimeOffset? from, DateTimeOffset? to, Guid? propertyId, CancellationToken ct);
+    Task<PmOwnerBlockDto> CreateOwnerBlockAsync(Guid managerUserId, CreatePmOwnerBlockRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmOwnerBlockDto>> ListOwnerBlocksForOwnerAsync(Guid ownerUserId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct);
+    Task<PmOwnerBlockDto> CreateOwnerBlockForOwnerAsync(Guid ownerUserId, CreatePmOwnerBlockRequest request, CancellationToken ct);
+    Task<PmOwnerBlockDto?> CancelOwnerBlockForOwnerAsync(Guid ownerUserId, Guid id, string reason, long rowVersion, CancellationToken ct);
+    Task<PmOwnerBlockDto?> CancelOwnerBlockAsync(Guid managerUserId, Guid id, string reason, long rowVersion, CancellationToken ct);
+    Task<IReadOnlyList<PmOwnerBlockHistoryDto>> ListOwnerBlockHistoryAsync(Guid managerUserId, Guid id, CancellationToken ct);
+    Task<IReadOnlyList<PmReservationDto>> ListReservationsAsync(Guid managerUserId, string? search, string? status, Guid? propertyId, Guid? ownerUserId, CancellationToken ct);
+    Task<PmReservationDto?> UpdateReservationAsync(Guid managerUserId, Guid bookingId, UpdatePmReservationRequest request, CancellationToken ct);
+    Task<PmReservationNoteDto> AddReservationNoteAsync(Guid managerUserId, Guid bookingId, AddPmReservationNoteRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmCalendarItemDto>> ListMasterCalendarAsync(Guid managerUserId, DateTimeOffset from, DateTimeOffset to, Guid? propertyId, CancellationToken ct);
+    Task<PmMaintenanceCaseDto> CreateMaintenanceAsync(Guid managerUserId, CreatePmMaintenanceRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmMaintenanceCaseDto>> ListMaintenanceAsync(Guid managerUserId, string? status, Guid? propertyId, CancellationToken ct);
+    Task<PmMaintenanceCaseDto?> TransitionMaintenanceAsync(Guid managerUserId, Guid id, TransitionPmMaintenanceRequest request, CancellationToken ct);
+    Task<PmMaintenanceQuoteDto> AddMaintenanceQuoteAsync(Guid managerUserId, Guid maintenanceId, AddPmMaintenanceQuoteRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmMaintenanceQuoteDto>> ListMaintenanceQuotesAsync(Guid managerUserId, Guid maintenanceId, CancellationToken ct);
+    Task<IReadOnlyList<PmMaintenanceEventDto>> ListMaintenanceHistoryAsync(Guid managerUserId, Guid maintenanceId, CancellationToken ct);
+    Task<PmCleaningDto> CreateCleaningAsync(Guid managerUserId, CreatePmCleaningRequest request, CancellationToken ct);
+    Task<PmCleaningDto?> UpdateCleaningAsync(Guid managerUserId, Guid id, UpdatePmCleaningRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmCleaningDto>> ListCleaningAsync(Guid managerUserId, Guid? propertyId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct);
+    Task<PmAssetDto> CreateAssetAsync(Guid managerUserId, CreatePmAssetRequest request, CancellationToken ct);
+    Task<PmAssetDto?> UpdateAssetAsync(Guid managerUserId, Guid id, UpdatePmAssetRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmAssetDto>> ListAssetsAsync(Guid managerUserId, Guid? propertyId, string? status, CancellationToken ct);
+    Task<PmIncidentDto> CreateIncidentAsync(Guid managerUserId, CreatePmIncidentRequest request, CancellationToken ct);
+    Task<PmIncidentDto?> UpdateIncidentAsync(Guid managerUserId, Guid id, UpdatePmIncidentRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmIncidentDto>> ListIncidentsAsync(Guid managerUserId, Guid? propertyId, string? status, CancellationToken ct);
+    Task<PmInspectionDto> CreateInspectionAsync(Guid managerUserId, CreatePmInspectionRequest request, CancellationToken ct);
+    Task<PmInspectionDto?> UpdateInspectionAsync(Guid managerUserId, Guid id, UpdatePmInspectionRequest request, CancellationToken ct);
+    Task<WorkOrderDto?> CreateInspectionWorkOrderAsync(Guid managerUserId, Guid inspectionId, CreatePmInspectionWorkOrderRequest request, CancellationToken ct);
+    Task<IReadOnlyList<PmInspectionDto>> ListInspectionsAsync(Guid managerUserId, Guid? propertyId, CancellationToken ct);
+}
+
+public sealed record CreatePmOwnerBlockRequest(Guid OwnerUserId, Guid PropertyId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string? TimeZone, string Reason, Guid? BookingId = null, string Category = "OWNER_STAY", string Notes = "");
+public sealed record PmOwnerBlockDto(Guid Id, Guid OwnerUserId, Guid PropertyId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string TimeZone, string Reason, string Status, Guid? BookingId, long RowVersion, string Category = "OWNER_STAY", string Notes = "");
+public sealed record PmOwnerBlockHistoryDto(Guid Id, Guid BlockId, Guid ActorUserId, string Action, string Reason, DateTimeOffset CreatedAt);
+public sealed record AddPmReservationNoteRequest(string Body, string Visibility = "INTERNAL");
+public sealed record UpdatePmReservationRequest(string Status, DateOnly? CheckIn = null, DateOnly? CheckOut = null, long? ExpectedUpdatedTicks = null);
+public sealed record PmReservationDto(Guid BookingId, Guid PropertyId, Guid GuestUserId, Guid HostUserId, DateTimeOffset CheckIn, DateTimeOffset CheckOut, string Status, string PaymentStatus, decimal TotalAmount, string Currency, IReadOnlyList<PmReservationNoteDto> Notes);
+public sealed record PmReservationNoteDto(Guid Id, Guid BookingId, Guid AuthorUserId, string Body, string Visibility, DateTimeOffset CreatedAt);
+public sealed record PmCalendarItemDto(string Type, Guid SourceId, Guid PropertyId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Title, string Status, string? OwnerUserId = null);
+public sealed record CreatePmMaintenanceRequest(Guid OwnerUserId, Guid PropertyId, string Title, string Description, string Priority = "NORMAL", Guid? VendorId = null, decimal? QuoteAmount = null, string Currency = "JMD");
+public sealed record TransitionPmMaintenanceRequest(string Status, Guid? VendorId = null, decimal? ApprovedAmount = null, decimal? ExpenseAmount = null, decimal? OwnerCharge = null, DateTimeOffset? ScheduledAt = null, string? Details = null, long RowVersion = 1, Guid? OwnerApprovalId = null);
+public sealed record AddPmMaintenanceQuoteRequest(Guid VendorId, decimal Amount, string Scope, string Currency = "JMD", DateTimeOffset? ExpiresAt = null);
+public sealed record PmMaintenanceCaseDto(Guid Id, Guid OwnerUserId, Guid PropertyId, Guid? VendorId, string Number, string Title, string Description, string Status, string Priority, decimal? SelectedQuoteAmount, decimal ExpenseAmount, decimal OwnerCharge, decimal ManagerFee, DateTimeOffset? ScheduledAt, string Currency, long RowVersion);
+public sealed record PmMaintenanceQuoteDto(Guid Id, Guid MaintenanceId, Guid VendorId, decimal Amount, string Currency, string Scope, string Status, DateTimeOffset? ExpiresAt);
+public sealed record PmMaintenanceEventDto(Guid Id, Guid MaintenanceId, Guid ActorUserId, string EventType, string FromStatus, string ToStatus, string Details, DateTimeOffset CreatedAt);
+public sealed record CreatePmCleaningRequest(Guid PropertyId, Guid? BookingId, DateTimeOffset DueAt, Guid? AssignedUserId, Guid? VendorId, string ChecklistJson = "[]");
+public sealed record UpdatePmCleaningRequest(string Status, string ChecklistJson, string Issues, string PhotosJson, long RowVersion = 1);
+public sealed record PmCleaningDto(Guid Id, Guid PropertyId, Guid? BookingId, Guid? AssignedUserId, Guid? VendorId, DateTimeOffset DueAt, string Status, string ChecklistJson, string PhotosJson, string Issues, DateTimeOffset? CompletedAt, long RowVersion);
+public sealed record CreatePmAssetRequest(Guid PropertyId, string AssetTag, string Name, string Category, int Quantity = 1, string Location = "", string MetadataJson = "{}", string PhotosJson = "[]", string Description = "", string SerialReference = "", DateOnly? PurchaseDate = null, decimal? PurchaseCost = null, DateOnly? WarrantyExpiry = null, string Condition = "GOOD");
+public sealed record UpdatePmAssetRequest(string Status, int Quantity, string Location, string MetadataJson, string PhotosJson, long RowVersion = 1, string? Description = null, string? SerialReference = null, DateOnly? PurchaseDate = null, decimal? PurchaseCost = null, DateOnly? WarrantyExpiry = null, string? Condition = null);
+public sealed record PmAssetDto(Guid Id, Guid PropertyId, string AssetTag, string Name, string Category, string Status, int Quantity, string Location, string MetadataJson, string PhotosJson, DateTimeOffset? RetiredAt, long RowVersion = 1, string Description = "", string SerialReference = "", DateOnly? PurchaseDate = null, decimal? PurchaseCost = null, DateOnly? WarrantyExpiry = null, string Condition = "GOOD");
+public sealed record CreatePmIncidentRequest(Guid PropertyId, Guid? BookingId, string IncidentType, string Severity, DateTimeOffset OccurredAt, string Description, string InvolvedPartiesJson = "[]", string EvidenceJson = "[]", string ActionTaken = "", string FollowUp = "", decimal FinancialImpact = 0, string? InsuranceReference = null);
+public sealed record UpdatePmIncidentRequest(string Status, string ActionTaken, string FollowUp, string? InsuranceReference = null, long RowVersion = 1);
+public sealed record PmIncidentDto(Guid Id, Guid PropertyId, Guid? BookingId, string IncidentType, string Severity, DateTimeOffset OccurredAt, string Description, string InvolvedPartiesJson, string EvidenceJson, string ActionTaken, string FollowUp, decimal FinancialImpact, string? InsuranceReference, string Status, DateTimeOffset? ResolvedAt, long RowVersion = 1);
+public sealed record CreatePmInspectionRequest(Guid PropertyId, Guid? AssignedUserId, string InspectionType, DateTimeOffset ScheduledAt, string ChecklistJson = "[]");
+public sealed record UpdatePmInspectionRequest(string Status, string EvidenceJson, string FindingsJson, long RowVersion = 1);
+public sealed record CreatePmInspectionWorkOrderRequest(string Scope, Guid? VendorId = null, decimal? QuoteAmount = null, DateTimeOffset? SlaDueAt = null);
+public sealed record PmInspectionDto(Guid Id, Guid PropertyId, Guid? AssignedUserId, string InspectionType, DateTimeOffset ScheduledAt, string ChecklistJson, string EvidenceJson, string FindingsJson, string Status, DateTimeOffset? SignedOffAt, long RowVersion = 1, Guid? CorrectiveWorkOrderId = null);

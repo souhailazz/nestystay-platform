@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NestyStay.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NestyStay.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NestyStayDbContext))]
-    partial class NestyStayDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910095406_AddProfessionalPropertyManagerOperations")]
+    partial class AddProfessionalPropertyManagerOperations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -13905,12 +13908,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("category");
 
-                    b.Property<string>("Condition")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("condition");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -13918,12 +13915,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("description");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
@@ -13961,15 +13952,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("property_id");
 
-                    b.Property<decimal?>("PurchaseCost")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("purchase_cost");
-
-                    b.Property<DateOnly?>("PurchaseDate")
-                        .HasColumnType("date")
-                        .HasColumnName("purchase_date");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
@@ -13977,17 +13959,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("RetiredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("retired_at");
-
-                    b.Property<long>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint")
-                        .HasColumnName("row_version");
-
-                    b.Property<string>("SerialReference")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("serial_reference");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -14002,10 +13973,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("UpdatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by_user_id");
-
-                    b.Property<DateOnly?>("WarrantyExpiry")
-                        .HasColumnType("date")
-                        .HasColumnName("warranty_expiry");
 
                     b.HasKey("Id");
 
@@ -14191,11 +14158,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
 
-                    b.Property<long>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint")
-                        .HasColumnName("row_version");
-
                     b.Property<string>("Severity")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -14240,10 +14202,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("checklist_json");
 
-                    b.Property<Guid?>("CorrectiveWorkOrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("corrective_work_order_id");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -14281,11 +14239,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("PropertyId")
                         .HasColumnType("uuid")
                         .HasColumnName("property_id");
-
-                    b.Property<long>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint")
-                        .HasColumnName("row_version");
 
                     b.Property<DateTimeOffset>("ScheduledAt")
                         .HasColumnType("timestamp with time zone")
@@ -14595,12 +14548,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("booking_id");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("category");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -14620,12 +14567,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ManagerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("manager_user_id");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("notes");
 
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
