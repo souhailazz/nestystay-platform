@@ -369,6 +369,7 @@ public sealed class EfPropertyManagerProfessionalStore(NestyStayDbContext db, Ti
             selectedQuote = await db.MilestonePmMaintenanceQuotes.SingleOrDefaultAsync(x => x.MaintenanceId == row.Id && x.ManagerUserId == managerUserId && x.VendorId == vendorId && x.Amount == quoteAmount && !x.IsDeleted, ct);
             if (selectedQuote is null) throw new InvalidOperationException("Select a quote that belongs to this maintenance case.");
             if (selectedQuote.ExpiresAt is { } expiry && expiry <= timeProvider.GetUtcNow()) throw new InvalidOperationException("The selected vendor quote has expired.");
+            if (!string.Equals(selectedQuote.Currency, row.Currency, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("The selected quote currency does not match the maintenance currency.");
         }
         if (next is "ASSIGNED" or "SCHEDULED" or "IN_PROGRESS" or "COMPLETED" or "CLOSED" && amount > 0)
         {
