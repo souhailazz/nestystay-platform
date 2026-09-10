@@ -19,11 +19,11 @@ This is the release-candidate assessment after the operational hardening slice. 
 | 13 | Reservation operations | PARTIAL — LAUNCH BLOCKER | New scoped details, status guards, cancellation reason/idempotency, date preview and history exist; complete amendment/rebook journey, payment-state timeline and full browser lifecycle remain. |
 | 14 | Portfolio master calendar | PARTIAL — LAUNCH BLOCKER | API aggregates linked reservations, blocks, maintenance, cleaning and inspections; full day/week/month navigation, external feed sync and conflict UX remain. |
 | 15 | Owner blocks and booking conflicts | PARTIAL — LAUNCH BLOCKER | UTC half-open overlap checks, linked-listing checks, cancellation and history exist; operational warnings/out-of-service policy and richer conflict recovery remain. |
-| 16 | Maintenance lifecycle | PARTIAL — LAUNCH BLOCKER | State machine, quote selection, approval threshold, optimistic concurrency and P0 expense posting are implemented; attachments, receipts, reopening/correction UI and owner decision journey remain. |
+| 16 | Maintenance lifecycle | PARTIAL — LAUNCH BLOCKER | State machine, quote selection, approval threshold, optimistic concurrency, scoped evidence upload/list/download and P0 expense posting are implemented; receipt-specific accounting, reopening/correction UI and the complete owner decision journey remain. |
 | 17 | Work orders, quotes and expenses | PARTIAL — LAUNCH BLOCKER | Scoped quote comparison and selected-quote persistence work; full multi-bid evidence, work-order cost lines, receipts and close/reversal UI remain. |
 | 18 | Vendor management | PARTIAL — POST-LAUNCH ENHANCEMENT | Vendor CRUD and quote linkage work; structured services/radius/availability, compliance expiry, contracts and performance history are incomplete. |
 | 19 | Cleaning/readiness workflows | PARTIAL — LAUNCH BLOCKER | Persisted checklist and template snapshot plus server READY enforcement work; versioned templates, evidence requirements, photo/offline retry and corrective work links remain. |
-| 20 | Inspections | PARTIAL — LAUNCH BLOCKER | Scheduling, findings, evidence, sign-off and corrective-work creation work; required checklist enforcement and full remediation lifecycle remain. |
+| 20 | Inspections | PARTIAL — LAUNCH BLOCKER | Scheduling, persisted checklist updates, required-item sign-off enforcement, findings, evidence, sign-off and idempotent corrective-work creation work; versioned templates, richer remediation status and complete corrective-work lifecycle remain. |
 | 21 | Assets and inventory | PARTIAL — POST-LAUNCH ENHANCEMENT | Scoped asset register, evidence JSON, retirement and stale-write protection work; inventory transactions, document/photo vault and maintenance linkage remain. |
 | 22 | Incident tracking | PARTIAL — POST-LAUNCH ENHANCEMENT | Scoped severity, evidence references, financial impact and resolution work; richer private evidence and insurance workflow remain. |
 | 23 | Utilities and evidence | PARTIAL — LAUNCH BLOCKER | Readings, anomaly flags, schedules and disputes exist; verified private evidence, durable recurring execution, currency-safe charges and P0 adjustment posting remain. |
@@ -44,14 +44,16 @@ This is the release-candidate assessment after the operational hardening slice. 
 - Managed properties can be linked to one owning rental listing, with a guarded link/unlink endpoint and uniqueness constraint.
 - Reservation listing/detail data now resolves linked listing IDs to managed properties; status transitions enforce verification/payment rules; cancellation has reason, idempotency and history; paid date changes are previewed and routed to cancel/rebook when repricing would occur.
 - Maintenance transitions enforce agreement thresholds and approved owner decisions, persist selected quote/cost breakdown, and post a source-linked P0 journal exactly once at financial closure.
+- Maintenance evidence now supports validated PDF/JPEG/PNG upload, professional-case scoping, persisted listing and expiring private download URLs with audit events.
 - Readiness cannot become `READY` while required checklist items are incomplete.
+- Inspection checklists can be updated through the API/UI; sign-off rejects incomplete required items, and corrective work-order creation is sign-off-gated and idempotent under a PostgreSQL advisory lock.
 - Operational dashboard and scoped timeline endpoints are available and rendered in the professional operations UI.
 - PostgreSQL migrations: `20260910125540_AddM5ReleaseOperationalControls`, `20260910130734_AddManagerAuditScope`, `20260910131316_AddReservationCancellationIdempotency`.
 
 ## Verification recorded
 
 - Backend Release solution: 150 passed, 0 failed (5 Domain, 23 Application, 19 Infrastructure, 103 API).
-- Frontend Vitest: 37 passed; typecheck and production build pass; lint has 0 errors and 156 pre-existing warnings.
+- Frontend Vitest: 38 passed; typecheck and production build pass; lint has 0 errors and 156 pre-existing warnings.
 - PostgreSQL: migrations applied; `dotnet ef migrations has-pending-model-changes` reports no pending model changes.
 - Browser: dedicated professional operations 6/6 and final-hardening M5 3/3 across desktop/tablet/mobile Chromium; the complete configured Playwright suite passed 106 tests with 52 intentional provider/credential skips and 0 failures.
 - Package/security: `npm audit --omit=dev` reports 0 vulnerabilities; `dotnet list NestyStay.sln package --vulnerable --include-transitive` reports no vulnerable packages. Secret scan contains only documented placeholders and test fixtures.
@@ -62,6 +64,6 @@ M5 is **not yet a professional/deployable PMS**: the money foundation is locally
 
 ## Release commits
 
-- Backend (`codex/pm-p0-money-authority`): `310ab476c839e68b1d109802b44af18b9972bcfa` (implementation `299dcb0`, migrations `f045a82`, workflow tests `36b55c3`, quote validation `310ab47`).
+- Backend (`codex/pm-p0-money-authority`): `9aa66883e194ad5dc1d469e635740c2307eec5ec` (prior release `310ab47`; inspection/evidence hardening in `9aa6688`).
 - Frontend (`codex/pm-p0-money-authority`): `1aae11b9162dc734822620815831a767ec8f7259`.
 - Generated browser screenshots/reports and runtime evidence were intentionally excluded from the commits.

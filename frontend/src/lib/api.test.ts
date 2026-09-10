@@ -251,6 +251,25 @@ describe("api client", () => {
     vi.unstubAllGlobals();
   });
 
+  it("uploads, lists and opens scoped maintenance evidence", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ id: "attachment-1", maintenanceId: "maintenance-1", fileName: "receipt.pdf", contentType: "application/pdf", status: "UPLOADED", createdAt: "2026-09-10T00:00:00Z" }))
+      .mockResolvedValueOnce(jsonResponse([{ id: "attachment-1", maintenanceId: "maintenance-1", fileName: "receipt.pdf", contentType: "application/pdf", status: "UPLOADED", createdAt: "2026-09-10T00:00:00Z" }]))
+      .mockResolvedValueOnce(jsonResponse({ id: "attachment-1", fileName: "receipt.pdf", contentType: "application/pdf", url: "https://storage.test/receipt", expiresAt: "2026-09-10T01:00:00Z" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.addMaintenanceAttachment("manager-token", { maintenanceId: "maintenance-1", fileName: "receipt.pdf", contentType: "application/pdf", contentBase64: "JVBERi0xLjQ=" });
+    await api.listMaintenanceAttachments("manager-token", "maintenance-1");
+    await api.getMaintenanceAttachmentDownload("manager-token", "maintenance-1", "attachment-1");
+
+    expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
+      "/api/property-manager/maintenance/attachments",
+      "/api/property-manager/maintenance/maintenance-1/attachments",
+      "/api/property-manager/maintenance/maintenance-1/attachments/attachment-1/download",
+    ]);
+    vi.unstubAllGlobals();
+  });
+
   it("prepares officer wellness report photos without bearer tokens", async () => {
     const fetchMock = stubFetch(jsonResponse({ id: "wellness-photo-1", status: "PendingUpload", scanStatus: "PendingScan" }));
 

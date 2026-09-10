@@ -69,6 +69,6 @@ public sealed record CreatePmIncidentRequest(Guid PropertyId, Guid? BookingId, s
 public sealed record UpdatePmIncidentRequest(string Status, string ActionTaken, string FollowUp, string? InsuranceReference = null, long RowVersion = 1);
 public sealed record PmIncidentDto(Guid Id, Guid PropertyId, Guid? BookingId, string IncidentType, string Severity, DateTimeOffset OccurredAt, string Description, string InvolvedPartiesJson, string EvidenceJson, string ActionTaken, string FollowUp, decimal FinancialImpact, string? InsuranceReference, string Status, DateTimeOffset? ResolvedAt, long RowVersion = 1);
 public sealed record CreatePmInspectionRequest(Guid PropertyId, Guid? AssignedUserId, string InspectionType, DateTimeOffset ScheduledAt, string ChecklistJson = "[]");
-public sealed record UpdatePmInspectionRequest(string Status, string EvidenceJson, string FindingsJson, long RowVersion = 1);
+public sealed record UpdatePmInspectionRequest(string Status, string EvidenceJson, string FindingsJson, long RowVersion = 1, string? ChecklistJson = null);
 public sealed record CreatePmInspectionWorkOrderRequest(string Scope, Guid? VendorId = null, decimal? QuoteAmount = null, DateTimeOffset? SlaDueAt = null);
 public sealed record PmInspectionDto(Guid Id, Guid PropertyId, Guid? AssignedUserId, string InspectionType, DateTimeOffset ScheduledAt, string ChecklistJson, string EvidenceJson, string FindingsJson, string Status, DateTimeOffset? SignedOffAt, long RowVersion = 1, Guid? CorrectiveWorkOrderId = null);

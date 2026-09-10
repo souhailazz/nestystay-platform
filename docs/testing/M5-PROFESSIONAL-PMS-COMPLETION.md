@@ -21,11 +21,11 @@ This matrix records the state of the Property Manager scope after the additive p
 | 13 | Reservation operations | PARTIAL | New searchable reservation workspace supports scoped status/date changes and notes; guest-detail permissions, full modify/cancel UX and payment/action timeline remain incomplete. |
 | 14 | Portfolio master calendar | PARTIAL | New API aggregates reservations, owner blocks and manager events; visual day/week/month grid, keyboard date interaction and conflict presentation remain. |
 | 15 | Owner blocks and booking conflicts | PARTIAL | Persisted UTC blocks, category/notes, overlap validation, booking integration, manager + owner cancellation/history and desktop/tablet/mobile API browser coverage exist; richer conflict-resolution UX and operational conflict policies remain. |
-| 16 | Maintenance lifecycle | PARTIAL | New durable REQUESTED→…→CLOSED transitions, optimistic concurrency, quotes and history; attachment/report/PDF and complete accounting linkage are not finished. |
+| 16 | Maintenance lifecycle | PARTIAL | New durable REQUESTED→…→CLOSED transitions, optimistic concurrency, quotes/history, and validated scoped evidence upload/list/download are available; receipt-specific accounting, reopening/correction UI and complete owner decision linkage remain. |
 | 17 | Work orders, quotes and expenses | PARTIAL | Quote records now have a scoped list/comparison endpoint and the UI can select a quote into an assigned work order; receipts, attachment evidence and ledger posting workflow remain. |
 | 18 | Vendor management | PARTIAL | Existing vendor CRUD/documents and new maintenance quote linkage; contracts, licence/insurance expiry, service-radius/availability and performance UI remain. |
 | 19 | Cleaning/readiness | PARTIAL | Persisted readiness tasks, checklist JSON, booking link and READY/NOT_READY status; photo/checklist template/offline/resumable UX and reservation readiness enforcement remain. |
-| 20 | Inspections | PARTIAL | Persisted schedule/checklist/evidence/findings/sign-off API and UI; corrective-action/work-order linkage and full evidence workflow remain. |
+| 20 | Inspections | PARTIAL | Persisted schedule/checklist updates/evidence/findings/sign-off API and UI, required-item sign-off enforcement and idempotent corrective-action linkage; versioned templates and full remediation lifecycle remain. |
 | 21 | Assets and inventory | PARTIAL | New scoped register persists tag, category, description, serial/reference, purchase cost/date, warranty expiry, condition, location, quantity, JSON evidence, status and retire operation with stale-write protection; photos/docs, maintenance history and consumable transactions remain. |
 | 22 | Incident tracking | PARTIAL | New scoped incident record with severity, evidence references, financial impact and resolution; privacy-specific views, upload/evidence timeline and insurance workflow remain. |
 | 23 | Utilities and evidence | PARTIAL | Meter history, anomaly and disputes exist; evidence upload/preview, recurring billing execution and adjustment-to-ledger UX remain. |
@@ -45,7 +45,7 @@ This matrix records the state of the Property Manager scope after the additive p
 
 - Backend Release tests: `dotnet test backend/NestyStay.sln --configuration Release --no-restore` — 150 passed, 0 failed (5 Domain, 23 Application, 19 Infrastructure, 103 API).
 - EF/PostgreSQL: migrations `20260910095406_AddProfessionalPropertyManagerOperations`, `20260910103500_AddProfessionalOperationalConcurrency` and `20260910111240_AddAssetRegisterDetails`; `dotnet ef migrations has-pending-model-changes` reports no pending model changes against local PostgreSQL.
-- Frontend: `npm test -- --run` (37 passed), `npm run typecheck`, and `npm run build` pass. `npm run lint` has 0 errors and 156 pre-existing warnings.
+- Frontend: `npm test -- --run` (38 passed), `npm run typecheck`, and `npm run build` pass. `npm run lint` has 0 errors and 156 pre-existing warnings.
 - Browser: `property-manager-professional.spec.ts` passes on desktop, tablet and mobile Chromium (6/6); `final-hardening-m5.spec.ts` passes on desktop, tablet and mobile Chromium (3/3). The complete configured Playwright suite is the release gate and its final run is recorded with the commit evidence.
 - Security/package checks: `dotnet list NestyStay.sln package --vulnerable --include-transitive` and `npm audit --omit=dev`.
 

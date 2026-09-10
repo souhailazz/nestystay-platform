@@ -33,6 +33,8 @@ public interface IPropertyManagerStore
     Task<MaintenanceDto?> UpdateMaintenanceAsync(Guid managerUserId, Guid maintenanceId, UpdateMaintenanceRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<MaintenanceActivityDto>> ListMaintenanceActivityAsync(Guid actorUserId, bool isAdmin, Guid maintenanceId, CancellationToken cancellationToken);
     Task<MaintenanceAttachmentDto> AddMaintenanceAttachmentAsync(Guid managerUserId, AddMaintenanceAttachmentRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<MaintenanceAttachmentDto>> ListMaintenanceAttachmentsAsync(Guid managerUserId, Guid maintenanceId, CancellationToken cancellationToken);
+    Task<DocumentDownloadDto?> GetMaintenanceAttachmentDownloadAsync(Guid managerUserId, Guid maintenanceId, Guid attachmentId, CancellationToken cancellationToken);
     Task<VendorDto> CreateVendorAsync(Guid managerUserId, CreateVendorRequest request, CancellationToken cancellationToken);
     Task<VendorDto?> UpdateVendorAsync(Guid managerUserId, Guid vendorId, UpdateVendorRequest request, CancellationToken cancellationToken);
     Task<VendorDocumentDto> AddVendorDocumentAsync(Guid managerUserId, AddVendorDocumentRequest request, CancellationToken cancellationToken);
@@ -206,6 +208,7 @@ public sealed record UtilityDisputeDto(Guid Id, Guid UtilityChargeId, Guid Owner
 public sealed record MaintenanceDto(Guid Id, Guid OwnerUserId, Guid PropertyId, Guid? VendorId, string Title, string Description, string Category, string Urgency, string Status, DateTimeOffset? ScheduledAt, decimal Cost, string Notes);
 public sealed record MaintenanceActivityDto(Guid Id, Guid MaintenanceId, Guid ActorUserId, string Action, string Details, DateTimeOffset CreatedAt);
 public sealed record MaintenanceAttachmentDto(Guid Id, Guid MaintenanceId, string FileName, string ContentType, string Status, DateTimeOffset CreatedAt);
+public sealed record MaintenanceAttachmentDownloadDto(Guid Id, string FileName, string ContentType, string Url, DateTimeOffset ExpiresAt);
 public sealed record VendorDto(Guid Id, string Name, string Category, string Contact, string VerificationStatus, bool IsActive, string Notes, IReadOnlyList<string>? ServiceAreas = null, decimal? Rate = null, decimal Rating = 0, bool IsPreferred = false, bool IsSuspended = false, int CompletedJobCount = 0, decimal SpendTotal = 0);
 public sealed record VendorDocumentDto(Guid Id, Guid VendorId, string DocumentType, string FileName, DateOnly? ExpiresOn, string Status, DateTimeOffset CreatedAt);
 public sealed record NoticeDto(
