@@ -86,7 +86,7 @@ M5 is **locally complete for the 34-area application matrix**: each row has a pe
 
 - Baseline FULL/PARTIAL/MISSING: 12 / 22 / 0.
 - This pass target and audited result: 34 / 0 / 0. The fourteen previously partial rows are covered by the professional-completion persistence/API/UI layer, utility currency migration and worker, scoped authorization, append-only history and browser/API tests; provider certification remains a separate deployment matrix.
-- Backend commits: `ef9704f` (implementation/migration) and `73df48b` (workflow/concurrency tests), followed by the professional-completion implementation commit reported in the release handoff.
-- Frontend commits: `d196355` (professional operations UI) and `867702b` (M5 blocker browser journeys), followed by the professional-completion UI/test commit reported in the release handoff.
-- Final pushed repository tip SHAs and the root/evidence SHA are recorded in the release handoff after push; generated browser screenshots/reports and runtime evidence remain intentionally excluded.
+- Backend final pushed tip: `41d90c7e95a681417b4dce0a4dee6915ee984394` (`feat(pm): complete local professional workflows`).
+- Frontend final pushed tip: `1392593092292df665e232bf3b864acbac83b6cf` (`feat(pm): add professional completion workspace`).
+- Root/evidence final pushed tip: `c75e89a84e3fdeaba628ef273b64e87ef2cd154b` (`docs(pm): record complete local M5 matrix`). Generated browser screenshots/reports and runtime evidence remain intentionally excluded.
 - Generated browser screenshots/reports and runtime evidence were intentionally excluded from the commits.
