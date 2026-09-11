@@ -1095,6 +1095,7 @@ public sealed class MilestoneManagerUtilityCharge : BaseEntity
     public decimal Usage { get; set; }
     public decimal Rate { get; set; }
     public decimal Amount { get; set; }
+    public string Currency { get; set; } = "JMD";
     public Guid? InvoiceId { get; set; }
     public string Status { get; set; } = "ALLOCATED";
 }

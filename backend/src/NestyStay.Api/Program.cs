@@ -88,6 +88,7 @@ if (builder.Configuration.GetValue("BackgroundJobs:Enabled", true))
     builder.Services.AddHostedService<PropertyManagerDocumentExpiryService>();
     builder.Services.AddHostedService<PropertyManagerDocumentExportService>();
     builder.Services.AddHostedService<PropertyManagerSubscriptionMaintenanceService>();
+    builder.Services.AddHostedService<PropertyManagerProfessionalWorker>();
 }
 
 var app = builder.Build();

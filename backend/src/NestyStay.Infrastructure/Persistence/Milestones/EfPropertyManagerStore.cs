@@ -313,7 +313,8 @@ public sealed class EfPropertyManagerStore(
         var property = await db.MilestoneManagerProperties.SingleOrDefaultAsync(x => x.Id == request.PropertyId && x.ManagerUserId == managerUserId && x.OwnerUserId == request.OwnerUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Property is not in the manager portfolio.");
         if (request.Usage < 0 || request.Rate < 0) throw new InvalidOperationException("Utility usage and rate cannot be negative.");
         var amount = decimal.Round(request.Usage * request.Rate, 2, MidpointRounding.AwayFromZero);
-        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = request.UtilityType.Trim(), BillingPeriod = request.BillingPeriod.Trim(), Usage = request.Usage, Rate = request.Rate, Amount = amount };
+        var currency = NormalizeCurrency(request.Currency);
+        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = request.UtilityType.Trim(), BillingPeriod = request.BillingPeriod.Trim(), Usage = request.Usage, Rate = request.Rate, Amount = amount, Currency = currency };
         // Utility allocations are billable charges, so create the invoice association
         // in the same transaction as the utility and ledger rows. This keeps the
         // owner portal, statement, and payment flow consistent for every charge.
@@ -329,7 +330,7 @@ public sealed class EfPropertyManagerStore(
             Tax = 0m,
             Total = amount,
             Balance = amount,
-            Currency = "USD",
+            Currency = currency,
             Status = "ISSUED"
         };
         var invoiceLine = new MilestoneManagerInvoiceLine
@@ -727,16 +728,16 @@ public sealed class EfPropertyManagerStore(
         var schedule = await db.MilestoneManagerUtilitySchedules.Where(x => x.ManagerUserId == managerUserId && x.PropertyId == property.Id && x.UtilityType == reading.UtilityType && x.IsActive && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
         if (request.Rate is > 0) { if (schedule is null) { schedule = new MilestoneManagerUtilitySchedule { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = reading.UtilityType, Rate = request.Rate.Value }; db.MilestoneManagerUtilitySchedules.Add(schedule); } else schedule.Rate = request.Rate.Value; }
         var rate = request.Rate ?? schedule?.Rate ?? 0m;
-        if (rate > 0) await CreateUtilityChargeFromReadingAsync(managerUserId, request.OwnerUserId, property.Id, reading.UtilityType, reading.BillingPeriod, usage, rate, cancellationToken);
+        if (rate > 0) await CreateUtilityChargeFromReadingAsync(managerUserId, request.OwnerUserId, property.Id, reading.UtilityType, reading.BillingPeriod, usage, rate, NormalizeCurrency(request.Currency), cancellationToken);
         await AuditAsync(managerUserId, anomaly ? "UtilityAnomalyDetected" : "MeterReadingRecorded", "MeterReading", reading.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken);
         return ToDto(reading);
     }
 
-    private async Task CreateUtilityChargeFromReadingAsync(Guid managerUserId, Guid ownerUserId, Guid propertyId, string utilityType, string period, decimal usage, decimal rate, CancellationToken cancellationToken)
+    private async Task CreateUtilityChargeFromReadingAsync(Guid managerUserId, Guid ownerUserId, Guid propertyId, string utilityType, string period, decimal usage, decimal rate, string currency, CancellationToken cancellationToken)
     {
         var amount = decimal.Round(usage * rate, 2, MidpointRounding.AwayFromZero);
-        var invoice = new MilestoneManagerInvoice { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceNumber = $"UTIL-{timeProvider.GetUtcNow():yyyyMMdd}-{RandomNumberGenerator.GetInt32(1000, 9999)}", IssueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime), DueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.AddDays(30)), Subtotal = amount, Total = amount, Balance = amount, Currency = "USD", Status = "ISSUED" };
-        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, UtilityType = utilityType, BillingPeriod = period, Usage = usage, Rate = rate, Amount = amount, InvoiceId = invoice.Id };
+        var invoice = new MilestoneManagerInvoice { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceNumber = $"UTIL-{timeProvider.GetUtcNow():yyyyMMdd}-{RandomNumberGenerator.GetInt32(1000, 9999)}", IssueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime), DueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.AddDays(30)), Subtotal = amount, Total = amount, Balance = amount, Currency = currency, Status = "ISSUED" };
+        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, UtilityType = utilityType, BillingPeriod = period, Usage = usage, Rate = rate, Amount = amount, Currency = currency, InvoiceId = invoice.Id };
         db.MilestoneManagerInvoices.Add(invoice); db.MilestoneManagerUtilityCharges.Add(charge); db.MilestoneManagerInvoiceLines.Add(new MilestoneManagerInvoiceLine { InvoiceId = invoice.Id, Description = $"{utilityType} utility {period}", Quantity = usage, UnitAmount = rate, Amount = amount }); db.MilestoneManagerLedgerEntries.Add(new MilestoneManagerLedgerEntry { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceId = invoice.Id, EntryType = "UTILITY", Description = $"{utilityType} utility {period}", Amount = amount, OccurredOn = invoice.IssueDate });
         await Task.CompletedTask;
     }
@@ -1294,7 +1295,14 @@ public sealed class EfPropertyManagerStore(
     private static OwnerDto ToDto(MilestoneManagerOwner x) => new(x.Id, x.OwnerUserId, x.DisplayName, x.Email, x.VerificationStatus, x.InvitationStatus, x.CommunityId);
     private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus, x.RentalListingId);
     private static InvoiceDto ToDto(MilestoneManagerInvoice x, IEnumerable<MilestoneManagerInvoiceLine> lines) => new(x.Id, x.OwnerUserId, x.PropertyId, x.InvoiceNumber, x.IssueDate, x.DueDate, x.Subtotal, x.Tax, x.Total, x.AmountPaid, x.Balance, x.Currency, x.Status, lines.Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitAmount, l.Amount)).ToList());
-    private static UtilityChargeDto ToDto(MilestoneManagerUtilityCharge x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.UtilityType, x.BillingPeriod, x.Usage, x.Rate, x.Amount, x.InvoiceId, x.Status);
+    private static string NormalizeCurrency(string currency)
+    {
+        var value = string.IsNullOrWhiteSpace(currency) ? "JMD" : currency.Trim().ToUpperInvariant();
+        if (value.Length != 3 || value.Any(ch => ch is < 'A' or > 'Z')) throw new InvalidOperationException("Currency must be a three-letter ISO code.");
+        return value;
+    }
+
+    private static UtilityChargeDto ToDto(MilestoneManagerUtilityCharge x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.UtilityType, x.BillingPeriod, x.Usage, x.Rate, x.Amount, x.Currency, x.InvoiceId, x.Status);
     private static MaintenanceDto ToDto(MilestoneManagerMaintenance x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.VendorId, x.Title, x.Description, x.Category, x.Urgency, x.Status, x.ScheduledAt, x.Cost, x.Notes);
     private static VendorDto ToDto(MilestoneManagerVendor x) => new(x.Id, x.Name, x.Category, x.Contact, x.VerificationStatus, x.IsActive, x.Notes, ParseStringList(x.ServiceAreasJson), x.Rate, x.Rating, x.IsPreferred, x.IsSuspended, x.CompletedJobCount, x.SpendTotal);
     private static NoticeDto ToDto(MilestoneManagerNotice x)

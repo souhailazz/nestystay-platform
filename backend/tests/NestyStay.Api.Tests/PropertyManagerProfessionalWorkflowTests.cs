@@ -275,6 +275,61 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         var ready = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/cleaning/{readiness.GetProperty("id").GetGuid()}", new { status = "READY", checklistJson = readiness.GetProperty("checklistJson").GetString(), photosJson = "[]", issues = "", rowVersion = readiness.GetProperty("rowVersion").GetInt64() })); Assert.Equal("READY", ready.GetProperty("status").GetString());
     }
 
+    [Fact]
+    public async Task ProfessionalCompletionRecordsAreScopedIdempotentAndAudited()
+    {
+        using var client = factory.CreateClient();
+        var portfolio = await CreatePortfolio(client);
+        var key = $"utility-{Guid.NewGuid():N}";
+        var request = new { resourceType = "UTILITY_BILL", status = "PENDING", ownerUserId = portfolio.Owner, propertyId = portfolio.Property, currency = "JMD", idempotencyKey = key, reason = "Meter bill received", payloadJson = "{\"utilityType\":\"WATER\",\"amount\":1200,\"evidence\":[\"meter-photo\"],\"disputeStatus\":\"NONE\"}" };
+        var first = await Ok(client.PostAsJsonAsync("/api/property-manager/professional-completion/utilities", request));
+        var replay = await Ok(client.PostAsJsonAsync("/api/property-manager/professional-completion/utilities", request));
+        Assert.Equal(first.GetProperty("id").GetGuid(), replay.GetProperty("id").GetGuid());
+        var conflictingReplay = await client.PostAsJsonAsync("/api/property-manager/professional-completion/utilities", new { resourceType = "UTILITY_BILL", status = "APPROVED", ownerUserId = portfolio.Owner, propertyId = portfolio.Property, currency = "JMD", idempotencyKey = key, reason = "Conflicting replay", payloadJson = "{\"utilityType\":\"WATER\",\"amount\":1300}" });
+        Assert.Equal(HttpStatusCode.BadRequest, conflictingReplay.StatusCode);
+        var history = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional-completion/records/{first.GetProperty("id").GetGuid()}/history");
+        Assert.Contains(history!, item => item.GetProperty("action").GetString() == "CREATED");
+        var updated = await Ok(client.PutAsJsonAsync($"/api/property-manager/professional-completion/utilities/{first.GetProperty("id").GetGuid()}", new { resourceType = "UTILITY_BILL", status = "APPROVED", ownerUserId = portfolio.Owner, propertyId = portfolio.Property, currency = "JMD", expectedVersion = first.GetProperty("rowVersion").GetInt64(), idempotencyKey = $"update-{Guid.NewGuid():N}", reason = "Manager approved", payloadJson = "{\"utilityType\":\"WATER\",\"amount\":1200,\"evidence\":[\"meter-photo\"],\"disputeStatus\":\"NONE\"}" }));
+        Assert.Equal("APPROVED", updated.GetProperty("status").GetString());
+        using var other = factory.CreateClient(); var otherPortfolio = await CreatePortfolio(other);
+        var denied = await other.GetAsync($"/api/property-manager/professional-completion/utilities?propertyId={portfolio.Property}");
+        Assert.False(denied.IsSuccessStatusCode);
+        Assert.NotEqual(otherPortfolio.Property, portfolio.Property);
+    }
+
+    [Fact]
+    public async Task AllRemainingProfessionalAreasPersistWithHistoryAndReport()
+    {
+        using var client = factory.CreateClient();
+        var portfolio = await CreatePortfolio(client);
+        var areas = new[] { "utilities", "documents", "governance", "team", "rbac", "reporting", "audit", "vendors", "assets", "inventory", "incidents", "community", "bulk", "notifications" };
+        foreach (var area in areas)
+        {
+            var propertyScoped = area is "utilities" or "assets" or "inventory" or "incidents";
+            var request = new
+            {
+                resourceType = $"{area.ToUpperInvariant()}_WORKFLOW",
+                status = "OPEN",
+                ownerUserId = portfolio.Owner,
+                propertyId = propertyScoped ? portfolio.Property : (Guid?)null,
+                currency = area is "utilities" or "reporting" or "bulk" ? "JMD" : null,
+                idempotencyKey = $"all-areas-{area}-{Guid.NewGuid():N}",
+                reason = $"Acceptance evidence for {area}",
+                payloadJson = JsonSerializer.Serialize(new { area, amount = 10, evidence = Array.Empty<string>(), valid = true })
+            };
+            var saved = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional-completion/{area}", request));
+            var replay = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional-completion/{area}", request));
+            Assert.Equal(saved.GetProperty("id").GetGuid(), replay.GetProperty("id").GetGuid());
+            var history = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional-completion/records/{saved.GetProperty("id").GetGuid()}/history");
+            Assert.Contains(history!, item => item.GetProperty("action").GetString() == "CREATED");
+            var rows = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional-completion/{area}");
+            Assert.Contains(rows!, item => item.GetProperty("id").GetGuid() == saved.GetProperty("id").GetGuid());
+        }
+        var report = await Ok(client.GetAsync("/api/property-manager/professional-completion/reports"));
+        var counts = report.GetProperty("countsByArea");
+        foreach (var area in areas) Assert.True(counts.GetProperty(area).GetInt32() >= 1, $"Missing report count for {area}");
+    }
+
     private async Task<Guid> CreateAndApprove(HttpClient managerClient, (Guid Manager, Guid Owner, Guid Property, string OwnerEmail, string Password) portfolio, string sourceType, Guid sourceId, decimal amount, string description)
     {
         var approval = await Ok(managerClient.PostAsJsonAsync("/api/property-manager/p0/approvals", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, approvalType = sourceType, description, amount, currency = "JMD", sourceType, sourceId, expiresAt = DateTimeOffset.UtcNow.AddDays(7), idempotencyKey = $"approval-{sourceType}-{sourceId:N}" }));

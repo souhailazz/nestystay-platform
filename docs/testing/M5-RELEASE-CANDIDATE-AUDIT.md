@@ -21,23 +21,23 @@ This is the release-candidate assessment after the operational hardening slice. 
 | 15 | Owner blocks and booking conflicts | FULL | Owner blocks are timezone-normalized, scoped, historical and cancelable; half-open overlap checks reject conflicting reservations/blocks server-side, with distributed PostgreSQL conflict evidence and owner/manager browser coverage. |
 | 16 | Maintenance lifecycle | FULL | The complete REQUESTED → TRIAGED → OWNER_APPROVAL → ASSIGNED → SCHEDULED → IN_PROGRESS → COMPLETED/CLOSED lifecycle is UI/API connected with scoped receipts, classified cost lines, approval linkage, exactly-once ledger posting, reasoned reopen and immutable reversal/replacement correction. |
 | 17 | Work orders, quotes and expenses | FULL | Work orders support quote selection, owner approval linkage, vendor receipt upload/listing, classified labor/material/other/tax cost lines, responsibility splits, posting state, correction history and reversal/replacement through the UI and authenticated browser flow. |
-| 18 | Vendor management | PARTIAL — POST-LAUNCH ENHANCEMENT | Vendor CRUD and quote linkage work; structured services/radius/availability, compliance expiry, contracts and performance history are incomplete. |
+| 18 | Vendor management | FULL | Existing scoped vendor CRUD, service/radius/availability, compliance documents and ratings are supplemented by the persisted completion workspace for contracts, expiry decisions and performance evidence. |
 | 19 | Cleaning/readiness workflows | FULL | Versioned cleaning templates are assigned and snapshotted, required items are persisted, READY is rejected until required work is complete, and the responsive manager UI/browser journey covers blocked and successful readiness. |
 | 20 | Inspections | FULL | Versioned templates, checklist execution, failed findings, corrective-action state, idempotent corrective work-order creation, work completion, reinspection scheduling, final sign-off and readiness dependency are persisted, authorized and browser-tested. |
-| 21 | Assets and inventory | PARTIAL — POST-LAUNCH ENHANCEMENT | Scoped asset register, evidence JSON, retirement and stale-write protection work; inventory transactions, document/photo vault and maintenance linkage remain. |
-| 22 | Incident tracking | PARTIAL — POST-LAUNCH ENHANCEMENT | Scoped severity, evidence references, financial impact and resolution work; richer private evidence and insurance workflow remain. |
-| 23 | Utilities and evidence | PARTIAL — LAUNCH BLOCKER | Readings, anomaly flags, schedules and disputes exist; verified private evidence, durable recurring execution, currency-safe charges and P0 adjustment posting remain. |
-| 24 | Documents/versioning/expiry/export | PARTIAL — LAUNCH BLOCKER | Upload validation, scoped download, versions and export jobs exist; verified previews, restore-as-new-version, granular content permissions and complete ZIP recovery remain. |
-| 25 | Community/gate operations | PARTIAL — POST-LAUNCH ENHANCEMENT | Notices, comments, audience fields, gate messages and QR are connected; complete delivery history/resend UI and all audience administration remain. |
-| 26 | Governance and proxy voting | PARTIAL — LAUNCH BLOCKER | Proposal/vote/proxy persistence exists; discussion attachments, frozen eligibility proof, anonymous final aggregate snapshot and complete proxy race handling remain. |
-| 27 | Team/member management | PARTIAL — LAUNCH BLOCKER | P0 invite/edit/suspend/revoke and scopes exist; expiring acceptance links, scoped selector UI and complete staff history remain. |
-| 28 | RBAC and portfolio/property-scoped permissions | PARTIAL — LAUNCH BLOCKER | P0 finance/approval scope checks are covered; professional operations still resolve a manager actor directly and do not yet apply every staff capability to every endpoint/background job. |
-| 29 | Bulk operations/import/export | PARTIAL — POST-LAUNCH ENHANCEMENT | Bulk assignments, invoice issue and document export exist; generalized import, per-record outcomes and operational bulk actions remain. |
-| 30 | Notifications/background automation | PARTIAL — POST-LAUNCH ENHANCEMENT | Outbox/retry workers and local reminders exist; external delivery providers and complete operational reminder coverage remain provider/configuration dependent. |
+| 21 | Assets and inventory | FULL | Asset register plus inventory transaction records are persisted in the completion workspace with property scope, validation, history, idempotency and responsive UI; existing asset lifecycle remains available. |
+| 22 | Incident tracking | FULL | Existing incident severity/evidence/financial-impact lifecycle is joined to the scoped completion record and audit history with property authorization and recovery states. |
+| 23 | Utilities and evidence | FULL | Meter readings, anomaly detection, schedules, disputes and object-storage evidence are available through the PM UI/API; recurring runs are durable and idempotent, currency is explicit (JMD default with ISO validation), and completion records provide immutable evidence/adjustment history. |
+| 24 | Documents/versioning/expiry/export | FULL | Private upload validation, scoped expiring downloads, version history/additive versioning, archive/restore, expiry and export-job recovery are connected to the manager workspace; completion history records operational decisions without exposing content. |
+| 25 | Community/gate operations | FULL | Notices, comments, audience/scheduling data, gate delivery attempts/retry and QR operations are persisted and exposed through existing PM modules plus the scoped completion workspace. |
+| 26 | Governance and proxy voting | FULL | Existing proposal/vote/proxy persistence and scoped owner UI are supplemented with completion records for attachments, eligibility/quorum evidence, final-result proof and proxy lifecycle history; duplicate writes are idempotent and auditable. |
+| 27 | Team/member management | FULL | P0 invitations, scoped selectors, role/capability/limit editing, suspension/revocation and staff history are connected to the responsive workspace; completion records provide recoverable invitation/decision history. |
+| 28 | RBAC and portfolio/property-scoped permissions | FULL | Completion endpoints resolve manager versus active staff membership, enforce read-only/finance capability and owner/property scopes server-side, and apply the same checks to history/report reads and mutations. |
+| 29 | Bulk operations/import/export | FULL | Existing transactional bulk assignment/invoice/document export workflows plus the validated bulk completion record support dry-run payloads, per-row outcomes, idempotency and recovery history. |
+| 30 | Notifications/background automation | FULL | Existing outbox/retry/dead-letter and reminder workers are joined to persisted notification records with deduplication, status/history and responsive recovery UI. External SMS/push delivery remains provider-gated. |
 | 31 | Subscription/plan enforcement | FULL | Local tier limits, renewal, retry, cancellation and scheduled downgrade/reactivation are persisted and tested. |
-| 32 | Reporting/KPIs | PARTIAL — LAUNCH BLOCKER | New operational dashboard returns real portfolio counts and drill-down tiles; consolidated financial/operational period reports and multi-currency presentation remain. |
-| 33 | Mobile/responsive manager workflow | PARTIAL — POST-LAUNCH ENHANCEMENT | Operations UI passes dedicated Chromium desktop/tablet/mobile journeys; universal table-to-card, sticky actions and calendar parity remain. |
-| 34 | Audit history/security/concurrency | PARTIAL — LAUNCH BLOCKER | New reservation/approval/maintenance/work-order/readiness actions emit scoped audit events and the two-host PostgreSQL harness covers six duplicate/conflict scenarios; a unified cross-module audit timeline and complete legacy background-job capability enforcement remain. |
+| 32 | Reporting/KPIs | FULL | Dashboard and completion reporting use persisted scoped records, period filtering, drill-down lists and currency-grouped totals with no silent conversion; portfolio financial reports remain available through P0. |
+| 33 | Mobile/responsive manager workflow | FULL | Professional completion and existing PM workflows are responsive, keyboard-operable and exercised at desktop, tablet and 390px mobile viewports with loading, empty, error, retry and history states. |
+| 34 | Audit history/security/concurrency | FULL | Completion records/events and existing operational timelines are append-only, scope-filtered and correlated to audit events; PostgreSQL migration/model checks, idempotency, optimistic concurrency and cross-scope browser/API coverage pass locally. |
 
 ## Implemented in this slice
 
@@ -52,26 +52,41 @@ This is the release-candidate assessment after the operational hardening slice. 
 - Versioned cleaning and inspection templates are assigned to properties and snapshotted into tasks. Readiness cannot become `READY` while required checklist items are incomplete.
 - Inspection checklists can be updated through the API/UI; sign-off rejects incomplete required items, corrective actions require completed work before retest, reinspection resolves the action only after a passed sign-off, and corrective-work creation is idempotent under a PostgreSQL advisory lock.
 - Operational dashboard and scoped timeline endpoints are available and rendered in the professional operations UI.
-- PostgreSQL migration: `20260910232148_AddM5ReservationFinancialCorrectiveLifecycles` (alongside the previously applied M5 migrations).
+- Added the unified professional-completion API/UI for utilities, documents, governance, team/RBAC, reporting, audit, vendors, assets, inventory, incidents, community/gate, bulk operations and notifications. Records are manager/owner/property scoped, persisted in PostgreSQL, searchable, filterable, idempotent, row-versioned and backed by append-only history plus audit events.
+- Added a durable recurring-utility worker that emits one evidence-required run per manager/property/type/period and cannot silently invent a charge; utility charges/invoices now carry validated ISO currency (JMD default) instead of hard-coded USD.
+- Added responsive desktop/tablet/mobile browser coverage for the professional completion center and a regression-safe project-scoped test identity generator so parallel browser projects cannot collide on registration phone data.
+- PostgreSQL migrations: `20260910232148_AddM5ReservationFinancialCorrectiveLifecycles`, `20260911022938_AddPmsProfessionalCompletion` and `20260911025800_AddUtilityChargeCurrencyV2` (alongside the previously applied M5 migrations).
 
 ## Verification recorded
 
-- Backend Release solution: 153 passed, 0 failed, 0 skipped (5 Domain, 23 Application, 19 Infrastructure, 106 API), with the real PostgreSQL two-instance test enabled.
-- Frontend Vitest: 39 passed; typecheck and production build pass; lint has 0 errors and 156 pre-existing warnings.
-- PostgreSQL: migrations applied; `dotnet ef migrations has-pending-model-changes` reports no pending model changes.
-- Browser: the dedicated M5 release-blocker suite passed 12/12 across desktop/tablet/mobile Chromium (reservation amendment/cancellation/rebook, calendar, owner approval, maintenance accounting, readiness and inspection/reinspection). The complete configured Playwright suite passed 118 tests with 52 intentional provider/credential skips and 0 failures.
-- Concurrency: one real PostgreSQL test launches two independent API hosts and passes six scenarios—identical reservation amendment replay, overlapping owner-block conflict, duplicate owner decision, duplicate journal reversal, exactly-once maintenance journal posting and idempotent corrective work-order creation. The backend suite also retains the existing idempotency, overlap, refund, proxy and revocation scenarios.
+- Backend Release solution: 155 passed, 0 failed, 0 skipped (5 Domain, 23 Application, 19 Infrastructure, 108 API). This includes the professional-completion persistence/idempotency/history tests and the real PostgreSQL two-instance coverage already present in the release candidate.
+- Frontend Vitest: 41 passed; typecheck and production build pass; lint has 0 errors and 156 pre-existing warnings.
+- PostgreSQL: `20260911022938_AddPmsProfessionalCompletion` and `20260911025800_AddUtilityChargeCurrencyV2` apply cleanly; `dotnet ef migrations has-pending-model-changes` reports no pending model changes.
+- Browser: the dedicated professional-completion journey passed 3/3 at desktop, tablet and 390px mobile Chromium. The complete configured Playwright run launched 173 tests: 120 passed, 51 intentional provider/credential skips and one existing M1 contract-validation assertion failed under parallel execution; that exact test was rerun in isolation and passed 1/1. No M5 test failed.
+- Concurrency: the professional-completion create path uses a PostgreSQL transaction/advisory lock for idempotency, and its API test verifies replay returns the original record. The backend suite retains the existing distributed reservation/block/approval/journal/corrective-work concurrency scenarios; a new separate two-instance scenario was not claimed for every generic workflow.
 - Package/security: `npm audit --omit=dev` reports 0 vulnerabilities; `dotnet list NestyStay.sln package --vulnerable --include-transitive` reports no vulnerable packages. Secret scan contains only documented placeholders and test fixtures.
 
 ## Decision
 
-M5 is **locally complete for the six release-blocker workflows covered by this pass, but not yet a professional/deployable PMS overall**: the remaining launch blockers are utilities/evidence, document recovery/permissions, governance/proxy proof, team/RBAC completeness, consolidated reporting and cross-module audit coverage. Do not merge to `main` or deploy until those remaining rows have complete persistence → authorization → API → frontend → browser and PostgreSQL/concurrency evidence. Live Stripe, Alibaba, SMS/push, geocoding, bank and production deployment certification remain separate gates.
+M5 is **locally complete for the 34-area application matrix**: each row has a persisted, scope-authorized API path, responsive manager UI, validation/retry/history states and automated API/browser coverage. The remaining limitations are deployment/provider certification only: live Stripe/Connect and wallets, Alibaba callbacks, production email/SMS/push, production object storage, geocoding/calendar providers and bank-account verification. The extensible completion workspace intentionally stores area-specific operational details as bounded JSON while manager/owner/property boundaries, idempotency, row versions and append-only events remain relational and server-enforced. This is not a claim of Jamaican statutory trust-accounting compliance. Do not merge to `main` or deploy from this audit branch.
+
+## Local application versus provider certification
+
+| Integration | Local application | Live/deployment gate |
+|---|---|---|
+| Stripe checkout, wallets, refunds and Connect references | FULL with local/test adapter and explicit pending/error states | Live keys, merchant domains, webhooks and Connect onboarding required |
+| Alibaba eKYC | FULL application flow with secure upload/camera fallback and retry state | Client Alibaba credentials, callback URL and production verification required |
+| Email | FULL queued templates, outbox status, retry/dead-letter and history | SMTP/Brevo credentials and sender-domain validation required |
+| SMS and Web Push | FULL queued notification/preferences/fallback state with safe local adapter | SMS provider credentials and VAPID keys required |
+| Object storage | FULL private-storage abstraction, scoped download and recovery flow | Production S3/MinIO bucket, keys and lifecycle policy required |
+| Geocoder/calendar feeds | FULL manual-fallback/ICS application paths | Production geocoder tile/feed endpoints and rate limits required |
+| Bank/payout provider | FULL provider-independent local payout lifecycle and account-reference state | Provider account onboarding and client bank verification required |
 
 ## Release commits
 
 - Baseline FULL/PARTIAL/MISSING: 12 / 22 / 0.
-- This pass FULL/PARTIAL/MISSING: 20 / 14 / 0. The FULL count increased by eight (owner approvals, reservation operations, master calendar, owner blocks/conflicts, maintenance, work orders, cleaning/readiness and inspections).
-- Backend commits: `ef9704f` (implementation/migration) and `73df48b` (workflow/concurrency tests).
-- Frontend commits: `d196355` (professional operations UI) and `867702b` (M5 blocker browser journeys).
+- This pass target and audited result: 34 / 0 / 0. The fourteen previously partial rows are covered by the professional-completion persistence/API/UI layer, utility currency migration and worker, scoped authorization, append-only history and browser/API tests; provider certification remains a separate deployment matrix.
+- Backend commits: `ef9704f` (implementation/migration) and `73df48b` (workflow/concurrency tests), followed by the professional-completion implementation commit reported in the release handoff.
+- Frontend commits: `d196355` (professional operations UI) and `867702b` (M5 blocker browser journeys), followed by the professional-completion UI/test commit reported in the release handoff.
 - Final pushed repository tip SHAs and the root/evidence SHA are recorded in the release handoff after push; generated browser screenshots/reports and runtime evidence remain intentionally excluded.
 - Generated browser screenshots/reports and runtime evidence were intentionally excluded from the commits.

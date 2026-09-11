@@ -38,6 +38,7 @@ const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages"
 const PropertyManagerPmsPage = lazy(() => import("./pages/PropertyManagerPmsPage").then(({ PropertyManagerPmsPage }) => ({ default: PropertyManagerPmsPage })));
 const PropertyManagerP0Page = lazy(() => import("./pages/PropertyManagerP0Page").then(({ default: page }) => ({ default: page })));
 const PropertyManagerProfessionalPage = lazy(() => import("./pages/PropertyManagerProfessionalPage").then(({ default: page }) => ({ default: page })));
+const PropertyManagerProfessionalCompletionPage = lazy(() => import("./pages/PropertyManagerProfessionalCompletionPage").then(({ PropertyManagerProfessionalCompletionPage }) => ({ default: PropertyManagerProfessionalCompletionPage })));
 
 const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
 const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
@@ -132,6 +133,7 @@ type Route =
   | { name: "pm-dashboard" }
   | { name: "pm-p0" }
   | { name: "pm-professional" }
+  | { name: "pm-professional-completion" }
   | { name: "pm-invoices" }
   | { name: "pm-maintenance" }
   | { name: "pm-governance" }
@@ -268,6 +270,7 @@ function parseRoute(): Route {
   if (path === "/pm/dashboard") return { name: "pm-dashboard" };
   if (path === "/pm/p0" || path === "/pm/finance") return { name: "pm-p0" };
   if (path === "/pm/operations" || path === "/pm/professional") return { name: "pm-professional" };
+  if (path === "/pm/professional-completion") return { name: "pm-professional-completion" };
   if (path === "/pm/invoices") return { name: "pm-invoices" };
   if (path === "/pm/maintenance") return { name: "pm-maintenance" };
   if (path === "/pm/governance") return { name: "pm-governance" };
@@ -893,6 +896,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PropertyManagerP0Page auth={auth} />;
     case "pm-professional":
       return <PropertyManagerProfessionalPage auth={auth} />;
+    case "pm-professional-completion":
+      return <PropertyManagerProfessionalCompletionPage auth={auth} />;
     case "pm-invoices":
       return <PropertyManagerPmsPage auth={auth} module="invoices" />;
     case "pm-maintenance":
