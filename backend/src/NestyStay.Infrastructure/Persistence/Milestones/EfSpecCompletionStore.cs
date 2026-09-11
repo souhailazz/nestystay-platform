@@ -56,6 +56,13 @@ public sealed class EfSpecCompletionStore(
     private static readonly TimeSpan PasswordlessLoginLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan OwnerInvitationLifetime = TimeSpan.FromDays(7);
+    // The spec/evidence seed endpoint is intentionally idempotent, but the
+    // first request on a clean PostgreSQL database can touch a large set of
+    // related tables.  Playwright runs several browser projects in parallel;
+    // serialising the seed transaction prevents those first-run writes from
+    // starving authentication/session queries and makes the M1 contract
+    // fixture deterministic without changing production workflows.
+    private static readonly SemaphoreSlim SeedGate = new(1, 1);
     private static readonly Guid SeedHostUserId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     private static readonly Guid SeedGuestUserId = Guid.Parse("99999999-9999-4999-8999-999999999999");
     private static readonly Guid SeedPropertyId = Guid.Parse("11111111-1111-4111-8111-111111111111");
@@ -1856,6 +1863,19 @@ public sealed class EfSpecCompletionStore(
         preference.UpdatedAt);
 
     private async Task SeedAsync(CancellationToken cancellationToken)
+    {
+        await SeedGate.WaitAsync(cancellationToken);
+        try
+        {
+            await SeedCoreAsync(cancellationToken);
+        }
+        finally
+        {
+            SeedGate.Release();
+        }
+    }
+
+    private async Task SeedCoreAsync(CancellationToken cancellationToken)
     {
         if (!await db.MilestonePublicContentPages.AnyAsync(cancellationToken))
         {

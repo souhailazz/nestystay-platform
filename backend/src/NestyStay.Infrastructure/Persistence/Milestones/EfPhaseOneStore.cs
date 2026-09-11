@@ -1517,7 +1517,22 @@ public sealed class EfPhaseOneStore(
             }
             catch (Exception exception) when (IsBookingCreationConflict(exception))
             {
-                await transaction.RollbackAsync(cancellationToken);
+                // Npgsql can surface a serializable 40001 as an outer
+                // InvalidOperationException from its execution strategy. In
+                // that case the provider may already have completed the
+                // transaction while unwinding the failed command; rollback is
+                // still best effort and must not mask the retryable conflict.
+                try
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
+                catch (InvalidOperationException rollbackException) when (
+                    rollbackException.Message.Contains("transaction", StringComparison.OrdinalIgnoreCase) &&
+                    rollbackException.Message.Contains("completed", StringComparison.OrdinalIgnoreCase))
+                {
+                    // The failed transaction is already unusable; the next
+                    // attempt gets a clean EF change tracker/connection.
+                }
                 db.ChangeTracker.Clear();
                 if (attempt == BookingCreationPersistenceRetries)
                 {
@@ -1589,9 +1604,21 @@ public sealed class EfPhaseOneStore(
         db.Database.IsRelational() &&
         !string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
 
-    private static bool IsBookingCreationConflict(Exception exception) =>
-        exception is DbUpdateException ||
-        exception is PostgresException { SqlState: "40001" };
+    private static bool IsBookingCreationConflict(Exception exception)
+    {
+        // Walk the provider/EF wrapper chain. Npgsql's execution strategy
+        // commonly wraps DbUpdateException (and the underlying 40001) in an
+        // InvalidOperationException, which previously bypassed this retry.
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is DbUpdateException || current is PostgresException { SqlState: "40001" })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public async Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken)
     {

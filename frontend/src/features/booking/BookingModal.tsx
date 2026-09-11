@@ -80,7 +80,14 @@ export function BookingModal({ property, onClose, onProceedToReview }: BookingMo
   const [adults, setAdults] = useState(draft?.adults ?? 2);
   const [childrenCount, setChildrenCount] = useState(draft?.childrenCount ?? 0);
   const [accessibility, setAccessibility] = useState(draft?.accessibility ?? "");
-  const [protection, setProtection] = useState(draft?.protection ?? "insuraguest");
+  // InsuraGuest is only valid for properties that explicitly enable it.  A
+  // newly-created M1 listing defaults to the standard plan; selecting the
+  // unavailable protection option caused the server quote to return 400 and
+  // left the booking modal stranded on slower/parallel browser runs.
+  const initialProtection = property.insuraGuestEnabled
+    ? (draft?.protection === "standard" ? "standard" : "insuraguest")
+    : "standard";
+  const [protection, setProtection] = useState(initialProtection);
   const [draftSaved, setDraftSaved] = useState(Boolean(draft));
 
   const [quote, setQuote] = useState<BookingQuote | null>(null);
@@ -233,7 +240,7 @@ export function BookingModal({ property, onClose, onProceedToReview }: BookingMo
             <div className="flex flex-col gap-2.5">
               {(
                 [
-                  ["insuraguest", "InsuraGuest Full Protection", "$15.00 / night · Covers accidental property damage & accidental injury during stay."],
+                  ...(property.insuraGuestEnabled ? [["insuraguest", "InsuraGuest Full Protection", "$15.00 / night · Covers accidental property damage & accidental injury during stay."]] : []),
                   ["standard", "Standard Protection", "Included · Basic host guarantee coverage."],
                 ] as const
               ).map(([value, title, copy]) => (

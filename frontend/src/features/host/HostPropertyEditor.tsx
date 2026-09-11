@@ -16,6 +16,8 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const formDirty = useRef(false);
+  const propertyRef = useRef<PropertyListing | null>(null);
+  const propertyLoadRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -24,6 +26,7 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
         const list = await api.getOwnedProperties(token);
         const selected = propertyId ? list.find((item) => item.id === propertyId) : list[0];
         if (active && selected) {
+          propertyRef.current = selected;
           setProperty(selected);
           // Do not overwrite a field the user has already edited while the
           // asynchronous property request is resolving. This keeps a fast
@@ -38,29 +41,40 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
         console.error(err);
       }
     }
-    load();
+    propertyRef.current = null;
+    propertyLoadRef.current = load();
     return () => { active = false; };
   }, [propertyId, token]);
 
   async function handleSave() {
-    if (!property) return;
+    // The editor shell renders before the owned-property request resolves.
+    // Queue an eager click until that request completes instead of silently
+    // dropping the user's first save on slower/mobile connections.
+    if (!propertyRef.current && propertyLoadRef.current) {
+      await propertyLoadRef.current;
+    }
+    const currentProperty = propertyRef.current ?? property;
+    if (!currentProperty) {
+      setNotice("Property details are still loading. Try Save Changes again in a moment.");
+      return;
+    }
     setSaving(true);
     setNotice(null);
     try {
-      await api.updateProperty(property.id, token, {
-        hostName: property.hostName,
+      await api.updateProperty(currentProperty.id, token, {
+        hostName: currentProperty.hostName,
         // The API rehydrates this from the authenticated profile for registered hosts.
         hostEmail: "host-villa@nestystay.local",
         title,
-        location: property.location,
-        country: property.country,
+        location: currentProperty.location,
+        country: currentProperty.country,
         nightlyRate,
-        currency: property.currency,
-        badgeLevel: property.badgeLevel || "Free",
-        guestVerificationEnabled: property.guestVerificationEnabled,
-        insuraGuestEnabled: property.insuraGuestEnabled,
+        currency: currentProperty.currency,
+        badgeLevel: currentProperty.badgeLevel || "Free",
+        guestVerificationEnabled: currentProperty.guestVerificationEnabled,
+        insuraGuestEnabled: currentProperty.insuraGuestEnabled,
         cancellationPolicy: policy,
-        highlights: property.highlights
+        highlights: currentProperty.highlights
       });
       setNotice("Property sections saved and updated.");
     } catch (err) {

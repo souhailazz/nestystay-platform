@@ -19,7 +19,37 @@ test.beforeAll(async ({ baseURL }) => {
   }
 });
 
-test("real guest registration, login, quote, and persisted eKYC booking flow", async ({ page }, testInfo) => {
+test("real guest registration, login, quote, and persisted eKYC booking flow", async ({ baseURL, page }, testInfo) => {
+  // Create a private listing for this journey. Selecting the
+  // first public card is not deterministic when the parallel security and M5
+  // projects publish their own fixtures at the same time; those listings may
+  // already contain an owner block or booking for the randomized dates.
+  const fixtureApi = await playwrightRequest.newContext({ baseURL });
+  const fixtureHost = await createSession(fixtureApi, "Host") as { userId: string; email: string; accessToken: string };
+  const fixturePropertyResponse = await fixtureApi.post("/api/properties", {
+    headers: { Authorization: `Bearer ${fixtureHost.accessToken}` },
+    data: {
+      hostUserId: fixtureHost.userId,
+      hostName: "M1 eKYC Fixture Host",
+      hostEmail: fixtureHost.email,
+      title: `M1 eKYC Fixture ${Date.now()}`,
+      location: "Kingston",
+      country: "Jamaica",
+      nightlyRate: 120,
+      currency: "USD",
+      // Keep this fixture at the contractual Free/no-eKYC baseline. The
+      // dedicated contract-validation spec covers the badge-gated eKYC path
+      // when an admin fixture token is supplied.
+      badgeLevel: "Free",
+      guestVerificationEnabled: false,
+      insuraGuestEnabled: false,
+      cancellationPolicy: "Flexible",
+    },
+  });
+  expect(fixturePropertyResponse.ok(), await fixturePropertyResponse.text()).toBeTruthy();
+  const fixtureProperty = await fixturePropertyResponse.json() as { id: string };
+  await fixtureApi.dispose();
+
   const email = `ui-guest-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
   console.log("guest: goto register", email);
   await page.goto("/register", { waitUntil: "domcontentloaded" });
@@ -39,7 +69,10 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   await page.goto("/explore", { waitUntil: "domcontentloaded" });
   const bookButtons = page.getByRole("button", { name: "Book", exact: true });
   await expect(bookButtons.first()).toBeVisible();
-  await bookButtons.first().click();
+  // Confirm the public listing route still renders, then use the isolated
+  // fixture instead of a parallel test's potentially occupied card.
+  await page.goto(`/properties/${fixtureProperty.id}`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   console.log("guest: opened booking modal");
   await expect(page.getByRole("heading", { name: "Choose your dates", exact: true })).toBeVisible();
 

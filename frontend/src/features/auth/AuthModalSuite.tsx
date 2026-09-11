@@ -130,9 +130,17 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
     setNoticeTone("success");
   }
 
-  function finishSignIn() {
+  function finishSignIn(registeredRole?: typeof registerRole) {
     onClose?.();
-    const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
+    // Registration updates auth state asynchronously.  When a page is
+    // switching from an existing session (as parallel browser fixtures do),
+    // reading auth.session in the same tick can still see the previous user's
+    // role and redirect a newly-created guest/host to the wrong dashboard.
+    // Prefer the role just submitted for registration; login flows continue
+    // to derive the destination from the authenticated session.
+    const roles = registeredRole
+      ? [registeredRole.toLowerCase()]
+      : (auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()]);
     if (roles.includes("propertymanager")) navigate("/pm/dashboard");
     else if (roles.includes("owner")) navigate("/owner/dashboard");
     else if (roles.includes("host")) navigate("/host-dashboard");
@@ -221,7 +229,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
         setMode("2fa-verify");
         showSuccess("Account created. Enter the 2FA code to finish signing in.");
       } else {
-        finishSignIn();
+        finishSignIn(registerRole);
       }
     } catch (err) {
       showError(err instanceof Error ? err.message : "Signup failed.");
