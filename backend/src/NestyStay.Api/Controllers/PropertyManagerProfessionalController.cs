@@ -25,14 +25,18 @@ public sealed class PropertyManagerProfessionalController(IPropertyManagerProfes
     public async Task<IActionResult> UpdateReservation(Guid bookingId, UpdatePmReservationRequest request, CancellationToken ct) => (await store.UpdateReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
     [HttpPost("reservations/{bookingId:guid}/date-change-preview")]
     public async Task<IActionResult> PreviewReservationDateChange(Guid bookingId, PreviewPmReservationDateChangeRequest request, CancellationToken ct) => (await store.PreviewReservationDateChangeAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("reservations/{bookingId:guid}/amend")]
+    public async Task<IActionResult> AmendReservation(Guid bookingId, AmendPmReservationRequest request, CancellationToken ct) => (await store.AmendReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
     [HttpPost("reservations/{bookingId:guid}/cancel")]
     public async Task<IActionResult> CancelReservation(Guid bookingId, CancelPmReservationRequest request, CancellationToken ct) => (await store.CancelReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("reservations/{bookingId:guid}/rebook")]
+    public async Task<IActionResult> RebookReservation(Guid bookingId, RebookPmReservationRequest request, CancellationToken ct) => (await store.RebookReservationAsync(Actor(), bookingId, request, ct)) is { } row ? Ok(row) : NotFound();
     [HttpGet("reservations/{bookingId:guid}/history")]
     public async Task<IActionResult> ReservationHistory(Guid bookingId, CancellationToken ct) => Ok(await store.ListReservationHistoryAsync(Actor(), bookingId, ct));
     [HttpPost("reservations/{bookingId:guid}/notes")]
     public async Task<IActionResult> ReservationNote(Guid bookingId, AddPmReservationNoteRequest request, CancellationToken ct) => Ok(await store.AddReservationNoteAsync(Actor(), bookingId, request, ct));
     [HttpGet("calendar")]
-    public async Task<IActionResult> MasterCalendar([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to, [FromQuery] Guid? propertyId, CancellationToken ct) => Ok(await store.ListMasterCalendarAsync(Actor(), from == default ? DateTimeOffset.UtcNow.Date : from, to == default ? DateTimeOffset.UtcNow.Date.AddDays(45) : to, propertyId, ct));
+    public async Task<IActionResult> MasterCalendar([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to, [FromQuery] Guid? propertyId, [FromQuery] Guid? ownerUserId, [FromQuery] string? eventType, CancellationToken ct) => Ok(await store.ListMasterCalendarAsync(Actor(), from == default ? DateTimeOffset.UtcNow.Date : from, to == default ? DateTimeOffset.UtcNow.Date.AddDays(45) : to, propertyId, ownerUserId, eventType, ct));
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard(CancellationToken ct) => Ok(await store.GetOperationalDashboardAsync(Actor(), ct));
     [HttpGet("timeline")]
@@ -50,6 +54,27 @@ public sealed class PropertyManagerProfessionalController(IPropertyManagerProfes
     public async Task<IActionResult> MaintenanceQuotes(Guid id, CancellationToken ct) => Ok(await store.ListMaintenanceQuotesAsync(Actor(), id, ct));
     [HttpGet("maintenance/{id:guid}/history")]
     public async Task<IActionResult> MaintenanceHistory(Guid id, CancellationToken ct) => Ok(await store.ListMaintenanceHistoryAsync(Actor(), id, ct));
+    [HttpPost("maintenance/{id:guid}/cost-lines")]
+    public async Task<IActionResult> AddMaintenanceCostLine(Guid id, AddPmCostLineRequest request, CancellationToken ct) => Ok(await store.AddMaintenanceCostLineAsync(Actor(), id, request, ct));
+    [HttpGet("maintenance/{id:guid}/cost-lines")]
+    public async Task<IActionResult> MaintenanceCostLines(Guid id, CancellationToken ct) => Ok(await store.ListMaintenanceCostLinesAsync(Actor(), id, ct));
+    [HttpPost("maintenance/{id:guid}/financial-correction")]
+    public async Task<IActionResult> CorrectMaintenanceFinancial(Guid id, CorrectPmMaintenanceFinancialRequest request, CancellationToken ct) => (await store.CorrectMaintenanceFinancialAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
+
+    [HttpGet("work-orders")]
+    public async Task<IActionResult> WorkOrders([FromQuery] Guid? propertyId, [FromQuery] string? status, CancellationToken ct) => Ok(await store.ListWorkOrdersAsync(Actor(), propertyId, status, ct));
+    [HttpPatch("work-orders/{id:guid}")]
+    public async Task<IActionResult> UpdateWorkOrder(Guid id, UpdatePmProfessionalWorkOrderRequest request, CancellationToken ct) => (await store.UpdateWorkOrderAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("work-orders/{id:guid}/financial-correction")]
+    public async Task<IActionResult> CorrectWorkOrderFinancial(Guid id, CorrectPmWorkOrderFinancialRequest request, CancellationToken ct) => (await store.CorrectWorkOrderFinancialAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("work-orders/{id:guid}/cost-lines")]
+    public async Task<IActionResult> AddWorkOrderCostLine(Guid id, AddPmCostLineRequest request, CancellationToken ct) => Ok(await store.AddWorkOrderCostLineAsync(Actor(), id, request, ct));
+    [HttpGet("work-orders/{id:guid}/cost-lines")]
+    public async Task<IActionResult> WorkOrderCostLines(Guid id, CancellationToken ct) => Ok(await store.ListWorkOrderCostLinesAsync(Actor(), id, ct));
+    [HttpPost("work-orders/{id:guid}/quotes")]
+    public async Task<IActionResult> AddWorkOrderQuote(Guid id, AddPmWorkOrderQuoteRequest request, CancellationToken ct) => Ok(await store.AddWorkOrderQuoteAsync(Actor(), id, request, ct));
+    [HttpGet("work-orders/{id:guid}/quotes")]
+    public async Task<IActionResult> WorkOrderQuotes(Guid id, CancellationToken ct) => Ok(await store.ListWorkOrderQuotesAsync(Actor(), id, ct));
 
     [HttpGet("cleaning")]
     public async Task<IActionResult> Cleaning([FromQuery] Guid? propertyId, [FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to, CancellationToken ct) => Ok(await store.ListCleaningAsync(Actor(), propertyId, from, to, ct));
@@ -80,6 +105,18 @@ public sealed class PropertyManagerProfessionalController(IPropertyManagerProfes
     public async Task<IActionResult> UpdateInspection(Guid id, UpdatePmInspectionRequest request, CancellationToken ct) => (await store.UpdateInspectionAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
     [HttpPost("inspections/{id:guid}/work-order")]
     public async Task<IActionResult> CreateInspectionWorkOrder(Guid id, CreatePmInspectionWorkOrderRequest request, CancellationToken ct) => (await store.CreateInspectionWorkOrderAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("checklist-templates")]
+    public async Task<IActionResult> CreateChecklistTemplate(CreatePmChecklistTemplateRequest request, CancellationToken ct) => Ok(await store.CreateChecklistTemplateAsync(Actor(), request, ct));
+    [HttpGet("checklist-templates")]
+    public async Task<IActionResult> ChecklistTemplates([FromQuery] string? workflowType, CancellationToken ct) => Ok(await store.ListChecklistTemplatesAsync(Actor(), workflowType, ct));
+    [HttpPut("properties/{propertyId:guid}/checklist-template")]
+    public async Task<IActionResult> AssignChecklistTemplate(Guid propertyId, AssignPmChecklistTemplateRequest request, CancellationToken ct) => Ok(await store.AssignChecklistTemplateAsync(Actor(), propertyId, request, ct));
+    [HttpGet("corrective-actions")]
+    public async Task<IActionResult> CorrectiveActions([FromQuery] Guid? inspectionId, [FromQuery] Guid? propertyId, CancellationToken ct) => Ok(await store.ListCorrectiveActionsAsync(Actor(), inspectionId, propertyId, ct));
+    [HttpPatch("corrective-actions/{id:guid}")]
+    public async Task<IActionResult> UpdateCorrectiveAction(Guid id, UpdatePmCorrectiveActionRequest request, CancellationToken ct) => (await store.UpdateCorrectiveActionAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
+    [HttpPost("corrective-actions/{id:guid}/reinspection")]
+    public async Task<IActionResult> CreateReinspection(Guid id, CreatePmReinspectionRequest request, CancellationToken ct) => (await store.CreateReinspectionAsync(Actor(), id, request, ct)) is { } row ? Ok(row) : NotFound();
 
     private Guid Actor() => authorization.RequireSignedInUser();
 }

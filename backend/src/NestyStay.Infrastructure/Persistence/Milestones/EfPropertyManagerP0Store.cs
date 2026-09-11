@@ -38,6 +38,16 @@ public sealed class EfPropertyManagerP0Store(
         return await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
     }
 
+    private async Task<IDbContextTransaction?> BeginP0LockedCommandTransactionAsync(CancellationToken cancellationToken)
+    {
+        // Advisory locks serialize these single-aggregate commands. Read
+        // committed is intentional: after waiting for another API instance,
+        // the next statement must observe the winner's committed result so an
+        // identical command can replay instead of failing serialization.
+        if (!db.Database.IsRelational() || db.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) == true || db.Database.CurrentTransaction is not null) return null;
+        return await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+    }
+
     private async Task<Guid> ResolveManagerAsync(
         P0Actor actor,
         bool finance = false,
@@ -743,8 +753,16 @@ public sealed class EfPropertyManagerP0Store(
 
     public async Task<P0JournalDto?> ReverseJournalAsync(P0Actor actor, Guid journalId, P0ReverseJournalRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await BeginP0TransactionAsync(cancellationToken);
-        var original = await db.MilestoneP0Journals.AsNoTracking().SingleOrDefaultAsync(x => x.Id == journalId && !x.IsDeleted, cancellationToken); if (original is null) return null; var managerId = await ResolveManagerAsync(actor, finance: true, cancellationToken: cancellationToken); if (original.ManagerUserId != managerId) throw new UnauthorizedAccessException("Journal is outside your portfolio."); await EnsureStaffLimitAsync(actor, managerId, original.TotalDebit, cancellationToken); if (string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(request.IdempotencyKey)) throw new InvalidOperationException("A reversal reason and idempotency key are required."); if (original.SourceType == "REVERSAL") throw new InvalidOperationException("A reversal journal cannot itself be reversed."); if (await db.MilestoneP0Journals.AnyAsync(x => x.ManagerUserId == managerId && x.ReversalOfJournalId == journalId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("This journal has already been reversed."); var lines = await db.MilestoneP0JournalLines.AsNoTracking().Where(x => x.JournalId == journalId && !x.IsDeleted).Join(db.MilestoneP0Accounts, line => line.AccountId, account => account.Id, (line, account) => new P0JournalLineRequest(account.Code, line.Credit, line.Debit, line.OwnerUserId ?? account.OwnerUserId, line.PropertyId ?? account.PropertyId, $"Reversal: {line.Description}")).ToListAsync(cancellationToken); var result = await PostJournalCoreAsync(actor, managerId, new P0PostJournalRequest("REVERSAL", journalId, request.IdempotencyKey, original.Currency, original.AccountingDate, request.Reason.Trim(), lines, false, null, null), cancellationToken); if (transaction is not null) await transaction.CommitAsync(cancellationToken); return result;
+        await using var transaction = await BeginP0LockedCommandTransactionAsync(cancellationToken);
+        if (db.Database.IsNpgsql()) { var lockKey = $"nesty-p0:journal-reversal:{journalId}"; await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken); }
+        var original = await db.MilestoneP0Journals.AsNoTracking().SingleOrDefaultAsync(x => x.Id == journalId && !x.IsDeleted, cancellationToken); if (original is null) return null; var managerId = await ResolveManagerAsync(actor, finance: true, cancellationToken: cancellationToken); if (original.ManagerUserId != managerId) throw new UnauthorizedAccessException("Journal is outside your portfolio."); await EnsureStaffLimitAsync(actor, managerId, original.TotalDebit, cancellationToken); if (string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(request.IdempotencyKey)) throw new InvalidOperationException("A reversal reason and idempotency key are required."); if (original.SourceType == "REVERSAL") throw new InvalidOperationException("A reversal journal cannot itself be reversed.");
+        var existingReversal = await db.MilestoneP0Journals.AsNoTracking().SingleOrDefaultAsync(x => x.ManagerUserId == managerId && x.ReversalOfJournalId == journalId && !x.IsDeleted, cancellationToken);
+        if (existingReversal is not null)
+        {
+            if (existingReversal.IdempotencyKey != request.IdempotencyKey.Trim() || existingReversal.Memo != request.Reason.Trim()) throw new InvalidOperationException("This journal has already been reversed by a different request.");
+            return await ToDtoAsync(existingReversal, cancellationToken);
+        }
+        var lines = await db.MilestoneP0JournalLines.AsNoTracking().Where(x => x.JournalId == journalId && !x.IsDeleted).Join(db.MilestoneP0Accounts, line => line.AccountId, account => account.Id, (line, account) => new P0JournalLineRequest(account.Code, line.Credit, line.Debit, line.OwnerUserId ?? account.OwnerUserId, line.PropertyId ?? account.PropertyId, $"Reversal: {line.Description}")).ToListAsync(cancellationToken); var result = await PostJournalCoreAsync(actor, managerId, new P0PostJournalRequest("REVERSAL", journalId, request.IdempotencyKey, original.Currency, original.AccountingDate, request.Reason.Trim(), lines, false, null, null), cancellationToken); if (transaction is not null) await transaction.CommitAsync(cancellationToken); return result;
     }
 
     public async Task<P0ReconciliationDto> ReconcileJournalAsync(P0Actor actor, P0ReconcileJournalRequest request, CancellationToken cancellationToken)
@@ -1024,23 +1042,151 @@ public sealed class EfPropertyManagerP0Store(
     {
         var managerId = await ResolveManagerAsync(actor, ownerUserId: request.OwnerUserId, propertyId: request.PropertyId, cancellationToken: cancellationToken);
         await EnsureStaffCapabilityAsync(actor, managerId, finance: true, payoutApprover: false, approvalDecision: false, cancellationToken);
-        ValidateCurrency(request.Currency); if (request.Amount <= 0 || string.IsNullOrWhiteSpace(request.Description)) throw new InvalidOperationException("Approval description and a positive amount are required."); await EnsureStaffLimitAsync(actor, managerId, request.Amount, cancellationToken); await EnsureOwnerScopeAsync(managerId, request.OwnerUserId, cancellationToken); if (request.PropertyId.HasValue) await EnsurePropertyScopeAsync(managerId, request.PropertyId.Value, request.OwnerUserId, cancellationToken); if (request.AgreementId.HasValue && !await db.MilestoneP0ManagementAgreements.AnyAsync(x => x.Id == request.AgreementId.Value && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId || x.PropertyId == null) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Agreement linkage is outside the manager, owner or property scope."); if (request.FeeRuleId.HasValue && !await db.MilestoneP0ManagementFeeRules.AnyAsync(x => x.Id == request.FeeRuleId.Value && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId || x.PropertyId == null) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Fee-rule linkage is outside the manager, owner or property scope."); var threshold = await GetApprovalThresholdAsync(managerId, request.OwnerUserId, request.PropertyId, request.ApprovalType, DateOnly.FromDateTime(Now.UtcDateTime), cancellationToken); var evidence = request.EvidenceDocumentIds ?? []; if (evidence.Count > 0) { var valid = await db.MilestoneManagerDocuments.AnyAsync(x => evidence.Contains(x.Id) && x.ManagerUserId == managerId && (!x.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && (!x.PropertyId.HasValue || x.PropertyId == request.PropertyId) && !x.IsDeleted, cancellationToken); if (!valid) throw new InvalidOperationException("Every evidence document must be in the manager and owner scope."); }
-        var status = request.Amount <= threshold && threshold > 0 ? "DELEGATED" : "REQUIRED"; var item = new MilestoneP0Approval { ManagerUserId = managerId, OwnerUserId = request.OwnerUserId, PropertyId = request.PropertyId, AgreementId = request.AgreementId, FeeRuleId = request.FeeRuleId, ApprovalType = request.ApprovalType.Trim().ToUpperInvariant(), Description = request.Description.Trim(), Amount = Round(request.Amount), Threshold = Round(threshold), Currency = request.Currency.Trim().ToUpperInvariant(), Status = status, EvidenceJson = JsonSerializer.Serialize(evidence) }; db.MilestoneP0Approvals.Add(item); db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "CREATED", FromStatus = "", ToStatus = status, Reason = "Approval requested", EvidenceJson = item.EvidenceJson }); await AuditAsync(actor.UserId, "P0ApprovalCreated", "Approval", item.Id, item.Description, new { request.Amount, threshold, status }, cancellationToken); await db.SaveChangesAsync(cancellationToken); await QueueNotificationAsync(request.OwnerUserId, "Approval requested", item.Description, $"p0-approval:{item.Id}:created", cancellationToken); await db.SaveChangesAsync(cancellationToken); return await ApprovalToDtoAsync(item, cancellationToken);
+        await using var transaction = await BeginP0TransactionAsync(cancellationToken);
+        ValidateCurrency(request.Currency);
+        if (request.Amount <= 0 || string.IsNullOrWhiteSpace(request.Description)) throw new InvalidOperationException("Approval description and a positive amount are required.");
+        if (request.ExpiresAt is { } expiry && expiry <= Now) throw new InvalidOperationException("Approval expiry must be in the future.");
+        await EnsureStaffLimitAsync(actor, managerId, request.Amount, cancellationToken);
+        await EnsureOwnerScopeAsync(managerId, request.OwnerUserId, cancellationToken);
+        if (request.PropertyId.HasValue) await EnsurePropertyScopeAsync(managerId, request.PropertyId.Value, request.OwnerUserId, cancellationToken);
+        if (request.AgreementId.HasValue && !await db.MilestoneP0ManagementAgreements.AnyAsync(x => x.Id == request.AgreementId.Value && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId || x.PropertyId == null) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Agreement linkage is outside the manager, owner or property scope.");
+        if (request.FeeRuleId.HasValue && !await db.MilestoneP0ManagementFeeRules.AnyAsync(x => x.Id == request.FeeRuleId.Value && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId || x.PropertyId == null) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Fee-rule linkage is outside the manager, owner or property scope.");
+
+        var sourceType = string.IsNullOrWhiteSpace(request.SourceType) ? null : request.SourceType.Trim().ToUpperInvariant();
+        if (sourceType is not null && sourceType is not ("MAINTENANCE" or "WORK_ORDER" or "EXPENSE")) throw new InvalidOperationException("Approval source type must be MAINTENANCE, WORK_ORDER or EXPENSE.");
+        if (sourceType is not null && request.SourceId is null) throw new InvalidOperationException("A related record is required for this approval source.");
+        if (sourceType == "MAINTENANCE" && !await db.MilestonePmMaintenanceCases.AnyAsync(x => x.Id == request.SourceId && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Maintenance source is outside the approval scope.");
+        if (sourceType == "WORK_ORDER" && !await db.MilestoneWorkOrders.AnyAsync(x => x.Id == request.SourceId && x.ManagerUserId == managerId && x.OwnerUserId == request.OwnerUserId && (!request.PropertyId.HasValue || x.PropertyId == request.PropertyId) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Work-order source is outside the approval scope.");
+
+        var evidence = (request.EvidenceDocumentIds ?? []).Distinct().ToArray();
+        if (evidence.Length > 20) throw new InvalidOperationException("An approval can contain at most twenty evidence documents.");
+        if (evidence.Length > 0)
+        {
+            var validCount = await db.MilestoneManagerDocuments.CountAsync(x => evidence.Contains(x.Id) && x.ManagerUserId == managerId && (!x.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && (!x.PropertyId.HasValue || x.PropertyId == request.PropertyId) && !x.IsDeleted && !x.IsArchived, cancellationToken);
+            if (validCount != evidence.Length) throw new InvalidOperationException("Every evidence document must be active and in the manager, owner and property scope.");
+        }
+        var evidenceJson = JsonSerializer.Serialize(evidence);
+        var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
+        if (idempotencyKey is not null)
+        {
+            var duplicate = await db.MilestoneP0Approvals.AsNoTracking().SingleOrDefaultAsync(x => x.ManagerUserId == managerId && x.RequestIdempotencyKey == idempotencyKey && !x.IsDeleted, cancellationToken);
+            if (duplicate is not null)
+            {
+                var matches = duplicate.OwnerUserId == request.OwnerUserId && duplicate.PropertyId == request.PropertyId && duplicate.AgreementId == request.AgreementId && duplicate.FeeRuleId == request.FeeRuleId && duplicate.ApprovalType == request.ApprovalType.Trim().ToUpperInvariant() && duplicate.Description == request.Description.Trim() && duplicate.Amount == Round(request.Amount) && duplicate.Currency == request.Currency.Trim().ToUpperInvariant() && duplicate.EvidenceJson == evidenceJson && duplicate.SourceType == sourceType && duplicate.SourceId == request.SourceId && duplicate.ExpiresAt == request.ExpiresAt?.ToUniversalTime();
+                if (!matches) throw new InvalidOperationException("The idempotency key was already used for a different approval request.");
+                return await ApprovalToDtoAsync(duplicate, cancellationToken);
+            }
+        }
+
+        var threshold = await GetApprovalThresholdAsync(managerId, request.OwnerUserId, request.PropertyId, request.ApprovalType, DateOnly.FromDateTime(Now.UtcDateTime), cancellationToken);
+        var status = request.Amount <= threshold && threshold > 0 ? "DELEGATED" : "REQUIRED";
+        var item = new MilestoneP0Approval
+        {
+            ManagerUserId = managerId,
+            OwnerUserId = request.OwnerUserId,
+            PropertyId = request.PropertyId,
+            AgreementId = request.AgreementId,
+            FeeRuleId = request.FeeRuleId,
+            ApprovalType = request.ApprovalType.Trim().ToUpperInvariant(),
+            Description = request.Description.Trim(),
+            Amount = Round(request.Amount),
+            Threshold = Round(threshold),
+            Currency = request.Currency.Trim().ToUpperInvariant(),
+            Status = status,
+            EvidenceJson = evidenceJson,
+            SourceType = sourceType,
+            SourceId = request.SourceId,
+            ExpiresAt = request.ExpiresAt?.ToUniversalTime(),
+            RequestIdempotencyKey = idempotencyKey
+        };
+        db.MilestoneP0Approvals.Add(item);
+        db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "CREATED", FromStatus = "", ToStatus = status, Reason = item.Description, EvidenceJson = item.EvidenceJson, IdempotencyKey = idempotencyKey is null ? null : $"request:{idempotencyKey}" });
+        await AuditAsync(actor.UserId, "P0ApprovalCreated", "Approval", item.Id, item.Description, new { request.Amount, threshold, status, sourceType, request.SourceId }, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await QueueNotificationAsync(request.OwnerUserId, "Approval requested", item.Description, $"p0-approval:{item.Id}:created", cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        return await ApprovalToDtoAsync(item, cancellationToken);
     }
 
     public async Task<IReadOnlyList<P0ApprovalDto>> ListApprovalsAsync(P0Actor actor, P0ApprovalQuery query, CancellationToken cancellationToken)
     {
-        var managerId = await ResolveManagerAsync(actor, ownerUserId: query.OwnerUserId, propertyId: query.PropertyId, cancellationToken: cancellationToken); var scope = await ResolveScopeAsync(actor, managerId, cancellationToken); var q = db.MilestoneP0Approvals.AsNoTracking().Where(x => x.ManagerUserId == managerId && !x.IsDeleted); if (query.OwnerUserId.HasValue) q = q.Where(x => x.OwnerUserId == query.OwnerUserId); if (query.PropertyId.HasValue) q = q.Where(x => x.PropertyId == query.PropertyId); if (scope.OwnerIds.Length > 0) q = q.Where(x => scope.OwnerIds.Contains(x.OwnerUserId)); if (scope.PropertyIds.Length > 0) q = q.Where(x => x.PropertyId == null || scope.PropertyIds.Contains(x.PropertyId.Value)); if (!string.IsNullOrWhiteSpace(query.Status)) q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant()); var rows = await q.OrderByDescending(x => x.CreatedAt).Skip(Math.Max(0, query.Page - 1) * Math.Clamp(query.PageSize, 1, 200)).Take(Math.Clamp(query.PageSize, 1, 200)).ToListAsync(cancellationToken); var result = new List<P0ApprovalDto>(); foreach (var row in rows) result.Add(await ApprovalToDtoAsync(row, cancellationToken)); return result;
+        var managerId = await ResolveManagerAsync(actor, ownerUserId: query.OwnerUserId, propertyId: query.PropertyId, cancellationToken: cancellationToken);
+        var expiring = await db.MilestoneP0Approvals.Where(x => x.ManagerUserId == managerId && x.Status == "REQUIRED" && x.ExpiresAt.HasValue && x.ExpiresAt <= Now && !x.IsDeleted).ToListAsync(cancellationToken);
+        foreach (var item in expiring)
+        {
+            item.Status = "EXPIRED";
+            item.RowVersion++;
+            db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "EXPIRED", FromStatus = "REQUIRED", ToStatus = "EXPIRED", Reason = "Approval request expired", EvidenceJson = item.EvidenceJson });
+        }
+        if (expiring.Count > 0) await db.SaveChangesAsync(cancellationToken);
+        var scope = await ResolveScopeAsync(actor, managerId, cancellationToken);
+        var q = db.MilestoneP0Approvals.AsNoTracking().Where(x => x.ManagerUserId == managerId && !x.IsDeleted);
+        if (query.OwnerUserId.HasValue) q = q.Where(x => x.OwnerUserId == query.OwnerUserId);
+        if (query.PropertyId.HasValue) q = q.Where(x => x.PropertyId == query.PropertyId);
+        if (scope.OwnerIds.Length > 0) q = q.Where(x => scope.OwnerIds.Contains(x.OwnerUserId));
+        if (scope.PropertyIds.Length > 0) q = q.Where(x => x.PropertyId == null || scope.PropertyIds.Contains(x.PropertyId.Value));
+        if (!string.IsNullOrWhiteSpace(query.Status)) q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+        var rows = await q.OrderByDescending(x => x.CreatedAt).Skip(Math.Max(0, query.Page - 1) * Math.Clamp(query.PageSize, 1, 200)).Take(Math.Clamp(query.PageSize, 1, 200)).ToListAsync(cancellationToken);
+        var result = new List<P0ApprovalDto>();
+        foreach (var row in rows) result.Add(await ApprovalToDtoAsync(row, cancellationToken));
+        return result;
     }
 
     public async Task<P0ApprovalDto?> DecideApprovalAsync(P0Actor actor, Guid approvalId, P0ApprovalDecisionRequest request, CancellationToken cancellationToken)
     {
-        var item = await db.MilestoneP0Approvals.SingleOrDefaultAsync(x => x.Id == approvalId && !x.IsDeleted, cancellationToken); if (item is null) return null; var isOwner = actor.UserId == item.OwnerUserId; var managerId = await ResolveManagerAsync(actor, finance: false, ownerUserId: item.OwnerUserId, propertyId: item.PropertyId, cancellationToken: cancellationToken); if (managerId != item.ManagerUserId) throw new UnauthorizedAccessException("Approval is outside your portfolio."); if (!isOwner) await EnsureStaffCapabilityAsync(actor, managerId, finance: false, payoutApprover: false, approvalDecision: true, cancellationToken); if (item.RowVersion != request.RowVersion) throw new DbUpdateConcurrencyException("Approval changed; reload before deciding."); if (string.IsNullOrWhiteSpace(request.Status) || string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A decision status and reason are required."); if (item.Status != "REQUIRED") throw new InvalidOperationException("This approval has already been decided."); var status = request.Status.Trim().ToUpperInvariant(); if (status is not ("APPROVED" or "REJECTED" or "CHANGES_REQUESTED")) throw new InvalidOperationException("Approval decision must be approved, rejected or changes_requested."); var from = item.Status; item.Status = status; item.DecisionReason = request.Reason.Trim(); item.DecidedByUserId = actor.UserId; item.DecidedAt = Now; item.RowVersion++; db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "DECIDED", FromStatus = from, ToStatus = status, Reason = item.DecisionReason, EvidenceJson = item.EvidenceJson }); await AuditAsync(actor.UserId, "P0ApprovalDecided", "Approval", item.Id, item.DecisionReason, new { from, status }, cancellationToken); await db.SaveChangesAsync(cancellationToken); await QueueNotificationAsync(isOwner ? item.ManagerUserId : item.OwnerUserId, "Approval decision", $"Approval {item.Description}: {status}", $"p0-approval:{item.Id}:{status}", cancellationToken); await db.SaveChangesAsync(cancellationToken); return await ApprovalToDtoAsync(item, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Status) || string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A decision status and reason are required.");
+        var status = request.Status.Trim().ToUpperInvariant();
+        if (status is not ("APPROVED" or "REJECTED" or "CHANGES_REQUESTED")) throw new InvalidOperationException("Approval decision must be approved, rejected or changes_requested.");
+        var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? $"decision:{approvalId:N}:{status}" : request.IdempotencyKey.Trim();
+        await using var transaction = await BeginP0LockedCommandTransactionAsync(cancellationToken);
+        if (db.Database.IsNpgsql()) { var lockKey = $"nesty-pm:approval:{approvalId}"; await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken); }
+        var item = await db.MilestoneP0Approvals.SingleOrDefaultAsync(x => x.Id == approvalId && !x.IsDeleted, cancellationToken);
+        if (item is null) return null;
+        var isOwner = actor.UserId == item.OwnerUserId;
+        var managerId = await ResolveManagerAsync(actor, finance: false, ownerUserId: item.OwnerUserId, propertyId: item.PropertyId, cancellationToken: cancellationToken);
+        if (managerId != item.ManagerUserId) throw new UnauthorizedAccessException("Approval is outside your portfolio.");
+        if (!isOwner && !actor.IsAdmin) throw new UnauthorizedAccessException("Only the linked owner can decide this approval request.");
+        var duplicate = await db.MilestoneP0ApprovalEvents.AsNoTracking().SingleOrDefaultAsync(x => x.ApprovalId == item.Id && x.IdempotencyKey == idempotencyKey && !x.IsDeleted, cancellationToken);
+        if (duplicate is not null)
+        {
+            if (duplicate.ToStatus != status || duplicate.Reason != request.Reason.Trim()) throw new InvalidOperationException("The idempotency key was already used for a different approval decision.");
+            return await ApprovalToDtoAsync(item, cancellationToken);
+        }
+        if (item.ExpiresAt is { } expiry && expiry <= Now)
+        {
+            item.Status = "EXPIRED";
+            item.RowVersion++;
+            db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "EXPIRED", FromStatus = "REQUIRED", ToStatus = "EXPIRED", Reason = "Approval request expired", EvidenceJson = item.EvidenceJson });
+            await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            throw new InvalidOperationException("This approval request has expired.");
+        }
+        if (item.RowVersion != request.RowVersion) throw new DbUpdateConcurrencyException("Approval changed; reload before deciding.");
+        if (item.Status != "REQUIRED") throw new InvalidOperationException("This approval has already been decided.");
+        var from = item.Status;
+        item.Status = status;
+        item.DecisionReason = request.Reason.Trim();
+        item.DecidedByUserId = actor.UserId;
+        item.DecidedAt = Now;
+        item.RowVersion++;
+        db.MilestoneP0ApprovalEvents.Add(new MilestoneP0ApprovalEvent { ApprovalId = item.Id, ActorUserId = actor.UserId, EventType = "DECIDED", FromStatus = from, ToStatus = status, Reason = item.DecisionReason, EvidenceJson = item.EvidenceJson, IdempotencyKey = idempotencyKey });
+        await AuditAsync(actor.UserId, "P0ApprovalDecided", "Approval", item.Id, item.DecisionReason, new { from, status }, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await QueueNotificationAsync(item.ManagerUserId, "Approval decision", $"Approval {item.Description}: {status}", $"p0-approval:{item.Id}:{status}", cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        return await ApprovalToDtoAsync(item, cancellationToken);
     }
 
     private async Task<P0ApprovalDto> ApprovalToDtoAsync(MilestoneP0Approval item, CancellationToken cancellationToken)
     {
-        var history = await db.MilestoneP0ApprovalEvents.AsNoTracking().Where(x => x.ApprovalId == item.Id && !x.IsDeleted).OrderBy(x => x.CreatedAt).Select(x => new P0ApprovalEventDto(x.Id, x.ActorUserId, x.EventType, x.FromStatus, x.ToStatus, x.Reason, x.CreatedAt)).ToListAsync(cancellationToken); return new P0ApprovalDto(item.Id, item.ManagerUserId, item.OwnerUserId, item.PropertyId, item.AgreementId, item.FeeRuleId, item.ApprovalType, item.Description, item.Amount, item.Threshold, item.Currency, item.Status, item.EvidenceJson, item.DecisionReason, item.DecidedByUserId, item.DecidedAt, item.RowVersion, history);
+        var history = await db.MilestoneP0ApprovalEvents.AsNoTracking().Where(x => x.ApprovalId == item.Id && !x.IsDeleted).OrderBy(x => x.CreatedAt).Select(x => new P0ApprovalEventDto(x.Id, x.ActorUserId, x.EventType, x.FromStatus, x.ToStatus, x.Reason, x.CreatedAt, x.IdempotencyKey)).ToListAsync(cancellationToken);
+        Guid[] evidenceIds;
+        try { evidenceIds = JsonSerializer.Deserialize<Guid[]>(item.EvidenceJson) ?? []; }
+        catch (JsonException) { evidenceIds = []; }
+        var evidence = await db.MilestoneManagerDocuments.AsNoTracking().Where(x => evidenceIds.Contains(x.Id) && x.ManagerUserId == item.ManagerUserId && !x.IsDeleted).OrderBy(x => x.Title).Select(x => new P0ApprovalEvidenceDto(x.Id, x.Title, x.FileName, x.ContentType, x.SizeBytes, x.IsArchived ? "ARCHIVED" : "ACTIVE")).ToListAsync(cancellationToken);
+        return new P0ApprovalDto(item.Id, item.ManagerUserId, item.OwnerUserId, item.PropertyId, item.AgreementId, item.FeeRuleId, item.ApprovalType, item.Description, item.Amount, item.Threshold, item.Currency, item.Status, item.EvidenceJson, item.DecisionReason, item.DecidedByUserId, item.DecidedAt, item.RowVersion, history, evidence, item.SourceType, item.SourceId, item.ExpiresAt, item.RequestIdempotencyKey);
     }
 
     public async Task<P0StaffMembershipDto> InviteStaffAsync(P0Actor actor, P0InviteStaffRequest request, CancellationToken cancellationToken)

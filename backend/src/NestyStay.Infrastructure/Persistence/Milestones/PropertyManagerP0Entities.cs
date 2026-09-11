@@ -227,6 +227,10 @@ public sealed class MilestoneP0Approval : BaseEntity
     public string? DecisionReason { get; set; }
     public Guid? DecidedByUserId { get; set; }
     public DateTimeOffset? DecidedAt { get; set; }
+    public string? SourceType { get; set; }
+    public Guid? SourceId { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public string? RequestIdempotencyKey { get; set; }
     public long RowVersion { get; set; } = 1;
 }
 
@@ -239,6 +243,7 @@ public sealed class MilestoneP0ApprovalEvent : BaseEntity
     public string ToStatus { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string EvidenceJson { get; set; } = "[]";
+    public string? IdempotencyKey { get; set; }
 }
 
 public sealed class MilestoneP0StaffMembership : BaseEntity

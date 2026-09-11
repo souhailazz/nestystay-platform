@@ -376,4 +376,29 @@ describe("api client", () => {
       sizeBytes: 32,
     });
   });
+
+  it("connects professional reservation, accounting and corrective lifecycle commands", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ bookingId: "booking-1" }))
+      .mockResolvedValueOnce(jsonResponse({ maintenance: { id: "maintenance-1" }, reversalJournalId: "journal-r", replacementJournalId: "journal-n", replayed: false }))
+      .mockResolvedValueOnce(jsonResponse({ id: "cost-1" }))
+      .mockResolvedValueOnce(jsonResponse({ workOrder: { id: "work-1" }, reversalJournalId: "work-r", replacementJournalId: "work-n", replayed: false }))
+      .mockResolvedValueOnce(jsonResponse({ id: "reinspection-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.amendProfessionalReservation("token", "booking-1", { checkIn: "2026-10-01", checkOut: "2026-10-03", reason: "Owner request", idempotencyKey: "amend-1" });
+    await api.correctProfessionalMaintenanceFinancial("token", "maintenance-1", { expenseAmount: 90, ownerCharge: 80, managerFee: 0, reason: "Vendor credit", idempotencyKey: "maintenance-correct-1", rowVersion: 4 });
+    await api.addProfessionalWorkOrderCostLine("token", "work-1", { lineType: "LABOR", responsibility: "OWNER", description: "Repair", amount: 80, idempotencyKey: "work-cost-1" });
+    await api.correctProfessionalWorkOrderFinancial("token", "work-1", { laborAmount: 70, materialAmount: 0, taxAmount: 0, otherAmount: 0, ownerResponsibility: 60, managerResponsibility: 10, vendorResponsibility: 0, reason: "Warranty credit", idempotencyKey: "work-correct-1", rowVersion: 8 });
+    await api.createProfessionalReinspection("token", "action-1", { scheduledAt: "2026-10-04T14:00:00Z", idempotencyKey: "reinspect-1" });
+
+    expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
+      "/api/property-manager/professional/reservations/booking-1/amend",
+      "/api/property-manager/professional/maintenance/maintenance-1/financial-correction",
+      "/api/property-manager/professional/work-orders/work-1/cost-lines",
+      "/api/property-manager/professional/work-orders/work-1/financial-correction",
+      "/api/property-manager/professional/corrective-actions/action-1/reinspection",
+    ]);
+    for (const call of fetchMock.mock.calls) expect((call[1]?.headers as Headers).get("Authorization")).toBe("Bearer token");
+  });
 });

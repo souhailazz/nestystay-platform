@@ -1528,8 +1528,24 @@ public sealed class MilestoneWorkOrder : BaseEntity
     public decimal? ApprovedAmount { get; set; }
     public decimal LaborAmount { get; set; }
     public decimal PartsAmount { get; set; }
+    public decimal OtherAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal FinalAmount { get; set; }
+    public decimal OwnerResponsibility { get; set; }
+    public decimal ManagerResponsibility { get; set; }
+    public decimal VendorResponsibility { get; set; }
+    public string Currency { get; set; } = "JMD";
     public DateTimeOffset? SlaDueAt { get; set; }
     public DateTimeOffset? ScheduledAt { get; set; }
+    public Guid? OwnerApprovalId { get; set; }
+    public Guid? SelectedQuoteId { get; set; }
+    public string PostingStatus { get; set; } = "UNPOSTED";
+    public Guid? FinancialJournalId { get; set; }
+    public Guid? FinancialReversalJournalId { get; set; }
+    public Guid? ReplacementFinancialJournalId { get; set; }
+    public int CorrectionCount { get; set; }
+    public Guid? SourceInspectionId { get; set; }
+    public long RowVersion { get; set; } = 1;
 }
 
 public sealed class MilestoneCleaningTask : BaseEntity

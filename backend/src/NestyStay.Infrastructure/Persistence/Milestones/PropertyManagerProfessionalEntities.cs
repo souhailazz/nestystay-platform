@@ -39,6 +39,8 @@ public sealed class MilestonePmReservationEvent : BaseEntity
     public string ToStatus { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string? IdempotencyKey { get; set; }
+    public Guid? RelatedBookingId { get; set; }
+    public string PayloadJson { get; set; } = "{}";
 }
 
 public sealed class MilestonePmMaintenanceCase : BaseEntity
@@ -64,6 +66,10 @@ public sealed class MilestonePmMaintenanceCase : BaseEntity
     public string CostBreakdownJson { get; set; } = "{}";
     public bool FinanciallyPosted { get; set; }
     public Guid? FinancialJournalId { get; set; }
+    public Guid? FinancialReversalJournalId { get; set; }
+    public Guid? ReplacementFinancialJournalId { get; set; }
+    public string FinancialStatus { get; set; } = "UNPOSTED";
+    public int CorrectionCount { get; set; }
     public long RowVersion { get; set; } = 1;
 }
 
@@ -88,6 +94,49 @@ public sealed class MilestonePmMaintenanceEvent : BaseEntity
     public string FromStatus { get; set; } = string.Empty;
     public string ToStatus { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
+    public string? IdempotencyKey { get; set; }
+    public string PayloadJson { get; set; } = "{}";
+}
+
+public sealed class MilestonePmCostLine : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid? MaintenanceId { get; set; }
+    public Guid? WorkOrderId { get; set; }
+    public string LineType { get; set; } = "OTHER";
+    public string Responsibility { get; set; } = "OWNER";
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "JMD";
+    public Guid? ReceiptAttachmentId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+public sealed class MilestonePmWorkOrderQuote : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid WorkOrderId { get; set; }
+    public Guid VendorId { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "JMD";
+    public string Scope { get; set; } = string.Empty;
+    public string Status { get; set; } = "RECEIVED";
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public Guid? EvidenceAttachmentId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+public sealed class MilestonePmWorkOrderEvent : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid WorkOrderId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string FromStatus { get; set; } = string.Empty;
+    public string ToStatus { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public string? IdempotencyKey { get; set; }
+    public string PayloadJson { get; set; } = "{}";
 }
 
 public sealed class MilestonePmCleaningReadiness : BaseEntity
@@ -163,6 +212,49 @@ public sealed class MilestonePmInspectionRecord : BaseEntity
     public string Status { get; set; } = "SCHEDULED";
     public DateTimeOffset? SignedOffAt { get; set; }
     public Guid? CorrectiveWorkOrderId { get; set; }
+    public Guid? TemplateId { get; set; }
+    public string TemplateName { get; set; } = "DEFAULT";
+    public int TemplateVersion { get; set; } = 1;
+    public Guid? ReinspectionOfActionId { get; set; }
+    public long RowVersion { get; set; } = 1;
+}
+
+public sealed class MilestonePmChecklistTemplate : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string WorkflowType { get; set; } = "INSPECTION";
+    public int Version { get; set; } = 1;
+    public string ItemsJson { get; set; } = "[]";
+    public string Status { get; set; } = "ACTIVE";
+    public Guid? SupersedesTemplateId { get; set; }
+}
+
+public sealed class MilestonePmPropertyChecklistAssignment : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid PropertyId { get; set; }
+    public Guid TemplateId { get; set; }
+    public string WorkflowType { get; set; } = "INSPECTION";
+    public DateTimeOffset EffectiveAt { get; set; }
+    public DateTimeOffset? EndedAt { get; set; }
+}
+
+public sealed class MilestonePmCorrectiveAction : BaseEntity
+{
+    public Guid ManagerUserId { get; set; }
+    public Guid InspectionId { get; set; }
+    public Guid PropertyId { get; set; }
+    public string ChecklistItemId { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Severity { get; set; } = "MEDIUM";
+    public bool BlocksReadiness { get; set; } = true;
+    public string Status { get; set; } = "OPEN";
+    public Guid? WorkOrderId { get; set; }
+    public Guid? RetestInspectionId { get; set; }
+    public string ResolutionNotes { get; set; } = string.Empty;
+    public string? LastIdempotencyKey { get; set; }
+    public DateTimeOffset? ResolvedAt { get; set; }
     public long RowVersion { get; set; } = 1;
 }
 

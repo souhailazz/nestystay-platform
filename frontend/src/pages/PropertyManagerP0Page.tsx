@@ -162,6 +162,9 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
     type: "EXPENSE",
     amount: "",
     evidence: "",
+    sourceType: "",
+    sourceId: "",
+    expiresAt: "",
   });
   const [staffForm, setStaffForm] = useState({
     staffUserId: "",
@@ -335,6 +338,15 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
       setError(cause);
     } finally {
       setBusy(false);
+    }
+  }
+  async function openApprovalEvidence(documentId: string) {
+    setError(null);
+    try {
+      const result = await api.getPropertyManagerDocumentDownload(token, documentId);
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (cause) {
+      setError(cause);
     }
   }
   async function saveProfile() {
@@ -1672,13 +1684,24 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
               />
             </Field>
             <Field label="Evidence document ID">
-              <Input
-                value={approval.evidence}
-                onChange={(event) =>
-                  setApproval({ ...approval, evidence: event.target.value })
-                }
-                placeholder="Optional existing document"
-              />
+              <Select value={approval.evidence} onChange={(event) => setApproval({ ...approval, evidence: event.target.value })}>
+                <option value="">No evidence document</option>
+                {selectedDocumentOptions.map((document) => <option key={document.id} value={document.id}>{document.title} · {document.fileName}</option>)}
+              </Select>
+            </Field>
+            <Field label="Related record type">
+              <Select value={approval.sourceType} onChange={(event) => setApproval({ ...approval, sourceType: event.target.value })}>
+                <option value="">General approval</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="WORK_ORDER">Work order</option>
+                <option value="EXPENSE">Expense</option>
+              </Select>
+            </Field>
+            <Field label="Related record ID">
+              <Input value={approval.sourceId} onChange={(event) => setApproval({ ...approval, sourceId: event.target.value })} placeholder="Required when a related type is selected" />
+            </Field>
+            <Field label="Decision deadline">
+              <Input type="datetime-local" value={approval.expiresAt} onChange={(event) => setApproval({ ...approval, expiresAt: event.target.value })} />
             </Field>
           </div>
           <Button
@@ -1687,7 +1710,8 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
               busy ||
               !ownerId ||
               !approval.description ||
-              Number(approval.amount) <= 0
+              Number(approval.amount) <= 0 ||
+              (!!approval.sourceType && !approval.sourceId)
             }
             onClick={() =>
               void run(
@@ -1702,6 +1726,10 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
                     evidenceDocumentIds: approval.evidence
                       ? [approval.evidence]
                       : undefined,
+                    sourceType: approval.sourceType || undefined,
+                    sourceId: approval.sourceId || undefined,
+                    expiresAt: approval.expiresAt ? new Date(approval.expiresAt).toISOString() : undefined,
+                    idempotencyKey: `approval-${randomId()}`,
                   }),
                 "Approval request created",
               )
@@ -1730,60 +1758,11 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
                     Decision: {item.decisionReason}
                   </p>
                 )}
+                {item.sourceType && item.sourceId && <p className="m-0 mt-1 text-xs text-sand-600">Related {item.sourceType.toLowerCase()}: {item.sourceId}</p>}
+                {item.expiresAt && <p className="m-0 mt-1 text-xs text-sand-600">Decision deadline: {new Date(item.expiresAt).toLocaleString()}</p>}
+                {(item.evidence ?? []).length > 0 && <div className="mt-2 flex flex-wrap gap-2" aria-label="Approval evidence">{item.evidence?.map((document) => <Button key={document.id} type="button" variant="outline" onClick={() => void openApprovalEvidence(document.id)}>Open {document.title || document.fileName}</Button>)}</div>}
                 {item.status === "REQUIRED" && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () =>
-                            api.decideP0Approval(token, item.id, {
-                              status: "APPROVED",
-                              reason: "Approved in manager workspace",
-                              rowVersion: item.rowVersion,
-                            }),
-                          "Approval approved",
-                        )
-                      }
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () =>
-                            api.decideP0Approval(token, item.id, {
-                              status: "REJECTED",
-                              reason: "Rejected in manager workspace",
-                              rowVersion: item.rowVersion,
-                            }),
-                          "Approval rejected",
-                        )
-                      }
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () =>
-                            api.decideP0Approval(token, item.id, {
-                              status: "CHANGES_REQUESTED",
-                              reason: "More evidence is required",
-                              rowVersion: item.rowVersion,
-                            }),
-                          "Changes requested",
-                        )
-                      }
-                    >
-                      Request changes
-                    </Button>
-                  </div>
+                  <p className="mt-2 rounded-field bg-shell p-2 text-xs text-sand-600">Awaiting the linked owner’s decision in the owner portal. Managers cannot approve on an owner’s behalf.</p>
                 )}
                 {item.history.length > 0 && (
                   <details className="mt-2 text-xs">

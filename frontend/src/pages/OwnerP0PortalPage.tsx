@@ -26,6 +26,7 @@ export function OwnerP0PortalPage({ auth }: { auth: AuthController }) {
   const [blocks, setBlocks] = useState<Awaited<ReturnType<typeof api.listOwnerOperationalBlocks>>>([]);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [decisionReasons, setDecisionReasons] = useState<Record<string, string>>({});
   const [blockForm, setBlockForm] = useState({ propertyId: "", startsAt: "", endsAt: "", reason: "Owner stay", notes: "" });
 
   const load = () => {
@@ -48,14 +49,25 @@ export function OwnerP0PortalPage({ auth }: { auth: AuthController }) {
     try {
       await api.decideP0Approval(token, id, {
         status,
-        reason: status === "APPROVED" ? "Owner approved in portal" : status === "REJECTED" ? "Owner rejected in portal" : "Owner requested more information",
+        reason: decisionReasons[id]?.trim() || (status === "APPROVED" ? "Owner approved in portal" : status === "REJECTED" ? "Owner rejected in portal" : "Owner requested more information"),
         rowVersion,
+        idempotencyKey: `owner-decision-${id}-${status.toLowerCase()}`,
       });
       load();
     } catch (cause) {
       setError(cause);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function openEvidence(documentId: string) {
+    setError(null);
+    try {
+      const result = await api.getPropertyManagerDocumentDownload(token, documentId);
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (cause) {
+      setError(cause);
     }
   }
 
@@ -168,7 +180,7 @@ export function OwnerP0PortalPage({ auth }: { auth: AuthController }) {
             </Card>
             <Card>
               <h2 className="font-display text-2xl"><Wallet className="mr-2 inline" size={18} />Approvals and payouts</h2>
-              {portal.approvals.filter((item) => item.status === "REQUIRED").map((item) => <div className="mb-3 rounded-field border border-sand-border p-3 text-sm" key={item.id}><div className="flex items-center justify-between gap-2"><strong>{item.description}</strong><StatusChip value={item.status} /></div><p className="m-0 mt-1">{formatMoney(item.amount, item.currency)}</p><div className="mt-2 flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void decide(item.id, "APPROVED", item.rowVersion)}>Approve</Button><Button variant="destructive" disabled={busy} onClick={() => void decide(item.id, "REJECTED", item.rowVersion)}>Reject</Button><Button variant="ghost" disabled={busy} onClick={() => void decide(item.id, "CHANGES_REQUESTED", item.rowVersion)}>Request changes</Button></div></div>)}
+              {portal.approvals.filter((item) => item.status === "REQUIRED").map((item) => <div className="mb-3 rounded-field border border-sand-border p-3 text-sm" key={item.id}><div className="flex items-center justify-between gap-2"><strong>{item.description}</strong><StatusChip value={item.status} /></div><p className="m-0 mt-1">{formatMoney(item.amount, item.currency)}{item.sourceType && item.sourceId ? ` · ${item.sourceType.toLowerCase()} ${item.sourceId}` : ""}</p>{item.expiresAt && <p className="m-0 mt-1 text-xs text-sand-600">Decision deadline: {new Date(item.expiresAt).toLocaleString()}</p>}{(item.evidence ?? []).length > 0 && <div className="mt-2 flex flex-wrap gap-2" aria-label="Approval evidence">{item.evidence?.map((document) => <Button key={document.id} type="button" variant="outline" onClick={() => void openEvidence(document.id)}>Open {document.title || document.fileName}</Button>)}</div>}<label className="mt-2 block text-xs font-semibold">Decision reason<input className="mt-1 block w-full rounded-field border border-line p-2 font-normal" value={decisionReasons[item.id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [item.id]: event.target.value }))} placeholder="Explain your decision" /></label><div className="mt-2 flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void decide(item.id, "APPROVED", item.rowVersion)}>Approve</Button><Button variant="destructive" disabled={busy || !(decisionReasons[item.id]?.trim())} onClick={() => void decide(item.id, "REJECTED", item.rowVersion)}>Reject</Button><Button variant="ghost" disabled={busy || !(decisionReasons[item.id]?.trim())} onClick={() => void decide(item.id, "CHANGES_REQUESTED", item.rowVersion)}>Request changes</Button></div><details className="mt-2 text-xs"><summary className="cursor-pointer font-semibold">Approval history</summary>{item.history.map((event) => <div className="mt-1" key={event.id}>{new Date(event.createdAt).toLocaleString()} · {event.eventType} · {event.fromStatus || "—"} → {event.toStatus} · {event.reason}</div>)}</details></div>)}
               {portal.payouts.map((item) => <div className="mb-2 rounded-field border border-sand-border p-3 text-sm" key={item.id}><div className="flex items-center justify-between gap-2"><span>{formatMoney(item.amount, item.currency)} · {item.periodFrom} → {item.periodTo}</span><StatusChip value={item.status} /></div>{item.providerReference && <small className="text-sand-500">Reference: {item.providerReference}</small>}<details className="mt-2 text-xs"><summary className="cursor-pointer font-semibold">Payout history</summary>{item.history.map((event) => <div className="mt-1" key={event.id}>{event.eventType} · {event.fromStatus || "—"} → {event.toStatus} · {event.reason}</div>)}</details></div>)}
               {portal.approvals.length === 0 && portal.payouts.length === 0 && <EmptyState title="No decisions yet" copy="Manager approvals and payout updates will appear here." />}
             </Card>

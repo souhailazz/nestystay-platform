@@ -35,14 +35,65 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         var preview = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/date-change-preview", new { checkIn = "2099-03-10", checkOut = "2099-03-13" }));
         Assert.False(preview.GetProperty("allowed").GetBoolean());
         Assert.Contains("cancelled and rebooked", preview.GetProperty("blockingReason").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.True(preview.GetProperty("requiresRebooking").GetBoolean());
+        var amendPreview = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/date-change-preview", new { checkIn = "2099-03-15", checkOut = "2099-03-17" }));
+        Assert.True(amendPreview.GetProperty("allowed").GetBoolean());
+        var reservationBeforeAmend = listed!.Single(item => item.GetProperty("bookingId").GetGuid() == bookingId);
+        var amendKey = $"amend-{bookingId:N}";
+        var amended = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/amend", new { checkIn = "2099-03-15", checkOut = "2099-03-17", reason = "Guest shifted travel", idempotencyKey = amendKey, expectedUpdatedAt = reservationBeforeAmend.GetProperty("updatedAt").GetDateTimeOffset() }));
+        Assert.Equal("2099-03-15", amended.GetProperty("checkIn").GetDateTimeOffset().ToString("yyyy-MM-dd"));
+        var repeatedAmendment = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/amend", new { checkIn = "2099-03-15", checkOut = "2099-03-17", reason = "Guest shifted travel", idempotencyKey = amendKey, expectedUpdatedAt = reservationBeforeAmend.GetProperty("updatedAt").GetDateTimeOffset() }));
+        Assert.Equal(bookingId, repeatedAmendment.GetProperty("bookingId").GetGuid());
+        var changedAmendmentReplay = await client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/amend", new { checkIn = "2099-03-16", checkOut = "2099-03-18", reason = "Different payload", idempotencyKey = amendKey });
+        Assert.Equal(HttpStatusCode.BadRequest, changedAmendmentReplay.StatusCode);
         var directCancel = await client.PatchAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}", new { status = "CANCELLED" });
         Assert.Equal(HttpStatusCode.BadRequest, directCancel.StatusCode);
-        var cancelled = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/cancel", new { reason = "Guest requested cancellation", idempotencyKey = $"cancel-{bookingId:N}" }));
+        var cancelled = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/cancel", new { reason = "Guest requested cancellation", idempotencyKey = $"cancel-{bookingId:N}", expectedUpdatedAt = amended.GetProperty("updatedAt").GetDateTimeOffset() }));
         Assert.Equal("Cancelled", cancelled.GetProperty("status").GetString());
         var repeated = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/cancel", new { reason = "Guest requested cancellation", idempotencyKey = $"cancel-{bookingId:N}" }));
         Assert.Equal(bookingId, repeated.GetProperty("bookingId").GetGuid());
+        var rebookKey = $"rebook-{bookingId:N}";
+        var rebooked = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/rebook", new { checkIn = "2099-03-20", checkOut = "2099-03-22", reason = "Replacement dates confirmed", idempotencyKey = rebookKey }));
+        var replacementId = rebooked.GetProperty("replacement").GetProperty("bookingId").GetGuid();
+        Assert.NotEqual(bookingId, replacementId);
+        Assert.False(rebooked.GetProperty("replayed").GetBoolean());
+        var repeatedRebook = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/rebook", new { checkIn = "2099-03-20", checkOut = "2099-03-22", reason = "Replacement dates confirmed", idempotencyKey = rebookKey }));
+        Assert.Equal(replacementId, repeatedRebook.GetProperty("replacement").GetProperty("bookingId").GetGuid());
+        Assert.True(repeatedRebook.GetProperty("replayed").GetBoolean());
+        using var otherManagerClient = factory.CreateClient();
+        _ = await CreatePortfolio(otherManagerClient);
+        Assert.Equal(HttpStatusCode.NotFound, (await otherManagerClient.PostAsJsonAsync($"/api/property-manager/professional/reservations/{bookingId}/rebook", new { checkIn = "2099-04-01", checkOut = "2099-04-03", reason = "Forged operation", idempotencyKey = Guid.NewGuid().ToString("N") })).StatusCode);
         var history = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/reservations/{bookingId}/history");
+        Assert.Contains(history!, item => item.GetProperty("eventType").GetString() == "AMENDED");
         Assert.Contains(history!, item => item.GetProperty("eventType").GetString() == "CANCELLED");
+        Assert.Contains(history!, item => item.GetProperty("eventType").GetString() == "REBOOKED" && item.GetProperty("relatedBookingId").GetGuid() == replacementId);
+    }
+
+    [Fact]
+    public async Task MasterCalendarFiltersWorkOrdersAndExplainsOperationalOverlaps()
+    {
+        using var client = factory.CreateClient();
+        var portfolio = await CreatePortfolio(client);
+        var starts = new DateTimeOffset(2099, 5, 10, 10, 0, 0, TimeSpan.Zero);
+        var block = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/owner-blocks", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, startsAt = starts, endsAt = starts.AddDays(2), reason = "Owner visit" }));
+        var workOrder = await Ok(client.PostAsJsonAsync("/api/property-manager/work-orders", new { propertyId = portfolio.Property, ownerUserId = portfolio.Owner, scope = "Repair balcony rail" }));
+        _ = await Ok(client.PatchAsJsonAsync($"/api/property-manager/work-orders/{workOrder.GetProperty("id").GetGuid()}", new { status = "SCHEDULED", laborAmount = 0, partsAmount = 0, scheduledAt = starts.AddHours(2) }));
+
+        var from = Uri.EscapeDataString(starts.AddDays(-1).ToString("O"));
+        var to = Uri.EscapeDataString(starts.AddDays(3).ToString("O"));
+        var rows = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/calendar?from={from}&to={to}&ownerUserId={portfolio.Owner}");
+        var ownerBlock = Assert.Single(rows!, item => item.GetProperty("sourceId").GetGuid() == block.GetProperty("id").GetGuid());
+        Assert.Equal("WARNING", ownerBlock.GetProperty("conflictLevel").GetString());
+        Assert.Contains(ownerBlock.GetProperty("conflicts").EnumerateArray(), item => item.GetProperty("type").GetString() == "WORK_ORDER");
+        var filtered = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/calendar?from={from}&to={to}&propertyId={portfolio.Property}&eventType=WORK_ORDER");
+        Assert.Single(filtered!);
+        Assert.Equal("WORK_ORDER", filtered![0].GetProperty("type").GetString());
+        Assert.Contains("/pm/work-orders", filtered[0].GetProperty("relatedPath").GetString());
+
+        using var otherManager = factory.CreateClient();
+        _ = await CreatePortfolio(otherManager);
+        var crossPortfolio = await otherManager.GetAsync($"/api/property-manager/professional/calendar?from={from}&to={to}&propertyId={portfolio.Property}");
+        Assert.Equal(HttpStatusCode.BadRequest, crossPortfolio.StatusCode);
     }
 
     [Fact]
@@ -90,13 +141,24 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         var quote = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{id}/quotes", new { vendorId = vendor.GetProperty("id").GetGuid(), amount = 180.00m, scope = "Replace tap", currency = "JMD" }));
         var quotes = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/maintenance/{id}/quotes");
         Assert.NotNull(quotes); Assert.Contains(quotes!, item => item.GetProperty("id").GetGuid() == quote.GetProperty("id").GetGuid());
-        var approval = await Ok(client.PostAsJsonAsync("/api/property-manager/p0/approvals", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, approvalType = "MAINTENANCE", description = "Replace leaking tap", amount = 180.00m, currency = "JMD" }));
+        var approvalEvidence = await Ok(client.PostAsJsonAsync("/api/property-manager/documents", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, title = "Vendor estimate", category = "MAINTENANCE", fileName = "estimate.pdf", contentType = "application/pdf", sizeBytes = 9, contentBase64 = "JVBERi0xLjQK" }));
+        var approvalKey = $"approval-{id:N}";
+        var approval = await Ok(client.PostAsJsonAsync("/api/property-manager/p0/approvals", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, approvalType = "MAINTENANCE", description = "Replace leaking tap", amount = 180.00m, currency = "JMD", evidenceDocumentIds = new[] { approvalEvidence.GetProperty("id").GetGuid() }, sourceType = "MAINTENANCE", sourceId = id, expiresAt = DateTimeOffset.UtcNow.AddDays(7), idempotencyKey = approvalKey }));
+        Assert.Equal(id, approval.GetProperty("sourceId").GetGuid());
+        Assert.Single(approval.GetProperty("evidence").EnumerateArray());
+        var repeatedApproval = await Ok(client.PostAsJsonAsync("/api/property-manager/p0/approvals", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, approvalType = "MAINTENANCE", description = "Replace leaking tap", amount = 180.00m, currency = "JMD", evidenceDocumentIds = new[] { approvalEvidence.GetProperty("id").GetGuid() }, sourceType = "MAINTENANCE", sourceId = id, expiresAt = approval.GetProperty("expiresAt").GetDateTimeOffset(), idempotencyKey = approvalKey }));
+        Assert.Equal(approval.GetProperty("id").GetGuid(), repeatedApproval.GetProperty("id").GetGuid());
+        var managerDecision = await client.PostAsJsonAsync($"/api/property-manager/p0/approvals/{approval.GetProperty("id").GetGuid()}/decision", new { status = "APPROVED", reason = "Manager cannot self-approve", rowVersion = approval.GetProperty("rowVersion").GetInt64(), idempotencyKey = "forged-manager-decision" });
+        Assert.Equal(HttpStatusCode.Unauthorized, managerDecision.StatusCode);
         using var ownerClient = factory.CreateClient();
         var ownerLogin = await ownerClient.PostAsJsonAsync("/api/auth/login", new { email = portfolio.OwnerEmail, password = portfolio.Password });
         Assert.True(ownerLogin.IsSuccessStatusCode, await ownerLogin.Content.ReadAsStringAsync());
         var ownerToken = (await ownerLogin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
         ownerClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
-        var decided = await Ok(ownerClient.PostAsJsonAsync($"/api/property-manager/p0/approvals/{approval.GetProperty("id").GetGuid()}/decision", new { status = "APPROVED", reason = "Approved for repair", rowVersion = approval.GetProperty("rowVersion").GetInt64() }));
+        var decisionKey = $"decision-{approval.GetProperty("id").GetGuid():N}";
+        var decided = await Ok(ownerClient.PostAsJsonAsync($"/api/property-manager/p0/approvals/{approval.GetProperty("id").GetGuid()}/decision", new { status = "APPROVED", reason = "Approved for repair", rowVersion = approval.GetProperty("rowVersion").GetInt64(), idempotencyKey = decisionKey }));
+        var repeatedDecision = await Ok(ownerClient.PostAsJsonAsync($"/api/property-manager/p0/approvals/{approval.GetProperty("id").GetGuid()}/decision", new { status = "APPROVED", reason = "Approved for repair", rowVersion = approval.GetProperty("rowVersion").GetInt64(), idempotencyKey = decisionKey }));
+        Assert.Equal(decided.GetProperty("id").GetGuid(), repeatedDecision.GetProperty("id").GetGuid());
         var assigned = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{id}", new { status = "ASSIGNED", vendorId = vendor.GetProperty("id").GetGuid(), approvedAmount = 180.00m, ownerApprovalId = decided.GetProperty("id").GetGuid(), rowVersion = quoting.GetProperty("rowVersion").GetInt64(), details = "Selected lowest valid quote" }));
         Assert.Equal("ASSIGNED", assigned.GetProperty("status").GetString());
         Assert.Equal(quote.GetProperty("id").GetGuid(), assigned.GetProperty("selectedQuoteId").GetGuid());
@@ -146,6 +208,78 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
         var ready = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/cleaning/{id}", new { status = "READY", checklistJson = "[{\"id\":\"bathroom\",\"label\":\"Bathroom\",\"required\":true,\"completed\":true}]", photosJson = "[]", issues = "", rowVersion = created.GetProperty("rowVersion").GetInt64() }));
         Assert.Equal("READY", ready.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task MaintenanceAndCorrectiveWorkFinancialsUseReceiptsApprovalsReversalsAndRetest()
+    {
+        using var client = factory.CreateClient(); var portfolio = await CreatePortfolio(client);
+        var maintenance = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/maintenance", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, title = "Repair balcony door", description = "Latch failed" }));
+        var maintenanceId = maintenance.GetProperty("id").GetGuid();
+        var receipt = await Ok(client.PostAsJsonAsync("/api/property-manager/maintenance/attachments", new { maintenanceId, fileName = "vendor-receipt.pdf", contentType = "application/pdf", contentBase64 = "JVBERi0xLjQK" }));
+        var costKey = $"maintenance-cost-{maintenanceId:N}";
+        var cost = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}/cost-lines", new { lineType = "LABOR", responsibility = "OWNER", description = "Door technician", amount = 120m, currency = "JMD", receiptAttachmentId = receipt.GetProperty("id").GetGuid(), idempotencyKey = costKey }));
+        var repeatedCost = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}/cost-lines", new { lineType = "LABOR", responsibility = "OWNER", description = "Door technician", amount = 120m, currency = "JMD", receiptAttachmentId = receipt.GetProperty("id").GetGuid(), idempotencyKey = costKey }));
+        Assert.Equal(cost.GetProperty("id").GetGuid(), repeatedCost.GetProperty("id").GetGuid()); Assert.Equal("vendor-receipt.pdf", cost.GetProperty("receiptFileName").GetString());
+        maintenance = (await client.GetFromJsonAsync<JsonElement[]>("/api/property-manager/professional/maintenance"))!.Single(x => x.GetProperty("id").GetGuid() == maintenanceId);
+        var triaged = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "TRIAGED", rowVersion = maintenance.GetProperty("rowVersion").GetInt64(), details = "Triage complete" }));
+        var quoting = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "OWNER_APPROVAL", rowVersion = triaged.GetProperty("rowVersion").GetInt64(), details = "Owner approval required" }));
+        var approval = await CreateAndApprove(client, portfolio, "MAINTENANCE", maintenanceId, 150m, "Approve balcony repair");
+        var assigned = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "ASSIGNED", rowVersion = quoting.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        var scheduled = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "SCHEDULED", rowVersion = assigned.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        var started = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "IN_PROGRESS", rowVersion = scheduled.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        var completed = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "COMPLETED", rowVersion = started.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        Assert.Equal("POSTED", completed.GetProperty("financialStatus").GetString());
+        var correctionKey = $"maintenance-correction-{maintenanceId:N}";
+        var correction = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}/financial-correction", new { expenseAmount = 110m, ownerCharge = 100m, managerFee = 0m, reason = "Vendor granted a credit", idempotencyKey = correctionKey, rowVersion = completed.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        Assert.False(correction.GetProperty("replayed").GetBoolean()); Assert.NotEqual(correction.GetProperty("reversalJournalId").GetGuid(), correction.GetProperty("replacementJournalId").GetGuid()); Assert.Equal("ADJUSTED", correction.GetProperty("maintenance").GetProperty("financialStatus").GetString());
+        var repeatedCorrection = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}/financial-correction", new { expenseAmount = 110m, ownerCharge = 100m, managerFee = 0m, reason = "Vendor granted a credit", idempotencyKey = correctionKey, rowVersion = completed.GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval }));
+        Assert.True(repeatedCorrection.GetProperty("replayed").GetBoolean());
+        var reopened = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{maintenanceId}", new { status = "IN_PROGRESS", rowVersion = correction.GetProperty("maintenance").GetProperty("rowVersion").GetInt64(), ownerApprovalId = approval, details = "Repair failed quality review" }));
+        Assert.Equal("IN_PROGRESS", reopened.GetProperty("status").GetString());
+
+        var template = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/checklist-templates", new { name = "Safety", workflowType = "INSPECTION", itemsJson = "[{\"id\":\"door\",\"label\":\"Door safe\",\"required\":true,\"completed\":false}]" }));
+        await Ok(client.PutAsJsonAsync($"/api/property-manager/professional/properties/{portfolio.Property}/checklist-template", new { templateId = template.GetProperty("id").GetGuid() }));
+        var inspection = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/inspections", new { propertyId = portfolio.Property, inspectionType = "SAFETY", scheduledAt = DateTimeOffset.UtcNow.AddDays(1) }));
+        Assert.Equal(template.GetProperty("id").GetGuid(), inspection.GetProperty("templateId").GetGuid());
+        var failed = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/inspections/{inspection.GetProperty("id").GetGuid()}", new { status = "FAILED", evidenceJson = "[]", findingsJson = "[{\"checklistItemId\":\"door\",\"finding\":\"Latch remains unsafe\",\"severity\":\"HIGH\",\"correctiveRequired\":true}]", checklistJson = "[{\"id\":\"door\",\"label\":\"Door safe\",\"required\":true,\"completed\":true}]", rowVersion = inspection.GetProperty("rowVersion").GetInt64() }));
+        Assert.Equal("FAILED", failed.GetProperty("status").GetString());
+        var actions = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/corrective-actions?inspectionId={inspection.GetProperty("id").GetGuid()}"); Assert.Single(actions!); var action = actions![0];
+        var work = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/inspections/{inspection.GetProperty("id").GetGuid()}/work-order", new { scope = "Replace unsafe latch" })); var workId = work.GetProperty("id").GetGuid();
+        var vendor = await Ok(client.PostAsJsonAsync("/api/property-manager/vendors", new { name = "Latch Specialists", category = "CARPENTRY", contact = "vendor@example.test", notes = "Approved repair vendor" }));
+        var workReceipt = await Ok(client.PostAsJsonAsync("/api/property-manager/maintenance/attachments", new { maintenanceId = workId, fileName = "work-order-receipt.pdf", contentType = "application/pdf", contentBase64 = "JVBERi0xLjQK" }));
+        var workQuote = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/work-orders/{workId}/quotes", new { vendorId = vendor.GetProperty("id").GetGuid(), amount = 80m, currency = "JMD", scope = "Supply and install replacement latch", idempotencyKey = $"work-quote-{workId:N}" }));
+        Assert.Equal("QUOTING", (await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/work-orders"))!.Single(x => x.GetProperty("id").GetGuid() == workId).GetProperty("status").GetString());
+        var workCost = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/work-orders/{workId}/cost-lines", new { lineType = "MATERIAL", responsibility = "OWNER", description = "Replacement latch", amount = 80m, currency = "JMD", receiptAttachmentId = workReceipt.GetProperty("id").GetGuid(), idempotencyKey = $"work-cost-{workId:N}" })); Assert.Equal(80m, workCost.GetProperty("amount").GetDecimal()); Assert.Equal("work-order-receipt.pdf", workCost.GetProperty("receiptFileName").GetString());
+        Assert.Single((await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/maintenance/{workId}/attachments"))!);
+        var workApproval = await CreateAndApprove(client, portfolio, "WORK_ORDER", workId, 100m, "Approve corrective work");
+        var currentWork = (await client.GetFromJsonAsync<JsonElement[]>("/api/property-manager/professional/work-orders"))!.Single(x => x.GetProperty("id").GetGuid() == workId);
+        currentWork = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/work-orders/{workId}", new { status = "OWNER_APPROVAL", selectedQuoteId = workQuote.GetProperty("id").GetGuid(), approvedAmount = 80m, ownerApprovalId = workApproval, reason = "Selected approved bid", idempotencyKey = $"work-{workId:N}-OWNER_APPROVAL", rowVersion = currentWork.GetProperty("rowVersion").GetInt64() }));
+        foreach (var status in new[] { "APPROVED", "ASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED" })
+        {
+            currentWork = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/work-orders/{workId}", new { status, approvedAmount = 80m, ownerApprovalId = workApproval, reason = $"Advance to {status}", idempotencyKey = $"work-{workId:N}-{status}", rowVersion = currentWork.GetProperty("rowVersion").GetInt64() }));
+        }
+        Assert.Equal("POSTED", currentWork.GetProperty("postingStatus").GetString());
+        var workCorrectionKey = $"work-correction-{workId:N}";
+        var workCorrection = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/work-orders/{workId}/financial-correction", new { laborAmount = 70m, materialAmount = 0m, taxAmount = 0m, otherAmount = 0m, ownerResponsibility = 60m, managerResponsibility = 10m, vendorResponsibility = 0m, reason = "Negotiated warranty contribution", idempotencyKey = workCorrectionKey, rowVersion = currentWork.GetProperty("rowVersion").GetInt64(), ownerApprovalId = workApproval }));
+        Assert.Equal("ADJUSTED", workCorrection.GetProperty("workOrder").GetProperty("postingStatus").GetString());
+        var actionAfterWork = (await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/corrective-actions?inspectionId={inspection.GetProperty("id").GetGuid()}"))!.Single();
+        var readyForRetest = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/corrective-actions/{actionAfterWork.GetProperty("id").GetGuid()}", new { status = "RETEST_REQUIRED", resolutionNotes = "Corrective work complete", rowVersion = actionAfterWork.GetProperty("rowVersion").GetInt64(), idempotencyKey = $"action-retest-{actionAfterWork.GetProperty("id").GetGuid():N}" }));
+        var reinspection = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/corrective-actions/{readyForRetest.GetProperty("id").GetGuid()}/reinspection", new { scheduledAt = DateTimeOffset.UtcNow.AddDays(2), idempotencyKey = $"reinspect-{readyForRetest.GetProperty("id").GetGuid():N}" }));
+        await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/inspections/{reinspection.GetProperty("id").GetGuid()}", new { status = "SIGNED_OFF", evidenceJson = "[]", findingsJson = "[]", checklistJson = "[{\"id\":\"door\",\"label\":\"Door safe\",\"required\":true,\"completed\":true}]", rowVersion = reinspection.GetProperty("rowVersion").GetInt64() }));
+        var resolved = (await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/corrective-actions?inspectionId={inspection.GetProperty("id").GetGuid()}"))!.Single(); Assert.Equal("RESOLVED", resolved.GetProperty("status").GetString());
+        var cleaningTemplate = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/checklist-templates", new { name = "Turnover readiness", workflowType = "CLEANING", itemsJson = "[{\"id\":\"ready\",\"label\":\"Property is ready\",\"required\":true,\"completed\":true}]" }));
+        await Ok(client.PutAsJsonAsync($"/api/property-manager/professional/properties/{portfolio.Property}/checklist-template", new { templateId = cleaningTemplate.GetProperty("id").GetGuid() }));
+        var readiness = await Ok(client.PostAsJsonAsync("/api/property-manager/professional/cleaning", new { propertyId = portfolio.Property, dueAt = DateTimeOffset.UtcNow.AddDays(3) }));
+        Assert.Equal("Turnover readiness", readiness.GetProperty("templateName").GetString()); Assert.Equal(1, readiness.GetProperty("templateVersion").GetInt32());
+        var ready = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/cleaning/{readiness.GetProperty("id").GetGuid()}", new { status = "READY", checklistJson = readiness.GetProperty("checklistJson").GetString(), photosJson = "[]", issues = "", rowVersion = readiness.GetProperty("rowVersion").GetInt64() })); Assert.Equal("READY", ready.GetProperty("status").GetString());
+    }
+
+    private async Task<Guid> CreateAndApprove(HttpClient managerClient, (Guid Manager, Guid Owner, Guid Property, string OwnerEmail, string Password) portfolio, string sourceType, Guid sourceId, decimal amount, string description)
+    {
+        var approval = await Ok(managerClient.PostAsJsonAsync("/api/property-manager/p0/approvals", new { ownerUserId = portfolio.Owner, propertyId = portfolio.Property, approvalType = sourceType, description, amount, currency = "JMD", sourceType, sourceId, expiresAt = DateTimeOffset.UtcNow.AddDays(7), idempotencyKey = $"approval-{sourceType}-{sourceId:N}" }));
+        using var owner = factory.CreateClient(); var login = await owner.PostAsJsonAsync("/api/auth/login", new { email = portfolio.OwnerEmail, password = portfolio.Password }); Assert.True(login.IsSuccessStatusCode, await login.Content.ReadAsStringAsync()); owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
+        var decided = await Ok(owner.PostAsJsonAsync($"/api/property-manager/p0/approvals/{approval.GetProperty("id").GetGuid()}/decision", new { status = "APPROVED", reason = description, rowVersion = approval.GetProperty("rowVersion").GetInt64(), idempotencyKey = $"decision-{approval.GetProperty("id").GetGuid():N}" })); return decided.GetProperty("id").GetGuid();
     }
 
     private async Task<(Guid Manager, Guid Owner, Guid Property, string OwnerEmail, string Password)> CreatePortfolio(HttpClient client)

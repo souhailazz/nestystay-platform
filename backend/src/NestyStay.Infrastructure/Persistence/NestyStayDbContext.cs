@@ -279,10 +279,16 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestonePmMaintenanceCase> MilestonePmMaintenanceCases => Set<MilestonePmMaintenanceCase>();
     public DbSet<MilestonePmMaintenanceQuote> MilestonePmMaintenanceQuotes => Set<MilestonePmMaintenanceQuote>();
     public DbSet<MilestonePmMaintenanceEvent> MilestonePmMaintenanceEvents => Set<MilestonePmMaintenanceEvent>();
+    public DbSet<MilestonePmCostLine> MilestonePmCostLines => Set<MilestonePmCostLine>();
+    public DbSet<MilestonePmWorkOrderQuote> MilestonePmWorkOrderQuotes => Set<MilestonePmWorkOrderQuote>();
+    public DbSet<MilestonePmWorkOrderEvent> MilestonePmWorkOrderEvents => Set<MilestonePmWorkOrderEvent>();
     public DbSet<MilestonePmCleaningReadiness> MilestonePmCleaningReadiness => Set<MilestonePmCleaningReadiness>();
     public DbSet<MilestonePmAsset> MilestonePmAssets => Set<MilestonePmAsset>();
     public DbSet<MilestonePmIncident> MilestonePmIncidents => Set<MilestonePmIncident>();
     public DbSet<MilestonePmInspectionRecord> MilestonePmInspectionRecords => Set<MilestonePmInspectionRecord>();
+    public DbSet<MilestonePmChecklistTemplate> MilestonePmChecklistTemplates => Set<MilestonePmChecklistTemplate>();
+    public DbSet<MilestonePmPropertyChecklistAssignment> MilestonePmPropertyChecklistAssignments => Set<MilestonePmPropertyChecklistAssignment>();
+    public DbSet<MilestonePmCorrectiveAction> MilestonePmCorrectiveActions => Set<MilestonePmCorrectiveAction>();
     public DbSet<MilestonePmTeamEvent> MilestonePmTeamEvents => Set<MilestonePmTeamEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -484,7 +490,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneP0PayoutItem>().HasIndex(item => item.BatchId);
         modelBuilder.Entity<MilestoneP0PayoutEvent>().HasIndex(item => new { item.BatchId, item.CreatedAt });
         modelBuilder.Entity<MilestoneP0Approval>().HasIndex(item => new { item.ManagerUserId, item.OwnerUserId, item.Status });
+        modelBuilder.Entity<MilestoneP0Approval>().HasIndex(item => new { item.ManagerUserId, item.RequestIdempotencyKey }).IsUnique();
         modelBuilder.Entity<MilestoneP0ApprovalEvent>().HasIndex(item => new { item.ApprovalId, item.CreatedAt });
+        modelBuilder.Entity<MilestoneP0ApprovalEvent>().HasIndex(item => new { item.ApprovalId, item.IdempotencyKey }).IsUnique();
         modelBuilder.Entity<MilestoneP0StaffMembership>().HasIndex(item => new { item.ManagerUserId, item.StaffUserId }).IsUnique();
         modelBuilder.Entity<MilestoneP0StaffEvent>().HasIndex(item => new { item.MembershipId, item.CreatedAt });
         modelBuilder.Entity<MilestoneP0OwnerProfile>().Property(item => item.Version).IsConcurrencyToken();
@@ -499,10 +507,19 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestonePmReservationNote>().HasIndex(item => new { item.ManagerUserId, item.BookingId, item.CreatedAt });
         modelBuilder.Entity<MilestonePmReservationEvent>().HasIndex(item => new { item.ManagerUserId, item.BookingId, item.CreatedAt });
         modelBuilder.Entity<MilestonePmReservationEvent>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestonePmReservationEvent>().HasIndex(item => item.RelatedBookingId);
         modelBuilder.Entity<MilestonePmMaintenanceCase>().HasIndex(item => new { item.ManagerUserId, item.Number }).IsUnique();
         modelBuilder.Entity<MilestonePmMaintenanceCase>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestonePmMaintenanceQuote>().HasIndex(item => new { item.MaintenanceId, item.VendorId }).IsUnique();
         modelBuilder.Entity<MilestonePmMaintenanceEvent>().HasIndex(item => new { item.MaintenanceId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmMaintenanceEvent>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestonePmCostLine>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestonePmCostLine>().HasIndex(item => new { item.MaintenanceId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmCostLine>().HasIndex(item => new { item.WorkOrderId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmWorkOrderQuote>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestonePmWorkOrderQuote>().HasIndex(item => new { item.WorkOrderId, item.CreatedAt });
+        modelBuilder.Entity<MilestonePmWorkOrderEvent>().HasIndex(item => new { item.ManagerUserId, item.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<MilestonePmWorkOrderEvent>().HasIndex(item => new { item.WorkOrderId, item.CreatedAt });
         modelBuilder.Entity<MilestonePmCleaningReadiness>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.DueAt });
         modelBuilder.Entity<MilestonePmCleaningReadiness>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestonePmAsset>().HasIndex(item => new { item.ManagerUserId, item.AssetTag }).IsUnique();
@@ -511,6 +528,36 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestonePmIncident>().Property(item => item.RowVersion).IsConcurrencyToken();
         modelBuilder.Entity<MilestonePmInspectionRecord>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.ScheduledAt });
         modelBuilder.Entity<MilestonePmInspectionRecord>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmChecklistTemplate>().HasIndex(item => new { item.ManagerUserId, item.WorkflowType, item.Name, item.Version }).IsUnique();
+        modelBuilder.Entity<MilestonePmPropertyChecklistAssignment>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.WorkflowType, item.EndedAt });
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasIndex(item => new { item.InspectionId, item.ChecklistItemId }).IsUnique();
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasIndex(item => new { item.ManagerUserId, item.PropertyId, item.Status });
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestoneWorkOrder>().Property(item => item.RowVersion).IsConcurrencyToken();
+        modelBuilder.Entity<MilestonePmCostLine>().HasOne<MilestonePmMaintenanceCase>().WithMany().HasForeignKey(x => x.MaintenanceId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCostLine>().HasOne<MilestoneWorkOrder>().WithMany().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCostLine>().HasOne<MilestoneManagerMaintenanceAttachment>().WithMany().HasForeignKey(x => x.ReceiptAttachmentId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmWorkOrderQuote>().HasOne<MilestoneWorkOrder>().WithMany().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmWorkOrderQuote>().HasOne<MilestoneManagerVendor>().WithMany().HasForeignKey(x => x.VendorId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmWorkOrderQuote>().HasOne<MilestoneManagerMaintenanceAttachment>().WithMany().HasForeignKey(x => x.EvidenceAttachmentId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmWorkOrderEvent>().HasOne<MilestoneWorkOrder>().WithMany().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmPropertyChecklistAssignment>().HasOne<MilestoneManagerProperty>().WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmPropertyChecklistAssignment>().HasOne<MilestonePmChecklistTemplate>().WithMany().HasForeignKey(x => x.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasOne<MilestonePmInspectionRecord>().WithMany().HasForeignKey(x => x.InspectionId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasOne<MilestoneManagerProperty>().WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasOne<MilestoneWorkOrder>().WithMany().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmCorrectiveAction>().HasOne<MilestonePmInspectionRecord>().WithMany().HasForeignKey(x => x.RetestInspectionId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmMaintenanceCase>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.FinancialJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmMaintenanceCase>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.FinancialReversalJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmMaintenanceCase>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.ReplacementFinancialJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestoneP0Approval>().WithMany().HasForeignKey(x => x.OwnerApprovalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestonePmWorkOrderQuote>().WithMany().HasForeignKey(x => x.SelectedQuoteId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.FinancialJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.FinancialReversalJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestoneP0Journal>().WithMany().HasForeignKey(x => x.ReplacementFinancialJournalId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestoneWorkOrder>().HasOne<MilestonePmInspectionRecord>().WithMany().HasForeignKey(x => x.SourceInspectionId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmInspectionRecord>().HasOne<MilestonePmChecklistTemplate>().WithMany().HasForeignKey(x => x.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MilestonePmInspectionRecord>().HasOne<MilestonePmCorrectiveAction>().WithMany().HasForeignKey(x => x.ReinspectionOfActionId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<MilestonePmTeamEvent>().HasIndex(item => new { item.MembershipId, item.CreatedAt });
 
         // Phase 5 relationship constraints.  These are intentionally explicit
