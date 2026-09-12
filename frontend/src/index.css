@@ -192,6 +192,61 @@ body {
   }
 }
 
+/* Workspace shell breakpoints are intentional: phones use a sticky top rail and
+   bottom tabs, tablets use a compact vertical rail, and desktop gets the full sidebar. */
+.workspace-layout {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-layout {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .workspace-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+    padding: 14px 8px;
+  }
+
+  .workspace-sidebar > a,
+  .workspace-sidebar > button {
+    justify-content: center;
+    padding-inline: 6px;
+  }
+
+  .workspace-sidebar-link-label,
+  .workspace-sidebar .workspace-search,
+  .workspace-sidebar-divider,
+  .workspace-sidebar > a[aria-label="View notifications"] svg + span {
+    display: none;
+  }
+
+  .workspace-sidebar > a[aria-label="View notifications"] {
+    font-size: 0;
+  }
+
+  .workspace-sidebar > a[aria-label="Sign out"] {
+    margin-top: auto;
+    font-size: 0;
+  }
+
+  .workspace-main {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .workspace-layout {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skip-link {
     transition: none;

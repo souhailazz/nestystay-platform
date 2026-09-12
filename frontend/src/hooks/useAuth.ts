@@ -220,6 +220,9 @@ export function useAuth() {
       // server logout endpoint so it clears the HttpOnly cookie and invalidates
       // the persisted session; bearer sessions continue to work unchanged.
       await api.logout(accessToken);
+    } catch {
+      // Logout is intentionally idempotent: an expired or already-cleared
+      // server session must not produce an unhandled browser rejection.
     } finally {
       clearSession();
       setSession(null);

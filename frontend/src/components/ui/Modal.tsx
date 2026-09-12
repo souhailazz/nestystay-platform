@@ -11,11 +11,15 @@ export function Modal({
   title,
   children,
   onClose,
+  variant = "modal",
+  closeOnOverlayClick = false,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
+  variant?: "modal" | "sheet" | "fullscreen";
+  closeOnOverlayClick?: boolean;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
@@ -26,6 +30,8 @@ export function Modal({
     if (!open) return;
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const dialog = dialogRef.current;
     const focusableSelector =
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -63,15 +69,26 @@ export function Modal({
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus();
     };
   }, [open]);
+
+  const overlayClass = variant === "sheet" ? "items-end p-0 sm:items-center sm:p-6" : "items-center overflow-y-auto p-6";
+  const surfaceClass = variant === "sheet"
+    ? "max-h-[min(82dvh,720px)] w-full rounded-t-[22px] rounded-b-none pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-48px)] sm:rounded-[22px] sm:pb-7"
+    : variant === "fullscreen"
+      ? "min-h-[100dvh] w-full rounded-none p-5 sm:min-h-0 sm:w-[min(960px,100%)] sm:rounded-[22px] sm:p-7"
+      : "max-h-[calc(100dvh-48px)] w-[min(720px,100%)] rounded-[22px] p-7";
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-[rgba(6,43,43,0.45)] p-6"
+          className={`fixed inset-0 z-[200] grid overflow-y-auto bg-[rgba(6,43,43,0.45)] ${overlayClass}`}
+          onMouseDown={(event) => {
+            if (closeOnOverlayClick && event.target === event.currentTarget) onCloseRef.current();
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -79,7 +96,7 @@ export function Modal({
           <motion.section
             aria-labelledby={titleId}
             aria-modal="true"
-            className="max-h-[calc(100vh-48px)] w-[min(720px,100%)] overflow-y-auto rounded-[22px] bg-cream p-7 shadow-modal"
+            className={`${surfaceClass} overflow-y-auto bg-cream shadow-modal`}
             initial={{ opacity: 0, y: 28, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}

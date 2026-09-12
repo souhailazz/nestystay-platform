@@ -1,8 +1,9 @@
 import { AlertTriangle } from "lucide-react";
 import { Button } from "./Button";
+import { userSafeErrorMessage } from "../../lib/errorMessages";
 
 /**
- * DS v2 error state — shows the backend message VERBATIM, "↻ Try again" pill.
+ * DS v2 error state — translates transport/backend failures into user-safe copy.
  * Pass `isServerError` on 5xx to add the WhatsApp support link (754-248-2435).
  */
 export function ErrorState({
@@ -10,7 +11,7 @@ export function ErrorState({
   onRetry,
   isServerError = false,
 }: {
-  message: string;
+  message: unknown;
   onRetry?: () => void;
   isServerError?: boolean;
 }) {
@@ -23,7 +24,7 @@ export function ErrorState({
         <AlertTriangle aria-hidden="true" size={26} strokeWidth={1.5} />
       </span>
       <h3 className="m-0 font-display text-xl font-medium leading-snug text-ink">Something went wrong</h3>
-      <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{message}</p>
+      <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{userSafeErrorMessage(message)}</p>
       {onRetry && (
         <Button onClick={onRetry} variant="outline">
           ↻ Try again

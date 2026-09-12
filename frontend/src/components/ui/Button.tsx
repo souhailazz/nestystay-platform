@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "../../lib/ui";
 import { announceFeedback } from "../../lib/feedback";
+import { requestConfirmation } from "../../lib/confirmation";
 
 /**
  * DS v2 button recipes — pill, min-height 48px, Sora 600.
@@ -41,8 +42,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ className, variant = "sun", type = "button", confirmMessage, successMessage, onClick, ...props }: ButtonProps) {
-  return <button className={buttonClassName(variant, className)} type={type} onClick={(event) => {
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
+  return <button className={buttonClassName(variant, className)} type={type} onClick={async (event) => {
+    if (confirmMessage && !(await requestConfirmation({ message: confirmMessage }))) return;
     onClick?.(event);
     if (!event.defaultPrevented && successMessage) announceFeedback(successMessage);
   }} {...props} />;

@@ -68,7 +68,19 @@ export function loadSession(): AuthSession | null {
       clearSession();
       return null;
     }
-    return { ...session, accessToken: "", permissions: session.permissions ?? [] };
+    const email = typeof session.email === "string" ? session.email : "";
+    const displayName = typeof session.displayName === "string" ? session.displayName.trim() : "";
+    if (!session.userId || !email || !session.roles?.length) {
+      clearSession();
+      return null;
+    }
+    return {
+      ...session,
+      email,
+      displayName: displayName || email.split("@")[0] || "Nesty guest",
+      accessToken: "",
+      permissions: session.permissions ?? [],
+    };
   } catch {
     clearSession();
     return null;

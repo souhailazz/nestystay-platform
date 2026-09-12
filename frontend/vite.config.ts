@@ -28,7 +28,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5019",
+        target: "http://127.0.0.1:5019",
         changeOrigin: true,
         secure: false,
       },
@@ -37,7 +37,7 @@ export default defineConfig({
   preview: {
     proxy: {
       "/api": {
-        target: "http://localhost:5019",
+        target: "http://127.0.0.1:5019",
         changeOrigin: true,
         secure: false,
       },
