@@ -3,6 +3,7 @@ import { User, ShieldCheck, Upload, Trash2, Camera, CheckCircle2, AlertCircle, R
 import { api } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import type { TravelerProfile } from "./types";
+import { requestConfirmation } from "../../lib/confirmation";
 
 interface TravelerProfileIdentityProps {
   userId: string;
@@ -46,7 +47,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
           setTwoFactorEnabled(u.isTwoFactorEnabled);
         }
       } catch (err) {
-        console.error(err);
+        setNotice(err instanceof Error ? `Profile data could not be loaded: ${err.message}` : "Profile data could not be loaded.");
       }
     }
     load();
@@ -192,7 +193,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
                 className="btn btn-outline mt-4"
                 disabled={loggingOut}
                 onClick={async () => {
-                  if (!confirm("Sign out of this device?")) return;
+                  if (!(await requestConfirmation({ title: "Sign out?", message: "Sign out of this device?" }))) return;
                   setLoggingOut(true);
                   try { await onLogout(); window.location.assign("/"); } finally { setLoggingOut(false); }
                 }}
@@ -233,7 +234,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
           <div className="danger-zone-box border-t pt-4">
             <h4 className="text-coral">Account Safety</h4>
             <p className="subtext mb-3">Permanently delete your NestyStay traveler account.</p>
-            <button type="button" className="btn btn-ghost text-coral btn-sm" onClick={() => confirm("Are you sure you want to delete your account?")}>
+            <button type="button" className="btn btn-ghost text-coral btn-sm" onClick={() => void requestConfirmation({ title: "Delete account?", message: "Are you sure you want to delete your account?" })}>
               <Trash2 size={16} /> Delete Account
             </button>
           </div>

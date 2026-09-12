@@ -1246,7 +1246,7 @@ export type DownloadedFile = {
 };
 
 export type PropertyManagerOwner = { id: string; ownerUserId: string; displayName: string; email: string; verificationStatus: string; invitationStatus: string; communityId?: string | null };
-export type PropertyManagerProperty = { id: string; ownerUserId: string; communityId?: string | null; title: string; unitNumber: string; address: string; status: string; occupancyStatus: string };
+export type PropertyManagerProperty = { id: string; ownerUserId: string; communityId?: string | null; title: string; unitNumber: string; address: string; status: string; occupancyStatus: string; insuraGuestEnabled?: boolean | null };
 export type PropertyManagerInvoiceLine = { id: string; description: string; quantity: number; unitAmount: number; amount: number };
 export type PropertyManagerInvoice = { id: string; ownerUserId: string; propertyId?: string | null; invoiceNumber: string; issueDate: string; dueDate: string; subtotal: number; tax: number; total: number; amountPaid: number; balance: number; currency: string; status: string; lines: PropertyManagerInvoiceLine[] };
 export type PropertyManagerUtility = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number; amount: number; invoiceId?: string | null; status: string };

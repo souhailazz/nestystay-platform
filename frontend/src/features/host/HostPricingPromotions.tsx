@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calendar, Tag, Plus, Trash2, Check, AlertCircle } from "lucide-react";
 import { formatMoney } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { announceFeedback } from "../../lib/feedback";
 import type { HostPricingRule, HostPromotion } from "./types";
 
 interface HostPricingPromotionsProps {
@@ -44,7 +45,7 @@ export function HostPricingPromotions({ view, token }: HostPricingPromotionsProp
           <h2>{isPricing ? "Seasonal Pricing & Calendar Rules" : "Promotions & Discounts"}</h2>
           <PatoisPhrase phrase="Optimize Yuh Rate Dem" translation="Manage seasonal price overrides, minimum night rules, and promotional discounts." />
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => alert("Rule created.")}>
+        <button type="button" className="btn btn-primary" onClick={() => announceFeedback(`${isPricing ? "Pricing rule" : "Promotion"} creation is ready for this workspace.`)}>
           <Plus size={16} /> {isPricing ? "Add Pricing Rule" : "Add Promotion"}
         </button>
       </header>

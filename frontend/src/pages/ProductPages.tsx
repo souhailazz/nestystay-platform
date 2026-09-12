@@ -41,7 +41,6 @@ import {
   X,
 } from "lucide-react";
 import { AppLink, navigate } from "../components/AppLink";
-import { BookingModal } from "../components/booking/BookingModal";
 import { Badge } from "../components/ui/Badge";
 import { Button, buttonClassName } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -53,6 +52,7 @@ import { PatoisToast } from "../components/ui/PatoisToast";
 import { StatusChip } from "../components/ui/StatusChip";
 import { TierBadge } from "../components/layout/PublicShell";
 import { usePatois } from "../lib/patois";
+import { requestConfirmation } from "../lib/confirmation";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
@@ -224,7 +224,8 @@ export function PropertyDetailsPage({
 }
 
 export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?: "login" | "register" }) {
-  return <AuthStateContainer mode={mode} auth={auth} />;
+  const returnTo = new URLSearchParams(window.location.search).get("returnTo") ?? undefined;
+  return <AuthStateContainer mode={mode} auth={auth} returnTo={returnTo} />;
 }
 
 async function signInWithGoogle(signIn: (profile: GoogleSignInRequest) => Promise<unknown>, role: "Guest" | "Host") {
@@ -606,8 +607,8 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
     }
   }
 
-  function cancelVisit(visit: WellnessVisit) {
-    if (!window.confirm("Cancel this wellness visit? The payment will be refunded or released according to its current status.")) return;
+  async function cancelVisit(visit: WellnessVisit) {
+    if (!(await requestConfirmation({ title: "Cancel wellness visit?", message: "The payment will be refunded or released according to its current status." }))) return;
     void runWellnessAction(async () => {
       await api.cancelWellnessVisit(visit.id, auth.session!.accessToken, "Cancelled by host from wellness dashboard.");
       return "Visit cancelled. You can request a new time below.";
@@ -1737,7 +1738,7 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
 
   async function disconnectFeed(feed: import("../lib/api").CalendarFeed) {
     if (!auth.session) return;
-    if (!window.confirm("Disconnect this calendar and release its blocked dates?")) return;
+    if (!(await requestConfirmation({ title: "Disconnect calendar?", message: "Disconnect this calendar and release its blocked dates?" }))) return;
     setFeedBusy(true);
     setError(null);
     try {
@@ -2189,7 +2190,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   }
 
   async function revokeOtherDevices() {
-    if (!window.confirm("Sign out every other device? This keeps the current device signed in.")) return;
+    if (!(await requestConfirmation({ title: "Sign out other devices?", message: "This keeps the current device signed in." }))) return;
     setSecurityNotice(null);
     try {
       const result = await api.revokeOtherSessions(activeSession.accessToken);
@@ -2201,7 +2202,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   }
 
   async function revokeDevice(item: import("../lib/api").UserSession) {
-    if (!window.confirm(`Revoke ${item.deviceName}?`)) return;
+    if (!(await requestConfirmation({ title: "Revoke device?", message: `Revoke ${item.deviceName}?` }))) return;
     try {
       await api.revokeSession(item.id, activeSession.accessToken);
       if (item.isCurrent) {
@@ -2220,7 +2221,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   }
 
   async function removePasskey(id: string, label: string) {
-    if (!window.confirm(`Remove ${label}? You can add it again from this device.`)) return;
+    if (!(await requestConfirmation({ title: "Remove passkey?", message: `Remove ${label}? You can add it again from this device.` }))) return;
     try {
       await api.removePasskey(id, activeSession.accessToken);
       setPasskeys((items) => items.filter((item) => item.id !== id));
@@ -2617,7 +2618,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
 
   async function runBulkOfficerAction(action: (officerId: string) => Promise<WellnessOfficer>, verb: string) {
     if (!selectedWellnessOfficerIds.length) return;
-    if (!window.confirm(`${verb} ${selectedWellnessOfficerIds.length} officer${selectedWellnessOfficerIds.length === 1 ? "" : "s"}?`)) return;
+    if (!(await requestConfirmation({ title: `${verb} officers?`, message: `${verb} ${selectedWellnessOfficerIds.length} officer${selectedWellnessOfficerIds.length === 1 ? "" : "s"}?` }))) return;
     await runAction(async () => {
       const results = await Promise.all(selectedWellnessOfficerIds.map((id) => action(id)));
       setSelectedWellnessOfficerIds([]);
@@ -2730,8 +2731,8 @@ export function AdminPage({ auth }: { auth: AuthController }) {
       </div>
       <section className="product-section">
         {isLoading && <LoadingState label="Checking backend admin endpoints" />}
-        {data.errors.map((message) => (
-          <ErrorState key={message} message={message} />
+        {data.errors.map((message, index) => (
+          <ErrorState key={`${message}-${index}`} message={message} />
         ))}
         {actionError && <ErrorState message={actionError} />}
         {notice && <div className="notice-panel">{notice}</div>}

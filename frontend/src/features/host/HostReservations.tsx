@@ -65,7 +65,7 @@ export function HostReservations({ token }: HostReservationsProps) {
           <h2>Host Reservation Management</h2>
           <PatoisPhrase phrase="Manage Guest Bookings & Approvals" translation="Approve or decline booking requests and export iCal calendar feeds." />
         </div>
-        <button type="button" className="btn btn-outline" onClick={() => alert("iCal Feed URL: https://api.nestystay.com/ical/host-feed.ics")}>
+        <button type="button" className="btn btn-outline" onClick={() => announceFeedback("Your iCal feed is available from Calendar settings.", "info")}>
           <Calendar size={16} /> iCal Calendar Feed
         </button>
       </header>

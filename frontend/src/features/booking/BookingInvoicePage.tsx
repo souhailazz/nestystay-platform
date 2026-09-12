@@ -3,6 +3,8 @@ import { Download, FileText, Printer } from "lucide-react";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
+import { announceFeedback } from "../../lib/feedback";
+import { ErrorState } from "../../components/ui/ErrorState";
 
 interface BookingInvoicePageProps {
   bookingId: string;
@@ -12,21 +14,24 @@ interface BookingInvoicePageProps {
 export function BookingInvoicePage({ bookingId, auth }: BookingInvoicePageProps) {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     async function load() {
       if (!auth.session) return;
       try {
+        setError(null);
         const data = await api.getBooking(bookingId, auth.session.accessToken);
         if (active) setBooking(data as unknown as BookingDetails);
       } catch (err) {
-        console.error(err);
+        if (active) setError(err);
       }
     }
     load();
     return () => { active = false; };
-  }, [bookingId, auth.session?.accessToken]);
+  }, [bookingId, auth.session?.accessToken, reloadKey]);
 
   async function handleDownload() {
     if (!booking || !auth.session) return;
@@ -41,13 +46,14 @@ export function BookingInvoicePage({ bookingId, auth }: BookingInvoicePageProps)
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err) {
-      alert(`Download failed: ${err instanceof Error ? err.message : "Error"}`);
+    } catch {
+      announceFeedback("Invoice download failed. Try again.", "error");
     } finally {
       setDownloading(false);
     }
   }
 
+  if (error) return <div className="container py-6"><ErrorState message={error} onRetry={() => { setError(null); setReloadKey((key) => key + 1); }} /></div>;
   if (!booking) return <div className="container py-6" data-testid="book-09-loading">Loading invoice...</div>;
 
   return (

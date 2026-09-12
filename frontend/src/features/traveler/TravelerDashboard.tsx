@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppLink } from "../../components/AppLink";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { api, formatMoney, type Booking } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
@@ -30,15 +31,19 @@ function needsVerification(booking: Booking) {
 export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
     async function loadData() {
       try {
         const list = await api.getBookings(token);
         if (active) setBookings(list);
       } catch (err) {
-        console.error(err);
+        if (active) setError(err instanceof Error ? err.message : "Could not load your trips.");
       } finally {
         if (active) setLoading(false);
       }
@@ -47,7 +52,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [reloadKey, token]);
 
   if (loading) {
     return (
@@ -56,6 +61,8 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
       </div>
     );
   }
+
+  if (error) return <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />;
 
   const upcoming = bookings.filter((b) => !isFinished(b) && !isCancelled(b));
   const completed = bookings.filter((b) => isFinished(b) && !isCancelled(b));

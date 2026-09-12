@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Tag, DollarSign, Plus, Edit2, ShieldCheck, Check } from "lucide-react";
 import { api, formatMoney, type PhaseTwoPricebookItem, type Campaign } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { announceFeedback } from "../../lib/feedback";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorState } from "../../components/ui/ErrorState";
 
 interface AdminPricebookCampaignsProps {
   view: string;
@@ -12,11 +15,14 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
   const [pricebook, setPricebook] = useState<PhaseTwoPricebookItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
+        setError(null);
         const [pbList, cList] = await Promise.all([
           api.getPricebook(),
           api.getCampaigns()
@@ -26,14 +32,14 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
           setCampaigns(cList);
         }
       } catch (err) {
-        console.error(err);
+        if (active) setError(err);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [token]);
+  }, [token, reloadKey]);
 
   const isCampaigns = view === "campaigns";
 
@@ -45,16 +51,18 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
           <h2>{isCampaigns ? "Marketing Campaigns & Special Rates" : "Platform Pricebook & Fee Architecture"}</h2>
           <PatoisPhrase phrase="Fee Schedules & Promotion Rules" translation="Manage central guest fees, badge pricing, founding host tiers, and promotional campaigns." />
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => alert("Item added.")}>
+        <button type="button" className="btn btn-primary" onClick={() => announceFeedback(`${isCampaigns ? "Campaign" : "Pricebook entry"} creation is ready for this workspace.`)}>
           <Plus size={16} /> {isCampaigns ? "Create Campaign" : "Add Pricebook Entry"}
         </button>
       </header>
 
       {loading ? (
         <div className="loading-shimmer p-6 text-center">Loading pricebook data...</div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); setReloadKey((key) => key + 1); }} />
       ) : isCampaigns ? (
         <div className="space-y-4 max-w-3xl">
-          {campaigns.map((c) => (
+          {campaigns.length === 0 ? <EmptyState title="No campaigns yet" copy="Create a campaign when a promotion is ready to publish." /> : campaigns.map((c) => (
             <div key={c.id} className="card-box flex justify-between items-center">
               <div>
                 <span className="badge badge-green">{c.key}</span>
@@ -79,7 +87,7 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
               </tr>
             </thead>
             <tbody>
-              {pricebook.map((pb) => (
+              {pricebook.length === 0 ? <tr><td colSpan={6}><EmptyState title="No pricebook entries yet" copy="Platform fee and pricing rules will appear here when configured." /></td></tr> : pricebook.map((pb) => (
                 <tr key={pb.key}>
                   <td><code>{pb.key}</code></td>
                   <td><strong>{pb.label}</strong></td>

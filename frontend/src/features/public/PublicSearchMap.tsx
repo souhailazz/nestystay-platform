@@ -3,11 +3,12 @@ import { Heart, RefreshCw, Search } from "lucide-react";
 import { AppLink } from "../../components/AppLink";
 import { PublicFooter, TierBadge } from "../../components/layout/PublicShell";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
-import { BookingModal } from "../booking/BookingModal";
+import { BookingModal } from "../../components/booking/BookingModal";
 import type { AuthSession } from "../../lib/auth";
 
 interface PublicSearchMapProps {
@@ -32,6 +33,7 @@ const chipBase =
 export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const initialSearch = useMemo(() => new URLSearchParams(window.location.search).get("search") ?? "", []);
   const [query, setQuery] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
@@ -45,12 +47,13 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError(null);
     api
       .getProperties()
       .then((list) => {
         if (active) setProperties(list);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => { if (active) setError(err instanceof Error ? err.message : "Could not load stays."); })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -190,6 +193,8 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
               Clear filters
             </button>
           </div>
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
             {visibleProperties.map((prop, index) => (
@@ -267,32 +272,16 @@ export function PublicSearchMap({ view: _view, session }: PublicSearchMapProps) 
 
       <PublicFooter />
 
-      {bookingProp && (
-        <BookingModal
-          onClose={() => setBookingProp(null)}
-          onProceedToReview={async (quote, details) => {
-            if (!session) {
-              window.location.href = "/login";
-              return;
-            }
-            const created = await api.createBooking({
-              propertyId: quote.property.id,
-              guestUserId: session.userId,
-              checkIn: quote.checkIn,
-              checkOut: quote.checkOut,
-              adults: details.adults,
-              children: details.children,
-              accessibilityNeeds: details.accessibility,
-              protectionPlan: details.protection,
-              billingCountry: "JM",
-              termsAccepted: true,
-            }, session.accessToken);
-            const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
-            window.location.href = `/booking/${created.id}/${nextStep}`;
-          }}
-          property={bookingProp}
-        />
-      )}
+      <BookingModal
+        open={Boolean(bookingProp)}
+        onClose={() => setBookingProp(null)}
+        onCreated={(created) => {
+          const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
+          window.location.href = `/booking/${created.id}/${nextStep}`;
+        }}
+        property={bookingProp}
+        session={session}
+      />
     </div>
   );
 }

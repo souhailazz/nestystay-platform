@@ -78,7 +78,7 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
           <h2>Inline Property Editor</h2>
           <PatoisPhrase phrase="Update Yuh Listing Section by Section" translation="Edit loaded property fields with revision history tracking." />
         </div>
-        <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+        <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || !property}>
           <Save size={16} /> {saving ? "Saving Changes..." : "Save Changes"}
         </button>
       </header>

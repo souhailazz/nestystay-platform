@@ -2536,7 +2536,7 @@ const errDeepPill =
 const errOutlinePill =
   "inline-flex min-h-12 cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-[26px] font-sans text-[14.5px] font-semibold text-ink transition-colors hover:border-deep";
 
-export function SignInRequiredPage() {
+export function SignInRequiredPage({ returnTo }: { returnTo?: string } = {}) {
   return (
     <ErrorTemplate
       copy="This part of NestyStay needs an account. Log in, or keep browsing as a guest."
@@ -2545,7 +2545,7 @@ export function SignInRequiredPage() {
       title="Sign in required."
     >
       <div className="mt-1.5 flex flex-wrap justify-center gap-3">
-        <AppLink className={errDeepPill} href="/login">
+        <AppLink className={errDeepPill} href={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : "/login"}>
           Log in →
         </AppLink>
         <AppLink className={errOutlinePill} href="/explore">

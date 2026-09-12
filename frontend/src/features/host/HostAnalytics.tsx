@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppLink } from "../../components/AppLink";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { TierBadge } from "../../components/layout/PublicShell";
 import { api, formatMoney, type Booking, type PropertyListing } from "../../lib/api";
@@ -27,9 +28,13 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [operations, setOperations] = useState<import("../../lib/api").HostOperations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
     async function load() {
       try {
         const [bList, pList, hostOps] = await Promise.all([api.getBookings(token), api.getOwnedProperties(token), hostUserId ? api.getHostOperations(hostUserId, token) : Promise.resolve(null)]);
@@ -39,7 +44,7 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
           setOperations(hostOps);
         }
       } catch (err) {
-        console.error(err);
+        if (active) setError(err instanceof Error ? err.message : "Could not load host analytics.");
       } finally {
         if (active) setLoading(false);
       }
@@ -48,7 +53,7 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
     return () => {
       active = false;
     };
-  }, [hostUserId, token]);
+  }, [hostUserId, reloadKey, token]);
 
   if (loading) {
     return (
@@ -104,6 +109,7 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
       <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
         Manage Your <em className="italic text-deep-hover">Yard</em>
       </h1>
+      {error && <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />}
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
         {(

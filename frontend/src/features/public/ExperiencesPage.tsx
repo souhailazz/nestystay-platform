@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, MapPin, Clock, Users, ArrowRight } from "lucide-react";
 import { formatMoney } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { announceFeedback } from "../../lib/feedback";
 import type { JamaicanExperience } from "./types";
 
 interface ExperiencesPageProps {
@@ -59,7 +60,7 @@ export function ExperiencesPage({ view }: ExperiencesPageProps) {
 
             <div className="flex justify-between items-center mt-4 pt-3 border-t">
               <strong className="text-xl text-sun">{formatMoney(exp.pricePerPerson, exp.currency)} <span className="text-xs font-normal">/ person</span></strong>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => alert(`Booking initiated for ${exp.title}`)}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => announceFeedback(`Booking request started for ${exp.title}.`)}>
                 Book Experience <ArrowRight size={14} />
               </button>
             </div>

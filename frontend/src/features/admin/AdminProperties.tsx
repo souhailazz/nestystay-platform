@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Check, X, ShieldCheck, Award, MapPin, Eye, AlertCircle } from "lucide-react";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { announceFeedback } from "../../lib/feedback";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorState } from "../../components/ui/ErrorState";
 
 interface AdminPropertiesProps {
   view: string;
@@ -13,31 +16,37 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
   const [loading, setLoading] = useState(true);
   const [selectedProp, setSelectedProp] = useState<PropertyListing | null>(null);
   const [modReason, setModReason] = useState("");
+  const [error, setError] = useState<unknown>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
+        setError(null);
         const list = await api.getProperties();
         if (active) setProperties(list);
       } catch (err) {
-        console.error(err);
+        if (active) setError(err);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [reloadKey]);
 
   async function handleApprove(id: string) {
-    alert(`Property ${id} approved.`);
+    announceFeedback(`Property ${id} approved.`);
     setSelectedProp(null);
   }
 
   async function handleReject(id: string) {
-    if (!modReason) return alert("Please provide a rejection reason.");
-    alert(`Property ${id} rejected with reason: ${modReason}`);
+    if (!modReason) {
+      announceFeedback("Please provide a rejection reason.", "error");
+      return;
+    }
+    announceFeedback(`Property ${id} rejected with reason: ${modReason}`, "info");
     setSelectedProp(null);
   }
 
@@ -51,6 +60,10 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
 
       {loading ? (
         <div className="loading-shimmer p-6 text-center">Loading property moderation queue...</div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); setReloadKey((key) => key + 1); }} />
+      ) : properties.length === 0 ? (
+        <EmptyState title="No properties awaiting review" copy="New property submissions will appear in this moderation queue." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {properties.map((prop) => (

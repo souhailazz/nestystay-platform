@@ -3,6 +3,7 @@ import { AlertTriangle, BadgeCheck, CheckSquare, Clock3, History, Search, Shield
 import { AppLink } from "../../components/AppLink";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { api, formatMoney, type AuditEvent, type BadgeAssignment, type BadgeDefinition, type BadgeRenewal } from "../../lib/api";
+import { requestConfirmation } from "../../lib/confirmation";
 
 interface AdminBadgesProps {
   token: string;
@@ -87,7 +88,7 @@ export function AdminBadges({ token }: AdminBadgesProps) {
   async function bulkAction(kind: "expire" | "suspend") {
     if (!selected.length) return;
     const label = kind === "expire" ? "expire" : "suspend";
-    if (!window.confirm(`Are you sure you want to ${label} ${selected.length} badge assignment${selected.length === 1 ? "" : "s"}?`)) return;
+    if (!(await requestConfirmation({ title: `${label} badge assignments?`, message: `Are you sure you want to ${label} ${selected.length} badge assignment${selected.length === 1 ? "" : "s"}?` }))) return;
     const reason = window.prompt("Add an audit reason for this bulk action:", `Bulk ${label} from badge management queue.`)?.trim();
     if (!reason) return;
     setBusy(true);
@@ -110,7 +111,7 @@ export function AdminBadges({ token }: AdminBadgesProps) {
 
   async function singleAction(kind: "expire" | "suspend", assignment: BadgeAssignment) {
     setSelected([assignment.id]);
-    if (!window.confirm(`Confirm ${kind} for ${assignment.subjectType} ${assignment.subjectId}?`)) return;
+    if (!(await requestConfirmation({ title: `${kind} badge assignment?`, message: `Confirm ${kind} for ${assignment.subjectType} ${assignment.subjectId}?` }))) return;
     const reason = window.prompt("Add an audit reason:", `${kind === "expire" ? "Expiry" : "Suspension"} reviewed by administrator.`)?.trim();
     if (!reason) return;
     setBusy(true);

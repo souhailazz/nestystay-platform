@@ -7,7 +7,7 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
-import { BookingModal } from "../booking/BookingModal";
+import { BookingModal } from "../../components/booking/BookingModal";
 import type { AuthSession } from "../../lib/auth";
 
 interface PropertyDetailPageProps {
@@ -325,32 +325,16 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
 
       <PublicFooter />
 
-      {showModal && (
-        <BookingModal
-          onClose={() => setShowModal(false)}
-          onProceedToReview={async (quote, details) => {
-            if (!session) {
-              window.location.href = "/login";
-              return;
-            }
-            const created = await api.createBooking({
-              propertyId: quote.property.id,
-              guestUserId: session.userId,
-              checkIn: quote.checkIn,
-              checkOut: quote.checkOut,
-              adults: details.adults,
-              children: details.children,
-              accessibilityNeeds: details.accessibility,
-              protectionPlan: details.protection,
-              billingCountry: "JM",
-              termsAccepted: true,
-            }, session.accessToken);
-            const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
-            window.location.href = `/booking/${created.id}/${nextStep}`;
-          }}
-          property={property}
-        />
-      )}
+      <BookingModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onCreated={(created) => {
+          const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout";
+          window.location.href = `/booking/${created.id}/${nextStep}`;
+        }}
+        property={property}
+        session={session}
+      />
     </div>
   );
 }

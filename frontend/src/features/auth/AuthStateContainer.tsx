@@ -6,10 +6,11 @@ import { AuthModalSuite } from "./AuthModalSuite";
 interface AuthStateContainerProps {
   mode?: "login" | "register" | "forgot-password";
   auth: AuthController;
+  returnTo?: string;
 }
 
-export function AuthStateContainer({ mode = "login", auth }: AuthStateContainerProps) {
-  return <AuthModalSuite initialMode={mode} auth={auth} />;
+export function AuthStateContainer({ mode = "login", auth, returnTo }: AuthStateContainerProps) {
+  return <AuthModalSuite initialMode={mode} auth={auth} returnTo={returnTo} />;
 }
 
 export function PasswordlessCompletionPage({ auth }: { auth: AuthController }) {

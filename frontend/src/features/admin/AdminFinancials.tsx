@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { DollarSign, RotateCcw, ShieldCheck, Download, AlertCircle } from "lucide-react";
 import { api, formatMoney, type Booking } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { announceFeedback } from "../../lib/feedback";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorState } from "../../components/ui/ErrorState";
 
 interface AdminFinancialsProps {
   view: string;
@@ -11,31 +14,34 @@ interface AdminFinancialsProps {
 export function AdminFinancials({ view, token }: AdminFinancialsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [refoundingId, setRefoundingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
+        setError(null);
         const list = await api.getBookings(token);
         if (active) setBookings(list);
       } catch (err) {
-        // Fallback to empty bookings on unauthorized token
+        if (active) setError(err);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [token]);
+  }, [token, reloadKey]);
 
   async function handleRefund(id: string) {
     try {
       await api.refundPayment(id, token, { reason: "Admin initiated refund" });
       setBookings(bookings.map(b => b.id === id ? { ...b, paymentStatus: "REFUNDED", status: "CANCELLED" } : b));
-      alert("Refund processed successfully via Stripe.");
-    } catch (err) {
-      alert("Refund failed.");
+      announceFeedback("Refund processed successfully via Stripe.");
+    } catch {
+      announceFeedback("Refund could not be processed. Try again.", "error");
     }
   }
 
@@ -52,6 +58,10 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
 
       {loading ? (
         <div className="loading-shimmer p-6 text-center">Loading transaction ledger...</div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); setReloadKey((key) => key + 1); }} />
+      ) : bookings.length === 0 ? (
+        <EmptyState title="No transactions yet" copy="Captured payments and refund-eligible bookings will appear here." />
       ) : (
         <div className="card-box">
           <table className="table-styled w-full">

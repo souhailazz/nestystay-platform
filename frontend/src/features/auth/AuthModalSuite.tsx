@@ -12,6 +12,7 @@ interface AuthModalSuiteProps {
   initialMode?: AuthModalMode;
   auth: AuthController;
   onClose?: () => void;
+  returnTo?: string;
 }
 
 /* AUTH-01 (DS v2) — split brand panel + form cards. All auth logic and API
@@ -97,7 +98,7 @@ function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) 
   );
 }
 
-export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthModalSuiteProps) {
+export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo }: AuthModalSuiteProps) {
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
   const [email, setEmail] = useState("guest@nestystay.local");
   const [password, setPassword] = useState("Password123!");
@@ -132,6 +133,10 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose }: AuthMod
 
   function finishSignIn() {
     onClose?.();
+    if (returnTo?.startsWith("/")) {
+      navigate(returnTo);
+      return;
+    }
     const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
     if (roles.includes("propertymanager")) navigate("/pm/dashboard");
     else if (roles.includes("owner")) navigate("/owner/dashboard");

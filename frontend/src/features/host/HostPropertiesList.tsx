@@ -5,6 +5,7 @@ import { PatoisPhrase } from "../../lib/patois";
 import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { announceFeedback } from "../../lib/feedback";
 import { Modal } from "../../components/ui/Modal";
+import { requestConfirmation } from "../../lib/confirmation";
 
 interface HostPropertiesListProps {
   view: string;
@@ -55,7 +56,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   async function handleArchiveToggle(id: string, currentArchived: boolean, skipConfirm = false) {
     setNotice(null);
     try {
-      if (!currentArchived && !skipConfirm && !window.confirm("Archive this property? You can restore it later.")) return;
+      if (!currentArchived && !skipConfirm && !(await requestConfirmation({ title: "Archive property?", message: "You can restore it later." }))) return;
       if (currentArchived) {
         await api.restoreProperty(id, token);
       } else {
@@ -86,7 +87,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   }
 
   async function bulkArchive() {
-    if (selected.length === 0 || !window.confirm(`Archive ${selected.length} selected propert${selected.length === 1 ? "y" : "ies"}?`)) return;
+    if (selected.length === 0 || !(await requestConfirmation({ title: "Archive selected properties?", message: `Archive ${selected.length} selected propert${selected.length === 1 ? "y" : "ies"}?` }))) return;
     try {
       await api.bulkArchiveProperties(selected, token, true);
       setProperties((items) => items.map((item) => selected.includes(item.id) ? { ...item, isArchived: true } : item));
@@ -99,7 +100,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   }
 
   async function duplicateProperty(id: string, title: string) {
-    if (!window.confirm(`Duplicate “${title}” as a draft?`)) return;
+    if (!(await requestConfirmation({ title: "Duplicate property?", message: `Duplicate “${title}” as a draft?` }))) return;
     try {
       const duplicate = await api.duplicateProperty(id, token);
       setProperties((items) => [...items, duplicate]);
@@ -111,7 +112,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   }
 
   async function publishDraft(id: string, title: string) {
-    if (!window.confirm(`Publish “${title}” to the public listings?`)) return;
+    if (!(await requestConfirmation({ title: "Publish property?", message: `Publish “${title}” to the public listings?` }))) return;
     try {
       const published = await api.publishProperty(id, token);
       setProperties((items) => items.map((item) => item.id === id ? published : item));
@@ -136,7 +137,7 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   }
 
   async function restoreRevision(revision: PropertyRevision) {
-    if (!historyProperty || !window.confirm(`Restore version ${revision.version} as a new draft?`)) return;
+    if (!historyProperty || !(await requestConfirmation({ title: "Restore property revision?", message: `Restore version ${revision.version} as a new draft?` }))) return;
     try {
       const restored = await api.restorePropertyRevision(historyProperty.id, revision.id, token);
       setProperties((items) => items.map((item) => item.id === restored.id ? restored : item));

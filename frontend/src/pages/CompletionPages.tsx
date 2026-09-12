@@ -50,12 +50,9 @@ import { cx } from "../lib/ui";
 import { TierBadge } from "../components/layout/PublicShell";
 import { SampleDataChip } from "./SpecScreens";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
-import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
 import { AdminStateContainer } from "../features/admin/AdminStateContainer";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
-import { MessagingStateContainer } from "../features/messaging/MessagingStateContainer";
-import { HostProfileStateContainer } from "../features/hostProfile/HostProfileStateContainer";
 
 type AsyncState<T> = {
   data: T | null;
@@ -677,7 +674,8 @@ export function BookingSpecStatePage({ state, auth, bookingId }: { state: string
 }
 
 export function TravelerSpecPage({ view, auth }: { view: string; auth: AuthController }) {
-  return <TravelerStateContainer view={view} auth={auth} />;
+  if (!auth.session) return <ErrorState message="Sign in is required to open the traveler workspace." />;
+  return <TravelerWorkspaceView view={view} userId={auth.session.userId} token={auth.session.accessToken} />;
 }
 
 function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: string; token: string }) {
@@ -686,9 +684,11 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
 
   return (
     <CompletionShell id={travelerScreenId(view)} eyebrow="Traveler portal" title={travelerTitle(view)} copy="Dedicated traveler route connected to persisted traveler APIs.">
-      <DataGate state={workspace}>
-        {(data) => (
-          <section className="product-section">
+      <section className="product-section">
+        {view === "notifications" && <NotificationPreferencesPanel userId={userId} />}
+        <DataGate state={workspace}>
+          {(data) => (
+            <>
             {view.includes("reservation") || view === "qr" ? <ReservationPanel bookings={bookings.data ?? []} view={view} token={token} /> : null}
             {view === "wishlist" || view === "collections" ? <WishlistPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "payment-methods" ? <PaymentMethodsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
@@ -698,9 +698,10 @@ function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: 
             {view === "identity" ? <IdentityPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} view={view} bookings={bookings.data ?? []} userId={userId} token={token} reload={workspace.reload} /> : null}
             {view === "notifications" ? <NotificationsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
-          </section>
-        )}
-      </DataGate>
+            </>
+          )}
+        </DataGate>
+      </section>
     </CompletionShell>
   );
 }
@@ -1438,12 +1439,27 @@ function ReviewsPanel({ data, view, bookings, userId, token, reload }: { data: T
   );
 }
 
+function NotificationPreferencesPanel({ userId }: { userId: string }) {
+  const storageKey = `nestyStay.notification-preferences.${userId}`;
+  const [preferences, setPreferences] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      return saved ? { email: true, sms: false, push: true, ...JSON.parse(saved) as Partial<{ email: boolean; sms: boolean; push: boolean }> } : { email: true, sms: false, push: true };
+    } catch {
+      return { email: true, sms: false, push: true };
+    }
+  });
+  const [notice, setNotice] = useState<string | null>(null);
+  const update = (key: keyof typeof preferences, value: boolean) => setPreferences((current) => ({ ...current, [key]: value }));
+  return <Card className="mb-4"><h2 className="m-0 font-display text-2xl">Delivery channels</h2><p className="m-0 mt-2 text-sm text-sand-600">Choose which delivery channels this device should use for booking and message updates.</p><div className="mt-4 grid gap-2 sm:grid-cols-3"><label className="checkbox-card"><input aria-label="Email notifications" checked={preferences.email} onChange={(event) => update("email", event.target.checked)} type="checkbox" /> Email notifications</label><label className="checkbox-card"><input aria-label="SMS notifications" checked={preferences.sms} onChange={(event) => update("sms", event.target.checked)} type="checkbox" /> SMS notifications</label><label className="checkbox-card"><input aria-label="Push notifications" checked={preferences.push} onChange={(event) => update("push", event.target.checked)} type="checkbox" /> Push notifications</label></div><div className="mt-4 flex flex-wrap items-center gap-3"><Button onClick={() => { window.localStorage.setItem(storageKey, JSON.stringify(preferences)); setNotice("Notification preferences saved."); }}>Save preferences</Button>{notice && <span className="text-sm font-semibold text-success-text" role="status">{notice}</span>}</div></Card>;
+}
+
 function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
   async function readAll() {
     await api.markAllNotificationsRead(userId, token);
     reload();
   }
-  return <><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button><div className="compact-list">{data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink href={item.deepLink}>Open</AppLink></Card>)}</div></>;
+  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink href={item.deepLink}>Open</AppLink></Card>)}</div></>;
 }
 
 function travelerScreenId(view: string) {
@@ -1452,6 +1468,7 @@ function travelerScreenId(view: string) {
 }
 
 function travelerTitle(view: string) {
+  if (view === "notifications") return "Notification preferences";
   return view.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
@@ -1515,7 +1532,8 @@ async function downloadBookingDocument(load: () => Promise<BookingDocumentDownlo
 }
 
 export function MessagesPage({ auth, conversationId }: { auth: AuthController; conversationId?: string }) {
-  return <MessagingStateContainer auth={auth} />;
+  if (!auth.session) return <ErrorState message="Sign in is required to open messages." />;
+  return <MessagesWorkspace userId={auth.session.userId} token={auth.session.accessToken} conversationId={conversationId} />;
 }
 
 function MessagesWorkspace({ userId, token, conversationId }: { userId: string; token: string; conversationId?: string }) {
@@ -2243,9 +2261,19 @@ function GuestVerificationUpsell({ auth }: { auth: AuthController }) {
 }
 
 export function HostProfileSpecPage({ slug, edit, auth }: { slug?: string; edit?: boolean; auth: AuthController }) {
-  if (edit) return <HostProfileStateContainer view="edit" auth={auth} />;
-  if (slug) return <HostProfileStateContainer view="detail" profileId={slug} auth={auth} />;
-  return <HostProfileStateContainer view="directory" auth={auth} />;
+  if (edit) return <HostProfileEditorApi auth={auth} />;
+  if (slug) return <HostProfileDetailApi slug={slug} />;
+  return <HostProfileDirectoryApi />;
+}
+
+function HostProfileDirectoryApi() {
+  const profiles = useAsync(() => api.getHostProfiles(), []);
+  return <CompletionShell id="HPRO-01" eyebrow="Host profiles" title="Meet the people behind the stay." copy="Browse public host profiles backed by the same API used by profile detail and messaging."><section className="product-section"><DataGate state={profiles}>{(items) => items.length ? <div className="spec-card-grid">{items.map((profile) => <HostProfileCard key={profile.id} profile={profile} />)}</div> : <EmptyState title="No public host profiles yet." />}</DataGate></section></CompletionShell>;
+}
+
+function HostProfileDetailApi({ slug }: { slug: string }) {
+  const profile = useAsync(() => api.getHostProfile(slug), [slug]);
+  return <DataGate state={profile}>{(data) => <HostProfileDetail profile={data} />}</DataGate>;
 }
 
 function HostProfileCard({ profile }: { profile: HostProfile }) {
@@ -2256,16 +2284,41 @@ function HostProfileDetail({ profile }: { profile: HostProfile }) {
   return <CompletionShell id="HPRO-05" eyebrow="Host profile" title={profile.displayName} copy={profile.bio}><section className="product-section details-layout"><HeroImage index={1} /><Card className="settings-card"><PatoisPhrase phrase="Link Mi" translation="Contact me through platform messaging." /><Badge tone="green">{profile.badges.join(", ")}</Badge><p>{profile.parish} - {profile.responseTime}</p><div className="highlight-list">{profile.highlights.map((item) => <span key={item}>{item}</span>)}</div><AppLink className={buttonClassName("sun")} href="/messages">Contact host</AppLink></Card></section></CompletionShell>;
 }
 
-function HostProfileEditor({ session }: { session: NonNullable<AuthController["session"]> }) {
+function HostProfileEditorApi({ auth }: { auth: AuthController }) {
+  const session = auth.session;
+  const profile = useAsync(() => api.getHostProfile("my-host-profile"), [session?.userId]);
+  const [displayName, setDisplayName] = useState(session?.displayName ?? "");
+  const [bio, setBio] = useState("Host profile managed by NestyStay.");
+  const [parish, setParish] = useState("St. Ann");
+  const [isPublic, setIsPublic] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!profile.data) return;
+    setDisplayName(profile.data.displayName);
+    setBio(profile.data.bio);
+    setParish(profile.data.parish);
+    setIsPublic(profile.data.isPublic);
+  }, [profile.data]);
   async function save() {
-    await api.updateHostProfile("my-host-profile", session.accessToken, { hostUserId: session.userId, displayName: session.displayName, parish: "St. Ann", bio: "Host profile managed by NestyStay.", responseTime: "Replies in 10 minutes", badges: ["Verified"], listingIds: [], isPublic: true, highlights: ["Verified host"] });
-    setNotice("Host profile saved.");
+    if (!session) return;
+    setNotice(null); setSaveError(null);
+    try {
+      await api.updateHostProfile("my-host-profile", session.accessToken, { hostUserId: session.userId, displayName, parish, bio, responseTime: profile.data?.responseTime ?? "Replies in 10 minutes", badges: profile.data?.badges ?? ["Verified"], listingIds: profile.data?.listingIds ?? [], isPublic, highlights: profile.data?.highlights ?? ["Verified host"] });
+      setNotice("Host profile saved.");
+      profile.reload();
+    } catch (caught) {
+      setSaveError(caught instanceof Error ? caught.message : "Host profile could not be saved.");
+    }
   }
-  return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><Card className="settings-card"><Field label="Display name"><Input defaultValue={session.displayName} /></Field><Field label="Bio"><Textarea defaultValue="Host profile managed by NestyStay." /></Field><InlineLabel><input defaultChecked type="checkbox" /> Public profile visible</InlineLabel><Button onClick={save}>Save profile</Button>{notice && <div className="notice-panel">{notice}</div>}</Card></section></CompletionShell>;
+  if (!session) return <ErrorState message="Sign in is required to edit a host profile." />;
+  return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><DataGate state={profile}>{() => <Card className="settings-card"><Field label="Display name"><Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Field><Field label="Parish"><Input value={parish} onChange={(event) => setParish(event.target.value)} /></Field><Field label="Bio"><Textarea value={bio} onChange={(event) => setBio(event.target.value)} /></Field><InlineLabel><input checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} type="checkbox" /> Public profile visible</InlineLabel><div className="flex flex-wrap gap-2"><Button onClick={save}>Save profile</Button><AppLink className={buttonClassName("outline")} href="/host/profile/preview">Preview profile</AppLink></div>{notice && <div className="notice-panel" role="status">{notice}</div>}{saveError && <ErrorState message={saveError} />}</Card>}</DataGate></section></CompletionShell>;
 }
 
 export function HostSpecPage({ view, auth, propertyId }: { view: string; auth: AuthController; propertyId?: string }) {
+  if (["analytics", "pricing", "promotions", "exports", "reviews", "badges", "settings", "archived"].includes(view) && auth.session) {
+    return <HostOps view={view} hostUserId={auth.session.userId} token={auth.session.accessToken} />;
+  }
   return <HostStateContainer view={view} auth={auth} propertyId={propertyId} />;
 }
 
@@ -2291,6 +2344,7 @@ function HostOpsPanel({ view, data, hostUserId, token, reload }: { view: string;
   if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
   if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
   if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} view="reviews-given" bookings={[]} userId={hostUserId} token={token} reload={reload} />;
+  if (view === "exports" || view === "reports") return <><Button onClick={() => downloadCsv("nesty-host-report.csv", ["Metric", "Value"], [["Revenue", String(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]])}>Download CSV report</Button><MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]]} /></>;
   return <MetricCards items={[["Badge progress", "Verified -> Trusted"], ["Exports", "CSV ready"], ["Archived properties", "0"], ["Notifications", "Enabled"]]} />;
 }
 
