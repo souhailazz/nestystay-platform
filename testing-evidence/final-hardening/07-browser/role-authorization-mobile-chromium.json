@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-09-12T18:09:22.286Z",
+  "roles": 8,
+  "project": "mobile-chromium",
+  "checks": [
+    {
+      "role": "Guest",
+      "landing": "/guest-dashboard",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "Host",
+      "landing": "/host-dashboard",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "PropertyManager",
+      "landing": "/pm/dashboard",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "Owner",
+      "landing": "/owner/dashboard",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "ServiceProvider",
+      "landing": "/directory/provider",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "LocalBusiness",
+      "landing": "/directory/provider",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "Officer",
+      "landing": "/officer/wellness",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "Admin",
+      "landing": "/admin",
+      "landingStatus": "passed",
+      "mobileNavigationItems": 5
+    },
+    {
+      "role": "Guest",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "Host",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "Owner",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "ServiceProvider",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "LocalBusiness",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "Officer",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "Admin",
+      "deniedRoute": "/pm/dashboard",
+      "forbiddenStatus": "passed"
+    },
+    {
+      "role": "PropertyManager",
+      "authorizedRoute": "/pm/dashboard",
+      "authorizedStatus": "passed"
+    }
+  ]
+}

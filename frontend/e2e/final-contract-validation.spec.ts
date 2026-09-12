@@ -82,6 +82,7 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
   // scoped to the authenticated host (the API ignores spoofed identity fields).
   await page.goto(`/host/properties/edit?id=${property!.id}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("host-06-page")).toBeVisible();
+  await expect(page.getByLabel("Listing Title", { exact: true })).toHaveValue(listingTitle, { timeout: 30_000 });
   const editedTitle = `${listingTitle} edited`;
   await page.locator('input[type="text"]').first().fill(editedTitle);
   await page.getByRole("button", { name: "Save Changes", exact: true }).click();
@@ -99,7 +100,7 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
   await page.goto(`/properties/${property!.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   await chooseUniqueDates(page, testInfo.project.name, 8000);
-  await page.getByRole("button", { name: /Continue to quote/ }).click();
+  await page.getByRole("button", { name: "Create booking", exact: true }).click();
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/checkout$/);
   await expect(page.getByTestId("book-03-page").or(page.getByTestId("book-03-stripe-config-missing"))).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/Hold dates & verify/i)).toHaveCount(0);
@@ -121,7 +122,7 @@ test("guest completes the enabled eKYC UI path through PENDING and held dates", 
   await expect(page.getByText("eKYC REQUIRED", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   await chooseUniqueDates(page, testInfo.project.name, 9000);
-  await page.getByRole("button", { name: /Continue to quote/ }).click();
+  await page.getByRole("button", { name: "Create booking", exact: true }).click();
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/identity$/);
   await page.getByRole("button", { name: /Hold dates & verify/ }).click();
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/pending$/);
@@ -190,7 +191,8 @@ async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: st
 async function chooseUniqueDates(page: Page, projectName: string, baseOffset: number) {
   const viewportOffset = projectName.includes("tablet") ? 17 : projectName.includes("mobile") ? 23 : 11;
   const inputs = page.locator('input[type="date"]');
-  const continueButton = page.getByRole("button", { name: /Continue to quote/ });
+  const quoteButton = page.getByRole("button", { name: "Get quote", exact: true });
+  const createButton = page.getByRole("button", { name: "Create booking", exact: true });
   const seedOffset = baseOffset + viewportOffset + Math.floor(Math.random() * 500);
   // Persistent PostgreSQL evidence can legitimately occupy a previously chosen
   // far-future range. Probe a few deterministic alternatives rather than making
@@ -200,10 +202,11 @@ async function chooseUniqueDates(page: Page, projectName: string, baseOffset: nu
     const checkOutDate = new Date(checkInDate.getTime() + 3 * 86_400_000);
     await inputs.nth(0).fill(checkInDate.toISOString().slice(0, 10));
     await inputs.nth(1).fill(checkOutDate.toISOString().slice(0, 10));
+    await quoteButton.click();
     await page.waitForTimeout(700);
-    if (await continueButton.isEnabled()) return;
+    if (await createButton.isEnabled()) return;
   }
-  await expect(continueButton).toBeEnabled({ timeout: 30_000 });
+  await expect(createButton).toBeEnabled({ timeout: 30_000 });
 }
 
 async function capture(page: Page, testInfo: { project: { name: string } }, name: string) {

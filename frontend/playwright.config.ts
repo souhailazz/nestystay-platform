@@ -1,20 +1,33 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
-const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5019/api/health";
+const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://127.0.0.1:5019/api/health";
 const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? "../artifacts/playwright-results";
 const htmlReportDir = process.env.PLAYWRIGHT_HTML_REPORT ?? "../artifacts/playwright-report";
 
+// The repository-owned local PostgreSQL cluster runs on 55432. Keep the
+// supervised backend aligned with the documented bootstrap instead of
+// silently falling back to a password-protected machine-wide PostgreSQL on
+// 5432.
+if (!process.env.ConnectionStrings__Postgres && !process.env.PLAYWRIGHT_API_URL) {
+  process.env.ConnectionStrings__Postgres = "Host=127.0.0.1;Port=55432;Database=nestystay_dev;Username=nestystay";
+  process.env.BackgroundJobs__Enabled = "false";
+}
+
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   timeout: 120_000,
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: true,
+  // The local milestone suite shares one repository-owned database. Serialize
+  // tests so fixtures and browser journeys cannot observe another test's
+  // transient records (for example a malicious-property security fixture).
+  fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: 2,
+  workers: 1,
   reporter: [
     ["line"],
     ["html", { open: "never", outputFolder: htmlReportDir }],

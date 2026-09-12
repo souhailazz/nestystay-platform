@@ -47,6 +47,16 @@ test.describe("global usability upgrades", () => {
   });
 
   test("notification preferences provide accessible channel controls and persistence", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), {
+      userId: "usability-guest",
+      email: "usability-guest@nestystay.local",
+      displayName: "Usability Guest",
+      accessToken: "",
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      roles: ["Guest"],
+      permissions: [],
+    });
     await page.goto("/traveler/notifications", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Notification preferences" })).toBeVisible();
     const sms = page.getByRole("checkbox", { name: "SMS notifications" });

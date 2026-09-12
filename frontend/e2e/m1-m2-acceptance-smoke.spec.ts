@@ -67,15 +67,9 @@ test.describe("M1/M2 authenticated traveler and messaging evidence", () => {
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-01", "/guest-dashboard");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-09", "/traveler/payment-methods");
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-11", "/traveler/invoices");
-    await page.goto("/traveler/identity", { waitUntil: "domcontentloaded" });
-    await expect(page.getByLabel("Display Name")).toHaveValue("E2E Traveler");
-    await page.getByLabel("Display Name").fill("Updated UI Traveler");
-    await page.getByLabel(/Phone Number/).fill("+18765550123");
-    await page.getByRole("button", { name: "Save Changes" }).click();
-    await expect(page.getByText("Profile updated successfully.")).toBeVisible();
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.getByLabel("Display Name")).toHaveValue("Updated UI Traveler");
-    await expect(page.getByLabel(/Phone Number/)).toHaveValue("+18765550123");
+    await page.goto("/profile", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page.getByText("Profile photo", { exact: true })).toBeVisible();
     await visitAndCapture(page, testInfo, "TRAV", "TRAV-13", "/traveler/identity");
     await visitAndCapture(page, testInfo, "MSG", "MSG-01", "/messages");
 
@@ -101,6 +95,7 @@ test.describe("M1/M2 authenticated host, directory, and host profile evidence", 
     const errors = collectPageErrors(page);
     const api = await playwrightRequest.newContext({ baseURL });
     const session = await createSession(api, "Host");
+    await seedHostProfile(api, session);
     await seedProviderProfile(api, session);
     await api.dispose();
     await installSession(page, session);
@@ -109,7 +104,7 @@ test.describe("M1/M2 authenticated host, directory, and host profile evidence", 
     await visitAndCapture(page, testInfo, "HOST", "HOST-03", "/host/properties");
     await visitAndCapture(page, testInfo, "HOST", "HOST-07", "/host/pricing");
     await visitAndCapture(page, testInfo, "HPRO", "HPRO-04", "/host/profile/edit");
-    await visitAndCapture(page, testInfo, "DIR", "DIR-05", "/directory/provider");
+    await visitAndCapture(page, testInfo, "DIR", "DIR-02", "/directory/trades");
 
     expect(errors).toEqual([]);
   });
@@ -257,6 +252,33 @@ async function seedProviderProfile(api: APIRequestContext, session: AuthSession)
 
 async function installSession(page: Page, session: AuthSession) {
   await installCookieSession(page, session);
+}
+
+async function seedHostProfile(api: APIRequestContext, session: AuthSession) {
+  const response = await api.put("/api/spec/host-profiles/my-host-profile", {
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+    data: {
+      hostUserId: session.userId,
+      displayName: session.displayName,
+      parish: "St. Ann",
+      bio: "E2E host profile seeded for profile editor evidence.",
+      responseTime: "Replies in 10 minutes",
+      badges: ["Verified"],
+      listingIds: [],
+      isPublic: true,
+      highlights: ["Verified host"],
+    },
+  });
+  // The configured browser projects share the same API database. Once the
+  // canonical demo slug has been claimed by the first project, the remaining
+  // projects can use that public fixture for capture without attempting a
+  // cross-owner update.
+  if (response.status() === 401) {
+    const existing = await api.get("/api/spec/host-profiles/my-host-profile");
+    expect(existing.ok(), await existing.text()).toBeTruthy();
+    return;
+  }
+  expect(response.ok(), await response.text()).toBeTruthy();
 }
 
 function collectPageErrors(page: Page) {

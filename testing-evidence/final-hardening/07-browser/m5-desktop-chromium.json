@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T21:33:42.811Z",
+  "generatedAt": "2026-09-12T17:58:57.812Z",
   "project": "desktop-chromium",
   "workflows": [
     "manager cookie session",
@@ -12,10 +12,10 @@
   "consoleErrors": [],
   "unexpected5xx": [],
   "persisted": {
-    "propertyId": "0c980d4e-7a5f-4ba3-a31e-13799e22d52e",
-    "invoiceId": "4dfa2ed5-207f-48ea-abb5-f11c45809954",
-    "maintenanceId": "c8da73da-8dbf-421e-945b-3699f2c4c37e",
-    "proposalId": "835c4b90-4442-4fb0-81e3-63856557d51f"
+    "propertyId": "4104ce80-9f51-4036-be93-7b099dc2c7fb",
+    "invoiceId": "2a31243d-f52b-4a6b-b4fc-6e92195a9d1a",
+    "maintenanceId": "3101a423-3ccc-4dcb-ab0b-4f2dc5f96bea",
+    "proposalId": "359a0354-3ff9-4c23-9e8e-058574944a08"
   },
   "axeViolations": 0,
   "responsive": {

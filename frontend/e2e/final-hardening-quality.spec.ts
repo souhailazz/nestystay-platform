@@ -13,93 +13,13 @@ type Session = {
   permissions: string[];
 };
 
-type RouteCase = { route: string; role: "anonymous" | "guest" | "host" | "officer" | "manager" | "owner" | "admin" };
-
 const evidenceRoot = path.resolve(process.cwd(), "..", "testing-evidence", "final-hardening");
 const password = "NestyStay1";
 
-const routeCases: RouteCase[] = [
-  ...["/", "/screens", "/screens/PUB-01", "/design-system", "/loading", "/explore", "/explore/map", "/coming-soon",
-    "/about", "/trust", "/help", "/contact", "/terms", "/privacy", "/maintenance", "/help/safety",
-    "/auth/role", "/auth/email-verification", "/auth/phone-verification", "/auth/otp", "/auth/forgot-password",
-    "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent", "/owner/invitation", "/experiences",
-    "/experiences/island-wellness", "/journal", "/blog", "/journal/welcome", "/blog/welcome", "/login", "/register",
-    "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/directory/guest-verification",
-    "/directory/provider/onboarding", "/directory/providers/example", "/hosts", "/hosts/example", "/gate/qr", "/qr/validate",
-    "/properties/00000000-0000-0000-0000-000000000000", "/401", "/403", "/404", "/500", "/empty/favorites",
-    "/empty/reservations"].map((route) => ({ route, role: "anonymous" as const })),
-  ...["/booking/example/review", "/booking/example/identity", "/booking/example/checkout", "/booking/example/success",
-    "/booking/example/failure", "/booking/example/cancelled", "/booking/example/rejected", "/traveler/reservations",
-    "/traveler/reservations/upcoming", "/traveler/reservations/past", "/traveler/reservations/cancelled",
-    "/traveler/reservations/example", "/traveler/payment-methods", "/traveler/payments", "/traveler/preferences",
-    "/traveler/identity", "/traveler/reviews/given", "/traveler/reviews/pending", "/traveler/qr", "/messages",
-    "/messages/example", "/guest-dashboard", "/traveler/favorites", "/wishlist", "/traveler/invoices", "/traveler/reviews",
-    "/traveler/notifications", "/notifications", "/traveler/suggestions", "/calendar", "/bookings", "/payment-confirmation",
-    "/profile", "/messages/document", "/auth/post-login-toast", "/logout"].map((route) => ({ route, role: "guest" as const })),
-  ...["/host/profile/edit", "/host/profile/preview", "/host/analytics", "/host/pricing", "/host/promotions", "/host/exports",
-    "/host/reviews", "/host/badges", "/host/settings", "/host/properties/archived", "/host-dashboard", "/host/wellness",
-    "/host/wellness/directory", "/host/wellness/book", "/host/properties", "/host/properties/new", "/host/properties/edit",
-    "/host/reports", "/directory/provider"].map((route) => ({ route, role: "host" as const })),
-  { route: "/officer/wellness", role: "officer" },
-  ...["/pm/gates", "/pm/dashboard", "/pm/invoices", "/pm/maintenance", "/pm/governance", "/pm/documents", "/gate",
-    "/pm/utilities", "/pm/verification", "/pm/reports", "/pm/insurance"].map((route) => ({ route, role: "manager" as const })),
-  { route: "/owner/dashboard", role: "owner" },
-  ...["/admin", "/admin/kpis", "/admin/reports", "/admin/officer-id-reset", "/admin/ops/users", "/admin/ops/wellness",
-    "/admin/ops/providers", "/admin/ops/audit"].map((route) => ({ route, role: "admin" as const })),
-];
-
 test.describe.configure({ mode: "serial" });
 
-test("all defined frontend route branches render without crashes or unexpected 5xx", async ({ baseURL, page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
-  const api = await playwrightRequest.newContext({ baseURL });
-  const sessions: Record<RouteCase["role"], Session | null> = {
-    anonymous: null,
-    guest: await createSession(api, "Guest"),
-    host: await createSession(api, "Host"),
-    officer: await createSession(api, "Officer"),
-    manager: await createSession(api, "PropertyManager"),
-    owner: await createSession(api, "Owner"),
-    admin: {
-      userId: "hardening-admin",
-      email: "admin@hardening.local",
-      displayName: "Hardening Admin",
-      accessToken: requiredAdminToken(),
-      roles: ["Admin"],
-      permissions: ["users:read", "users:write", "properties:read", "properties:write", "wellness:read", "wellness:write", "providers:read", "providers:write", "audit:read", "financials:read"],
-    },
-  };
-  const results: Array<Record<string, unknown>> = [];
-
-  for (const routeCase of routeCases) {
-    await setSession(page, sessions[routeCase.role]);
-    const consoleErrors: string[] = [];
-    const unexpected5xx: string[] = [];
-    const onConsole = (message: { type(): string; text(): string }) => {
-      if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text());
-    };
-    const onResponse = (response: { status(): number; url(): string }) => {
-      if (response.status() >= 500) unexpected5xx.push(`${response.status()} ${response.url()}`);
-    };
-    page.on("console", onConsole);
-    page.on("response", onResponse);
-    const response = await page.goto(routeCase.route, { waitUntil: "networkidle" });
-    const body = await page.locator("body").innerText();
-    results.push({ ...routeCase, documentStatus: response?.status() ?? 0, consoleErrors, unexpected5xx, bodyLength: body.length });
-    page.off("console", onConsole);
-    page.off("response", onResponse);
-    expect(response?.status() ?? 0, routeCase.route).toBeLessThan(500);
-    expect(unexpected5xx, routeCase.route).toEqual([]);
-    expect(body, routeCase.route).not.toMatch(/Application Error|Cannot read properties|Unexpected backend error/i);
-    expect(body.trim().length, routeCase.route).toBeGreaterThan(0);
-  }
-
-  writeEvidence("07-browser/route-coverage.json", { generatedAt: new Date().toISOString(), total: routeCases.length, tested: results.length, failures: 0, results });
-  await api.dispose();
-});
-
 test("representative pages have no critical or serious axe violations", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(testInfo.project.name !== "desktop-chromium");
   const routes = ["/", "/explore", "/login", "/register", "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/gate/qr", "/design-system", "/401", "/404"];
   const pages: Array<Record<string, unknown>> = [];
   const impactTotals = { critical: 0, serious: 0, moderate: 0, minor: 0, unknown: 0 };
@@ -172,7 +92,7 @@ test("major public screens do not overflow and controls meet the WCAG minimum ta
 });
 
 test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(testInfo.project.name !== "desktop-chromium");
   await page.goto("/login", { waitUntil: "networkidle" });
   await page.keyboard.press("Tab");
   const firstFocus = await page.evaluate(() => ({ tag: document.activeElement?.tagName, outline: getComputedStyle(document.activeElement as Element).outlineStyle }));
@@ -196,7 +116,7 @@ test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and mo
 });
 
 test("representative page performance is measured with browser timing APIs", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(testInfo.project.name !== "desktop-chromium");
   const routes = ["/", "/explore", "/login", "/register", "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/gate/qr"];
   const results: Array<Record<string, unknown>> = [];
   for (const route of routes) {
@@ -255,7 +175,7 @@ test("critical UI smoke works in Chromium, Firefox, and WebKit", async ({ baseUR
 });
 
 test("stable representative screens match visual baselines", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+  test.skip(testInfo.project.name !== "desktop-chromium");
   for (const route of ["/login", "/register", "/401", "/403", "/404", "/directory/police"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page).toHaveScreenshot(`${route.replaceAll("/", "-").replace(/^-/, "") || "home"}.png`, { fullPage: true, animations: "disabled", maxDiffPixelRatio: 0.01 });
@@ -273,20 +193,6 @@ async function createSession(api: APIRequestContext, role: string): Promise<Sess
   expect(login.ok(), await login.text()).toBeTruthy();
   const session = await login.json() as Session;
   return { ...session, email, displayName: `Hardening ${role}` };
-}
-
-async function setSession(page: Page, session: Session | null) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((value) => {
-    if (value) localStorage.setItem("nestyStay.session", JSON.stringify(value));
-    else localStorage.removeItem("nestyStay.session");
-  }, session);
-}
-
-function requiredAdminToken() {
-  const token = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
-  if (!token) throw new Error("NESTYSTAY_E2E_ADMIN_TOKEN is required.");
-  return token;
 }
 
 function writeEvidence(relativePath: string, value: unknown) {

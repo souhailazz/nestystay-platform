@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T21:38:05.029Z",
+  "generatedAt": "2026-09-12T18:09:48.950Z",
   "total": 54,
   "passed": 54,
   "failed": 0,
@@ -261,7 +261,7 @@
     {
       "name": "guest B cannot read guest A traveler data",
       "method": "GET",
-      "url": "/api/spec/traveler/1417967e-ad60-4f33-bb84-0e1f31cda477",
+      "url": "/api/spec/traveler/ae68a7d5-f352-464c-842d-2c0356481fa3",
       "expected": [
         401,
         403,
@@ -274,7 +274,7 @@
     {
       "name": "guest B cannot create guest A collection",
       "method": "POST",
-      "url": "/api/spec/traveler/1417967e-ad60-4f33-bb84-0e1f31cda477/wishlist/collections",
+      "url": "/api/spec/traveler/ae68a7d5-f352-464c-842d-2c0356481fa3/wishlist/collections",
       "expected": [
         401,
         403,
@@ -287,7 +287,7 @@
     {
       "name": "guest B cannot prepare guest A identity upload",
       "method": "POST",
-      "url": "/api/spec/traveler/1417967e-ad60-4f33-bb84-0e1f31cda477/identity-documents/uploads",
+      "url": "/api/spec/traveler/ae68a7d5-f352-464c-842d-2c0356481fa3/identity-documents/uploads",
       "expected": [
         401,
         403,
@@ -300,7 +300,7 @@
     {
       "name": "host B cannot archive host A property",
       "method": "POST",
-      "url": "/api/properties/9e1c0e32-c0d8-4b9e-a796-05ee82712d8b/archive",
+      "url": "/api/properties/4b0e0456-e914-45a3-bcd1-8a2b9a34a1ce/archive",
       "expected": [
         401,
         403,
@@ -313,7 +313,7 @@
     {
       "name": "host B cannot delete host A property",
       "method": "DELETE",
-      "url": "/api/properties/9e1c0e32-c0d8-4b9e-a796-05ee82712d8b",
+      "url": "/api/properties/4b0e0456-e914-45a3-bcd1-8a2b9a34a1ce",
       "expected": [
         401,
         403,
@@ -326,7 +326,7 @@
     {
       "name": "host B cannot prepare host A photo",
       "method": "POST",
-      "url": "/api/properties/9e1c0e32-c0d8-4b9e-a796-05ee82712d8b/photos/uploads",
+      "url": "/api/properties/4b0e0456-e914-45a3-bcd1-8a2b9a34a1ce/photos/uploads",
       "expected": [
         401,
         403,
@@ -339,7 +339,7 @@
     {
       "name": "guest B cannot read guest A booking",
       "method": "GET",
-      "url": "/api/bookings/909c9bee-387e-41af-9f1d-f8cb174ff209",
+      "url": "/api/bookings/53f0339f-552a-4229-970c-655bc4887f00",
       "expected": [
         404
       ],
@@ -350,7 +350,7 @@
     {
       "name": "host B cannot read host A booking",
       "method": "GET",
-      "url": "/api/bookings/909c9bee-387e-41af-9f1d-f8cb174ff209",
+      "url": "/api/bookings/53f0339f-552a-4229-970c-655bc4887f00",
       "expected": [
         404
       ],
@@ -361,7 +361,7 @@
     {
       "name": "guest B cannot capture guest A booking",
       "method": "POST",
-      "url": "/api/bookings/909c9bee-387e-41af-9f1d-f8cb174ff209/capture-payment",
+      "url": "/api/bookings/53f0339f-552a-4229-970c-655bc4887f00/capture-payment",
       "expected": [
         403,
         404
@@ -373,7 +373,7 @@
     {
       "name": "guest B cannot download guest A invoice",
       "method": "GET",
-      "url": "/api/bookings/909c9bee-387e-41af-9f1d-f8cb174ff209/invoice",
+      "url": "/api/bookings/53f0339f-552a-4229-970c-655bc4887f00/invoice",
       "expected": [
         404
       ],
@@ -384,7 +384,7 @@
     {
       "name": "manager B cannot read manager A invoice",
       "method": "GET",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e",
       "expected": [
         403,
         404
@@ -396,7 +396,7 @@
     {
       "name": "manager B cannot read manager A owner statement",
       "method": "GET",
-      "url": "/api/property-manager/owners/2896239e-2f59-4643-9a09-0655aa5ba1a9/statement",
+      "url": "/api/property-manager/owners/004daba9-e2e9-40e6-8624-ea43d4c8c66d/statement",
       "expected": [
         400,
         403,
@@ -409,7 +409,7 @@
     {
       "name": "manager B cannot verify manager A owner",
       "method": "POST",
-      "url": "/api/property-manager/owners/2896239e-2f59-4643-9a09-0655aa5ba1a9/verification",
+      "url": "/api/property-manager/owners/004daba9-e2e9-40e6-8624-ea43d4c8c66d/verification",
       "expected": [
         400,
         403,
@@ -422,7 +422,7 @@
     {
       "name": "owner B cannot read owner A invoice",
       "method": "GET",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e",
       "expected": [
         403,
         404
@@ -434,7 +434,7 @@
     {
       "name": "manager B cannot read manager A statement",
       "method": "GET",
-      "url": "/api/property-manager/owners/2896239e-2f59-4643-9a09-0655aa5ba1a9/statement",
+      "url": "/api/property-manager/owners/004daba9-e2e9-40e6-8624-ea43d4c8c66d/statement",
       "expected": [
         400,
         403,
@@ -473,7 +473,7 @@
     {
       "name": "manager B cannot update manager A maintenance",
       "method": "PATCH",
-      "url": "/api/property-manager/maintenance/847b5ea7-2615-44f3-bebe-45cdf7cb34b0",
+      "url": "/api/property-manager/maintenance/b3ee1cf8-5cfe-484b-8676-d42ca38e6454",
       "expected": [
         400,
         403,
@@ -499,7 +499,7 @@
     {
       "name": "manager B cannot download manager A document",
       "method": "GET",
-      "url": "/api/property-manager/documents/d7bf2811-090a-47af-9dae-c0e8888b5f0d/download",
+      "url": "/api/property-manager/documents/88526112-0c3a-4bf9-804c-a4c544968d77/download",
       "expected": [
         403,
         404
@@ -511,7 +511,7 @@
     {
       "name": "manager B cannot vote on manager A governance",
       "method": "POST",
-      "url": "/api/property-manager/governance/proposals/5c0fd88b-7e8a-4c68-889e-6ae8572132ae/votes",
+      "url": "/api/property-manager/governance/proposals/c58ff994-15c6-4e72-835a-5f5ea540e4d8/votes",
       "expected": [
         400,
         403,
@@ -524,7 +524,7 @@
     {
       "name": "manager B cannot revoke manager A QR",
       "method": "POST",
-      "url": "/api/property-manager/qr/5c19fc19-e9dd-4a69-940d-ebe8a89cab5f/revoke",
+      "url": "/api/property-manager/qr/bc5dc9e2-809c-42fa-807c-87b544f4fafe/revoke",
       "expected": [
         400,
         403,
@@ -537,7 +537,7 @@
     {
       "name": "manager B cannot pay manager A invoice",
       "method": "POST",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5/payments",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e/payments",
       "expected": [
         400,
         403,
@@ -550,7 +550,7 @@
     {
       "name": "owner B cannot read owner A statement",
       "method": "GET",
-      "url": "/api/property-manager/owners/2896239e-2f59-4643-9a09-0655aa5ba1a9/statement",
+      "url": "/api/property-manager/owners/004daba9-e2e9-40e6-8624-ea43d4c8c66d/statement",
       "expected": [
         400,
         403,
@@ -563,7 +563,7 @@
     {
       "name": "owner B cannot download owner A document",
       "method": "GET",
-      "url": "/api/property-manager/documents/d7bf2811-090a-47af-9dae-c0e8888b5f0d/download",
+      "url": "/api/property-manager/documents/88526112-0c3a-4bf9-804c-a4c544968d77/download",
       "expected": [
         403,
         404
@@ -588,7 +588,7 @@
     {
       "name": "owner B cannot vote on owner A governance",
       "method": "POST",
-      "url": "/api/property-manager/governance/proposals/5c0fd88b-7e8a-4c68-889e-6ae8572132ae/votes",
+      "url": "/api/property-manager/governance/proposals/c58ff994-15c6-4e72-835a-5f5ea540e4d8/votes",
       "expected": [
         400,
         403,
@@ -614,7 +614,7 @@
     {
       "name": "provider cannot read manager invoice",
       "method": "GET",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e",
       "expected": [
         403,
         404
@@ -626,7 +626,7 @@
     {
       "name": "gate guard cannot read manager invoice",
       "method": "GET",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e",
       "expected": [
         403,
         404
@@ -638,7 +638,7 @@
     {
       "name": "anonymous cannot read manager invoice",
       "method": "GET",
-      "url": "/api/property-manager/invoices/54d3476b-8b48-414c-8b6f-cdd6c6978eb5",
+      "url": "/api/property-manager/invoices/2a2595d1-ce75-4189-baa5-195f4dd4421e",
       "expected": [
         401
       ],

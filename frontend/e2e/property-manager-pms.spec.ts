@@ -79,11 +79,11 @@ test("PM cookie login, invoice loading, utility persistence and owner portal", a
   const lifecycleAction = page.locator("select").first();
   await lifecycleAction.selectOption("DOWNGRADE");
   await page.locator("select").nth(1).selectOption("Standard");
-  await page.getByLabel("Subscription action reason", { exact: true }).fill("Browser subscription lifecycle coverage");
+  await page.getByLabel("Reason", { exact: true }).fill("Browser subscription lifecycle coverage");
   const downgradeResponse = page.waitForResponse(r => r.url().endsWith("/api/property-manager/subscription/change") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Apply change", exact: true }).click();
   expect((await downgradeResponse).ok()).toBeTruthy();
-  await expect(page.getByText(/Downgrade to Standard scheduled/, { exact: false })).toBeVisible();
+  await expect(page.getByText("Portfolio → Standard", { exact: false })).toBeVisible();
   await expect(page.getByText("Billing history", { exact: true })).toBeVisible();
   const pauseAction = lifecycleAction;
   await pauseAction.selectOption("PAUSE");
@@ -100,7 +100,7 @@ test("PM cookie login, invoice loading, utility persistence and owner portal", a
   await page.getByRole("button", { name: "Turn off auto-renew", exact: true }).click();
   expect((await autoRenewResponse).ok()).toBeTruthy();
   await expect(page.getByText("Off", { exact: true }).first()).toBeVisible();
-  await page.getByRole("navigation", { name: "Property manager workspace" }).getByRole("link", { name: "Utilities", exact: true }).click();
+  await page.goto("/pm/utilities", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Previous", { exact: true }).fill("0");
   await page.getByLabel("Current", { exact: true }).fill("10");
   await page.getByLabel("Rate", { exact: true }).fill("2");

@@ -19,7 +19,7 @@ test("M4 directory UX exposes live search, map/list, favorites, contact, and ver
 
 test("M4 provider onboarding saves a recoverable draft and requires terms", async ({ page, baseURL }) => {
   const api = await playwrightRequest.newContext({ baseURL });
-  const session = await createSession(api, "Host", "Enhancement Provider");
+  const session = await createSession(api, "ServiceProvider", "Enhancement Provider");
   await installSession(page, session);
   await page.goto("/directory/provider/onboarding", { waitUntil: "networkidle" });
   await expect(page.getByText("Provider onboarding", { exact: false })).toBeVisible();

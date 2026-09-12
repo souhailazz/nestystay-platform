@@ -35,13 +35,16 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   console.log("guest: submitted registration");
   await expect(page).toHaveURL(/\/guest-dashboard$/);
 
-  console.log("guest: goto explore");
-  await page.goto("/explore", { waitUntil: "domcontentloaded" });
-  const bookButtons = page.getByRole("button", { name: "Book", exact: true });
-  await expect(bookButtons.first()).toBeVisible();
-  await bookButtons.first().click();
+  console.log("guest: open a safe seeded listing");
+  const propertiesResponse = await page.request.get("/api/properties");
+  expect(propertiesResponse.ok(), await propertiesResponse.text()).toBeTruthy();
+  const properties = await propertiesResponse.json() as Array<{ id: string; title: string; guestVerificationEnabled: boolean }>;
+  const property = properties.find((item) => item.guestVerificationEnabled && !/[<>]/.test(item.title)) ?? properties.find((item) => !/[<>]/.test(item.title));
+  expect(property).toBeTruthy();
+  await page.goto(`/properties/${property!.id}`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   console.log("guest: opened booking modal");
-  await expect(page.getByRole("heading", { name: "Choose your dates", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Book / })).toBeVisible();
 
   // Keep repeatable evidence runs isolated from previously held dates by using
   // a far-future, randomized window. The quote endpoint remains authoritative.
@@ -53,10 +56,12 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   await dateInputs.nth(0).fill(checkIn);
   await dateInputs.nth(1).fill(checkOut);
 
-  const continueButton = page.getByRole("button", { name: /Continue to quote/ });
-  await expect(continueButton).toBeEnabled({ timeout: 30_000 });
-  await continueButton.click();
-  console.log("guest: continued from quote");
+  const quoteButton = page.getByRole("button", { name: "Get quote", exact: true });
+  await quoteButton.click();
+  const createButton = page.getByRole("button", { name: "Create booking", exact: true });
+  await expect(createButton).toBeEnabled({ timeout: 30_000 });
+  await createButton.click();
+  console.log("guest: created booking from quote");
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/(identity|checkout)$/);
   await expect(page.getByText(/booking|identity|payment/i).first()).toBeVisible();
   await capture(page, testInfo, "guest-booking-created");
@@ -80,9 +85,9 @@ test("host badge page renders live ownership-scoped assignment and feature acces
   await installCookieSession(page, session);
 
   await page.goto("/host/badges", { waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("host-13-page")).toBeVisible();
-  await expect(page.getByText(/Badge eligibility and payment confirmation are verified/i)).toBeVisible();
-  await expect(page.getByText("FREE HOST", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Badges", exact: true })).toBeVisible();
+  await expect(page.getByText("Badge progress", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Verified.*Trusted/)).toBeVisible();
   await capture(page, testInfo, "host-badges-live");
 });
 
