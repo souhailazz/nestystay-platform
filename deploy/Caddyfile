@@ -1,5 +1,5 @@
 # NestyStay — reverse proxy + TLS + security headers.
-# 1. Point a real domain's A record at this server, replace nestystay.example below,
+# 1. Point staging.nestystay.net (or the approved production hostname) at this server,
 #    then: caddy reload --config /etc/caddy/Caddyfile
 #    Caddy provisions HTTPS automatically and redirects HTTP -> HTTPS by itself.
 # 2. Until a domain exists, the raw-IP block serves HTTP only (no false HTTPS advertised).
@@ -43,7 +43,7 @@ http://167.99.143.25 {
 	import nestystay_common
 }
 
-# --- Enable once the domain exists (then remove the :80 block or keep it; Caddy adds the HTTP->HTTPS redirect) ---
-# nestystay.example {
-#	import nestystay_common
-# }
+# --- Public staging hostname. Caddy provisions TLS and redirects HTTP -> HTTPS. ---
+staging.nestystay.net {
+	import nestystay_common
+}
