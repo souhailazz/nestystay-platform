@@ -37,6 +37,7 @@ import { Badge } from "../components/ui/Badge";
 import { Button, buttonClassName } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
+import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { announceFeedback } from "../lib/feedback";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -477,152 +478,26 @@ export function LogoutScreenPage() {
   );
 }
 
-/** PUB-MAP — full-height map view with its own topbar, list panel and mobile drawer. */
+/** PUB-MAP — a real map service synchronized with the live property list. */
 export function MapSearchPage() {
-  const { properties } = useProperties();
-  const [activeId, setActiveId] = useState(0);
+  const { properties, isLoading, error, reload } = useProperties();
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [chip, setChip] = useState("all");
-  const cards = properties.length
-    ? properties.slice(0, 5).map((property) => ({
-        title: property.title,
-        location: property.location,
-        price: formatMoney(property.nightlyRate, property.currency),
-        badge: property.badgeLevel,
-      }))
-    : staticProperties.map(([title, location, price, badge]) => ({ title, location, price, badge }));
-
-  const chips = [
-    ["all", "All badges"],
-    ["verified", "✓ Verified"],
-    ["trusted", "★ Trusted"],
-    ["wellness", "✦ Wellness"],
-  ] as const;
-  const visible = cards.filter((c) => chip === "all" || c.badge.toLowerCase().includes(chip));
-
-  const miniCard = (card: (typeof cards)[number], index: number, extra?: string) => (
-    <button
-      className={cx(
-        "flex cursor-pointer items-center gap-3 rounded-field border bg-cream p-2.5 text-left font-sans transition-shadow hover:shadow-[0_4px_14px_rgba(6,43,43,0.1)]",
-        index === activeId ? "border-[1.5px] border-deep-hover" : "border-sand-border",
-        extra,
-      )}
-      key={card.title}
-      onClick={() => setActiveId(index)}
-      type="button"
-    >
-      <img alt="" className="block h-[76px] w-24 shrink-0 rounded-[12px] object-cover" src={getStayImage(index).src} />
-      <span>
-        <span className="block font-display text-[15px] font-semibold text-ink">{card.title}</span>
-        <span className="mt-px block text-[12.5px] text-gray-600">{card.location}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink">
-          <strong>{card.price}</strong> / night <TierBadge className="!px-2.5 !py-[3px] !text-[9.5px]" level={card.badge} />
-        </span>
-      </span>
+  const chips = [["all", "All badges"], ["verified", "✓ Verified"], ["trusted", "★ Trusted"], ["wellness", "✦ Wellness"]] as const;
+  const visible = properties.filter((property) => chip === "all" || property.badgeLevel.toLowerCase().includes(chip));
+  const active = visible.find((property) => property.id === activeId) ?? visible[0];
+  const mapped = visible.filter((property) => property.latitude != null && property.longitude != null);
+  const mapUrl = active?.latitude != null && active.longitude != null
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${active.longitude - 0.3}%2C${active.latitude - 0.18}%2C${active.longitude + 0.3}%2C${active.latitude + 0.18}&layer=mapnik&marker=${active.latitude}%2C${active.longitude}`
+    : "https://www.openstreetmap.org/export/embed.html?bbox=-78.5%2C17.6%2C-76.0%2C18.6&layer=mapnik";
+  const miniCard = (property: (typeof visible)[number], extra?: string) => (
+    <button className={cx("flex cursor-pointer items-center gap-3 rounded-field border bg-cream p-2.5 text-left font-sans transition-shadow hover:shadow-[0_4px_14px_rgba(6,43,43,0.1)]", property.id === active?.id ? "border-[1.5px] border-deep-hover" : "border-sand-border", extra)} key={property.id} onClick={() => setActiveId(property.id)} type="button">
+      <img alt="" className="block h-[76px] w-24 shrink-0 rounded-[12px] object-cover" src={property.imageUrl ?? property.galleryUrls?.[0] ?? getStayImage(0).src} />
+      <span><span className="block font-display text-[15px] font-semibold text-ink">{property.title}</span><span className="mt-px block text-[12.5px] text-gray-600">{property.location}</span><span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink"><strong>{formatMoney(property.nightlyRate, property.currency)}</strong> / night <TierBadge className="!px-2.5 !py-[3px] !text-[9.5px]" level={property.badgeLevel} /></span></span>
     </button>
   );
 
-  return (
-    <div className="font-sans text-[15px] leading-[1.55] text-ink">
-      {/* TOPBAR */}
-      <div className="sticky top-0 z-40 border-b border-sand-border bg-sand/95">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-2.5">
-          <AppLink
-            className="inline-flex min-h-11 items-center gap-2 rounded-field border-[1.5px] border-deep-hover bg-cream px-[18px] text-sm font-semibold text-deep-hover transition-colors hover:bg-shell"
-            href="/explore"
-          >
-            ← Back to list view
-          </AppLink>
-          <span className="flex items-center gap-2.5 text-[13.5px] font-bold tracking-[0.14em] text-deep">
-            <EmblemRoundel size={40} />
-            NESTY STAY
-          </span>
-          <div className="ml-auto hidden flex-wrap items-center gap-2 md:flex">
-            {chips.map(([value, label]) => (
-              <button
-                className={cx(
-                  "min-h-11 cursor-pointer rounded-pill px-[18px] font-sans text-[13.5px] font-semibold transition-colors",
-                  chip === value
-                    ? "border border-deep bg-deep text-white"
-                    : "border-[1.5px] border-sand-input bg-cream text-gray-600 hover:border-deep-hover hover:text-deep-hover",
-                )}
-                key={value}
-                onClick={() => setChip(value)}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex h-[calc(100vh-65px)] min-h-[520px]">
-        {/* LIST PANEL */}
-        <aside className="hidden w-[372px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-sand-border bg-sand p-[18px] md:flex">
-          <div className="text-xs font-semibold uppercase tracking-[0.1em] text-sand-500">
-            {visible.length} stays on the map
-          </div>
-          {visible.map((card, index) => miniCard(card, index))}
-        </aside>
-
-        {/* MAP */}
-        <div aria-label="Map of Jamaica with priced stays by parish" className="relative min-w-0 flex-1 bg-[#D8E9E4]" role="img">
-          <svg className="absolute inset-0 block h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-            {/* Simplified Jamaica silhouette (illustrative geometry, sized to the pin field) */}
-            <path
-              d="M 8 52 Q 12 38 24 32 Q 36 25 48 26 Q 60 26 70 30 Q 82 34 90 42 Q 94 48 92 54 Q 88 62 78 66 Q 70 78 58 76 Q 46 80 34 74 Q 20 68 12 60 Q 8 56 8 52 Z"
-              fill="#F3F4EC"
-              stroke="#0E4A45"
-              strokeWidth="0.25"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          {(
-            [
-              ["HANOVER", 14, 44], ["WESTMORELAND", 18, 56], ["ST. JAMES", 27, 40], ["TRELAWNY", 37, 42],
-              ["ST. ANN", 52, 40], ["ST. MARY", 64, 42], ["PORTLAND", 80, 48], ["ST. THOMAS", 76, 62],
-              ["ST. ANDREW", 67, 60], ["ST. CATHERINE", 58, 62], ["CLARENDON", 49, 64], ["MANCHESTER", 41, 62],
-              ["ST. ELIZABETH", 29, 62],
-            ] as const
-          ).map(([name, x, y]) => (
-            <span
-              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[9.5px] font-semibold tracking-[0.12em] text-deep/30"
-              key={name}
-              style={{ left: `${x}%`, top: `${y}%` }}
-            >
-              {name}
-            </span>
-          ))}
-          {jamaicaPins.map((pin, index) => (
-            <button
-              className={cx(
-                "absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-pill px-3.5 py-1.5 font-sans text-[13.5px] font-bold shadow-[0_2px_6px_rgba(6,43,43,0.22)] transition-transform hover:scale-105",
-                index === activeId ? "border border-deep bg-deep text-white" : "border border-sand-input bg-white text-deep",
-              )}
-              key={pin.parish}
-              onClick={() => setActiveId(index)}
-              style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
-              title={pin.parish}
-              type="button"
-            >
-              {pin.price}
-            </button>
-          ))}
-          <div className="absolute bottom-3.5 right-4 rounded-lg bg-white/90 px-2.5 py-[5px] text-[11px] text-gray-600">
-            Static map view — pins are illustrative positions
-          </div>
-        </div>
-      </div>
-
-      {/* MOBILE DRAWER */}
-      <div className="fixed inset-x-0 bottom-0 z-[45] flex flex-col gap-3 rounded-t-[18px] border-t border-sand-border bg-sand px-3.5 pb-4 pt-2.5 shadow-[0_-8px_24px_rgba(6,43,43,0.14)] md:hidden">
-        <div className="mx-auto h-[5px] w-11 shrink-0 rounded-pill bg-sand-input" />
-        <div className="flex gap-3 overflow-x-auto pb-0.5">
-          {visible.slice(0, 3).map((card, index) => miniCard(card, index, "shrink-0 basis-[280px]"))}
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="font-sans text-[15px] leading-[1.55] text-ink"><div className="sticky top-0 z-40 border-b border-sand-border bg-sand/95"><div className="flex flex-wrap items-center gap-3 px-5 py-2.5"><AppLink className="inline-flex min-h-11 items-center gap-2 rounded-field border-[1.5px] border-deep-hover bg-cream px-[18px] text-sm font-semibold text-deep-hover" href="/explore">← Back to list view</AppLink><span className="flex items-center gap-2.5 text-[13.5px] font-bold tracking-[0.14em] text-deep"><EmblemRoundel size={40} /> NESTY STAY</span><div className="ml-auto flex flex-wrap items-center gap-2">{chips.map(([value, label]) => <button className={cx("min-h-11 cursor-pointer rounded-pill px-[18px] font-semibold", chip === value ? "border border-deep bg-deep text-white" : "border-[1.5px] border-sand-input bg-cream text-gray-600")} key={value} onClick={() => setChip(value)} type="button">{label}</button>)}</div></div></div><div className="grid min-h-[calc(100vh-65px)] md:grid-cols-[372px_minmax(0,1fr)]"><aside className="order-2 flex flex-col gap-3 overflow-y-auto border-r border-sand-border bg-sand p-[18px] md:order-1"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.1em] text-sand-500"><span>{visible.length} live stays</span><button aria-label="Refresh map results" className="rounded-full p-2 text-deep-hover" onClick={() => void reload()} type="button"><RefreshCw size={15} /></button></div>{isLoading ? <div className="p-5 text-sm text-gray-600">Loading live listings…</div> : error ? <ErrorState message={error} onRetry={() => void reload()} /> : visible.map((property) => miniCard(property))}</aside><main className="order-1 min-w-0 bg-[#D8E9E4] md:order-2"><div className="h-[55vh] min-h-[420px] w-full md:h-[calc(100vh-65px)]"><iframe title="Interactive NestyStay property map" className="h-full w-full border-0" loading="lazy" src={mapUrl} /></div><div className="border-t border-sand-border bg-cream p-4 text-sm text-gray-600"><strong className="text-ink">{active?.title ?? "Select a stay"}</strong>{active && <span> · {active.location} · {mapped.some((property) => property.id === active.id) ? "map marker shown" : "host coordinates not published"}</span>}<span className="ml-2">Map data © OpenStreetMap contributors.</span></div></main></div><div className="flex gap-3 overflow-x-auto border-t border-sand-border bg-sand p-3 md:hidden">{visible.slice(0, 3).map((property) => miniCard(property, "shrink-0 basis-[280px]"))}</div></div>;
 }
 
 const LAUNCH_OFFSET_MS = ((14 * 24 + 6) * 60 + 32) * 60_000 + 9_000; // 14d 06h 32m 09s

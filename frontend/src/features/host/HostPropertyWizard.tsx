@@ -41,6 +41,9 @@ function getInitialData(hostUserId: string): { step: number; data: PropertyWizar
     title: "Jamaican Coastal Villa",
     location: "Montego Bay, St. James",
     country: "Jamaica",
+    parish: "St. James",
+    latitude: 18.4712,
+    longitude: -77.9188,
     propertyType: "Villa",
     capacityAdults: 4,
     capacityChildren: 2,
@@ -51,6 +54,9 @@ function getInitialData(hostUserId: string): { step: number; data: PropertyWizar
     amenities: ["WiFi", "Swimming Pool", "Air Conditioning", "Ocean View", "Security Gate"],
     description: "Beautiful beachfront villa overlooking Montego Bay with private pool and full security.",
     houseRules: "No smoking indoors. Quiet hours after 10 PM. No unauthorized parties.",
+    sleepingArrangements: "Bedroom 1: king bed; Bedroom 2: queen bed; Bedroom 3: two single beds",
+    cleaningFee: 35,
+    serviceFee: 24,
     minimumNights: 2,
     photos: [
       { id: "p1", url: "https://images.unsplash.com/photo-1540555700478-4be289fbecef", isCover: true, sortOrder: 0 }
@@ -222,7 +228,20 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         cancellationPolicy: formData.cancellationPolicy,
         guestVerificationEnabled: formData.verificationEnabled,
         insuraGuestEnabled: formData.insuraGuestEnabled,
-        highlights: formData.amenities
+        highlights: formData.amenities,
+        parish: formData.parish || formData.location.split(",").at(-1)?.trim(),
+        description: formData.description,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        maxGuests: formData.capacityAdults + formData.capacityChildren,
+        amenities: formData.amenities,
+        sleepingArrangements: (formData.sleepingArrangements ?? "").split(/[;\n]/).map((item) => item.trim()).filter(Boolean),
+        houseRules: formData.houseRules.split(/[;\n]/).map((item) => item.trim()).filter(Boolean),
+        cleaningFee: formData.cleaningFee ?? 0,
+        serviceFee: formData.serviceFee ?? 0,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        galleryUrls: formData.photos.map((photo) => photo.url).filter((url) => url.startsWith("http"))
       }, token);
       if (typeof window !== "undefined") window.localStorage.removeItem(getDraftKey(hostUserId));
       onFinished();
@@ -313,6 +332,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
               <label className="field-label">Country</label>
               <input type="text" className="input-control" value={formData.country} readOnly />
             </div>
+            <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label">Parish</label><input type="text" className="input-control" value={formData.parish ?? ""} onChange={(e) => setFormData({ ...formData, parish: e.target.value })} /></div><div className="field-group"><label className="field-label">Latitude / longitude</label><div className="grid grid-cols-2 gap-2"><input aria-label="Latitude" type="number" step="0.000001" className="input-control" value={formData.latitude ?? ""} onChange={(e) => setFormData({ ...formData, latitude: Number(e.target.value) })} /><input aria-label="Longitude" type="number" step="0.000001" className="input-control" value={formData.longitude ?? ""} onChange={(e) => setFormData({ ...formData, longitude: Number(e.target.value) })} /></div></div></div>
           </div>
         )}
 
@@ -403,6 +423,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
               <label className="field-label">House Rules</label>
               <textarea className="input-control" rows={3} value={formData.houseRules} onChange={(e) => setFormData({ ...formData, houseRules: e.target.value })} />
             </div>
+            <div className="field-group"><label className="field-label">Sleeping arrangements</label><textarea className="input-control" rows={3} placeholder="One arrangement per line" value={formData.sleepingArrangements ?? ""} onChange={(e) => setFormData({ ...formData, sleepingArrangements: e.target.value })} /></div>
           </div>
         )}
 
@@ -420,6 +441,8 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
                 <option value="Strict">Strict</option>
               </select>
             </div>
+            <div className="field-group"><label className="field-label">Cleaning fee</label><input type="number" min="0" className="input-control" value={formData.cleaningFee ?? 0} onChange={(e) => setFormData({ ...formData, cleaningFee: Number(e.target.value) || 0 })} /></div>
+            <div className="field-group"><label className="field-label">Service fee</label><input type="number" min="0" className="input-control" value={formData.serviceFee ?? 0} onChange={(e) => setFormData({ ...formData, serviceFee: Number(e.target.value) || 0 })} /></div>
           </div>
         )}
 

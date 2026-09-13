@@ -18,6 +18,8 @@ export function HostReservations({ token }: HostReservationsProps) {
   const [sort, setSort] = useState("date");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
+  const [rejecting, setRejecting] = useState<Booking | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -45,15 +47,36 @@ export function HostReservations({ token }: HostReservationsProps) {
   useEffect(() => setPage(0), [query, sort, status]);
   const pageSize = 8;
   const visible = filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const canHostDecline = (booking: Booking) =>
+    (booking.status === "PENDING" || booking.status === "APPROVED") &&
+    booking.paymentStatus !== "CAPTURED" &&
+    booking.paymentStatus !== "REFUNDED";
 
   async function handleCapture(id: string) {
     try {
       await api.capturePayment(id, token);
-      setBookings(bookings.map(b => b.id === id ? { ...b, paymentStatus: "CAPTURED", status: "APPROVED" } : b));
+      setBookings((current) => current.map(b => b.id === id ? { ...b, paymentStatus: "CAPTURED", status: "APPROVED" } : b));
       setNotice("Booking approved and payment captured.");
       announceFeedback("Booking approved and payment captured.");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Unable to update this booking.");
+    }
+  }
+
+  async function handleReject() {
+    if (!rejecting || !rejectReason.trim()) {
+      setNotice("Please provide a clear reason for declining this request.");
+      return;
+    }
+    try {
+      const updated = await api.rejectBooking(rejecting.id, token, rejectReason.trim());
+      setBookings((current) => current.map((booking) => booking.id === updated.id ? updated : booking));
+      setNotice("Booking request declined and dates released.");
+      announceFeedback("Booking request declined and dates released.", "info");
+      setRejecting(null);
+      setRejectReason("");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Unable to decline this booking.");
     }
   }
 
@@ -93,7 +116,7 @@ export function HostReservations({ token }: HostReservationsProps) {
           <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter reservation status">
             {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]].map(([value, label]) => <button aria-pressed={status === value} className={`btn btn-sm ${status === value ? "btn-primary" : "btn-outline"}`} key={value} onClick={() => setStatus(value)} type="button">{label}</button>)}
           </div>
-          <div className="card-box">
+          <div className="card-box hidden md:block">
           <table className="table-styled w-full">
             <thead>
               <tr>
@@ -114,10 +137,8 @@ export function HostReservations({ token }: HostReservationsProps) {
                   <td><span className="badge badge-sun">{b.verificationStatus}</span></td>
                   <td><span className="badge badge-green">{b.paymentStatus}</span></td>
                   <td className="text-right">
-                    {b.status === "PENDING" && (
-                      <button type="button" className="btn btn-primary btn-sm" onClick={() => handleCapture(b.id)}>
-                        Approve Booking
-                      </button>
+                    {canHostDecline(b) && (
+                      <div className="flex justify-end gap-2"><button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => { setRejecting(b); setRejectReason(""); }}>Decline</button>{b.status === "PENDING" && <button type="button" className="btn btn-primary btn-sm" onClick={() => void handleCapture(b.id)}>Approve Booking</button>}</div>
                     )}
                   </td>
                 </tr>
@@ -125,9 +146,11 @@ export function HostReservations({ token }: HostReservationsProps) {
             </tbody>
           </table>
           </div>
+          <div className="grid gap-3 md:hidden">{visible.map((b) => <article className="card-box" key={b.id}><div className="flex items-start justify-between gap-3"><div><strong>NSTY-BK-{b.id.substring(0, 8)}</strong><p className="subtext mt-1">{b.propertyTitle}</p></div><span className="badge badge-sun">{b.status}</span></div><div className="mt-3 grid gap-1 text-sm"><span><strong>Dates:</strong> {b.checkIn} to {b.checkOut}</span><span><strong>Verification:</strong> {b.verificationStatus}</span><span><strong>Payment:</strong> {b.paymentStatus}</span>{b.rejectionReason && <span className="text-coral-text"><strong>Reason:</strong> {b.rejectionReason}</span>}</div>{canHostDecline(b) && <div className="mt-4 flex flex-wrap gap-2"><button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => { setRejecting(b); setRejectReason(""); }}>Decline</button>{b.status === "PENDING" && <button type="button" className="btn btn-primary btn-sm" onClick={() => void handleCapture(b.id)}>Approve Booking</button>}</div>}</article>)}</div>
           {selected.length > 0 && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-field border border-sand-border bg-shell px-3 py-2 text-sm"><span>{selected.length} reservation{selected.length === 1 ? "" : "s"} selected</span><button className="btn btn-outline btn-sm" onClick={() => setSelected([])} type="button">Clear selection</button></div>}
         </>
       )}
+      {rejecting && <div className="modal-backdrop" role="dialog" aria-modal="true"><div className="modal-card w-[min(100%-2rem,520px)]"><h3>Decline booking request</h3><p className="subtext">This reason is shown to the guest and stored in the booking history.</p><textarea aria-label="Reason for declining booking" className="input-control mt-3" rows={4} placeholder="For example: The property is no longer available for these dates." value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} /><div className="mt-4 flex flex-wrap justify-end gap-2"><button type="button" className="btn btn-ghost" onClick={() => setRejecting(null)}>Cancel</button><button type="button" className="btn btn-primary" onClick={() => void handleReject()}>Confirm decline</button></div></div></div>}
     </div>
   );
 }

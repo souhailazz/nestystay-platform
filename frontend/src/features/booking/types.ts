@@ -100,4 +100,8 @@ export interface BookingDetails {
   priceBreakdown: BookingPriceLine[];
   notifications: BookingNotification[];
   timeline: string[];
+  rejectionReason?: string;
+  rejectionSource?: string;
+  rejectedByUserId?: string;
+  rejectedAt?: string;
 }

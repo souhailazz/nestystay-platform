@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type APIResponse, type Page } from "@playwright/test";
 import { mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 type Session = { userId: string; email: string; accessToken: string; roles: string[] };
 type AuthorizationCase = { name: string; method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; url: string; session?: Session; data?: unknown; expected: number[] };
@@ -185,6 +186,10 @@ test("CORS, injection, malformed JSON, and output encoding resist common attacks
   expect(propertyResponse.ok(), await propertyResponse.text()).toBeTruthy();
   const property = await propertyResponse.json() as { id: string; title: string };
   checks.push({ name: "XSS payload persisted as text", passed: property.title === payload, evidence: property.title });
+  // Newly created listings are Pending until moderation. Load this owner-only
+  // detail route with the real host session so the test exercises React output
+  // encoding instead of being short-circuited by the public moderation guard.
+  await installCookieSession(page, host);
   await page.goto(`/properties/${property.id}`, { waitUntil: "networkidle" });
   const xss = await page.evaluate(() => ({ executed: Boolean((window as unknown as { __nestyXss?: boolean }).__nestyXss), injectedImageCount: document.querySelectorAll('img[src="x"]').length, visibleText: document.body.innerText.includes("<img src=x") }));
   checks.push({ name: "React output encoding prevents stored XSS", passed: !xss.executed && xss.injectedImageCount === 0 && xss.visibleText, evidence: xss });

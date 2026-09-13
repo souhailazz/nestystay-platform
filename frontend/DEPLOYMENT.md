@@ -7,9 +7,9 @@ from an Nginx container.
 ## Server prerequisites
 
 - Docker Engine 24+ and Compose v2 on the client server.
-- DNS/TLS for `app.example.com`.
-- The backend deployed at `https://api.example.com` using the backend
-  repository guide.
+- DNS/TLS for `staging.nestystay.net`.
+- The backend deployed behind the same-origin root Caddy proxy. The proxy must
+  forward `https://staging.nestystay.net/api/*` to the ASP.NET API.
 - A GitHub Container Registry read-only token and SSH deployment key.
 
 ## Build variables
@@ -18,13 +18,13 @@ Vite values are embedded into the browser bundle at build time. They are not
 backend secrets:
 
 ```env
-VITE_API_BASE_URL=https://api.example.com/api
+VITE_API_BASE_URL=/api
 VITE_STRIPE_PUBLIC_KEY=pk_live_or_test_public_key
 VITE_GOOGLE_CLIENT_ID=optional-google-client-id
 ```
 
 Never put a Stripe secret key, webhook secret, database password, session secret
-or Alibaba credential in this repository or any `VITE_*` variable.
+or identity-provider credential in this repository or any `VITE_*` variable.
 
 ## First-time server setup
 
@@ -35,11 +35,10 @@ cp deploy/docker-compose.yml /opt/nestystay/frontend/docker-compose.yml
 chmod 700 /opt/nestystay/frontend
 ```
 
-The compose file binds the frontend to `127.0.0.1:8081`. Put a TLS reverse
-proxy (Nginx, Caddy or the client's load balancer) in front of it and route
-`https://app.example.com` to that port. Route `https://api.example.com` to the
-backend's private `127.0.0.1:8080` port. Keep both origins under the same parent
-domain so the HttpOnly session cookie and CSRF cookie work correctly.
+The standalone compose file binds the frontend to `127.0.0.1:8081` and is
+frontend-only. For staging, use the root Compose stack so Caddy can serve this
+frontend and route `/api/*` to the backend. Do not expose a frontend-only site
+as `staging.nestystay.net`.
 
 ## Manual first deployment
 
@@ -65,7 +64,7 @@ Create a GitHub `production` environment and add these **Actions variables**:
 
 | Variable | Value |
 |---|---|
-| `VITE_API_BASE_URL` | `https://api.example.com/api` |
+| `NESTYSTAY_VITE_API_BASE_URL` | `/api` |
 | `VITE_STRIPE_PUBLIC_KEY` | Client-owned `pk_test_...` or `pk_live_...` |
 | `VITE_GOOGLE_CLIENT_ID` | Optional public Google client ID |
 
@@ -80,7 +79,7 @@ Add these **Actions secrets**:
 | `DEPLOY_PATH` | `/opt/nestystay/frontend` |
 | `GHCR_USERNAME` | GitHub account allowed to read the package |
 | `GHCR_TOKEN` | Fine-grained token with `read:packages` only |
-| `FRONTEND_HEALTHCHECK_URL` | `https://app.example.com` |
+| `NESTYSTAY_PUBLIC_URL` | `https://staging.nestystay.net` |
 
 Protect `main`, require the workflow checks before merge and require approval
 for the `production` environment. Do not store backend secrets here.
@@ -90,7 +89,8 @@ for the `production` environment. Do not store backend secrets here.
 ```bash
 docker compose ps
 docker compose logs --tail=100 frontend
-curl --fail https://app.example.com/
+curl --fail https://staging.nestystay.net/
+curl --fail https://staging.nestystay.net/api/properties
 ```
 
 The SPA must load directly at `/login`, `/host-dashboard`, `/guest-dashboard`

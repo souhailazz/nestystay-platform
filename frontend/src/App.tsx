@@ -19,6 +19,7 @@ import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
 import type { ConfirmationRequest } from "./lib/confirmation";
+import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
 const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
 const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
 const PasswordlessCompletionPage = lazy(() => import("./features/auth/AuthStateContainer").then(({ PasswordlessCompletionPage }) => ({ default: PasswordlessCompletionPage })));
@@ -100,11 +101,11 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
   }, []);
 
   return (
-    <div className="sticky top-3.5 z-50 px-[clamp(12px,3vw,28px)]">
+    <div className={cx("site-nav-shell sticky top-3.5 z-50 px-[clamp(12px,3vw,28px)]", isHome && "site-nav-shell--home")}>
       <header
         aria-label="Main navigation"
         className={cx(
-          "mx-auto flex max-w-[1140px] flex-wrap items-center gap-2 rounded-pill bg-deep font-sans transition-[padding,box-shadow] duration-300",
+          "site-nav mx-auto flex max-w-[1140px] flex-wrap items-center gap-2 rounded-pill bg-deep font-sans transition-[padding,box-shadow] duration-300",
           scrolled ? "px-1.5 py-[3px] pl-1 shadow-[0_18px_44px_rgba(4,31,31,0.5)]" : "px-2.5 py-[7px] pl-2 shadow-navbar",
         )}
       >
@@ -369,7 +370,9 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
     case "booking-state":
       return <BookingSpecStatePage auth={auth} bookingId={route.bookingId} state={route.state} />;
     case "traveler-spec":
-      return <TravelerSpecPage auth={auth} view={route.view} />;
+      return route.view === "wishlist" || route.view === "collections" || route.view === "favorites"
+        ? <TravelerStateContainer auth={auth} view={route.view} />
+        : <TravelerSpecPage auth={auth} view={route.view} />;
     case "qr-gate":
       return <QrGateValidationPage />;
     case "messages":
@@ -564,7 +567,7 @@ export default function App() {
               <CurrentPage auth={auth} route={route} />
             </WorkspaceFrame>
           ) : (
-            <main id="route-main" tabIndex={-1}>
+            <main key={route.canonicalPath} id="route-main" tabIndex={-1}>
               <CurrentPage auth={auth} route={route} />
             </main>
           )}

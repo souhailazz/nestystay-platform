@@ -87,7 +87,10 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
   await page.locator('input[type="text"]').first().fill(editedTitle);
   await page.getByRole("button", { name: "Save Changes", exact: true }).click();
   await expect(page.getByText("Property sections saved and updated.", { exact: true })).toBeVisible({ timeout: 30_000 });
-  const editedResponse = await api.get(`/api/properties/${property!.id}`);
+  // Host-created listings are Pending until the real moderation workflow
+  // approves them. Owner-scoped detail access remains available while the
+  // listing is awaiting review.
+  const editedResponse = await api.get(`/api/properties/${property!.id}`, { headers: { Authorization: `Bearer ${host.accessToken}` } });
   expect(editedResponse.ok(), await editedResponse.text()).toBeTruthy();
   const edited = await editedResponse.json() as { title: string; hostUserId: string; hostName: string; badgeLevel: string };
   expect(edited.title).toBe(editedTitle);
@@ -96,8 +99,16 @@ test("host creates an owned listing and guest completes the no-eKYC UI booking p
   expect(edited.badgeLevel).toBe("Free");
   await capture(page, testInfo, "host-property-editor");
 
+  // Use the seeded approved no-eKYC listing for the public guest leg. The
+  // newly created host listing must not bypass moderation just to satisfy an
+  // older contract test.
+  const publicPropertiesResponse = await api.get("/api/properties");
+  expect(publicPropertiesResponse.ok(), await publicPropertiesResponse.text()).toBeTruthy();
+  const publicProperty = (await publicPropertiesResponse.json() as Array<{ id: string; guestVerificationEnabled: boolean }>).find((item) => !item.guestVerificationEnabled);
+  expect(publicProperty).toBeTruthy();
+
   await registerViaUi(page, "Guest", "Contract Guest", baseURL);
-  await page.goto(`/properties/${property!.id}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/properties/${publicProperty!.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   await chooseUniqueDates(page, testInfo.project.name, 8000);
   await page.getByRole("button", { name: "Create booking", exact: true }).click();

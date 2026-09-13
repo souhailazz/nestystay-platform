@@ -25,7 +25,11 @@ var defaultCorsOrigins = new[]
     "https://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    "https://localhost:5174"
+    "https://localhost:5174",
+    // The staging deployment uses a same-origin frontend/API proxy. Keep this
+    // explicit fallback so the browser can still call the API if an operator
+    // has not yet populated NESTYSTAY_CORS_ALLOWED_ORIGINS on the server.
+    "https://staging.nestystay.net"
 };
 
 // A split deployment (for example app.example.com + api.example.com) cannot

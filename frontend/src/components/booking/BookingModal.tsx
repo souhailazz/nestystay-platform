@@ -30,6 +30,8 @@ export function BookingModal({
 }) {
   const [checkIn, setCheckIn] = useState(isoDate(7));
   const [checkOut, setCheckOut] = useState(isoDate(11));
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
   const [documentType, setDocumentType] = useState("GLB03002");
   const [quote, setQuote] = useState<BookingQuote | null>(null);
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -42,6 +44,21 @@ export function BookingModal({
   const canBook = Boolean(property && session && quote);
 
   const quoteLines = useMemo(() => quote?.priceBreakdown ?? [], [quote]);
+
+  function clearQuoteAfterChange() {
+    setQuote(null);
+    setBooking(null);
+    setError(null);
+  }
+
+  function updateGuestCount(nextAdults: number, nextChildren: number) {
+    const maxGuests = property?.maxGuests ?? 2;
+    const safeAdults = Math.min(maxGuests, Math.max(1, nextAdults || 1));
+    const safeChildren = Math.min(Math.max(0, maxGuests - safeAdults), Math.max(0, nextChildren || 0));
+    setAdults(safeAdults);
+    setChildren(safeChildren);
+    clearQuoteAfterChange();
+  }
 
   useEffect(() => {
     if (!open || !property) return;
@@ -60,7 +77,7 @@ export function BookingModal({
     setError(null);
     setBooking(null);
     try {
-      setQuote(await api.quoteBooking({ propertyId: property.id, checkIn, checkOut }));
+      setQuote(await api.quoteBooking({ propertyId: property.id, checkIn, checkOut, adults, children }));
     } catch (caught) {
       setQuote(null);
       setError(caught instanceof Error ? caught.message : "Quote could not be created.");
@@ -79,6 +96,8 @@ export function BookingModal({
         guestUserId: session.userId,
         checkIn,
         checkOut,
+        adults,
+        children,
         documentType,
         ekycMetaInfo: `Nesty Stay web booking for ${property.title}`,
       }, session.accessToken);
@@ -92,7 +111,7 @@ export function BookingModal({
   }
 
   return (
-    <Modal open={open} title={title} onClose={onClose}>
+    <Modal open={open} title={title} onClose={onClose} variant="sheet">
       {!property && <ErrorState message="Choose a property before opening the booking flow." />}
 
       {property && (
@@ -120,10 +139,16 @@ export function BookingModal({
 
           <div className="form-grid form-grid--two">
             <Field label="Check-in">
-              <Input type="date" value={checkIn} onChange={(event) => setCheckIn(event.target.value)} />
+              <Input type="date" value={checkIn} onChange={(event) => { setCheckIn(event.target.value); clearQuoteAfterChange(); }} />
             </Field>
             <Field label="Check-out">
-              <Input type="date" value={checkOut} onChange={(event) => setCheckOut(event.target.value)} />
+              <Input type="date" value={checkOut} onChange={(event) => { setCheckOut(event.target.value); clearQuoteAfterChange(); }} />
+            </Field>
+            <Field label="Adults">
+              <Input min={1} max={property.maxGuests ?? 2} type="number" value={adults} onChange={(event) => updateGuestCount(Number(event.target.value), children)} />
+            </Field>
+            <Field label="Children">
+              <Input min={0} max={Math.max(0, (property.maxGuests ?? 2) - adults)} type="number" value={children} onChange={(event) => updateGuestCount(adults, Number(event.target.value))} />
             </Field>
             {property.guestVerificationEnabled && (
               <Field label="eKYC document" className="form-grid__full">

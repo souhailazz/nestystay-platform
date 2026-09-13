@@ -19,6 +19,9 @@
 	reverse_proxy frontend:80
 }
 
-{$NESTYSTAY_DOMAIN:localhost} {
+# The public hostname is supplied by the server-only environment file. The
+# staging default keeps an unconfigured Cloud AI deployment from silently
+# serving a frontend-only site on the wrong host.
+{$NESTYSTAY_DOMAIN:staging.nestystay.net} {
 	import nesty_common
 }

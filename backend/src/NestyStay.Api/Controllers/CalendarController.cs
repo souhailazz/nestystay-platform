@@ -195,7 +195,7 @@ public sealed class CalendarController(
     private Guid RequireOwnedProperty(Guid propertyId)
     {
         var host = authorization.RequireHost();
-        var property = phaseOneStore.GetProperty(propertyId);
+        var property = phaseOneStore.GetProperties(host).SingleOrDefault(item => item.Id == propertyId);
         if (property is null || property.HostUserId != host)
             throw new UnauthorizedAccessException("Calendar is not available for this property.");
         return host;

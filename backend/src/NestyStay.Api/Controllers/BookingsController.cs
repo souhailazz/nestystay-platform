@@ -133,6 +133,35 @@ public sealed class BookingsController(
         return booking is null ? NotFound() : Ok(booking);
     }
 
+    [Authorize(Roles = "Host")]
+    [HttpPost("{id:guid}/reject")]
+    public async Task<IActionResult> RejectBooking(Guid id, BookingDecisionRequest request, CancellationToken cancellationToken)
+    {
+        var hostUserId = authorization.RequireHost();
+        var existing = phaseOneStore.GetBooking(id);
+        if (existing is null) return NotFound();
+        if (existing.HostUserId != hostUserId) return Forbid();
+
+        var store = phaseOneStore as IBookingDecisionStore
+            ?? throw new InvalidOperationException("Booking decision store is unavailable.");
+        var booking = await store.RejectBookingAsync(hostUserId, id, request, cancellationToken);
+        if (booking is not null)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(
+                    AuditActor(null),
+                    "BookingRejectedByHost",
+                    "Booking",
+                    booking.Id,
+                    request.Reason ?? "Host rejected booking.",
+                    SnapshotBooking(existing),
+                    SnapshotBooking(booking)),
+                cancellationToken);
+        }
+
+        return booking is null ? NotFound() : Ok(booking);
+    }
+
     [Authorize(Policy = AdminAuthorizationPolicies.RefundManagement)]
     [HttpPost("{id:guid}/refund-payment")]
     public async Task<IActionResult> RefundPayment(Guid id, RefundBookingRequest request, CancellationToken cancellationToken)

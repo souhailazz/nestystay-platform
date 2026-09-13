@@ -44,7 +44,7 @@ public static class BookingPaymentStateMachine
         {
             BookingStatus.Draft => nextStatus is BookingStatus.PendingVerification or BookingStatus.Approved or BookingStatus.Cancelled,
             BookingStatus.PendingVerification => nextStatus is BookingStatus.Approved or BookingStatus.Rejected or BookingStatus.Cancelled,
-            BookingStatus.Approved => nextStatus is BookingStatus.PaymentCaptured or BookingStatus.Cancelled,
+            BookingStatus.Approved => nextStatus is BookingStatus.PaymentCaptured or BookingStatus.Cancelled or BookingStatus.Rejected,
             BookingStatus.PaymentCaptured => nextStatus is BookingStatus.Confirmed or BookingStatus.Cancelled,
             BookingStatus.Confirmed => nextStatus == BookingStatus.Cancelled,
             _ => false

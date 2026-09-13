@@ -10,16 +10,20 @@
 - `Security:EnableHttpsRedirection=true` only once TLS actually exists (Caddy below).
 
 ## HTTPS
-- Attach a domain (A record -> server IP), fill it into `deploy/Caddyfile`, reload Caddy.
+- Attach `staging.nestystay.net` (or the approved production hostname) to the server IP,
+  set `NESTYSTAY_DOMAIN` in the server-only `.env`, and reload Caddy.
 - Caddy then handles certificates + HTTP->HTTPS redirect; the app already honors
   `X-Forwarded-Proto` (ForwardedHeaders in Program.cs), so OpenAPI advertises the true scheme.
 
-## Static frontend
+## Full-stack edge routing
+- Use the root `docker-compose.production.yml` with this Caddyfile. It serves the
+  frontend and forwards `/api/*`, `/openapi/*` and `/swagger/*` to `api:8080`.
+  A frontend-only deployment will return 404 for API calls.
 - Serve `frontend/dist` through the Caddyfile here: it adds CSP, X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy, Permissions-Policy and immutable caching for /assets/*.
 
 ## Still open before production
-- Real Stripe, Alibaba Cloud eKYC, and InsuraGuest credentials plus provider
+- Real Stripe, the approved identity provider, and InsuraGuest credentials plus provider
   webhook/signature tests must be supplied and verified in staging.
 - The signed milestone agreement is now stored at `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`;
   complete the separate compliance/retention review before release.
@@ -36,7 +40,7 @@
 - [ ] Monitoring, alerting, centralized logs, error tracking and rate limiting enabled.
 - [ ] Secret manager configured; no credentials in source, appsettings, evidence or build output.
 - [ ] Stripe live account, PaymentIntents, webhook signing secret and Connect/payout configuration validated in staging.
-- [ ] Alibaba production eKYC credentials, callback signatures and replay protection validated in staging.
+- [ ] Identity-provider credentials, callback signatures and replay protection validated in staging.
 - [ ] Email/SMS/push notification providers configured and delivery/failure tests recorded.
 - [ ] Wellness payout provider configured and payout reconciliation tested.
 - [ ] InsuraGuest configured if required for launch and its webhook path validated.

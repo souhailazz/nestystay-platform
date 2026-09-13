@@ -25,7 +25,7 @@ public sealed class EfPhaseOneStore(
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
     ISecretProtector? secretProtector = null,
     IStorageProvider? storageProvider = null,
-    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore, ISessionActivityStore
+    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore, ISessionActivityStore, IBookingDecisionStore, IHostVerificationStore, IPropertyModerationStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -967,7 +967,8 @@ public sealed class EfPhaseOneStore(
             .Where(property =>
                 !property.IsDeleted &&
                 (hostUserId != null || (!property.IsArchived && !property.IsDraft)) &&
-                (hostUserId == null || property.HostUserId == hostUserId))
+                (hostUserId == null || property.HostUserId == hostUserId) &&
+                (hostUserId != null || property.ModerationStatus == "Approved"))
             .OrderBy(property => property.Title)
             .ToList()
             .Select(ToListingDto)
@@ -1003,6 +1004,21 @@ public sealed class EfPhaseOneStore(
             GuestVerificationEnabled = request.GuestVerificationEnabled,
             InsuraGuestEnabled = request.InsuraGuestEnabled,
             CancellationPolicy = request.CancellationPolicy.Trim(),
+            Parish = request.Parish?.Trim() ?? string.Empty,
+            Description = request.Description?.Trim() ?? string.Empty,
+            Bedrooms = Math.Max(1, request.Bedrooms),
+            Bathrooms = Math.Max(1, request.Bathrooms),
+            MaxGuests = Math.Max(1, request.MaxGuests),
+            AmenitiesJson = MilestoneJson.Serialize(NormalizeStringList(request.Amenities)),
+            SleepingArrangementsJson = MilestoneJson.Serialize(NormalizeStringList(request.SleepingArrangements)),
+            HouseRulesJson = MilestoneJson.Serialize(NormalizeStringList(request.HouseRules)),
+            CleaningFee = decimal.Round(Math.Max(0, request.CleaningFee), 2),
+            ServiceFee = decimal.Round(Math.Max(0, request.ServiceFee), 2),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            ImageUrl = request.ImageUrl?.Trim(),
+            GalleryUrlsJson = MilestoneJson.Serialize(NormalizeStringList(request.GalleryUrls)),
+            ModerationStatus = "Pending",
             HighlightsJson = MilestoneJson.Serialize(
                 request.Highlights is null || request.Highlights.Count == 0
                     ? ["Host-created listing"]
@@ -1176,6 +1192,21 @@ public sealed class EfPhaseOneStore(
             InsuraGuestEnabled = source.InsuraGuestEnabled,
             CancellationPolicy = source.CancellationPolicy,
             HighlightsJson = source.HighlightsJson,
+            Parish = source.Parish,
+            Description = source.Description,
+            Bedrooms = source.Bedrooms,
+            Bathrooms = source.Bathrooms,
+            MaxGuests = source.MaxGuests,
+            AmenitiesJson = source.AmenitiesJson,
+            SleepingArrangementsJson = source.SleepingArrangementsJson,
+            HouseRulesJson = source.HouseRulesJson,
+            CleaningFee = source.CleaningFee,
+            ServiceFee = source.ServiceFee,
+            Latitude = source.Latitude,
+            Longitude = source.Longitude,
+            ImageUrl = source.ImageUrl,
+            GalleryUrlsJson = source.GalleryUrlsJson,
+            ModerationStatus = "Pending",
             IsDraft = true,
             IsArchived = false,
             CreatedAt = now,
@@ -1264,6 +1295,20 @@ public sealed class EfPhaseOneStore(
         property.InsuraGuestEnabled = snapshot.InsuraGuestEnabled;
         property.CancellationPolicy = snapshot.CancellationPolicy.Trim();
         property.HighlightsJson = MilestoneJson.Serialize(snapshot.Highlights ?? []);
+        property.Parish = snapshot.Parish ?? string.Empty;
+        property.Description = snapshot.Description ?? string.Empty;
+        property.Bedrooms = Math.Max(1, snapshot.Bedrooms);
+        property.Bathrooms = Math.Max(1, snapshot.Bathrooms);
+        property.MaxGuests = Math.Max(1, snapshot.MaxGuests);
+        property.AmenitiesJson = MilestoneJson.Serialize(snapshot.Amenities ?? []);
+        property.SleepingArrangementsJson = MilestoneJson.Serialize(snapshot.SleepingArrangements ?? []);
+        property.HouseRulesJson = MilestoneJson.Serialize(snapshot.HouseRules ?? []);
+        property.CleaningFee = Math.Max(0, snapshot.CleaningFee);
+        property.ServiceFee = Math.Max(0, snapshot.ServiceFee);
+        property.Latitude = snapshot.Latitude;
+        property.Longitude = snapshot.Longitude;
+        property.ImageUrl = snapshot.ImageUrl;
+        property.GalleryUrlsJson = MilestoneJson.Serialize(snapshot.GalleryUrls ?? []);
         property.IsArchived = snapshot.IsArchived;
         property.IsDraft = true;
         property.UpdatedAt = timeProvider.GetUtcNow();
@@ -1297,6 +1342,20 @@ public sealed class EfPhaseOneStore(
                 property.InsuraGuestEnabled,
                 property.CancellationPolicy,
                 Highlights = MilestoneJson.DeserializeList<string>(property.HighlightsJson),
+                property.Parish,
+                property.Description,
+                property.Bedrooms,
+                property.Bathrooms,
+                property.MaxGuests,
+                Amenities = MilestoneJson.DeserializeList<string>(property.AmenitiesJson),
+                SleepingArrangements = MilestoneJson.DeserializeList<string>(property.SleepingArrangementsJson),
+                HouseRules = MilestoneJson.DeserializeList<string>(property.HouseRulesJson),
+                property.CleaningFee,
+                property.ServiceFee,
+                property.Latitude,
+                property.Longitude,
+                property.ImageUrl,
+                GalleryUrls = MilestoneJson.DeserializeList<string>(property.GalleryUrlsJson),
                 property.IsArchived,
                 property.IsDraft
             }),
@@ -1319,7 +1378,21 @@ public sealed class EfPhaseOneStore(
         string CancellationPolicy,
         IReadOnlyList<string>? Highlights,
         bool IsArchived,
-        bool IsDraft);
+        bool IsDraft,
+        string? Parish = null,
+        string? Description = null,
+        int Bedrooms = 1,
+        int Bathrooms = 1,
+        int MaxGuests = 2,
+        IReadOnlyList<string>? Amenities = null,
+        IReadOnlyList<string>? SleepingArrangements = null,
+        IReadOnlyList<string>? HouseRules = null,
+        decimal CleaningFee = 0,
+        decimal ServiceFee = 0,
+        decimal? Latitude = null,
+        decimal? Longitude = null,
+        string? ImageUrl = null,
+        IReadOnlyList<string>? GalleryUrls = null);
 
     public async Task DeletePropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
     {
@@ -1412,7 +1485,7 @@ public sealed class EfPhaseOneStore(
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);
         var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
-        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
+        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
         var now = timeProvider.GetUtcNow();
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
@@ -1536,7 +1609,7 @@ public sealed class EfPhaseOneStore(
         var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
         var guest = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == request.GuestUserId, cancellationToken)
             ?? throw new InvalidOperationException("Guest user must register before booking.");
-        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
+        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
         if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
@@ -1633,6 +1706,9 @@ public sealed class EfPhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Failed;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
+            booking.RejectionReason = "identity verification failed with the configured provider";
+            booking.RejectionSource = "GuestVerification";
+            booking.RejectedAt = timeProvider.GetUtcNow();
             AddTimeline(booking, "Alibaba Cloud eKYC failed", "Booking rejected", "Dates released");
             notifications = BuildRejectionNotifications(booking);
         }
@@ -1655,6 +1731,150 @@ public sealed class EfPhaseOneStore(
         }
 
         return ToDto(booking);
+    }
+
+    public async Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken)
+    {
+        var booking = await db.MilestoneBookings.SingleOrDefaultAsync(item => item.Id == bookingId && !item.IsDeleted, cancellationToken);
+        if (booking is null) return null;
+        if (booking.HostUserId != hostUserId)
+        {
+            throw new UnauthorizedAccessException("Booking is not available to this host.");
+        }
+
+        if (booking.Status is not (BookingStatus.PendingVerification or BookingStatus.Approved))
+        {
+            throw new InvalidOperationException("Only pending or approved booking requests can be rejected by the host.");
+        }
+
+        if (booking.PaymentStatus is PaymentStatus.Captured or PaymentStatus.Refunded)
+        {
+            throw new InvalidOperationException("Captured bookings must be cancelled or refunded through the payment workflow.");
+        }
+
+        var reason = NormalizeDecisionReason(request.Reason);
+        BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "host_reject_booking");
+        if (booking.PaymentStatus is PaymentStatus.Pending or PaymentStatus.Authorized)
+        {
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "host_reject_booking", booking.Status);
+            booking.PaymentStatus = PaymentStatus.Cancelled;
+        }
+
+        booking.Status = BookingStatus.Rejected;
+        booking.HoldExpiresAt = null;
+        booking.RejectionReason = reason;
+        booking.RejectionSource = "Host";
+        booking.RejectedByUserId = hostUserId;
+        booking.RejectedAt = timeProvider.GetUtcNow();
+        AddTimeline(booking, "Host rejected booking", $"Reason: {reason}", "Dates released");
+        await QueueNotificationsAsync(booking, BuildHostRejectionNotifications(booking, reason), cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(booking);
+    }
+
+    public async Task<HostVerificationDto> GetHostVerificationAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.AsNoTracking().SingleOrDefaultAsync(item => item.Id == userId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Host account was not found.");
+        if (!MilestoneJson.DeserializeList<UserRole>(user.RolesJson).Contains(UserRole.Host))
+        {
+            throw new UnauthorizedAccessException("Only host accounts can access host verification.");
+        }
+
+        return ToHostVerificationDto(user);
+    }
+
+    public async Task<HostVerificationDto> SubmitHostVerificationAsync(Guid userId, SubmitHostVerificationRequest request, CancellationToken cancellationToken)
+    {
+        var documentType = NormalizeHostDocumentType(request.DocumentType);
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == userId && !item.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Host account was not found.");
+        if (!MilestoneJson.DeserializeList<UserRole>(user.RolesJson).Contains(UserRole.Host))
+        {
+            throw new UnauthorizedAccessException("Only host accounts can submit host verification.");
+        }
+
+        user.HostVerificationStatus = "Pending";
+        user.HostVerificationDocumentType = documentType;
+        user.HostVerificationReason = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()[..Math.Min(500, request.Notes.Trim().Length)];
+        user.HostVerificationSubmittedAt = timeProvider.GetUtcNow();
+        user.HostVerificationReviewedAt = null;
+        user.HostVerificationReviewedByUserId = null;
+        user.UpdatedAt = timeProvider.GetUtcNow();
+        user.UpdatedByUserId = userId;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToHostVerificationDto(user);
+    }
+
+    public async Task<IReadOnlyList<HostVerificationQueueItemDto>> GetHostVerificationQueueAsync(CancellationToken cancellationToken)
+    {
+        await EnsurePhaseOneSeededAsync(cancellationToken);
+        var users = await db.MilestoneUsers.AsNoTracking()
+            .Where(item => !item.IsDeleted)
+            .OrderBy(item => item.HostVerificationStatus == "Pending" ? 0 : 1)
+            .ThenByDescending(item => item.HostVerificationSubmittedAt)
+            .ThenBy(item => item.DisplayName)
+            .ToListAsync(cancellationToken);
+
+        return users
+            .Where(item => MilestoneJson.DeserializeList<UserRole>(item.RolesJson).Contains(UserRole.Host))
+            .Select(ToHostVerificationQueueItemDto)
+            .ToList();
+    }
+
+    public async Task<HostVerificationQueueItemDto?> ReviewHostVerificationAsync(
+        Guid adminUserId,
+        Guid hostUserId,
+        HostVerificationDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var status = NormalizeHostVerificationDecision(request.Status);
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == hostUserId && !item.IsDeleted, cancellationToken);
+        if (user is null) return null;
+        if (!MilestoneJson.DeserializeList<UserRole>(user.RolesJson).Contains(UserRole.Host))
+        {
+            throw new InvalidOperationException("Only host accounts can be reviewed here.");
+        }
+
+        var reason = status == "Rejected" ? NormalizeDecisionReason(request.Reason) : NormalizeOptionalReason(request.Reason);
+        var now = timeProvider.GetUtcNow();
+        user.HostVerificationStatus = status;
+        user.HostVerificationReason = reason;
+        user.HostVerificationReviewedAt = now;
+        user.HostVerificationReviewedByUserId = adminUserId;
+        user.UpdatedAt = now;
+        user.UpdatedByUserId = adminUserId;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToHostVerificationQueueItemDto(user);
+    }
+
+    public async Task<IReadOnlyList<PropertyListingDto>> GetModerationQueueAsync(CancellationToken cancellationToken)
+    {
+        EnsurePhaseOneSeeded();
+        var properties = await db.MilestoneProperties.AsNoTracking()
+            .Where(item => !item.IsDeleted)
+            .OrderBy(item => item.ModerationStatus == "Approved")
+            .ThenBy(item => item.Title)
+            .ToListAsync(cancellationToken);
+        return properties.Select(ToListingDto).ToList();
+    }
+
+    public async Task<PropertyListingDto?> ModeratePropertyAsync(Guid adminUserId, Guid propertyId, PropertyModerationRequest request, CancellationToken cancellationToken)
+    {
+        var status = NormalizeModerationStatus(request.Status);
+        var reason = status is "Rejected" or "ChangesRequested" ? NormalizeDecisionReason(request.Reason) : null;
+        var property = await db.MilestoneProperties.SingleOrDefaultAsync(item => item.Id == propertyId && !item.IsDeleted, cancellationToken);
+        if (property is null) return null;
+
+        property.ModerationStatus = status;
+        property.ModerationReason = reason;
+        property.ModeratedAt = timeProvider.GetUtcNow();
+        property.ModeratedByUserId = adminUserId;
+        if (status == "Approved") property.IsDraft = false;
+        property.UpdatedAt = timeProvider.GetUtcNow();
+        property.UpdatedByUserId = adminUserId;
+        await db.SaveChangesAsync(cancellationToken);
+        return ToListingDto(property);
     }
 
     public async Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken)
@@ -1973,11 +2193,18 @@ public sealed class EfPhaseOneStore(
         DateOnly checkIn,
         DateOnly checkOut,
         bool datesAvailable,
-        DateTimeOffset? holdExpiresAt)
+        DateTimeOffset? holdExpiresAt,
+        int adults = 1,
+        int children = 0)
     {
         if (checkOut <= checkIn)
         {
             throw new InvalidOperationException("Check-out must be after check-in.");
+        }
+
+        if (adults < 1 || children < 0 || adults + children > property.MaxGuests)
+        {
+            throw new InvalidOperationException($"This stay accommodates up to {property.MaxGuests} guests.");
         }
 
         var nights = checkOut.DayNumber - checkIn.DayNumber;
@@ -1990,6 +2217,20 @@ public sealed class EfPhaseOneStore(
             new("stay", $"{property.NightlyRate:0.00} x {nights} night stay", staySubtotal, property.Currency, true),
             new("guest-platform-fee", $"{guestFeePercent:0}% NestyStay guest platform fee", guestPlatformFee, property.Currency, false)
         };
+
+        if (property.CleaningFee > 0)
+        {
+            lines.Add(new("cleaning-fee", "Cleaning fee", property.CleaningFee, property.Currency, true));
+            total += property.CleaningFee;
+        }
+
+        if (property.ServiceFee > 0)
+        {
+            lines.Add(new("service-fee", "Service fee", property.ServiceFee, property.Currency, false));
+            total += property.ServiceFee;
+        }
+
+        total = decimal.Round(total, 2);
 
         if (property.GuestVerificationEnabled)
         {
@@ -2186,6 +2427,9 @@ public sealed class EfPhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Expired;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
+            booking.RejectionReason = "identity verification timed out before completion";
+            booking.RejectionSource = "GuestVerification";
+            booking.RejectedAt = now;
             AddTimeline(booking, "Pending verification hold expired", "Dates released");
         }
 
@@ -2210,6 +2454,9 @@ public sealed class EfPhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Expired;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
+            booking.RejectionReason = "identity verification timed out before completion";
+            booking.RejectionSource = "GuestVerification";
+            booking.RejectedAt = now;
             AddTimeline(booking, "Pending verification hold expired", "Dates released");
         }
 
@@ -2238,6 +2485,10 @@ public sealed class EfPhaseOneStore(
             db.MilestoneProperties.AddRange(DefaultProperties());
             changed = true;
         }
+        else
+        {
+            changed |= BackfillDefaultPropertyDetails(DefaultProperties());
+        }
 
         if (changed)
         {
@@ -2265,11 +2516,51 @@ public sealed class EfPhaseOneStore(
             db.MilestoneProperties.AddRange(DefaultProperties());
             changed = true;
         }
+        else
+        {
+            changed |= BackfillDefaultPropertyDetails(DefaultProperties());
+        }
 
         if (changed)
         {
             await db.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private bool BackfillDefaultPropertyDetails(IReadOnlyList<MilestoneProperty> seeds)
+    {
+        var changed = false;
+        foreach (var seed in seeds)
+        {
+            // Reconcile missing deterministic fixtures even when an older
+            // database already contains some properties. This keeps existing
+            // development/test databases aligned with a clean seed without
+            // reviving a fixture that was explicitly soft-deleted.
+            var property = db.MilestoneProperties.SingleOrDefault(item => item.Id == seed.Id);
+            if (property is null)
+            {
+                db.MilestoneProperties.Add(seed);
+                changed = true;
+                continue;
+            }
+            if (property.IsDeleted) continue;
+            if (string.IsNullOrWhiteSpace(property.ModerationStatus)) { property.ModerationStatus = "Approved"; changed = true; }
+            if (string.IsNullOrWhiteSpace(property.Parish)) { property.Parish = seed.Parish; changed = true; }
+            if (string.IsNullOrWhiteSpace(property.Description)) { property.Description = seed.Description; changed = true; }
+            if (property.Bedrooms <= 0) { property.Bedrooms = seed.Bedrooms; changed = true; }
+            if (property.Bathrooms <= 0) { property.Bathrooms = seed.Bathrooms; changed = true; }
+            if (property.MaxGuests <= 0) { property.MaxGuests = seed.MaxGuests; changed = true; }
+            if (property.AmenitiesJson is "[]" or "" or "{}") { property.AmenitiesJson = seed.AmenitiesJson; changed = true; }
+            if (property.SleepingArrangementsJson is "[]" or "" or "{}") { property.SleepingArrangementsJson = seed.SleepingArrangementsJson; changed = true; }
+            if (property.HouseRulesJson is "[]" or "" or "{}") { property.HouseRulesJson = seed.HouseRulesJson; changed = true; }
+            if (property.CleaningFee == 0) { property.CleaningFee = seed.CleaningFee; changed = true; }
+            if (property.ServiceFee == 0) { property.ServiceFee = seed.ServiceFee; changed = true; }
+            if (property.Latitude is null) { property.Latitude = seed.Latitude; changed = true; }
+            if (property.Longitude is null) { property.Longitude = seed.Longitude; changed = true; }
+            if (string.IsNullOrWhiteSpace(property.ImageUrl)) { property.ImageUrl = seed.ImageUrl; changed = true; }
+            if (property.GalleryUrlsJson is "[]" or "" or "{}") { property.GalleryUrlsJson = seed.GalleryUrlsJson; changed = true; }
+        }
+        return changed;
     }
 
     private static IReadOnlyList<PendingNotification> BuildApprovalNotifications(MilestoneBooking booking) =>
@@ -2289,12 +2580,106 @@ public sealed class EfPhaseOneStore(
         new("guest", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking rejected",
-            $"Your booking for {booking.PropertyTitle} was REJECTED because identity verification failed.")),
+            $"Your booking for {booking.PropertyTitle} was REJECTED because {booking.RejectionReason ?? "the booking could not be approved"}.")),
         new("host", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking dates released",
             $"{booking.GuestName}'s booking for {booking.PropertyTitle} was rejected and the dates were released."))
     ];
+
+    private static IReadOnlyList<PendingNotification> BuildHostRejectionNotifications(MilestoneBooking booking, string reason) =>
+    [
+        new("guest", new NotificationMessage(
+            booking.GuestEmail,
+            "NestyStay booking request declined",
+            $"Your booking request for {booking.PropertyTitle} was declined by the host. Reason: {reason}")),
+        new("host", new NotificationMessage(
+            booking.HostEmail,
+            "NestyStay booking request declined",
+            $"You declined {booking.GuestName}'s booking request for {booking.PropertyTitle}."))
+    ];
+
+    private static string NormalizeDecisionReason(string? reason)
+    {
+        var normalized = reason?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new InvalidOperationException("A clear decision reason is required.");
+        }
+
+        return normalized[..Math.Min(500, normalized.Length)];
+    }
+
+    private static string? NormalizeOptionalReason(string? reason)
+    {
+        var normalized = reason?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized[..Math.Min(500, normalized.Length)];
+    }
+
+    private static string NormalizeHostDocumentType(string documentType)
+    {
+        var normalized = documentType?.Trim();
+        if (normalized is not ("Passport" or "National ID" or "Driver License"))
+        {
+            throw new InvalidOperationException("Choose Passport, National ID, or Driver License.");
+        }
+
+        return normalized;
+    }
+
+    private static string NormalizeHostVerificationDecision(string status)
+    {
+        var normalized = status?.Trim();
+        if (normalized is not ("Approved" or "Rejected"))
+        {
+            throw new InvalidOperationException("Host verification decisions must be Approved or Rejected.");
+        }
+
+        return normalized;
+    }
+
+    private static string NormalizeModerationStatus(string status)
+    {
+        var normalized = status?.Trim();
+        if (normalized is not ("Pending" or "Approved" or "Rejected" or "ChangesRequested"))
+        {
+            throw new InvalidOperationException("Moderation status must be Pending, Approved, Rejected, or ChangesRequested.");
+        }
+
+        return normalized;
+    }
+
+    private static HostVerificationDto ToHostVerificationDto(MilestoneUser user) =>
+        new(
+            user.Id,
+            user.HostVerificationStatus,
+            user.HostVerificationDocumentType,
+            user.HostVerificationReason,
+            user.HostVerificationSubmittedAt,
+            user.HostVerificationReviewedAt,
+            user.HostVerificationReviewedByUserId,
+            [
+                "Complete your host profile",
+                "Submit a government-issued identity document",
+                "Keep your payout details up to date"
+            ]);
+
+    private static HostVerificationQueueItemDto ToHostVerificationQueueItemDto(MilestoneUser user) =>
+        new(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.HostVerificationStatus,
+            user.HostVerificationDocumentType,
+            user.HostVerificationReason,
+            user.HostVerificationSubmittedAt,
+            user.HostVerificationReviewedAt,
+            user.HostVerificationReviewedByUserId,
+            [
+                "Complete your host profile",
+                "Submit a government-issued identity document",
+                "Keep your payout details up to date"
+            ]);
 
     private static IReadOnlyList<PendingNotification> BuildPaymentCapturedNotifications(MilestoneBooking booking) =>
     [
@@ -2326,8 +2711,20 @@ public sealed class EfPhaseOneStore(
     private IFileSafetyScanner RequireFileSafetyScanner() =>
         fileSafetyScanner ?? throw new InvalidOperationException("File safety scanner is not configured.");
 
-    private static PropertyListingDto ToListingDto(MilestoneProperty property) =>
-        new(
+    private PropertyListingDto ToListingDto(MilestoneProperty property)
+    {
+        var reviewStats = db.MilestoneReviews
+            .AsNoTracking()
+            .Where(review => review.PropertyId == property.Id && !review.IsDeleted && review.Status == "Published")
+            .GroupBy(review => review.PropertyId)
+            .Select(group => new
+            {
+                Average = group.Average(review => (decimal)review.Rating),
+                Count = group.Count()
+            })
+            .SingleOrDefault();
+
+        return new(
             property.Id,
             property.HostUserId,
             property.HostName,
@@ -2342,7 +2739,29 @@ public sealed class EfPhaseOneStore(
             property.CancellationPolicy,
             MilestoneJson.DeserializeList<string>(property.HighlightsJson),
             property.IsArchived,
-            property.IsDraft);
+            property.IsDraft,
+            property.Parish,
+            property.Description,
+            property.Bedrooms,
+            property.Bathrooms,
+            property.MaxGuests,
+            MilestoneJson.DeserializeList<string>(property.AmenitiesJson),
+            MilestoneJson.DeserializeList<string>(property.SleepingArrangementsJson),
+            MilestoneJson.DeserializeList<string>(property.HouseRulesJson),
+            property.CleaningFee,
+            property.ServiceFee,
+            property.Latitude,
+            property.Longitude,
+            property.ImageUrl,
+            MilestoneJson.DeserializeList<string>(property.GalleryUrlsJson),
+            reviewStats?.Average ?? 0,
+            reviewStats?.Count ?? 0,
+            property.ModerationStatus,
+            property.ModerationReason,
+            property.ModeratedAt,
+            property.ModeratedByUserId,
+            db.MilestoneUsers.AsNoTracking().Where(user => user.Id == property.HostUserId).Select(user => user.HostVerificationStatus).FirstOrDefault() is { } verificationStatus && !string.IsNullOrWhiteSpace(verificationStatus) ? verificationStatus : "NotStarted");
+    }
 
     private static UserProfileDto ToProfileDto(MilestoneUser user, MilestoneUserProfilePhoto? photo) =>
         new(
@@ -2403,7 +2822,10 @@ public sealed class EfPhaseOneStore(
             property.BadgeLevel,
             property.GuestVerificationEnabled,
             property.InsuraGuestEnabled,
-            property.CancellationPolicy);
+            property.CancellationPolicy,
+            property.MaxGuests,
+            property.CleaningFee,
+            property.ServiceFee);
 
     private BookingDto ToDto(MilestoneBooking booking) =>
         new(
@@ -2440,7 +2862,11 @@ public sealed class EfPhaseOneStore(
             booking.RefundedAt,
             MilestoneJson.DeserializeList<BookingPriceLineDto>(booking.PriceBreakdownJson),
             MilestoneJson.DeserializeList<BookingNotificationDto>(booking.NotificationsJson),
-            MilestoneJson.DeserializeList<string>(booking.TimelineJson));
+            MilestoneJson.DeserializeList<string>(booking.TimelineJson),
+            booking.RejectionReason,
+            booking.RejectionSource,
+            booking.RejectedByUserId,
+            booking.RejectedAt);
 
     private static void ValidateRegistration(RegisterUserRequest request)
     {
@@ -2791,12 +3217,37 @@ public sealed class EfPhaseOneStore(
         property.InsuraGuestEnabled = request.InsuraGuestEnabled;
         property.CancellationPolicy = request.CancellationPolicy.Trim();
         property.HighlightsJson = MilestoneJson.Serialize(NormalizeHighlights(request.Highlights));
+        property.Parish = request.Parish?.Trim() ?? string.Empty;
+        property.Description = request.Description?.Trim() ?? string.Empty;
+        property.Bedrooms = Math.Max(1, request.Bedrooms);
+        property.Bathrooms = Math.Max(1, request.Bathrooms);
+        property.MaxGuests = Math.Max(1, request.MaxGuests);
+        property.AmenitiesJson = MilestoneJson.Serialize(NormalizeStringList(request.Amenities));
+        property.SleepingArrangementsJson = MilestoneJson.Serialize(NormalizeStringList(request.SleepingArrangements));
+        property.HouseRulesJson = MilestoneJson.Serialize(NormalizeStringList(request.HouseRules));
+        property.CleaningFee = decimal.Round(Math.Max(0, request.CleaningFee), 2);
+        property.ServiceFee = decimal.Round(Math.Max(0, request.ServiceFee), 2);
+        property.Latitude = request.Latitude;
+        property.Longitude = request.Longitude;
+        property.ImageUrl = request.ImageUrl?.Trim();
+        property.GalleryUrlsJson = MilestoneJson.Serialize(NormalizeStringList(request.GalleryUrls));
+        // A host edit requires a fresh moderation review before the listing is
+        // public again. Admin approval is the only path back to Approved.
+        property.ModerationStatus = "Pending";
+        property.ModerationReason = null;
+        property.ModeratedAt = null;
+        property.ModeratedByUserId = null;
     }
 
     private static IReadOnlyList<string> NormalizeHighlights(IReadOnlyList<string>? highlights) =>
         highlights is null || highlights.Count == 0
             ? ["Host-created listing"]
             : highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList();
+
+    private static IReadOnlyList<string> NormalizeStringList(IReadOnlyList<string>? values) =>
+        values is null
+            ? []
+            : values.Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToList();
 
     private static string ToMilestoneStatus(BookingStatus status) =>
         status switch
@@ -2936,6 +3387,20 @@ public sealed class EfPhaseOneStore(
             GuestVerificationEnabled = true,
             InsuraGuestEnabled = true,
             CancellationPolicy = "Moderate",
+            Parish = "St. Ann",
+            Description = "A bright, private villa near Ocho Rios with quiet garden views, a plunge pool, and a verified host team.",
+            Bedrooms = 3,
+            Bathrooms = 2,
+            MaxGuests = 6,
+            AmenitiesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Wi-Fi", "Pool", "Air conditioning", "Kitchen", "Free parking"]),
+            SleepingArrangementsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Bedroom 1: king bed", "Bedroom 2: queen bed", "Bedroom 3: two single beds"]),
+            HouseRulesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["No smoking indoors", "Quiet hours after 10:00 PM", "No unregistered guests"]),
+            CleaningFee = 35m,
+            ServiceFee = 24m,
+            Latitude = 18.4074m,
+            Longitude = -77.1031m,
+            ImageUrl = "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85",
+            GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85"]),
             HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Alibaba eKYC", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"])
         },
         new()
@@ -2953,6 +3418,20 @@ public sealed class EfPhaseOneStore(
             GuestVerificationEnabled = true,
             InsuraGuestEnabled = true,
             CancellationPolicy = "Flexible",
+            Parish = "St. Andrew",
+            Description = "A calm business-ready apartment in New Kingston with a dedicated workspace and fast access to the city centre.",
+            Bedrooms = 2,
+            Bathrooms = 2,
+            MaxGuests = 4,
+            AmenitiesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Wi-Fi", "Workspace", "Air conditioning", "Washer", "Free parking"]),
+            SleepingArrangementsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Bedroom 1: queen bed", "Bedroom 2: two single beds"]),
+            HouseRulesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["No parties", "No smoking indoors", "Check-in after 3:00 PM"]),
+            CleaningFee = 25m,
+            ServiceFee = 18m,
+            Latitude = 18.0179m,
+            Longitude = -76.8099m,
+            ImageUrl = "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85",
+            GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1200&q=85", "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85"]),
             HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Trusted host", "Local business directory", "Split payments", "Messaging code"])
         },
         new()
@@ -2970,6 +3449,20 @@ public sealed class EfPhaseOneStore(
             GuestVerificationEnabled = false,
             InsuraGuestEnabled = false,
             CancellationPolicy = "Strict",
+            Parish = "St. James",
+            Description = "A simple, well-kept apartment for a practical Montego Bay stay, close to local shops and transport.",
+            Bedrooms = 1,
+            Bathrooms = 1,
+            MaxGuests = 2,
+            AmenitiesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Wi-Fi", "Air conditioning", "Kitchen", "Free parking"]),
+            SleepingArrangementsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Bedroom: queen bed"]),
+            HouseRulesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["No smoking indoors", "No parties", "Quiet hours after 10:00 PM"]),
+            CleaningFee = 15m,
+            ServiceFee = 12m,
+            Latitude = 18.4712m,
+            Longitude = -77.9188m,
+            ImageUrl = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=85",
+            GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1600566753051-f0b89df2dd90?auto=format&fit=crop&w=1200&q=85"]),
             HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Free listing", "Calendar", "Messaging", "Host keeps 97% payout"])
         }
     ];

@@ -77,7 +77,7 @@ describe("canonical route manifest", () => {
 
   it("keeps all aliases deterministic and free of loops", () => {
     const aliases = SCREEN_MANIFEST.flatMap((screen) => screen.patterns.slice(1).map((alias) => ({ screen, alias })));
-    expect(aliases).toHaveLength(51);
+    expect(aliases).toHaveLength(52);
     expect(manifestAliases()).toEqual(aliases.map(({ alias }) => alias));
     aliases.forEach(({ screen, alias }) => {
       expect(alias).not.toBe(screen.patterns[0]);

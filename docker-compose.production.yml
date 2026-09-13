@@ -28,7 +28,7 @@ services:
       dockerfile: deploy/Dockerfile.api
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD};Pooling=true;SSL Mode=Prefer
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       Security__EnableHttpsRedirection: "false"
@@ -96,7 +96,7 @@ services:
       dockerfile: deploy/Dockerfile.api
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Worker__Enabled: "true"
       Worker__SidecarEnabled: "true"
       BackgroundJobs__Enabled: "true"

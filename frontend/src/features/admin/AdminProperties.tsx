@@ -24,7 +24,7 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
     async function load() {
       try {
         setError(null);
-        const list = await api.getProperties();
+        const list = await api.getPropertyModerationQueue(token);
         if (active) setProperties(list);
       } catch (err) {
         if (active) setError(err);
@@ -37,17 +37,29 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
   }, [reloadKey]);
 
   async function handleApprove(id: string) {
-    announceFeedback(`Property ${id} approved.`);
-    setSelectedProp(null);
+    try {
+      await api.moderateProperty(id, token, { status: "Approved" });
+      announceFeedback("Property approved and is live in Explore.");
+      setProperties((current) => current.map((property) => property.id === id ? { ...property, moderationStatus: "Approved", moderationReason: null } : property));
+    } catch (err) {
+      setError(err);
+    }
   }
 
   async function handleReject(id: string) {
-    if (!modReason) {
+    if (!modReason.trim()) {
       announceFeedback("Please provide a rejection reason.", "error");
       return;
     }
-    announceFeedback(`Property ${id} rejected with reason: ${modReason}`, "info");
-    setSelectedProp(null);
+    try {
+      await api.moderateProperty(id, token, { status: "Rejected", reason: modReason.trim() });
+      announceFeedback("Property rejected and hidden from Explore.", "info");
+      setProperties((current) => current.map((property) => property.id === id ? { ...property, moderationStatus: "Rejected", moderationReason: modReason.trim() } : property));
+      setModReason("");
+      setSelectedProp(null);
+    } catch (err) {
+      setError(err);
+    }
   }
 
   return (
@@ -71,7 +83,7 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
               <div>
                 <div className="flex justify-between items-start mb-2">
                   <span className="badge badge-green">{prop.badgeLevel} Badge</span>
-                  <span className="badge badge-sun">Submitted</span>
+                  <span className={`badge ${prop.moderationStatus === "Approved" ? "badge-green" : prop.moderationStatus === "Rejected" ? "badge-coral" : "badge-sun"}`}>{prop.moderationStatus ?? "Pending"}</span>
                 </div>
                 <h3 className="font-bold text-xl">{prop.title}</h3>
                 <p className="subtext mt-1"><MapPin size={14} className="inline" /> {prop.location}, {prop.country}</p>
@@ -79,6 +91,7 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
                 <div className="mt-3 text-lg font-bold text-sun">
                   {formatMoney(prop.nightlyRate, prop.currency)} <span className="text-xs font-normal text-gray-500">/ night</span>
                 </div>
+                {prop.moderationReason && <p className="mt-2 rounded-field bg-coral-tint px-3 py-2 text-sm text-coral-text"><strong>Reason:</strong> {prop.moderationReason}</p>}
               </div>
 
               <div className="flex justify-between items-center mt-6 pt-3 border-t">
@@ -86,10 +99,10 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
                   <Eye size={14} /> Review Details
                 </a>
                 <div className="flex gap-2">
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => handleApprove(prop.id)}>
+                  <button type="button" className="btn btn-primary btn-sm" disabled={prop.moderationStatus === "Approved"} onClick={() => void handleApprove(prop.id)}>
                     <Check size={14} /> Approve
                   </button>
-                  <button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => setSelectedProp(prop)}>
+                  <button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => { setModReason(prop.moderationReason ?? ""); setSelectedProp(prop); }}>
                     <X size={14} /> Reject
                   </button>
                 </div>

@@ -92,7 +92,7 @@ public sealed class PhaseOneStore(
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
-    IConfiguration? configuration = null) : IPhaseOneStore, ISessionActivityStore
+    IConfiguration? configuration = null) : IPhaseOneStore, ISessionActivityStore, IBookingDecisionStore, IHostVerificationStore, IPropertyModerationStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -982,7 +982,24 @@ public sealed class PhaseOneStore(
                     ? ["Host-created listing"]
                     : request.Highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList(),
                 false,
-                false);
+                false)
+            {
+                Parish = request.Parish?.Trim() ?? string.Empty,
+                Description = request.Description?.Trim() ?? string.Empty,
+                Bedrooms = Math.Max(1, request.Bedrooms),
+                Bathrooms = Math.Max(1, request.Bathrooms),
+                MaxGuests = Math.Max(1, request.MaxGuests),
+                Amenities = NormalizeStringList(request.Amenities),
+                SleepingArrangements = NormalizeStringList(request.SleepingArrangements),
+                HouseRules = NormalizeStringList(request.HouseRules),
+                CleaningFee = decimal.Round(Math.Max(0, request.CleaningFee), 2),
+                ServiceFee = decimal.Round(Math.Max(0, request.ServiceFee), 2),
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                ImageUrl = request.ImageUrl?.Trim(),
+                GalleryUrls = NormalizeStringList(request.GalleryUrls),
+                ModerationStatus = "Pending"
+            };
 
             _properties.Add(property);
             return Task.FromResult(ToListingDto(property));
@@ -1020,7 +1037,25 @@ public sealed class PhaseOneStore(
                 GuestVerificationEnabled = request.GuestVerificationEnabled,
                 InsuraGuestEnabled = request.InsuraGuestEnabled,
                 CancellationPolicy = request.CancellationPolicy.Trim(),
-                Highlights = NormalizeHighlights(request.Highlights)
+                Highlights = NormalizeHighlights(request.Highlights),
+                Parish = request.Parish?.Trim() ?? string.Empty,
+                Description = request.Description?.Trim() ?? string.Empty,
+                Bedrooms = Math.Max(1, request.Bedrooms),
+                Bathrooms = Math.Max(1, request.Bathrooms),
+                MaxGuests = Math.Max(1, request.MaxGuests),
+                Amenities = NormalizeStringList(request.Amenities),
+                SleepingArrangements = NormalizeStringList(request.SleepingArrangements),
+                HouseRules = NormalizeStringList(request.HouseRules),
+                CleaningFee = decimal.Round(Math.Max(0, request.CleaningFee), 2),
+                ServiceFee = decimal.Round(Math.Max(0, request.ServiceFee), 2),
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                ImageUrl = request.ImageUrl?.Trim(),
+                GalleryUrls = NormalizeStringList(request.GalleryUrls),
+                ModerationStatus = "Pending",
+                ModerationReason = null,
+                ModeratedAt = null,
+                ModeratedByUserId = null
             };
 
             _properties[index] = updated;
@@ -1240,7 +1275,7 @@ public sealed class PhaseOneStore(
                 throw new InvalidOperationException("Requested dates are already held or approved for this property.");
             }
 
-            var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
+            var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
             return Task.FromResult(quote);
         }
     }
@@ -1294,7 +1329,7 @@ public sealed class PhaseOneStore(
         PhaseOneUser guest;
         PhaseOneBooking booking;
         var now = timeProvider.GetUtcNow();
-        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null);
+        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
 
         lock (_gate)
         {
@@ -1410,6 +1445,9 @@ public sealed class PhaseOneStore(
                 booking.VerificationStatus = VerificationStatus.Failed;
                 booking.PaymentStatus = PaymentStatus.Cancelled;
                 booking.HoldExpiresAt = null;
+                booking.RejectionReason = "identity verification failed with the configured provider";
+                booking.RejectionSource = "GuestVerification";
+                booking.RejectedAt = timeProvider.GetUtcNow();
                 booking.Timeline.Add("Alibaba Cloud eKYC failed");
                 booking.Timeline.Add("Booking rejected");
                 booking.Timeline.Add("Dates released");
@@ -1700,11 +1738,18 @@ public sealed class PhaseOneStore(
         DateOnly checkIn,
         DateOnly checkOut,
         bool datesAvailable,
-        DateTimeOffset? holdExpiresAt)
+        DateTimeOffset? holdExpiresAt,
+        int adults = 1,
+        int children = 0)
     {
         if (checkOut <= checkIn)
         {
             throw new InvalidOperationException("Check-out must be after check-in.");
+        }
+
+        if (adults < 1 || children < 0 || adults + children > property.MaxGuests)
+        {
+            throw new InvalidOperationException($"This stay accommodates up to {property.MaxGuests} guests.");
         }
 
         var nights = checkOut.DayNumber - checkIn.DayNumber;
@@ -1717,6 +1762,20 @@ public sealed class PhaseOneStore(
             new("stay", $"{property.NightlyRate:0.00} x {nights} night stay", staySubtotal, property.Currency, true),
             new("guest-platform-fee", $"{guestFeePercent:0}% NestyStay guest platform fee", guestPlatformFee, property.Currency, false)
         };
+
+        if (property.CleaningFee > 0)
+        {
+            lines.Add(new("cleaning-fee", "Cleaning fee", property.CleaningFee, property.Currency, true));
+            total += property.CleaningFee;
+        }
+
+        if (property.ServiceFee > 0)
+        {
+            lines.Add(new("service-fee", "Service fee", property.ServiceFee, property.Currency, false));
+            total += property.ServiceFee;
+        }
+
+        total = decimal.Round(total, 2);
 
         if (property.GuestVerificationEnabled)
         {
@@ -1764,6 +1823,9 @@ public sealed class PhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Expired;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
+            booking.RejectionReason = "identity verification timed out before completion";
+            booking.RejectionSource = "GuestVerification";
+            booking.RejectedAt = now;
             booking.Timeline.Add("Pending verification hold expired");
             booking.Timeline.Add("Dates released");
         }
@@ -1789,12 +1851,106 @@ public sealed class PhaseOneStore(
         new("guest", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking rejected",
-            $"Your booking for {booking.PropertyTitle} was REJECTED because identity verification failed.")),
+            $"Your booking for {booking.PropertyTitle} was REJECTED because {booking.RejectionReason ?? "the booking could not be approved"}.")),
         new("host", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking dates released",
             $"{booking.GuestName}'s booking for {booking.PropertyTitle} was rejected and the dates were released."))
     ];
+
+    private static IReadOnlyList<PendingNotification> BuildHostRejectionNotifications(PhaseOneBooking booking, string reason) =>
+    [
+        new("guest", new NotificationMessage(
+            booking.GuestEmail,
+            "NestyStay booking request declined",
+            $"Your booking request for {booking.PropertyTitle} was declined by the host. Reason: {reason}")),
+        new("host", new NotificationMessage(
+            booking.HostEmail,
+            "NestyStay booking request declined",
+            $"You declined {booking.GuestName}'s booking request for {booking.PropertyTitle}."))
+    ];
+
+    private static string NormalizeDecisionReason(string? reason)
+    {
+        var normalized = reason?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new InvalidOperationException("A clear decision reason is required.");
+        }
+
+        return normalized[..Math.Min(500, normalized.Length)];
+    }
+
+    private static string? NormalizeOptionalReason(string? reason)
+    {
+        var normalized = reason?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized[..Math.Min(500, normalized.Length)];
+    }
+
+    private static string NormalizeHostDocumentType(string documentType)
+    {
+        var normalized = documentType?.Trim();
+        if (normalized is not ("Passport" or "National ID" or "Driver License"))
+        {
+            throw new InvalidOperationException("Choose Passport, National ID, or Driver License.");
+        }
+
+        return normalized;
+    }
+
+    private static string NormalizeHostVerificationDecision(string status)
+    {
+        var normalized = status?.Trim();
+        if (normalized is not ("Approved" or "Rejected"))
+        {
+            throw new InvalidOperationException("Host verification decisions must be Approved or Rejected.");
+        }
+
+        return normalized;
+    }
+
+    private static string NormalizeModerationStatus(string status)
+    {
+        var normalized = status?.Trim();
+        if (normalized is not ("Pending" or "Approved" or "Rejected" or "ChangesRequested"))
+        {
+            throw new InvalidOperationException("Moderation status must be Pending, Approved, Rejected, or ChangesRequested.");
+        }
+
+        return normalized;
+    }
+
+    private static HostVerificationDto ToHostVerificationDto(PhaseOneUser user) =>
+        new(
+            user.Id,
+            user.HostVerificationStatus,
+            user.HostVerificationDocumentType,
+            user.HostVerificationReason,
+            user.HostVerificationSubmittedAt,
+            user.HostVerificationReviewedAt,
+            user.HostVerificationReviewedByUserId,
+            [
+                "Complete your host profile",
+                "Submit a government-issued identity document",
+                "Keep your payout details up to date"
+            ]);
+
+    private static HostVerificationQueueItemDto ToHostVerificationQueueItemDto(PhaseOneUser user) =>
+        new(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.HostVerificationStatus,
+            user.HostVerificationDocumentType,
+            user.HostVerificationReason,
+            user.HostVerificationSubmittedAt,
+            user.HostVerificationReviewedAt,
+            user.HostVerificationReviewedByUserId,
+            [
+                "Complete your host profile",
+                "Submit a government-issued identity document",
+                "Keep your payout details up to date"
+            ]);
 
     private static IReadOnlyList<PendingNotification> BuildPaymentCapturedNotifications(PhaseOneBooking booking) =>
     [
@@ -1820,7 +1976,7 @@ public sealed class PhaseOneStore(
             $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.GuestName}'s booking."))
     ];
 
-    private static PropertyListingDto ToListingDto(PhaseOneProperty property) =>
+    private PropertyListingDto ToListingDto(PhaseOneProperty property) =>
         new(
             property.Id,
             property.HostUserId,
@@ -1835,7 +1991,29 @@ public sealed class PhaseOneStore(
             property.InsuraGuestEnabled,
             property.CancellationPolicy,
             property.Highlights,
-            property.IsArchived);
+            property.IsArchived,
+            property.IsDraft,
+            property.Parish,
+            property.Description,
+            property.Bedrooms,
+            property.Bathrooms,
+            property.MaxGuests,
+            property.Amenities,
+            property.SleepingArrangements,
+            property.HouseRules,
+            property.CleaningFee,
+            property.ServiceFee,
+            property.Latitude,
+            property.Longitude,
+            property.ImageUrl,
+            property.GalleryUrls,
+            property.RatingAverage,
+            property.ReviewCount,
+            property.ModerationStatus,
+            property.ModerationReason,
+            property.ModeratedAt,
+            property.ModeratedByUserId,
+            _users.SingleOrDefault(item => item.Id == property.HostUserId)?.HostVerificationStatus ?? "NotStarted");
 
     private static UserProfileDto ToProfileDto(PhaseOneUser user, PhaseOneProfilePhoto? photo) =>
         new(
@@ -1896,7 +2074,10 @@ public sealed class PhaseOneStore(
             property.BadgeLevel,
             property.GuestVerificationEnabled,
             property.InsuraGuestEnabled,
-            property.CancellationPolicy);
+            property.CancellationPolicy,
+            property.MaxGuests,
+            property.CleaningFee,
+            property.ServiceFee);
 
     private BookingDto ToDto(PhaseOneBooking booking) =>
         new(
@@ -1933,7 +2114,11 @@ public sealed class PhaseOneStore(
             booking.RefundedAt,
             booking.PriceBreakdown.ToList(),
             booking.Notifications.ToList(),
-            booking.Timeline.ToList());
+            booking.Timeline.ToList(),
+            booking.RejectionReason,
+            booking.RejectionSource,
+            booking.RejectedByUserId,
+            booking.RejectedAt);
 
     private static void ValidateRegistration(RegisterUserRequest request)
     {
@@ -2317,6 +2502,11 @@ public sealed class PhaseOneStore(
             ? ["Host-created listing"]
             : highlights.Select(item => item.Trim()).Where(item => item.Length > 0).ToList();
 
+    private static IReadOnlyList<string> NormalizeStringList(IReadOnlyList<string>? values) =>
+        values is null
+            ? []
+            : values.Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToList();
+
     private static string ResolveBrowser(string? userAgent) =>
         string.IsNullOrWhiteSpace(userAgent) ? "Unknown browser" :
         userAgent.Contains("Edg/", StringComparison.OrdinalIgnoreCase) ? "Microsoft Edge" :
@@ -2659,6 +2849,12 @@ public sealed class PhaseOneStore(
         public string? PendingTwoFactorEnrollmentId { get; set; }
         public byte[]? PendingTwoFactorSecret { get; set; }
         public DateTimeOffset? PendingTwoFactorExpiresAt { get; set; }
+        public string HostVerificationStatus { get; set; } = "NotStarted";
+        public string? HostVerificationDocumentType { get; set; }
+        public string? HostVerificationReason { get; set; }
+        public DateTimeOffset? HostVerificationSubmittedAt { get; set; }
+        public DateTimeOffset? HostVerificationReviewedAt { get; set; }
+        public Guid? HostVerificationReviewedByUserId { get; set; }
 
         public void AddRole(UserRole role)
         {
@@ -2758,7 +2954,30 @@ public sealed class PhaseOneStore(
         string CancellationPolicy,
         IReadOnlyList<string> Highlights,
         bool IsArchived,
-        bool IsDeleted);
+        bool IsDeleted)
+    {
+        public string Parish { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Bedrooms { get; set; } = 1;
+        public int Bathrooms { get; set; } = 1;
+        public int MaxGuests { get; set; } = 2;
+        public IReadOnlyList<string> Amenities { get; set; } = [];
+        public IReadOnlyList<string> SleepingArrangements { get; set; } = [];
+        public IReadOnlyList<string> HouseRules { get; set; } = [];
+        public decimal CleaningFee { get; set; }
+        public decimal ServiceFee { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? ImageUrl { get; set; }
+        public IReadOnlyList<string> GalleryUrls { get; set; } = [];
+        public bool IsDraft { get; set; }
+        public decimal RatingAverage { get; set; }
+        public int ReviewCount { get; set; }
+        public string ModerationStatus { get; set; } = "Approved";
+        public string? ModerationReason { get; set; }
+        public DateTimeOffset? ModeratedAt { get; set; }
+        public Guid? ModeratedByUserId { get; set; }
+    }
 
     private sealed class PhaseOneSession(
         Guid id,
@@ -2781,6 +3000,155 @@ public sealed class PhaseOneStore(
         public DateTimeOffset ExpiresAt { get; } = expiresAt;
         public DateTimeOffset? TrustedUntil { get; } = trustedUntil;
         public DateTimeOffset? RevokedAt { get; set; }
+    }
+
+    public async Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken)
+    {
+        PhaseOneBooking? booking;
+        IReadOnlyList<PendingNotification> notifications;
+        var reason = NormalizeDecisionReason(request.Reason);
+
+        lock (_gate)
+        {
+            booking = _bookings.SingleOrDefault(item => item.Id == bookingId);
+            if (booking is null) return null;
+            if (booking.HostUserId != hostUserId)
+            {
+                throw new UnauthorizedAccessException("Booking is not available to this host.");
+            }
+
+            if (booking.Status is not (BookingStatus.PendingVerification or BookingStatus.Approved))
+            {
+                throw new InvalidOperationException("Only pending or approved booking requests can be rejected by the host.");
+            }
+
+            if (booking.PaymentStatus is PaymentStatus.Captured or PaymentStatus.Refunded)
+            {
+                throw new InvalidOperationException("Captured bookings must be cancelled or refunded through the payment workflow.");
+            }
+
+            BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "host_reject_booking");
+            if (booking.PaymentStatus is PaymentStatus.Pending or PaymentStatus.Authorized)
+            {
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "host_reject_booking", booking.Status);
+                booking.PaymentStatus = PaymentStatus.Cancelled;
+            }
+
+            booking.Status = BookingStatus.Rejected;
+            booking.HoldExpiresAt = null;
+            booking.RejectionReason = reason;
+            booking.RejectionSource = "Host";
+            booking.RejectedByUserId = hostUserId;
+            booking.RejectedAt = timeProvider.GetUtcNow();
+            booking.Timeline.Add("Host rejected booking");
+            booking.Timeline.Add($"Reason: {reason}");
+            booking.Timeline.Add("Dates released");
+            notifications = BuildHostRejectionNotifications(booking, reason);
+        }
+
+        await QueueNotificationsAsync(booking, notifications, cancellationToken);
+        return ToDto(booking);
+    }
+
+    public Task<HostVerificationDto> GetHostVerificationAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Host account was not found.");
+            return Task.FromResult(ToHostVerificationDto(user));
+        }
+    }
+
+    public Task<HostVerificationDto> SubmitHostVerificationAsync(Guid userId, SubmitHostVerificationRequest request, CancellationToken cancellationToken)
+    {
+        var documentType = NormalizeHostDocumentType(request.DocumentType);
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == userId)
+                ?? throw new UnauthorizedAccessException("Host account was not found.");
+            if (!user.Roles.Contains(UserRole.Host))
+            {
+                throw new UnauthorizedAccessException("Only host accounts can submit host verification.");
+            }
+
+            user.HostVerificationStatus = "Pending";
+            user.HostVerificationDocumentType = documentType;
+            user.HostVerificationReason = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()[..Math.Min(500, request.Notes.Trim().Length)];
+            user.HostVerificationSubmittedAt = timeProvider.GetUtcNow();
+            user.HostVerificationReviewedAt = null;
+            user.HostVerificationReviewedByUserId = null;
+            return Task.FromResult(ToHostVerificationDto(user));
+        }
+    }
+
+    public Task<IReadOnlyList<HostVerificationQueueItemDto>> GetHostVerificationQueueAsync(CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var queue = _users
+                .Where(item => item.Roles.Contains(UserRole.Host))
+                .OrderBy(item => item.HostVerificationStatus == "Pending" ? 0 : 1)
+                .ThenByDescending(item => item.HostVerificationSubmittedAt)
+                .ThenBy(item => item.DisplayName)
+                .Select(ToHostVerificationQueueItemDto)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<HostVerificationQueueItemDto>>(queue);
+        }
+    }
+
+    public Task<HostVerificationQueueItemDto?> ReviewHostVerificationAsync(
+        Guid adminUserId,
+        Guid hostUserId,
+        HostVerificationDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var status = NormalizeHostVerificationDecision(request.Status);
+        var reason = status == "Rejected" ? NormalizeDecisionReason(request.Reason) : NormalizeOptionalReason(request.Reason);
+        lock (_gate)
+        {
+            var user = _users.SingleOrDefault(item => item.Id == hostUserId);
+            if (user is null) return Task.FromResult<HostVerificationQueueItemDto?>(null);
+            if (!user.Roles.Contains(UserRole.Host)) throw new InvalidOperationException("Only host accounts can be reviewed here.");
+            user.HostVerificationStatus = status;
+            user.HostVerificationReason = reason;
+            user.HostVerificationReviewedAt = timeProvider.GetUtcNow();
+            user.HostVerificationReviewedByUserId = adminUserId;
+            return Task.FromResult<HostVerificationQueueItemDto?>(ToHostVerificationQueueItemDto(user));
+        }
+    }
+
+    public Task<IReadOnlyList<PropertyListingDto>> GetModerationQueueAsync(CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var properties = _properties
+                .Where(item => !item.IsDeleted)
+                .OrderBy(item => item.ModerationStatus == "Approved")
+                .ThenBy(item => item.Title)
+                .Select(ToListingDto)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<PropertyListingDto>>(properties);
+        }
+    }
+
+    public Task<PropertyListingDto?> ModeratePropertyAsync(Guid adminUserId, Guid propertyId, PropertyModerationRequest request, CancellationToken cancellationToken)
+    {
+        var status = NormalizeModerationStatus(request.Status);
+        var reason = status is "Rejected" or "ChangesRequested" ? NormalizeDecisionReason(request.Reason) : null;
+        lock (_gate)
+        {
+            var index = _properties.FindIndex(item => item.Id == propertyId && !item.IsDeleted);
+            if (index < 0) return Task.FromResult<PropertyListingDto?>(null);
+            var property = _properties[index];
+            property.ModerationStatus = status;
+            property.ModerationReason = reason;
+            property.ModeratedAt = timeProvider.GetUtcNow();
+            property.ModeratedByUserId = adminUserId;
+            property.IsDraft = status != "Approved" && property.IsDraft;
+            _properties[index] = property;
+            return Task.FromResult<PropertyListingDto?>(ToListingDto(property));
+        }
     }
 
     private sealed record PendingNotification(string RecipientType, NotificationMessage Message);
@@ -2865,6 +3233,10 @@ public sealed class PhaseOneStore(
         public decimal RefundedAmount { get; set; }
         public string? RefundReason { get; set; }
         public DateTimeOffset? RefundedAt { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionSource { get; set; }
+        public Guid? RejectedByUserId { get; set; }
+        public DateTimeOffset? RejectedAt { get; set; }
         public List<BookingPriceLineDto> PriceBreakdown { get; } = [.. priceBreakdown];
         public List<BookingNotificationDto> Notifications { get; } = [];
         public List<string> Timeline { get; } = [.. timeline];

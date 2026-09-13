@@ -33,7 +33,7 @@ const password = "NestyStay1";
 
 test.describe.configure({ mode: "serial", timeout: 600_000 });
 
-test("95 canonical screens and 51 aliases render from the canonical manifest", async ({ page }, testInfo) => {
+test("95 canonical screens and 52 aliases render from the canonical manifest", async ({ page }, testInfo) => {
   test.skip(!supportedProjects.includes(testInfo.project.name as (typeof supportedProjects)[number]), "The inventory is the Chromium responsive certification matrix.");
   const cases = [
     ...SCREEN_MANIFEST.map((screen) => ({ kind: "canonical" as const, screen, route: materialize(screen.canonicalPath), role: roleFor(screen) })),
@@ -41,7 +41,7 @@ test("95 canonical screens and 51 aliases render from the canonical manifest", a
   ];
   expect(SCREEN_MANIFEST).toHaveLength(95);
   expect(cases.filter((item) => item.kind === "canonical")).toHaveLength(95);
-  expect(cases.filter((item) => item.kind === "alias")).toHaveLength(51);
+  expect(cases.filter((item) => item.kind === "alias")).toHaveLength(52);
 
   const results: InventoryResult[] = [];
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -116,7 +116,7 @@ test("95 canonical screens and 51 aliases render from the canonical manifest", a
     generatedAt: new Date().toISOString(),
     canonicalScreens: 95,
     routePatterns: 146,
-    aliases: 51,
+    aliases: 52,
     project: testInfo.project.name,
     results,
   }, null, 2));

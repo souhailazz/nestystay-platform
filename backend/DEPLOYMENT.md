@@ -24,8 +24,9 @@ secrets. Do not paste them into GitHub, source files, Dockerfiles or chat.
 ## Server prerequisites
 
 - Linux VPS or managed container host with Docker Engine 24+ and Compose v2.
-- DNS and TLS for `api.example.com` and `app.example.com` (the frontend guide
-  is in the frontend repository).
+- DNS and TLS for `staging.nestystay.net` (the recommended staging setup is
+  the root full-stack Compose deployment with Caddy forwarding `/api/*` to
+  this API).
 - A firewall that exposes only 22/tcp, 80/tcp and 443/tcp. PostgreSQL, Redis
   and MinIO must stay on the private Docker network.
 - A GitHub deploy key with access to the server and a GitHub Container Registry
@@ -58,19 +59,19 @@ POSTGRES_PASSWORD=<same-strong-password>
 REDIS_PASSWORD=<redis-password>
 MINIO_ROOT_USER=<minio-admin-user>
 MINIO_ROOT_PASSWORD=<minio-admin-password>
-NESTYSTAY_CORS_ALLOWED_ORIGINS=https://app.example.com
-NESTYSTAY_SESSION_COOKIE_DOMAIN=.example.com
+NESTYSTAY_CORS_ALLOWED_ORIGINS=https://staging.nestystay.net
+NESTYSTAY_SESSION_COOKIE_DOMAIN=.nestystay.net
 NESTYSTAY_SESSION_COOKIE_SAMESITE=Lax
-PUBLIC_APP_URL=https://app.example.com
+PUBLIC_APP_URL=https://staging.nestystay.net
 NESTYSTAY_SESSION_TOKEN_SECRET=<at-least-32-random-bytes>
 NESTYSTAY_TOTP_SECRET_PROTECTION_KEY=<different-at-least-32-random-bytes>
 NESTYSTAY_WEBHOOK_SHARED_SECRET=<random-webhook-secret>
 ```
 
-Use the real Stripe/Alibaba/Brevo values only when the client has completed
-provider onboarding. Keep local/test adapters enabled until live certification
-is approved. The API applies additive EF migrations during startup; take a
-backup before the first production upgrade.
+Use the real Stripe/Brevo/approved identity-provider values only when the
+client has completed provider onboarding. Keep local/test adapters enabled
+until live certification is approved. The API applies additive EF migrations
+during startup; take a backup before the first production upgrade.
 
 ## Manual first deployment
 
@@ -81,7 +82,7 @@ BACKEND_IMAGE=ghcr.io/nestystayjamaica/nesty-stay-backend:<commit-sha> \
   docker compose pull backend
 BACKEND_IMAGE=ghcr.io/nestystayjamaica/nesty-stay-backend:<commit-sha> \
   docker compose up -d backend
-curl --fail https://api.example.com/api/health/ready
+curl --fail https://staging.nestystay.net/api/health/ready
 ```
 
 The API runs migrations before serving requests. If a migration fails, stop
@@ -94,7 +95,7 @@ The checked-in `.github/workflows/ci-cd.yml` runs on pull requests and on every
 push to `main`. A push is deployed only after restore, build and the complete
 backend test suite pass. It publishes an immutable SHA-tagged image to GHCR,
 copies the compose file, pulls that exact image over SSH and checks
-`/api/health/ready`.
+  `/api/health/ready` on the configured public staging URL.
 
 Create a GitHub `production` environment and add these **Actions secrets**:
 
@@ -107,7 +108,7 @@ Create a GitHub `production` environment and add these **Actions secrets**:
 | `DEPLOY_PATH` | `/opt/nestystay/backend` |
 | `GHCR_USERNAME` | GitHub account allowed to read the package |
 | `GHCR_TOKEN` | Fine-grained token with `read:packages` only |
-| `BACKEND_HEALTHCHECK_URL` | `https://api.example.com` |
+| `NESTYSTAY_PUBLIC_URL` | `https://staging.nestystay.net` |
 
 Do not put database or provider secrets in GitHub Actions. Keep them in the
 server-only `.env`/secret manager. Protect `main` with required pull-request
@@ -118,8 +119,9 @@ checks and require approval for the `production` environment.
 ```bash
 docker compose ps
 docker compose logs --tail=200 backend
-curl --fail https://api.example.com/api/health
-curl --fail https://api.example.com/api/health/ready
+curl --fail https://staging.nestystay.net/api/health
+curl --fail https://staging.nestystay.net/api/health/ready
+curl --fail https://staging.nestystay.net/api/properties
 ```
 
 To roll back, choose a previous immutable image SHA and run:

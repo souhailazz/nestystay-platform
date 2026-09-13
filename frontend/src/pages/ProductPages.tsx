@@ -61,6 +61,7 @@ import { useProperties, useProperty } from "../hooks/useProperties";
 import { getStayImage } from "../lib/stayImages";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
+import { HostReservations } from "../features/host/HostReservations";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
 import { AuthStateContainer } from "../features/auth/AuthStateContainer";
 import {
@@ -1871,6 +1872,17 @@ function BookingList({
 }
 
 export function BookingManagementPage({ auth }: { auth: AuthController }) {
+  // Hosts use the operational reservation workspace so booking decisions are
+  // real, ownership-scoped actions with a reason sent to the guest. Admins
+  // retain the verification/payment desk below.
+  if (auth.session?.roles?.includes("Host") && !auth.session.roles.includes("Admin")) {
+    return <HostReservations token={auth.session.accessToken} />;
+  }
+
+  return <AdminBookingManagementPage auth={auth} />;
+}
+
+function AdminBookingManagementPage({ auth }: { auth: AuthController }) {
   const { bookings, isLoading, error, reload } = useBookings(auth.session?.accessToken);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);

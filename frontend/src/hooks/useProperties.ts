@@ -10,7 +10,11 @@ export function useProperties(token?: string) {
     setIsLoading(true);
     setError(null);
     try {
-      setProperties(token ? await api.getOwnedProperties(token) : await api.getProperties());
+      // Browser sessions use an HttpOnly cookie and intentionally keep the
+      // compatibility accessToken empty in localStorage. An empty token still
+      // means "authenticated host" when this hook is called from a workspace;
+      // only undefined represents a public marketplace request.
+      setProperties(token !== undefined ? await api.getOwnedProperties(token) : await api.getProperties());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Properties could not be loaded.");
     } finally {

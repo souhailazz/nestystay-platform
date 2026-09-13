@@ -31,6 +31,12 @@ export interface PropertyWizardData {
   cancellationPolicy: string;
   verificationEnabled: boolean;
   insuraGuestEnabled: boolean;
+  parish?: string;
+  latitude?: number;
+  longitude?: number;
+  cleaningFee?: number;
+  serviceFee?: number;
+  sleepingArrangements?: string;
 }
 
 export interface HostPricingRule {

@@ -18,7 +18,7 @@ internal static class MilestoneJson
             : JsonSerializer.Deserialize<T>(json, Options);
 
     public static List<T> DeserializeList<T>(string? json) =>
-        string.IsNullOrWhiteSpace(json)
+        string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith("{", StringComparison.Ordinal)
             ? []
             : JsonSerializer.Deserialize<List<T>>(json, Options) ?? [];
 }

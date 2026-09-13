@@ -4,22 +4,22 @@ Use this checklist when the client is ready to move the local release candidate 
 
 ## 1. Domain, VPS and edge
 
-1. Register or select the production domain and set `PUBLIC_APP_URL` to the final HTTPS origin.
+1. Use `staging.nestystay.net` for staging and set `PUBLIC_APP_URL` to the final HTTPS origin.
 2. Provision the VPS with private persistent volumes, firewall rules, backups, and an operator account.
-3. Point DNS through the approved edge provider, then validate Caddy/Let's Encrypt certificates and the frontend/API health routes.
+3. Point DNS through the approved edge provider, then validate Caddy/Let's Encrypt certificates and the frontend/API health routes. The same-origin edge must forward `/api/*` to the ASP.NET service.
 
 ## 2. Self-hosted services
 
 1. Create PostgreSQL credentials and database; set `ConnectionStrings__Postgres`.
 2. Create private MinIO root and application credentials, bucket, endpoint, region, and `MINIO_USE_SSL` choice. Keep the console/admin endpoint private.
-3. Set `OBJECT_STORAGE_PROVIDER=minio`, `EMAIL_PROVIDER=brevo`, `BUSINESS_MAIL_PROVIDER=zoho`, `EKYC_PROVIDER=alibaba`, `PAYMENT_PROVIDER=stripe`, `PAYOUT_MODE=manual`, `WEB_PUSH_ENABLED=false`, and `SMS_ENABLED=false` unless an approved change says otherwise.
+3. Set `OBJECT_STORAGE_PROVIDER=minio`, `EMAIL_PROVIDER=brevo`, `BUSINESS_MAIL_PROVIDER=zoho`, `PAYMENT_PROVIDER=stripe`, `PAYOUT_MODE=manual`, `WEB_PUSH_ENABLED=false`, and `SMS_ENABLED=false` unless an approved change says otherwise. Keep the current eKYC adapter setting until the Stripe Identity adapter is merged and validated.
 4. Configure encrypted off-server backups and run the restore rehearsal before go-live.
 
 ## 3. External providers
 
 - Brevo: verify sender/domain, create an API key, configure `BREVO_SENDER_EMAIL`, optional reply-to, and run the clickable verification/reset/invitation flow against the deployed URL.
-- Stripe: create live secret/publishable keys, webhook signing secret, endpoint, and run payment plus idempotency/refund checks.
-- Alibaba Cloud eKYC: create the production application, callback/signature settings, and run approved success/failure/expiry checks.
+- Stripe: create test-mode staging keys first, then live secret/publishable keys, webhook signing secret and endpoint after approval. Run payment plus idempotency/refund checks.
+- Stripe Identity: create the staging/live Identity configuration only after the Stripe Identity adapter/webhooks are merged, then run approved success/failure/expiry checks. The current backend release still contains the Alibaba adapter.
 - Zoho (default) or Google Workspace: create operational mailboxes and aliases for support, billing, privacy, and security. Alibaba Mail is not used by the application.
 
 ## 4. Handover evidence

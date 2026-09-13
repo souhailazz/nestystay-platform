@@ -35,6 +35,7 @@ export default function ScrollStory() {
 
   useEffect(() => {
     const media = gsap.matchMedia();
+    let timeline: gsap.core.Timeline | undefined;
 
     media.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
       const section = sectionRef.current;
@@ -42,7 +43,7 @@ export default function ScrollStory() {
       if (!section || !scene) return;
 
       const panels = gsap.utils.toArray<HTMLElement>(".story-panel", section);
-      const timeline = gsap.timeline({
+      timeline = gsap.timeline({
         scrollTrigger: {
           trigger: section,
           start: "top top",
@@ -77,7 +78,14 @@ export default function ScrollStory() {
         );
     });
 
-    return () => media.revert();
+    return () => {
+      // ScrollTrigger pins the scene by inserting a spacer into the document.
+      // Explicitly kill the timeline before reverting matchMedia so the spacer
+      // and all inline transforms are removed when navigating away from home.
+      timeline?.scrollTrigger?.kill();
+      timeline?.kill();
+      media.revert();
+    };
   }, []);
 
   return (

@@ -1935,6 +1935,42 @@ img, svg {
   gap: 10px;
 }
 
+/* Legacy workflow dialogs share the same responsive behavior as the DS modal.
+   They become full-width, scrollable bottom sheets on phones so tables and
+   operational forms never force the page itself to overflow. */
+.modal-backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 24px;
+  background: rgb(6 43 43 / 45%);
+}
+.modal-card {
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid var(--color-sand-border, #e7dcc2);
+  border-radius: 22px;
+  background: var(--color-cream, #fbf7ec);
+  box-shadow: var(--shadow-modal, 0 40px 90px rgb(4 31 31 / 40%));
+}
+@media (max-width: 767px) {
+  .modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .modal-card {
+    width: 100%;
+    max-height: min(90dvh, 820px);
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0;
+  }
+}
+
 /* Legacy surfaces use these classes; keep them on the same accessible recipe
    as the shared React Button component so action hierarchy is consistent. */
 .btn {
@@ -3681,4 +3717,452 @@ body {
     flex-direction: column;
     grid-template-columns: 1fr;
   }
+}
+
+
+/* ==========================================================================
+   NestyStay Custom Search Popovers (Where to, Dates, Guests)
+   ========================================================================== */
+
+.reference-search__field {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+  border-radius: 999px;
+}
+
+.reference-search__field:hover {
+  background-color: rgba(0, 61, 54, 0.04);
+}
+
+.reference-search__field:focus-visible,
+.reference-search__field--active {
+  background-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 16px rgba(0, 61, 54, 0.1);
+  outline: none;
+}
+
+/* --- Popover Container --- */
+.nesty-popover {
+  position: absolute;
+  z-index: 9999;
+  background: #fbf9f4; /* warm ivory */
+  border: 1px solid rgba(220, 215, 204, 0.85); /* subtle beige border */
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(6, 43, 43, 0.12), 0 4px 12px rgba(6, 43, 43, 0.06);
+  padding: 24px;
+  color: var(--ref-deep, #062b2b);
+  animation: nestyPopoverFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes nestyPopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nesty-popover__header {
+  margin-bottom: 18px;
+}
+
+.nesty-popover__header--flex {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nesty-popover__title {
+  font-family: var(--ref-serif, Georgia, serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #003d36;
+  margin: 0 0 4px;
+}
+
+.nesty-popover__subtitle {
+  font-size: 13px;
+  color: #6c7474;
+  margin: 0;
+}
+
+/* --- Location Popover --- */
+.nesty-popover--location {
+  width: min(390px, calc(100vw - 32px));
+}
+
+.nesty-popover__search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dcd7cc;
+  border-radius: 12px;
+  padding: 0 12px;
+  margin-bottom: 14px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.nesty-popover__search-box:focus-within {
+  border-color: #003d36;
+  box-shadow: 0 0 0 2px rgba(0, 61, 54, 0.12);
+}
+
+.nesty-popover__search-icon {
+  color: #003d36;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.nesty-popover__input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 13px;
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  color: #062b2b;
+  outline: none;
+}
+
+.nesty-popover__clear-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #8c9494;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nesty-popover__clear-btn:hover {
+  color: #062b2b;
+}
+
+.nesty-popover__list {
+  max-height: 290px;
+  overflow-y: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+
+.nesty-dest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.nesty-dest-row:hover {
+  background-color: rgba(0, 61, 54, 0.05);
+}
+
+.nesty-dest-row--selected {
+  background-color: rgba(225, 169, 22, 0.12);
+}
+
+.nesty-dest-row__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #003d36;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.nesty-dest-row--selected .nesty-dest-row__icon {
+  color: #e1a916;
+}
+
+.nesty-dest-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nesty-dest-row__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #062b2b;
+}
+
+.nesty-dest-row__parish {
+  display: block;
+  font-size: 11px;
+  color: #7b8181;
+}
+
+.nesty-dest-row__check {
+  color: #dca315;
+  display: flex;
+  align-items: center;
+}
+
+.nesty-popover__empty {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #8c9494;
+}
+
+/* --- Calendar Popover --- */
+.nesty-popover--dates {
+  width: min(650px, calc(100vw - 32px));
+}
+
+.nesty-cal__nav {
+  display: flex;
+  gap: 6px;
+}
+
+.nesty-cal__nav-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #dcd7cc;
+  background: #ffffff;
+  color: #003d36;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.nesty-cal__nav-btn:hover {
+  background: #003d36;
+  color: #ffffff;
+  border-color: #003d36;
+}
+
+.nesty-cal__months-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .nesty-cal__months-wrap {
+    grid-template-columns: 1fr;
+  }
+  .nesty-cal__month-desktop-only {
+    display: none;
+  }
+}
+
+.nesty-cal__month-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #003d36;
+  margin-bottom: 12px;
+}
+
+.nesty-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c9494;
+  margin-bottom: 8px;
+}
+
+.nesty-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+}
+
+.nesty-cal__cell {
+  height: 36px;
+}
+
+.nesty-cal__day {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #062b2b;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: background-color 120ms ease;
+}
+
+.nesty-cal__day span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+}
+
+.nesty-cal__day:hover:not(.nesty-cal__day--disabled) span {
+  background: rgba(0, 61, 54, 0.08);
+}
+
+.nesty-cal__day--today span {
+  border: 1px solid #dca315;
+  font-weight: 700;
+}
+
+.nesty-cal__day--disabled {
+  color: #c4c8c8;
+  cursor: not-allowed;
+}
+
+.nesty-cal__day--checkin span,
+.nesty-cal__day--checkout span {
+  background: #003d36 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.nesty-cal__day--checkin {
+  background: linear-gradient(to right, transparent 50%, rgba(225, 169, 22, 0.18) 50%);
+}
+
+.nesty-cal__day--checkout {
+  background: linear-gradient(to left, transparent 50%, rgba(225, 169, 22, 0.18) 50%);
+}
+
+.nesty-cal__day--in-range {
+  background-color: rgba(225, 169, 22, 0.18);
+}
+
+.nesty-popover__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #eae5db;
+}
+
+.nesty-popover__action-text {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a6264;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.nesty-popover__action-text:hover {
+  color: #062b2b;
+}
+
+.nesty-popover__action-btn {
+  background: #003d36;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 24px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.nesty-popover__action-btn:hover {
+  background: #0a4f46;
+  transform: translateY(-1px);
+}
+
+/* --- Guests Popover --- */
+.nesty-popover--guests {
+  width: min(340px, calc(100vw - 32px));
+}
+
+.nesty-guests__list {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.nesty-guests__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ede8df;
+}
+
+.nesty-guests__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.nesty-guests__type {
+  font-size: 14px;
+  font-weight: 700;
+  color: #062b2b;
+}
+
+.nesty-guests__age {
+  font-size: 12px;
+  color: #7b8181;
+}
+
+.nesty-counter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nesty-counter__btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #dcd7cc;
+  background: #ffffff;
+  color: #003d36;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.nesty-counter__btn:hover:not(:disabled) {
+  border-color: #003d36;
+  background: #003d36;
+  color: #ffffff;
+}
+
+.nesty-counter__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #e5e0d8;
+}
+
+.nesty-counter__val {
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
 }

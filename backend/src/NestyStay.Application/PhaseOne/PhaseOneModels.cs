@@ -150,7 +150,28 @@ public sealed record PropertyListingDto(
     string CancellationPolicy,
     IReadOnlyList<string> Highlights,
     bool IsArchived = false,
-    bool IsDraft = false);
+    bool IsDraft = false,
+    string Parish = "",
+    string Description = "",
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null,
+    decimal RatingAverage = 0,
+    int ReviewCount = 0,
+    string ModerationStatus = "Approved",
+    string? ModerationReason = null,
+    DateTimeOffset? ModeratedAt = null,
+    Guid? ModeratedByUserId = null,
+    string HostVerificationStatus = "NotStarted");
 
 public sealed record PropertyRevisionDto(
     Guid Id,
@@ -182,6 +203,14 @@ public sealed record PropertyAvailabilityDayDto(DateOnly Date, string Status, st
 
 public sealed record PropertyAvailabilityDto(Guid PropertyId, DateOnly From, DateOnly To, IReadOnlyList<PropertyAvailabilityDayDto> Days);
 
+public sealed record PropertyReviewDto(
+    Guid Id,
+    string GuestDisplayName,
+    int Rating,
+    string Text,
+    DateTimeOffset CreatedAt,
+    string? HostReply = null);
+
 public sealed record CreatePropertyRequest(
     Guid HostUserId,
     string HostName,
@@ -195,7 +224,21 @@ public sealed record CreatePropertyRequest(
     bool GuestVerificationEnabled = false,
     bool InsuraGuestEnabled = false,
     string CancellationPolicy = "Flexible",
-    IReadOnlyList<string>? Highlights = null);
+    IReadOnlyList<string>? Highlights = null,
+    string? Parish = null,
+    string? Description = null,
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null);
 
 public sealed record UpdatePropertyRequest(
     string HostName,
@@ -209,7 +252,21 @@ public sealed record UpdatePropertyRequest(
     bool GuestVerificationEnabled = false,
     bool InsuraGuestEnabled = false,
     string CancellationPolicy = "Flexible",
-    IReadOnlyList<string>? Highlights = null);
+    IReadOnlyList<string>? Highlights = null,
+    string? Parish = null,
+    string? Description = null,
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null);
 
 public sealed record PreparePropertyPhotoUploadRequest(string FileName, string ContentType, long SizeBytes, int SortOrder = 0);
 
@@ -236,7 +293,10 @@ public sealed record BookingPropertySummaryDto(
     BadgeLevel BadgeLevel,
     bool GuestVerificationEnabled,
     bool InsuraGuestEnabled,
-    string CancellationPolicy);
+    string CancellationPolicy,
+    int MaxGuests = 2,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0);
 
 public sealed record BookingPriceLineDto(
     string Code,
@@ -245,7 +305,14 @@ public sealed record BookingPriceLineDto(
     string Currency,
     bool IsRefundable);
 
-public sealed record BookingQuoteRequest(Guid PropertyId, DateOnly CheckIn, DateOnly CheckOut);
+public sealed record BookingQuoteRequest(
+    Guid PropertyId,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    int Adults = 1,
+    int Children = 0,
+    string? AccessibilityNeeds = null,
+    string? ProtectionPlan = null);
 
 public sealed record BookingQuoteDto(
     BookingPropertySummaryDto Property,
@@ -269,7 +336,13 @@ public sealed record CreateBookingRequest(
     DateOnly CheckOut,
     string? EkycMetaInfo = null,
     string? DocumentType = null,
-    string? EkycCallbackUrl = null);
+    string? EkycCallbackUrl = null,
+    int Adults = 1,
+    int Children = 0,
+    string? AccessibilityNeeds = null,
+    string? ProtectionPlan = null,
+    string? BillingCountry = null,
+    bool TermsAccepted = false);
 
 public sealed record RefundBookingRequest(
     decimal? Amount = null,
@@ -328,7 +401,11 @@ public sealed record BookingDto(
     DateTimeOffset? RefundedAt,
     IReadOnlyList<BookingPriceLineDto> PriceBreakdown,
     IReadOnlyList<BookingNotificationDto> Notifications,
-    IReadOnlyList<string> Timeline);
+    IReadOnlyList<string> Timeline,
+    string? RejectionReason = null,
+    string? RejectionSource = null,
+    Guid? RejectedByUserId = null,
+    DateTimeOffset? RejectedAt = null);
 
 public sealed record BookingDocumentDto(
     string FileName,
@@ -337,3 +414,58 @@ public sealed record BookingDocumentDto(
     DateTimeOffset GeneratedAt);
 
 public sealed record ResolveVerificationRequest(bool Passed, string? ProviderReference = null);
+
+public sealed record BookingDecisionRequest(string? Reason = null);
+
+public sealed record HostVerificationDto(
+    Guid UserId,
+    string Status,
+    string? DocumentType,
+    string? Reason,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? ReviewedAt,
+    Guid? ReviewedByUserId,
+    IReadOnlyList<string> Checklist);
+
+public sealed record HostVerificationQueueItemDto(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string Status,
+    string? DocumentType,
+    string? Reason,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? ReviewedAt,
+    Guid? ReviewedByUserId,
+    IReadOnlyList<string> Checklist);
+
+public sealed record SubmitHostVerificationRequest(
+    string DocumentType,
+    string? Notes = null);
+
+public sealed record HostVerificationDecisionRequest(
+    string Status,
+    string? Reason = null);
+
+public sealed record PropertyModerationRequest(
+    string Status,
+    string? Reason = null);
+
+public interface IBookingDecisionStore
+{
+    Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IHostVerificationStore
+{
+    Task<HostVerificationDto> GetHostVerificationAsync(Guid userId, CancellationToken cancellationToken);
+    Task<HostVerificationDto> SubmitHostVerificationAsync(Guid userId, SubmitHostVerificationRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<HostVerificationQueueItemDto>> GetHostVerificationQueueAsync(CancellationToken cancellationToken);
+    Task<HostVerificationQueueItemDto?> ReviewHostVerificationAsync(Guid adminUserId, Guid hostUserId, HostVerificationDecisionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IPropertyModerationStore
+{
+    Task<IReadOnlyList<PropertyListingDto>> GetModerationQueueAsync(CancellationToken cancellationToken);
+    Task<PropertyListingDto?> ModeratePropertyAsync(Guid adminUserId, Guid propertyId, PropertyModerationRequest request, CancellationToken cancellationToken);
+}

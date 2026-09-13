@@ -22,6 +22,12 @@ public sealed class MilestoneUser : BaseEntity
     public string? PendingTwoFactorEnrollmentId { get; set; }
     public byte[]? PendingTwoFactorSecret { get; set; }
     public DateTimeOffset? PendingTwoFactorExpiresAt { get; set; }
+    public string HostVerificationStatus { get; set; } = "NotStarted";
+    public string? HostVerificationDocumentType { get; set; }
+    public string? HostVerificationReason { get; set; }
+    public DateTimeOffset? HostVerificationSubmittedAt { get; set; }
+    public DateTimeOffset? HostVerificationReviewedAt { get; set; }
+    public Guid? HostVerificationReviewedByUserId { get; set; }
 }
 
 public sealed class MilestoneUserProfilePhoto : BaseEntity
@@ -115,6 +121,24 @@ public sealed class MilestoneProperty : BaseEntity
     public bool InsuraGuestEnabled { get; set; }
     public string CancellationPolicy { get; set; } = string.Empty;
     public string HighlightsJson { get; set; } = "[]";
+    public string Parish { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int Bedrooms { get; set; } = 1;
+    public int Bathrooms { get; set; } = 1;
+    public int MaxGuests { get; set; } = 2;
+    public string AmenitiesJson { get; set; } = "[]";
+    public string SleepingArrangementsJson { get; set; } = "[]";
+    public string HouseRulesJson { get; set; } = "[]";
+    public decimal CleaningFee { get; set; }
+    public decimal ServiceFee { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string? ImageUrl { get; set; }
+    public string GalleryUrlsJson { get; set; } = "[]";
+    public string ModerationStatus { get; set; } = "Approved";
+    public string? ModerationReason { get; set; }
+    public DateTimeOffset? ModeratedAt { get; set; }
+    public Guid? ModeratedByUserId { get; set; }
     public bool IsArchived { get; set; }
     public bool IsDraft { get; set; }
 }
@@ -220,6 +244,10 @@ public sealed class MilestoneBooking : BaseEntity
     public decimal RefundedAmount { get; set; }
     public string? RefundReason { get; set; }
     public DateTimeOffset? RefundedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public string? RejectionSource { get; set; }
+    public Guid? RejectedByUserId { get; set; }
+    public DateTimeOffset? RejectedAt { get; set; }
     public string PriceBreakdownJson { get; set; } = "[]";
     public string NotificationsJson { get; set; } = "[]";
     public string TimelineJson { get; set; } = "[]";

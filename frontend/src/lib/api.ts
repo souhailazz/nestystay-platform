@@ -198,6 +198,26 @@ export type PropertyListing = {
   isDraft?: boolean;
   minimumNights?: number;
   imageUrl?: string;
+  parish?: string;
+  description?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  maxGuests?: number;
+  amenities?: string[];
+  sleepingArrangements?: string[];
+  houseRules?: string[];
+  cleaningFee?: number;
+  serviceFee?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  galleryUrls?: string[];
+  ratingAverage?: number;
+  reviewCount?: number;
+  moderationStatus?: string;
+  moderationReason?: string | null;
+  moderatedAt?: string | null;
+  moderatedByUserId?: string | null;
+  hostVerificationStatus?: string;
 };
 
 export type PropertyRevision = {
@@ -233,6 +253,7 @@ export type CalendarSyncEvent = {
 
 export type PropertyAvailabilityDay = { date: string; status: string; source: string; label?: string | null };
 export type PropertyAvailability = { propertyId: string; from: string; to: string; days: PropertyAvailabilityDay[] };
+export type PropertyReview = { id: string; guestDisplayName: string; rating: number; text: string; createdAt: string; hostReply?: string | null };
 
 export type PropertyPhotoUpload = {
   id: string;
@@ -263,6 +284,20 @@ export type CreatePropertyRequest = {
   insuraGuestEnabled: boolean;
   cancellationPolicy: string;
   highlights: string[];
+  parish?: string;
+  description?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  maxGuests?: number;
+  amenities?: string[];
+  sleepingArrangements?: string[];
+  houseRules?: string[];
+  cleaningFee?: number;
+  serviceFee?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  imageUrl?: string | null;
+  galleryUrls?: string[];
 };
 
 export type UpdatePropertyRequest = Omit<CreatePropertyRequest, "hostUserId">;
@@ -284,9 +319,12 @@ export type BookingQuote = {
     hostName: string;
     badgeLevel: string;
     guestVerificationEnabled: boolean;
-    insuraGuestEnabled: boolean;
-    cancellationPolicy: string;
-  };
+  insuraGuestEnabled: boolean;
+  cancellationPolicy: string;
+  maxGuests?: number;
+  cleaningFee?: number;
+  serviceFee?: number;
+};
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -341,7 +379,29 @@ export type Booking = {
     queuedAt: string;
   }[];
   timeline: string[];
+  rejectionReason?: string | null;
+  rejectionSource?: string | null;
+  rejectedByUserId?: string | null;
+  rejectedAt?: string | null;
 };
+
+export type HostVerification = {
+  userId: string;
+  status: string;
+  documentType?: string | null;
+  reason?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  reviewedByUserId?: string | null;
+  checklist: string[];
+};
+
+export type HostVerificationQueueItem = HostVerification & {
+  email: string;
+  displayName: string;
+};
+
+export type PropertyModerationRequest = { status: string; reason?: string };
 
 export type BookingQuoteRequest = {
   propertyId: string;
@@ -1508,7 +1568,14 @@ export const api = {
     request<PasswordlessLoginResponse>("/auth/passwordless/complete", { method: "POST", body, headers: { "X-Session-Mode": "cookie" } }),
   getDevelopmentPasswordResetToken: (requestId: string) =>
     request<{ requestId: string; token: string; expiresAt: string }>(`/auth/development/password-resets/${requestId}`),
-  getProperties: () => request<PropertyListing[]>("/properties"),
+  getProperties: (params: { search?: string; checkIn?: string; checkOut?: string; adults?: number; children?: number } = {}) =>
+    request<PropertyListing[]>(withQuery("/properties", {
+      search: params.search,
+      checkIn: params.checkIn,
+      checkOut: params.checkOut,
+      adults: params.adults && params.adults > 1 ? String(params.adults) : undefined,
+      children: params.children && params.children > 0 ? String(params.children) : undefined,
+    })),
   getOwnedProperties: (token: string) => request<PropertyListing[]>("/properties/owned", { token }),
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
   createProperty: (body: CreatePropertyRequest, token: string) =>
@@ -1533,10 +1600,14 @@ export const api = {
     request<PropertyListing[]>("/properties/bulk/edit", { method: "POST", token, body }),
   getPropertyAvailability: (propertyId: string, from?: string, to?: string) =>
     request<PropertyAvailability>(withQuery(`/properties/${propertyId}/availability`, { from, to })),
+  getPropertyReviews: (propertyId: string) => request<PropertyReview[]>(`/properties/${propertyId}/reviews`),
   publishProperty: (id: string, token: string) =>
     request<PropertyListing>(`/properties/${id}/publish`, { method: "POST", token }),
   getPropertyRevisions: (id: string, token: string) =>
     request<PropertyRevision[]>(`/properties/${id}/revisions`, { token }),
+  getPropertyModerationQueue: (token: string) => request<PropertyListing[]>("/properties/moderation", { token }),
+  moderateProperty: (id: string, token: string, body: PropertyModerationRequest) =>
+    request<PropertyListing>(`/properties/${id}/moderate`, { method: "POST", token, body }),
   restorePropertyRevision: (id: string, revisionId: string, token: string) =>
     request<PropertyListing>(`/properties/${id}/revisions/${revisionId}/restore`, { method: "POST", token }),
   getCalendarFeeds: (propertyId: string, token: string) => request<CalendarFeed[]>(`/properties/${propertyId}/calendar/feeds`, { token }),
@@ -1564,6 +1635,10 @@ export const api = {
     }),
   capturePayment: (bookingId: string, token: string) =>
     request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST", token }),
+  approveBooking: (bookingId: string, token: string) =>
+    request<Booking>(`/bookings/${bookingId}/capture-payment`, { method: "POST", token }),
+  rejectBooking: (bookingId: string, token: string, reason: string) =>
+    request<Booking>(`/bookings/${bookingId}/reject`, { method: "POST", token, body: { reason } }),
   refundPayment: (bookingId: string, token: string, body: { amount?: number; reason?: string; idempotencyKey?: string }) =>
     request<Booking>(`/bookings/${bookingId}/refund-payment`, { method: "POST", token, body }),
   downloadBookingInvoice: (bookingId: string, token: string) =>
@@ -1762,6 +1837,12 @@ export const api = {
   getJournalArticle: (slug: string) => request<JournalArticle>(`/spec/journal/${slug}`),
   getHostProfiles: () => request<HostProfile[]>("/spec/host-profiles"),
   getHostProfile: (slug: string) => request<HostProfile>(`/spec/host-profiles/${slug}`),
+  getHostVerification: (token: string) => request<HostVerification>("/host-verification", { token }),
+  submitHostVerification: (token: string, body: { documentType: string; notes?: string }) =>
+    request<HostVerification>("/host-verification", { method: "POST", token, body }),
+  getHostVerificationQueue: (token: string) => request<HostVerificationQueueItem[]>("/host-verification/queue", { token }),
+  reviewHostVerification: (hostUserId: string, token: string, body: { status: "Approved" | "Rejected"; reason?: string }) =>
+    request<HostVerificationQueueItem>(`/host-verification/${hostUserId}/decision`, { method: "POST", token, body }),
   updateHostProfile: (slug: string, token: string, body: Partial<HostProfile> & { hostUserId: string }) =>
     request<HostProfile>(`/spec/host-profiles/${slug}`, { method: "PUT", token, body }),
   getTravelerWorkspace: (userId: string, token: string) =>

@@ -7,6 +7,7 @@ import { HostPricingPromotions } from "./HostPricingPromotions";
 import { HostReservations } from "./HostReservations";
 import { HostReportsExports } from "./HostReportsExports";
 import { HostReviewsBadgesSettings } from "./HostReviewsBadgesSettings";
+import { HostVerification } from "./HostVerification";
 
 interface HostStateContainerProps {
   view: string;
@@ -55,6 +56,10 @@ export function HostStateContainer({ view, auth, propertyId }: HostStateContaine
 
   if (view === "reviews" || view === "badges" || view === "settings") {
     return <HostReviewsBadgesSettings view={view} token={token} hostUserId={auth.session?.userId || ""} />;
+  }
+
+  if (view === "verification") {
+    return <HostVerification token={token} />;
   }
 
   return <HostAnalytics token={token} hostUserId={auth.session?.userId || ""} />;

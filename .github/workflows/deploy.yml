@@ -32,8 +32,12 @@ jobs:
     env:
       DOTNET_NOLOGO: "true"
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-      VITE_API_BASE_URL: /api
+      # Staging is same-origin. The edge proxy must forward /api/* to the API
+      # container; an absolute API URL is only needed for a deliberately split
+      # deployment and should be configured as an Actions variable.
+      VITE_API_BASE_URL: ${{ vars.NESTYSTAY_VITE_API_BASE_URL || '/api' }}
       VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY || 'pk_test_local' }}
+      NESTYSTAY_PUBLIC_URL: ${{ vars.NESTYSTAY_PUBLIC_URL || 'https://staging.nestystay.net' }}
 
     steps:
       - name: Checkout
@@ -146,7 +150,9 @@ jobs:
 
       - name: Smoke test deployed app
         env:
-          DEPLOY_HOST: ${{ secrets.NESTYSTAY_DEPLOY_HOST }}
+          NESTYSTAY_PUBLIC_URL: ${{ vars.NESTYSTAY_PUBLIC_URL || 'https://staging.nestystay.net' }}
         run: |
-          curl --fail --show-error --silent "http://$DEPLOY_HOST/api/health"
-          curl --fail --show-error --silent "http://$DEPLOY_HOST/openapi/v1.json" | grep '"openapi"'
+          curl --fail --show-error --silent --location "$NESTYSTAY_PUBLIC_URL/api/health"
+          curl --fail --show-error --silent --location "$NESTYSTAY_PUBLIC_URL/api/health/ready"
+          curl --fail --show-error --silent --location "$NESTYSTAY_PUBLIC_URL/api/properties" | grep -q '^\['
+          curl --fail --show-error --silent --location "$NESTYSTAY_PUBLIC_URL/openapi/v1.json" | grep '"openapi"'
