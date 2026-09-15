@@ -15,7 +15,7 @@ There are **0 confirmed application Critical, High or Medium findings** remainin
 
 - Backend: `codex/m1-m2-runtime-hardening`, upload hardening commit `ba75107` (including SSRF fix `c88e85a`).
 - Frontend: `codex/m1-m2-runtime-hardening`, non-root nginx hardening commit `a3d64a4` (including the prior release candidate `e389373`).
-- Root/orchestration: `codex/root-main-integration-current`, audited integration commit `ed81c06` (same tree as candidate `de40846`).
+- Root/orchestration: `codex/root-main-integration-current`, audited integration commit `b60c710` (security/code tree propagated from candidate `de40846`).
 - The protected remote `main` branches were not bypassed. The existing pull requests remain subject to client approval.
 
 ## Tool and evidence inventory
