@@ -1,6 +1,6 @@
 # NestyStay Final Adversarial Security Audit
 
-Audit date: 2026-09-15  
+Audit date: 2026-09-15
 Scope: current NestyStay release-candidate worktrees and the clean local development runtime. No staging or production data was modified.
 
 ## Executive result
