@@ -1,0 +1,17 @@
+# M5 property-manager acceptance
+
+| Area | Acceptance evidence | Status |
+|---|---|---|
+| Manager dashboard and subscription | Real `GET /api/property-manager/dashboard`, renew action and responsive UI | PASS |
+| Owners and units | Registered-owner invite, verification action, manager-scoped property assignment | PASS |
+| Invoices, statements and payments | Server-calculated totals, utility-linked invoice, local capture, idempotency and owner statement | PASS |
+| Maintenance and vendors | Owner request, manager queue, start/complete controls and vendor register | PASS |
+| Notices and gate communications | Persisted community notice and gate message endpoints/UI | PASS |
+| Governance | Anonymous ballot, eligibility, quorum input, duplicate-vote rejection and proxy grant API/UI | PASS |
+| Documents | PDF/JPEG/PNG picker, validated upload through the storage abstraction, 25 MB/type/name/magic-byte checks, scoped listing and authorized download | PASS |
+| QR | Secure random token, hashed persistence, public validation, wrong-property/expiry/revoke states and scan log | PASS |
+| Isolation | Cross-owner invoice/portal leakage test and manager portfolio scope checks | PASS |
+| Real browser | Desktop, tablet and mobile PM/owner/gate tests plus enhancement suite | PASS (18/18 PM/M4 targeted checks) |
+| Usability upgrades | Configurable KPI cards, alert strip, duplicate-owner hint/resend action, invoice templates/tax/recurring reminder, utility usage trend/anomaly guidance, list/Kanban maintenance board with SLA labels, document search/download, QR templates/expiry presets/download/copy, and guard-first camera/manual validator with offline retry | PASS locally; unsupported commercial/provider decisions are called out in traceability |
+
+The signed agreement does not state a fixed Property Manager price. The local profile uses a configurable Portfolio tier with amount `0` until commercial configuration is supplied.

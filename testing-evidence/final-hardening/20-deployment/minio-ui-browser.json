@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-09-02T18:29:21Z",
+  "provider": "MinIO",
+  "flow": "browser profile photo upload -> API authorization -> MinIO object -> signed download",
+  "assertions": {
+    "upload": true,
+    "reloadFromPostgresMetadata": true,
+    "signedDownload": true,
+    "byteEquality": true
+  },
+  "result": "PASS"
+}

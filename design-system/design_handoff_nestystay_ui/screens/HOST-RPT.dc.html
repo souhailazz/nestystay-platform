@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+</style>
+</helmet>
+<!-- HOST-RPT Reports & tax · [SPEC] · monthly cards · period selector · Export CSV/PDF · tax-ready: platform fees separated from gross · Download tax summary -->
+<div data-screen-label="HOST-RPT Reports & tax" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55;min-height:100vh;display:grid;grid-template-columns:230px 1fr">
+  <aside style="background:#062B2B;padding:20px 14px;display:flex;flex-direction:column;gap:3px">
+    <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:8px;padding:0 8px 14px"><span style="width:32px;height:32px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:86px;margin:-4px 0 0 -27px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></a>
+    <a href="HOST-01.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Dashboard</a>
+    <a href="HOST-EDIT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Properties</a>
+    <a href="HOST-05.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">New property</a>
+    <a href="HOST-01.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Bookings</a>
+    <a href="HOST-WELL.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Wellness</a>
+    <a href="HOST-RPT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;background:rgba(255,210,31,0.12);color:#FFD21F;font-size:13px;font-weight:600">Reports</a>
+    <a href="HOST-BADGE.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">My badge</a>
+    <a href="OFC-DIR.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#C9DAD5;font-size:13px;font-weight:600" style-hover="background:rgba(251,247,236,0.06);color:#FBF7EC">Police directory</a>
+    <a href="AUTH-LOGOUT.dc.html" style="display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:#9FB3AC;font-size:13px;font-weight:600;margin-top:auto" style-hover="color:#FBF7EC">Sign out</a>
+  </aside>
+  <div style="display:flex;flex-direction:column;min-height:100vh">
+    <main style="padding:36px clamp(20px,3.5vw,44px);display:flex;flex-direction:column;gap:20px;flex:1;max-width:1060px;box-sizing:border-box;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,3.4vw,40px);margin:0;letter-spacing:-0.01em">Reports</h1><div style="display:flex;gap:10px;flex-wrap:wrap"><select style="min-height:46px;border:1.5px solid #C7BC9C;border-radius:999px;padding:0 18px;font-size:13.5px;font-family:'Sora',sans-serif;background:#FBF7EC;font-weight:600"><option>December 2026</option><option>November 2026</option><option>YTD</option></select><a href="#" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 20px;font-size:13.5px;font-weight:600" style-hover="border-color:#062B2B;color:#12241F">Export CSV</a><a href="#" style="border:1.5px solid #C7BC9C;color:#12241F;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;padding:0 20px;font-size:13.5px;font-weight:600" style-hover="border-color:#062B2B;color:#12241F">Export PDF</a></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">REVENUE</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1">$12,840</div><div style="font-size:12px;color:#135A38">▲ 12%</div></div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">OCCUPANCY</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1">78%</div><div style="font-size:12px;color:#135A38">▲ 6 pts</div></div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">BOOKINGS</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1">11</div><div style="font-size:12px;color:#135A38">▲ 3</div></div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">CANCELLATIONS</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1">1</div></div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="font-size:11px;letter-spacing:0.16em;color:#8A7F5E;font-weight:600">AVG SCORE</div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1">4.9</div></div></div><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="font-family:'Fraunces',serif;font-weight:500;font-size:20px">Tax-ready summary</div><a href="#" style="background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:46px;display:inline-flex;align-items:center;gap:8px;padding:0 22px;font-size:13.5px;font-weight:600" style-hover="background:#0E4A45;color:#FBF7EC">↓ Download tax summary</a></div>
+<div style="display:flex;flex-direction:column;font-size:13.5px">
+  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3EAC8"><span>Gross booking revenue</span><strong>$14,270</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3EAC8"><span>Platform fees (separated)</span><strong style="color:#9E2B23">−$1,430</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:10px 0"><strong>Net payout</strong><strong style="font-family:'Fraunces',serif;font-size:20px">$12,840</strong></div>
+</div>
+<div style="font-size:12px;color:#8A7F5E">Figures follow the platform pricebook; Jamaica compliance formats in ADM-RPT.</div></div></main>
+    <footer style="background:#052A22;padding:18px 24px;display:flex;justify-content:center"><span style="font-size:13px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></span></footer>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

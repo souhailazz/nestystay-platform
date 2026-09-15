@@ -1,0 +1,90 @@
+/* PUB-01..SOON motion (Design System v2). Loops are CSS-only, 4–8s,
+   transform/opacity only, gated behind prefers-reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ns-linein {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ns-line {
+    display: inline-block;
+    opacity: 0;
+    animation: ns-linein 0.8s ease-out forwards;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes ns-breathe {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .ns-breathe { animation: ns-breathe 6s ease-in-out infinite; }
+  @keyframes ns-b1 {
+    0%, 100% { transform: rotate(-4deg) translateY(0); }
+    50% { transform: rotate(-4deg) translateY(-6px); }
+  }
+  .ns-b1 { animation: ns-b1 6s ease-in-out infinite; animation-delay: 0.9s; }
+  @keyframes ns-b2 {
+    0%, 100% { transform: rotate(3deg) translateY(0); }
+    50% { transform: rotate(3deg) translateY(-6px); }
+  }
+  .ns-b2 { animation: ns-b2 6s ease-in-out infinite; animation-delay: 1.8s; }
+  .ns-zoomimg { transition: transform 0.8s ease-out; }
+  .ns-zoom:hover .ns-zoomimg { transform: scale(1.03); }
+  @keyframes ns-duskpulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+  }
+  .ns-duskglow { animation: ns-duskpulse 8s ease-in-out infinite alternate; }
+  @keyframes ns-sway {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50% { transform: rotate(2.5deg); }
+  }
+  .ns-sway {
+    animation: ns-sway 4s ease-in-out infinite;
+    transform-box: view-box;
+    transform-origin: 280px 300px;
+  }
+  @keyframes ns-ff {
+    0%, 100% { opacity: 0.15; transform: translate(0, 0); }
+    50% { opacity: 1; transform: translate(4px, -6px); }
+  }
+  .ns-ff {
+    animation: ns-ff var(--ffd, 4s) ease-in-out infinite;
+    animation-delay: var(--ffdel, 0s);
+    transform-box: fill-box;
+  }
+  @keyframes ns-twinkle {
+    from { opacity: 0.35; }
+    to { opacity: 0.9; }
+  }
+  .ns-night::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle 1px at 22% 14%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
+      radial-gradient(circle 1px at 68% 10%, rgba(255, 255, 255, 0.55) 0 1px, transparent 2px),
+      radial-gradient(circle 1.2px at 86% 20%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px);
+    background-size: 800px 640px;
+    animation: ns-twinkle 6s ease-in-out infinite alternate;
+  }
+}
+.ns-night { position: relative; }
+
+/* Nav link underline (yellow, scaleX from left) */
+.ns-navlink { position: relative; }
+.ns-navlink::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 8px;
+  height: 1.5px;
+  background: var(--color-yellow, #ffd21f);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+.ns-navlink:hover::after { transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) {
+  .ns-navlink::after { transition: none; }
+}

@@ -1,0 +1,390 @@
+{
+  "generatedAt": "2026-09-15T02:43:20.745Z",
+  "coverage": "all reachable manifest screen routes",
+  "pages": 94,
+  "impactTotals": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0,
+    "unknown": 0
+  },
+  "results": [
+    {
+      "route": "/screens",
+      "violations": []
+    },
+    {
+      "route": "/design-system",
+      "violations": []
+    },
+    {
+      "route": "/",
+      "violations": []
+    },
+    {
+      "route": "/explore",
+      "violations": []
+    },
+    {
+      "route": "/explore/map",
+      "violations": []
+    },
+    {
+      "route": "/properties/22222222-2222-4222-8222-222222222222",
+      "violations": []
+    },
+    {
+      "route": "/coming-soon",
+      "violations": []
+    },
+    {
+      "route": "/about",
+      "violations": []
+    },
+    {
+      "route": "/login",
+      "violations": []
+    },
+    {
+      "route": "/auth/role",
+      "violations": []
+    },
+    {
+      "route": "/auth/passwordless",
+      "violations": []
+    },
+    {
+      "route": "/auth/post-login-toast",
+      "violations": []
+    },
+    {
+      "route": "/logout",
+      "violations": []
+    },
+    {
+      "route": "/owner/invitation",
+      "violations": []
+    },
+    {
+      "route": "/experiences",
+      "violations": []
+    },
+    {
+      "route": "/journal",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/review",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/quote",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/identity",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/checkout",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/pending",
+      "violations": []
+    },
+    {
+      "route": "/booking/booking-00000000-0000-4000-8000-000000000000/success",
+      "violations": []
+    },
+    {
+      "route": "/guest-dashboard",
+      "violations": []
+    },
+    {
+      "route": "/traveler/reservations",
+      "violations": []
+    },
+    {
+      "route": "/traveler/qr",
+      "violations": []
+    },
+    {
+      "route": "/traveler/preferences",
+      "violations": []
+    },
+    {
+      "route": "/traveler/favorites",
+      "violations": []
+    },
+    {
+      "route": "/traveler/invoices",
+      "violations": []
+    },
+    {
+      "route": "/traveler/payment-methods",
+      "violations": []
+    },
+    {
+      "route": "/traveler/identity",
+      "violations": []
+    },
+    {
+      "route": "/traveler/reviews/pending",
+      "violations": []
+    },
+    {
+      "route": "/traveler/notifications",
+      "violations": []
+    },
+    {
+      "route": "/traveler/suggestions",
+      "violations": []
+    },
+    {
+      "route": "/messages/document",
+      "violations": []
+    },
+    {
+      "route": "/messages",
+      "violations": []
+    },
+    {
+      "route": "/directory/trades",
+      "violations": []
+    },
+    {
+      "route": "/directory/businesses",
+      "violations": []
+    },
+    {
+      "route": "/directory/providers/sample",
+      "violations": []
+    },
+    {
+      "route": "/directory/provider",
+      "violations": []
+    },
+    {
+      "route": "/hosts",
+      "violations": []
+    },
+    {
+      "route": "/host/profile/edit",
+      "violations": []
+    },
+    {
+      "route": "/host-dashboard",
+      "violations": []
+    },
+    {
+      "route": "/host/properties",
+      "violations": []
+    },
+    {
+      "route": "/host/properties/edit",
+      "violations": []
+    },
+    {
+      "route": "/host/properties/new",
+      "violations": []
+    },
+    {
+      "route": "/host/analytics",
+      "violations": []
+    },
+    {
+      "route": "/host/reports",
+      "violations": []
+    },
+    {
+      "route": "/host/wellness",
+      "violations": []
+    },
+    {
+      "route": "/host/wellness/directory",
+      "violations": []
+    },
+    {
+      "route": "/host/wellness/book",
+      "violations": []
+    },
+    {
+      "route": "/officer/wellness",
+      "violations": []
+    },
+    {
+      "route": "/pm/gates",
+      "violations": []
+    },
+    {
+      "route": "/pm/dashboard",
+      "violations": []
+    },
+    {
+      "route": "/pm/invoices",
+      "violations": []
+    },
+    {
+      "route": "/pm/maintenance",
+      "violations": []
+    },
+    {
+      "route": "/pm/governance",
+      "violations": []
+    },
+    {
+      "route": "/pm/documents",
+      "violations": []
+    },
+    {
+      "route": "/pm/payments",
+      "violations": []
+    },
+    {
+      "route": "/pm/vendors",
+      "violations": []
+    },
+    {
+      "route": "/pm/community",
+      "violations": []
+    },
+    {
+      "route": "/pm/subscription",
+      "violations": []
+    },
+    {
+      "route": "/pm/calendar",
+      "violations": []
+    },
+    {
+      "route": "/pm/work-orders",
+      "violations": []
+    },
+    {
+      "route": "/pm/agreements",
+      "violations": []
+    },
+    {
+      "route": "/pm/approvals",
+      "violations": []
+    },
+    {
+      "route": "/pm/team",
+      "violations": []
+    },
+    {
+      "route": "/pm/inspections",
+      "violations": []
+    },
+    {
+      "route": "/pm/cleaning",
+      "violations": []
+    },
+    {
+      "route": "/pm/utilities",
+      "violations": []
+    },
+    {
+      "route": "/pm/verification",
+      "violations": []
+    },
+    {
+      "route": "/pm/reports",
+      "violations": []
+    },
+    {
+      "route": "/gate",
+      "violations": []
+    },
+    {
+      "route": "/pm/insurance",
+      "violations": []
+    },
+    {
+      "route": "/owner/dashboard",
+      "violations": []
+    },
+    {
+      "route": "/calendar",
+      "violations": []
+    },
+    {
+      "route": "/bookings",
+      "violations": []
+    },
+    {
+      "route": "/payment-confirmation",
+      "violations": []
+    },
+    {
+      "route": "/profile",
+      "violations": []
+    },
+    {
+      "route": "/admin/ops/directory",
+      "violations": []
+    },
+    {
+      "route": "/admin/ops/wellness",
+      "violations": []
+    },
+    {
+      "route": "/admin/ops/badges",
+      "violations": []
+    },
+    {
+      "route": "/admin/ops/disputes",
+      "violations": []
+    },
+    {
+      "route": "/admin",
+      "violations": []
+    },
+    {
+      "route": "/admin/kpis",
+      "violations": []
+    },
+    {
+      "route": "/admin/reports",
+      "violations": []
+    },
+    {
+      "route": "/admin/officer-id-reset",
+      "violations": []
+    },
+    {
+      "route": "/401",
+      "violations": []
+    },
+    {
+      "route": "/403",
+      "violations": []
+    },
+    {
+      "route": "/404",
+      "violations": []
+    },
+    {
+      "route": "/500",
+      "violations": []
+    },
+    {
+      "route": "/loading",
+      "violations": []
+    },
+    {
+      "route": "/empty/favorites",
+      "violations": []
+    },
+    {
+      "route": "/empty/reservations",
+      "violations": []
+    },
+    {
+      "route": "/screens/PUB-01",
+      "violations": []
+    }
+  ]
+}

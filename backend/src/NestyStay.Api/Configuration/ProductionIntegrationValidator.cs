@@ -1,0 +1,207 @@
+using Microsoft.Extensions.Configuration;
+using NestyStay.Application.Configuration;
+
+namespace NestyStay.Api.Configuration;
+
+public static class ProductionIntegrationValidator
+{
+    private const int MinimumSessionTokenSecretBytes = 32;
+    private const int MinimumTotpProtectionKeyBytes = 32;
+
+    private static readonly RequiredSetting[] RequiredSettings =
+    [
+        new("ConnectionStrings:Postgres", "ConnectionStrings__Postgres", "PostgreSQL connection string"),
+        new("Security:SessionTokenSecret", "NESTYSTAY_SESSION_TOKEN_SECRET", "session token signing secret"),
+        new("Security:TotpSecretProtectionKey", "NESTYSTAY_TOTP_SECRET_PROTECTION_KEY", "TOTP secret protection key"),
+        new("Webhooks:SharedSecret", "NESTYSTAY_WEBHOOK_SHARED_SECRET", "webhook shared secret"),
+        new("Webhooks:StripeSigningSecret", "STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"),
+        new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
+        new("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"),
+        new("Integrations:InsuraGuestApiBaseUrl", "INSURAGUEST_API_BASE_URL", "InsuraGuest API base URL")
+    ];
+
+    public static void Validate(IConfiguration configuration, IHostEnvironment environment)
+    {
+        if (!environment.IsProduction())
+        {
+            return;
+        }
+
+        var providerFlags = ProviderFeatureFlags.From(configuration);
+        if (providerFlags.EkycProvider is not ("stripe_identity" or "stripe-identity" or "stripeidentity"))
+        {
+            throw new InvalidOperationException(
+                $"Unsupported identity provider '{providerFlags.EkycProvider}'. NestyStay supports stripe_identity only.");
+        }
+
+        var identitySettings = new[]
+        {
+            new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL")
+        };
+        var requiredSettings = RequiredSettings.Concat(identitySettings).ToArray();
+        var missing = requiredSettings
+            .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
+            .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
+            .ToArray();
+
+        if (missing.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Production integration configuration is incomplete. Missing: " + string.Join("; ", missing));
+        }
+
+        foreach (var setting in requiredSettings)
+        {
+            RejectPlaceholderValue(configuration, setting);
+        }
+
+        if (configuration.GetValue<bool>("Security:AllowLegacyAdminTokens") &&
+            string.IsNullOrWhiteSpace(Resolve(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"))))
+        {
+            throw new InvalidOperationException(
+                "Production legacy administrator token support is enabled but admin token hash is not configured.");
+        }
+
+        if (configuration.GetValue<bool>("Security:AllowLegacyAdminTokens"))
+        {
+            RequireSha256Hex(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"));
+            RejectPlaceholderValue(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"));
+        }
+
+        var sessionSecret = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:SessionTokenSecret"));
+        if (sessionSecret is not null && System.Text.Encoding.UTF8.GetByteCount(sessionSecret) < MinimumSessionTokenSecretBytes)
+        {
+            throw new InvalidOperationException("Production session token signing secret must be at least 32 bytes.");
+        }
+
+        var totpProtectionKey = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:TotpSecretProtectionKey"));
+        if (totpProtectionKey is not null && System.Text.Encoding.UTF8.GetByteCount(totpProtectionKey) < MinimumTotpProtectionKeyBytes)
+        {
+            throw new InvalidOperationException("Production TOTP secret protection key must be at least 32 bytes.");
+        }
+
+        var connectionString = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "ConnectionStrings:Postgres"));
+        if (Contains(connectionString, "Database=nestystay_dev") || Contains(connectionString, "Password=nestystay"))
+        {
+            throw new InvalidOperationException("Production PostgreSQL connection string uses a development database name or password.");
+        }
+
+        var stripeSecretKey = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Integrations:StripeSecretKey"));
+        if (stripeSecretKey?.StartsWith("sk_test_", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            throw new InvalidOperationException("Production Stripe secret key must be a live key.");
+        }
+
+        var stripePublishableKey = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Integrations:StripePublishableKey"));
+        if (stripePublishableKey?.StartsWith("pk_test_", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            throw new InvalidOperationException("Production Stripe publishable key must be a live key.");
+        }
+
+        var stripeWebhookSecret = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Webhooks:StripeSigningSecret"));
+        if (stripeWebhookSecret?.StartsWith("whsec_test", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            throw new InvalidOperationException("Production Stripe webhook signing secret must be a live secret.");
+        }
+
+        var returnUrl = Resolve(configuration, new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL"));
+        if (!Uri.TryCreate(returnUrl, UriKind.Absolute, out var uri) || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Production Stripe Identity return URL must be an absolute HTTPS URL.");
+        }
+
+        var emailProvider = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+        var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
+        if (emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            var brevoKey = configuration["Email:Brevo:ApiKey"] ?? Environment.GetEnvironmentVariable("BREVO_API_KEY");
+            var senderEmail = configuration["Email:Brevo:SenderEmail"] ?? Environment.GetEnvironmentVariable("BREVO_SENDER_EMAIL");
+            if (string.IsNullOrWhiteSpace(brevoKey) || string.IsNullOrWhiteSpace(senderEmail))
+            {
+                throw new InvalidOperationException("Production Brevo email is selected but BREVO_API_KEY or BREVO_SENDER_EMAIL is missing.");
+            }
+            if (Contains(brevoKey, "replace-with") || Contains(senderEmail, "example."))
+            {
+                throw new InvalidOperationException("Production Brevo email configuration contains a placeholder value.");
+            }
+        }
+
+        if (providerFlags.ObjectStorageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
+            providerFlags.ObjectStorageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase))
+        {
+            var minioSettings = new[]
+            {
+                new RequiredSetting("Integrations:MinioEndpoint", "MINIO_ENDPOINT", "MinIO endpoint"),
+                new RequiredSetting("Integrations:MinioAccessKey", "MINIO_ACCESS_KEY", "MinIO access key"),
+                new RequiredSetting("Integrations:MinioSecretKey", "MINIO_SECRET_KEY", "MinIO secret key"),
+                new RequiredSetting("Integrations:MinioBucket", "MINIO_BUCKET", "MinIO bucket")
+            };
+            var missingMinio = minioSettings
+                .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
+                .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
+                .ToArray();
+            if (missingMinio.Length > 0)
+                throw new InvalidOperationException("Production MinIO object storage is selected but configuration is incomplete. Missing: " + string.Join("; ", missingMinio));
+            foreach (var setting in minioSettings) RejectPlaceholderValue(configuration, setting);
+        }
+
+        if (ResolveBoolean(configuration, "Security:AdminBootstrap:Enabled", "NESTYSTAY_ADMIN_BOOTSTRAP_ENABLED"))
+        {
+            var bootstrapEmail = new RequiredSetting("Security:AdminBootstrap:Email", "NESTYSTAY_ADMIN_BOOTSTRAP_EMAIL", "administrator bootstrap email");
+            var bootstrapPassword = new RequiredSetting("Security:AdminBootstrap:Password", "NESTYSTAY_ADMIN_BOOTSTRAP_PASSWORD", "administrator bootstrap password");
+            if (string.IsNullOrWhiteSpace(Resolve(configuration, bootstrapEmail)) || string.IsNullOrWhiteSpace(Resolve(configuration, bootstrapPassword)))
+            {
+                throw new InvalidOperationException("Production administrator bootstrap is enabled but bootstrap email or password is not configured.");
+            }
+
+            RejectPlaceholderValue(configuration, bootstrapEmail);
+            RejectPlaceholderValue(configuration, bootstrapPassword);
+        }
+    }
+
+    private static string? Resolve(IConfiguration configuration, RequiredSetting setting)
+    {
+        var configured = configuration[setting.ConfigurationKey];
+        return string.IsNullOrWhiteSpace(configured)
+            ? Environment.GetEnvironmentVariable(setting.EnvironmentKey)
+            : configured;
+    }
+
+    private static bool ResolveBoolean(IConfiguration configuration, string configurationKey, string environmentKey)
+    {
+        if (bool.TryParse(configuration[configurationKey], out var configured))
+        {
+            return configured;
+        }
+
+        return bool.TryParse(Environment.GetEnvironmentVariable(environmentKey), out var environmentValue) && environmentValue;
+    }
+
+    private static void RejectPlaceholderValue(IConfiguration configuration, RequiredSetting setting)
+    {
+        var value = Resolve(configuration, setting);
+        if (Contains(value, "replace-with") ||
+            Contains(value, "<") ||
+            Contains(value, "development-only") ||
+            Contains(value, "dev-webhook-secret"))
+        {
+            throw new InvalidOperationException($"Production {setting.Description} contains a placeholder or development value.");
+        }
+    }
+
+    private static void RequireSha256Hex(IConfiguration configuration, RequiredSetting setting)
+    {
+        var value = Resolve(configuration, setting)?.Trim();
+        if (value is null ||
+            value.Length != 64 ||
+            value.Any(character => !Uri.IsHexDigit(character)))
+        {
+            throw new InvalidOperationException($"Production {setting.Description} must be a SHA-256 hex digest.");
+        }
+    }
+
+    private static bool Contains(string? value, string expected) =>
+        value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;
+
+    private sealed record RequiredSetting(string ConfigurationKey, string EnvironmentKey, string Description);
+}

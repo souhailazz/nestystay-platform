@@ -1,0 +1,139 @@
+
+> nesty-stay-landing@1.0.0 test
+> vitest run src --coverage --coverage.include=src/**/*.{ts,tsx} --coverage.exclude=src/**/*.test.* --coverage.exclude=src/vite-env.d.ts --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportsDirectory=../testing-evidence/final-hardening/15-coverage/frontend-all
+
+
+ RUN  v4.1.10 C:/Users/Administrator/Desktop/nestystayPLATFORM/frontend
+      Coverage enabled with v8
+
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  12:57:01
+   Duration  17.75s (transform 288ms, setup 0ms, import 3.03s, tests 330ms, environment 13.02s)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |    4.97 |     4.36 |    3.81 |    5.66 |                   
+ src               |       0 |        0 |       0 |       0 |                   
+  App.tsx          |       0 |        0 |       0 |       0 | 19-941            
+  ...patibility.ts |       0 |        0 |       0 |       0 | 1-48              
+  main.tsx         |       0 |      100 |     100 |       0 | 8-10              
+ src/components    |   11.76 |     7.69 |   14.28 |   11.76 |                   
+  AppLink.tsx      |      20 |     9.09 |   33.33 |      20 | 4-6,11-26         
+  ...rBoundary.tsx |       0 |        0 |       0 |       0 | 12-35             
+ ...onents/booking |       0 |        0 |       0 |       0 |                   
+  BookingModal.tsx |       0 |        0 |       0 |       0 | 13-147            
+ ...onents/landing |       0 |        0 |       0 |       0 |                   
+  FeatureCards.tsx |       0 |      100 |       0 |       0 | 18-125            
+  FinalCTA.tsx     |       0 |      100 |       0 |       0 | 6                 
+  Hero3D.tsx       |       0 |        0 |       0 |       0 | 15-103            
+  HowItWorks.tsx   |       0 |        0 |       0 |       0 | 4-42              
+  ...yShowcase.tsx |       0 |        0 |       0 |       0 | 10-108            
+  ScrollStory.tsx  |       0 |        0 |       0 |       0 | 6-119             
+  TrustSection.tsx |       0 |      100 |       0 |       0 | 4-32              
+ ...ponents/layout |       0 |        0 |       0 |       0 |                   
+  PublicShell.tsx  |       0 |        0 |       0 |       0 | 6-54              
+  ...paceFrame.tsx |       0 |        0 |       0 |       0 | 17-191            
+ src/components/ui |    3.27 |     1.83 |    7.31 |    3.77 |                   
+  Badge.tsx        |       0 |        0 |       0 |       0 | 17-46             
+  Button.tsx       |       0 |        0 |       0 |       0 | 19-57             
+  Card.tsx         |       0 |        0 |       0 |       0 | 16-34             
+  EmptyState.tsx   |       0 |        0 |       0 |       0 | 19                
+  ErrorState.tsx   |       0 |        0 |       0 |       0 | 17                
+  Input.tsx        |       0 |        0 |       0 |       0 | 16-62             
+  ListControls.tsx |       0 |        0 |       0 |       0 | 37-69             
+  LoadingState.tsx |     100 |    66.66 |     100 |     100 | 30                
+  Modal.tsx        |       0 |        0 |       0 |       0 | 20-70             
+  PageHeader.tsx   |       0 |        0 |       0 |       0 | 12-44             
+  PatoisToast.tsx  |       0 |        0 |       0 |       0 | 27-40             
+  StatusChip.tsx   |       0 |        0 |       0 |       0 | 11-38             
+ ...features/admin |       0 |        0 |       0 |       0 |                   
+  ...temHealth.tsx |       0 |        0 |       0 |       0 | 12-91             
+  AdminBadges.tsx  |       0 |        0 |       0 |       0 | 12-174            
+  ...rectories.tsx |       0 |        0 |       0 |       0 | 13-79             
+  ...inancials.tsx |       0 |        0 |       0 |       0 | 12-78             
+  ...nOverview.tsx |       0 |        0 |       0 |       0 | 11-30             
+  ...Campaigns.tsx |       0 |        0 |       0 |       0 | 12-83             
+  ...roperties.tsx |       0 |        0 |       0 |       0 | 12-97             
+  ...Container.tsx |       0 |        0 |       0 |       0 | 17-51             
+  AdminUsers.tsx   |       0 |        0 |       0 |       0 | 12-87             
+ src/features/auth |       0 |        0 |       0 |       0 |                   
+  ...odalSuite.tsx |       0 |        0 |       0 |       0 | 22-657            
+  ...Container.tsx |       0 |        0 |       0 |       0 | 10                
+  googleSignIn.ts  |       0 |        0 |       0 |       0 | 8-78              
+ ...atures/booking |   49.24 |    39.52 |   47.86 |      50 |                   
+  ...elledPage.tsx |   85.71 |    68.75 |     100 |    90.9 | 24                
+  ...ckoutPage.tsx |   60.86 |    46.26 |   77.77 |    62.5 | ...41,171,191,199 
+  ...ilurePage.tsx |    82.6 |       50 |      75 |   88.88 | 25,34             
+  ...ntityPage.tsx |    4.76 |        0 |       0 |    5.26 | 35-105            
+  ...voicePage.tsx |   42.85 |    38.88 |      50 |   41.37 | 24,32-47,89-104   
+  BookingModal.tsx |       0 |        0 |       0 |       0 | 20-334            
+  ...ndingPage.tsx |   66.66 |       40 |      70 |   68.96 | ...-36,58,173-174 
+  ...ceiptPage.tsx |   43.24 |       50 |      50 |   45.45 | 27,37-53,102-125  
+  ...ectedPage.tsx |   85.71 |    66.66 |     100 |    90.9 | 24                
+  ...eviewPage.tsx |   67.74 |    51.85 |   71.42 |   67.74 | ...62,214,219,223 
+  BookingShell.tsx |   78.94 |    46.66 |   66.66 |   78.94 | 69-83,101         
+  ...Container.tsx |   58.33 |    60.97 |   45.45 |   57.77 | ...87-117,144-153 
+  ...ccessPage.tsx |   51.16 |    43.58 |   44.44 |   52.63 | ...-69,82,133-147 
+ src/features/host |       0 |        0 |       0 |       0 |                   
+  ...Analytics.tsx |       0 |        0 |       0 |       0 | 14-182            
+  ...romotions.tsx |       0 |        0 |       0 |       0 | 13-76             
+  ...rtiesList.tsx |       0 |        0 |       0 |       0 | 14-166            
+  ...rtyEditor.tsx |       0 |        0 |       0 |       0 | 12-102            
+  ...rtyWizard.tsx |       0 |        0 |       0 |       0 | 15-449            
+  ...tsExports.tsx |       0 |        0 |       0 |       0 | 11-79             
+  ...ervations.tsx |       0 |        0 |       0 |       0 | 13-128            
+  ...sSettings.tsx |       0 |        0 |       0 |       0 | 21-388            
+  ...Container.tsx |       0 |        0 |       0 |       0 | 18-60             
+ ...es/hostProfile |       0 |        0 |       0 |       0 |                   
+  ...etailPage.tsx |       0 |        0 |       0 |       0 | 12-47             
+  ...Directory.tsx |       0 |        0 |       0 |       0 | 12-70             
+  ...eEditPage.tsx |       0 |        0 |       0 |       0 | 10-57             
+  ...Container.tsx |       0 |        0 |       0 |       0 | 13-27             
+ ...ures/messaging |       0 |        0 |       0 |       0 |                   
+  ...ingCenter.tsx |       0 |        0 |       0 |       0 | 16-178            
+  ...Container.tsx |       0 |        0 |       0 |       0 | 9-10              
+ ...eatures/public |       0 |        0 |       0 |       0 |                   
+  ...encesPage.tsx |       0 |      100 |       0 |       0 | 12-62             
+  JournalPage.tsx  |       0 |      100 |       0 |       0 | 11-37             
+  LandingPage.tsx  |       0 |        0 |       0 |       0 | 17-524            
+  ...HelpPages.tsx |       0 |        0 |       0 |       0 | 10-112            
+  ...etailPage.tsx |       0 |        0 |       0 |       0 | 18-349            
+  ...SearchMap.tsx |       0 |        0 |       0 |       0 | 18-291            
+  ...Container.tsx |       0 |        0 |       0 |       0 | 15-38             
+ ...tures/traveler |       0 |        0 |       0 |       0 |                   
+  ...Dashboard.tsx |       0 |        0 |       0 |       0 | 14-168            
+  ...ntHistory.tsx |       0 |        0 |       0 |       0 | 15-151            
+  ...ntMethods.tsx |       0 |        0 |       0 |       0 | 13-105            
+  ...eIdentity.tsx |       0 |        0 |       0 |       0 | 15-242            
+  ...ervations.tsx |       0 |        0 |       0 |       0 | 14-180            
+  ...fications.tsx |       0 |        0 |       0 |       0 | 14-186            
+  ...Container.tsx |       0 |        0 |       0 |       0 | 16-47             
+  ...Wishlists.tsx |       0 |        0 |       0 |       0 | 13-107            
+ src/hooks         |       0 |        0 |       0 |       0 |                   
+  useAuth.ts       |       0 |        0 |       0 |       0 | 13-137            
+  useBookings.ts   |       0 |        0 |       0 |       0 | 5-31              
+  useProperties.ts |       0 |        0 |       0 |       0 | 5-67              
+ src/lib           |   19.01 |    22.96 |   11.71 |   19.12 |                   
+  ...ermissions.ts |       0 |        0 |       0 |       0 | 4-23              
+  api.ts           |   21.22 |    31.91 |   11.82 |   21.24 | ...1617-1655,1665 
+  auth.ts          |       0 |        0 |       0 |       0 | 3-81              
+  feedback.ts      |       0 |        0 |       0 |       0 | 4                 
+  patois.tsx       |       0 |        0 |       0 |       0 | 3-65              
+ src/pages         |       0 |        0 |       0 |       0 |                   
+  ...tionPages.tsx |       0 |        0 |       0 |       0 | 67-2306           
+  ProductPages.tsx |       0 |        0 |       0 |       0 | 99-3165           
+  ...cementHub.tsx |       0 |        0 |       0 |       0 | 17-70             
+  ...agerPages.tsx |       0 |        0 |       0 |       0 | 20-151            
+  SpecScreens.tsx  |       0 |        0 |       0 |       0 | 81-2705           
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 4.97% ( 295/5925 )
+Branches     : 4.36% ( 202/4626 )
+Functions    : 3.81% ( 86/2255 )
+Lines        : 5.66% ( 273/4818 )
+================================================================================

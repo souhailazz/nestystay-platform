@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-12T18:04:42.516Z",
+  "project": "tablet-chromium",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "adedfe59-982e-42d3-b300-83ff5cbea87b",
+    "invoiceId": "d050ac3e-ba58-4f3e-b68b-2f94165f1926",
+    "maintenanceId": "072bc97e-92d3-4144-b0bd-bf6c507588f4",
+    "proposalId": "6ae56826-60c3-44eb-b509-cc10606501e0"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 1024,
+    "innerWidth": 1024,
+    "buttons": 0
+  },
+  "passed": true
+}

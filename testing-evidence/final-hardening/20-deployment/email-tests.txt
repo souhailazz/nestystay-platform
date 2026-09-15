@@ -1,0 +1,7 @@
+Command: dotnet test backend/tests/NestyStay.Infrastructure.Tests/NestyStay.Infrastructure.Tests.csproj --no-restore --filter FullyQualifiedName~EmailDeliveryTests
+Result: 3 passed / 0 failed
+Coverage: durable/idempotent outbox queue, local .eml transport, safe template HTML encoding and plain-text fallback.
+
+Command: dotnet test backend/tests/NestyStay.Api.Tests/NestyStay.Api.Tests.csproj --no-restore --filter FullyQualifiedName~EmailProductionConfigurationTests
+Result: 3 passed / 0 failed
+Coverage: Brevo credential gate, controlled disable state and self-hosted file-mode production configuration.

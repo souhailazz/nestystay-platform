@@ -1,0 +1,223 @@
+{
+  "generatedAt": "2026-09-02T11:44:59.298Z",
+  "base": "http://127.0.0.1:5019",
+  "apiRaces": {
+    "registrationStatuses": [
+      400,
+      200,
+      400,
+      400,
+      400,
+      400,
+      400,
+      400
+    ],
+    "registrationSuccesses": 1,
+    "qrStatuses": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "qrExpectedResponses": 32
+  },
+  "backendConcurrencyTests": [
+    {
+      "file": "backend/tests\\NestyStay.Application.Tests\\PhaseTwoWorkflowTests.cs",
+      "test": "BadgePaymentsDuplicatesRenewalsExpiryAndSuspensionKeepFeatureAccessConsistent"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Application.Tests\\PhaseTwoWorkflowTests.cs",
+      "test": "BadgeMaintenanceAutomaticallyExpiresElapsedAssignmentsAndSurfacesRenewals"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Infrastructure.Tests\\MilestonePersistenceTests.cs",
+      "test": "PhaseOneStorePersistsStripeWebhookPaymentUpdatesIdempotently"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Infrastructure.Tests\\MilestonePersistenceTests.cs",
+      "test": "ProviderEventStorePersistsProcessingStateAndDeduplicatesProviderEventIds"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Infrastructure.Tests\\MilestonePersistenceTests.cs",
+      "test": "PhaseTwoStorePersistsPricebookAssignmentsRenewalsCampaignsAndFoundingBenefits"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Application.Tests\\PhaseOneWorkflowTests.cs",
+      "test": "RegistrationRejectsInvalidDuplicateAndWeakInputsAndStoresPasswordHash"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Application.Tests\\PhaseOneWorkflowTests.cs",
+      "test": "BookingWithGuestVerificationMovesThroughPendingApprovedAndIdempotentPaymentCapture"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Application.Tests\\PhaseOneWorkflowTests.cs",
+      "test": "PaymentStateMachineRejectsInvalidRefundsAndIgnoresStaleWebhookDowngrades"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Infrastructure.Tests\\MilestoneBookingRateLimitTests.cs",
+      "test": "ConcurrentBookingRequestsCannotBypassLimit"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Api.Tests\\AdminIdentityEndpointTests.cs",
+      "test": "DisabledLockedAndRevokedAdministratorSessionsAreRejected"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Api.Tests\\M3M4EndpointTests.cs",
+      "test": "WellnessSubscriptionUsesContractPriceAndRenewalIsIdempotentWhileActive"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Api.Tests\\PhaseTwoEndpointTests.cs",
+      "test": "BadgesPricingEndpointsSupportPricebookBadgesCampaignsRenewalsAndFoundingBenefits"
+    },
+    {
+      "file": "backend/tests\\NestyStay.Api.Tests\\WebhookSecurityTests.cs",
+      "test": "StripeRawWebhookPersistsSignedEventAndMarksDuplicateReplay"
+    }
+  ],
+  "checks": [
+    {
+      "name": "parallel duplicate registration has at most one success",
+      "passed": true,
+      "detail": [
+        400,
+        200,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400
+      ]
+    },
+    {
+      "name": "parallel duplicate registration has no server errors",
+      "passed": true,
+      "detail": [
+        400,
+        200,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400
+      ]
+    },
+    {
+      "name": "parallel QR validation has no server errors",
+      "passed": true,
+      "detail": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "name": "parallel QR validation returns only expected statuses",
+      "passed": true,
+      "detail": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    }
+  ],
+  "passed": 4,
+  "failed": 0,
+  "scenarios": [
+    "parallel duplicate registration",
+    "parallel QR validation/rate limiting",
+    "booking overlap and creation limit",
+    "payment idempotency/refund",
+    "wellness assignment overlap/payout",
+    "renewal idempotency",
+    "proxy/revoke duplicate guards"
+  ]
+}

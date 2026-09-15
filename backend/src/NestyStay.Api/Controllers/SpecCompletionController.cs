@@ -1,0 +1,628 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc;
+using NestyStay.Api.Auth;
+using NestyStay.Api.Configuration;
+using NestyStay.Application.Admin;
+using NestyStay.Application.Abstractions;
+using NestyStay.Application.PhaseOne;
+using NestyStay.Application.SpecCompletion;
+
+namespace NestyStay.Api.Controllers;
+
+[ApiController]
+[Route("api/spec")]
+public sealed class SpecCompletionController(
+    ISpecCompletionStore store,
+    IPhaseOneStore phaseOneStore,
+    IAccessTokenService accessTokenService,
+    IResourceAuthorizationService authorization,
+    IHostEnvironment environment,
+    IConfiguration configuration) : ControllerBase
+{
+    [HttpPost("auth/passwordless/request")]
+    [HttpPost("/api/auth/passwordless/request")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> RequestPasswordlessLogin(
+        PasswordlessLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var flow = await store.StartAuthFlowAsync(
+            new StartAuthFlowRequest(null, "PasswordlessLogin", request.Email, ResolveRequesterIp()),
+            cancellationToken);
+        // Do not disclose whether an account exists. The random flow id is
+        // safe to return and is required by the development/test adapter.
+        return Ok(flow with { UserId = null, Message = "If that email is registered, a sign-in link has been sent." });
+    }
+
+    [HttpPost("auth/passwordless/complete")]
+    [HttpPost("/api/auth/passwordless/complete")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<IActionResult> CompletePasswordlessLogin(
+        CompleteAuthFlowRequest request,
+        CancellationToken cancellationToken)
+    {
+        var flow = await store.CompleteAuthFlowAsync(request, cancellationToken);
+        if (!flow.FlowType.Equals("PasswordlessLogin", StringComparison.OrdinalIgnoreCase) || flow.UserId is null)
+        {
+            throw new InvalidOperationException("This authentication flow cannot create a session.");
+        }
+
+        var profile = await phaseOneStore.GetUserProfileAsync(flow.UserId.Value, cancellationToken);
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
+        var accessToken = accessTokenService.Issue(profile.UserId, profile.Roles, expiresAt);
+        if (phaseOneStore is ISessionActivityStore sessionStore && accessTokenService.Validate(accessToken) is { } session)
+        {
+            await sessionStore.RecordSessionAsync(profile.UserId, session.TokenId, session.IssuedAt, expiresAt, "Passwordless browser", Request.Headers.UserAgent.ToString(), HttpContext.Connection.RemoteIpAddress?.ToString(), false, cancellationToken);
+        }
+        if (SessionCookieAuth.IsCookieMode(Request))
+        {
+            SessionCookieAuth.Issue(Response, accessToken, expiresAt, IsSecureCookie(), ResolveCookieDomain(), ResolveCookieSameSite());
+        }
+
+        var response = new PasswordlessLoginResponse(
+            profile.UserId,
+            profile.Email,
+            profile.DisplayName,
+            accessToken,
+            expiresAt,
+            profile.Roles);
+        return Ok(SessionCookieAuth.IsCookieMode(Request) ? response with { AccessToken = string.Empty } : response);
+    }
+
+    [HttpPost("seed")]
+    public async Task<ActionResult<SpecSeedStatusDto>> Seed(CancellationToken cancellationToken)
+    {
+        if (!environment.IsDevelopment() && !environment.IsEnvironment("Testing"))
+        {
+            return NotFound();
+        }
+
+        return Ok(await store.EnsureSeededAsync(cancellationToken));
+    }
+
+    [HttpGet("public/pages")]
+    public async Task<ActionResult<IReadOnlyList<PublicContentPageDto>>> GetPublicPages(CancellationToken cancellationToken) =>
+        Ok(await store.GetPublicPagesAsync(cancellationToken));
+
+    [HttpGet("public/pages/{*slug}")]
+    public async Task<ActionResult<PublicContentPageDto>> GetPublicPage(string slug, CancellationToken cancellationToken) =>
+        await store.GetPublicPageAsync(slug, cancellationToken) is { } page ? Ok(page) : NotFound();
+
+    [HttpPost("public/contact")]
+    [EnableRateLimiting(RateLimitPolicies.PublicWrite)]
+    public async Task<ActionResult<ContactRequestDto>> CreateContact(CreateContactRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.CreateContactRequestAsync(request, cancellationToken));
+
+    [HttpGet("experiences")]
+    public async Task<ActionResult<IReadOnlyList<ExperienceDto>>> GetExperiences(
+        [FromQuery] string? category,
+        [FromQuery] string? parish,
+        [FromQuery] string? query,
+        CancellationToken cancellationToken) =>
+        Ok(await store.GetExperiencesAsync(category, parish, query, cancellationToken));
+
+    [HttpGet("experiences/{slug}")]
+    public async Task<ActionResult<ExperienceDto>> GetExperience(string slug, CancellationToken cancellationToken) =>
+        await store.GetExperienceAsync(slug, cancellationToken) is { } experience ? Ok(experience) : NotFound();
+
+    [HttpGet("journal")]
+    public async Task<ActionResult<IReadOnlyList<JournalArticleDto>>> GetJournal(
+        [FromQuery] string? category,
+        [FromQuery] string? query,
+        CancellationToken cancellationToken) =>
+        Ok(await store.GetJournalAsync(category, query, cancellationToken));
+
+    [HttpGet("journal/{slug}")]
+    public async Task<ActionResult<JournalArticleDto>> GetJournalArticle(string slug, CancellationToken cancellationToken) =>
+        await store.GetJournalArticleAsync(slug, cancellationToken) is { } article ? Ok(article) : NotFound();
+
+    [HttpGet("host-profiles")]
+    public async Task<ActionResult<IReadOnlyList<HostProfileDto>>> GetHostProfiles(CancellationToken cancellationToken) =>
+        Ok(await store.GetHostProfilesAsync(cancellationToken));
+
+    [HttpGet("host-profiles/{slug}")]
+    public async Task<ActionResult<HostProfileDto>> GetHostProfile(string slug, CancellationToken cancellationToken) =>
+        await store.GetHostProfileAsync(slug, cancellationToken) is { } profile ? Ok(profile) : NotFound();
+
+    [HttpPut("host-profiles/{slug}")]
+    public async Task<ActionResult<HostProfileDto>> UpsertHostProfile(
+        string slug,
+        UpsertHostProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireHostOwner(request.HostUserId);
+        return Ok(await store.UpsertHostProfileAsync(slug, request, actor, cancellationToken));
+    }
+
+    [HttpGet("traveler/{userId:guid}")]
+    public async Task<ActionResult<TravelerWorkspaceDto>> GetTraveler(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GetTravelerWorkspaceAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("traveler/{userId:guid}/notifications/unread-count")]
+    public async Task<ActionResult<object>> GetUnreadNotificationCount(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(new { unreadCount = await store.GetUnreadNotificationCountAsync(userId, cancellationToken) });
+    }
+
+    [HttpGet("traveler/{userId:guid}/recommendations")]
+    public async Task<ActionResult<IReadOnlyList<TravelerRecommendationDto>>> GetTravelerRecommendations(
+        Guid userId,
+        [FromQuery] string? parish,
+        [FromQuery] decimal? maximumNightlyRate,
+        [FromQuery] string? badgeLevel,
+        [FromQuery] int limit = 12,
+        CancellationToken cancellationToken = default)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GetTravelerRecommendationsAsync(userId, new TravelerRecommendationQuery(parish, maximumNightlyRate, badgeLevel, limit), cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/recommendations/{propertyId:guid}/dismiss")]
+    public async Task<ActionResult<TravelerRecommendationDto>> DismissTravelerRecommendation(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.DismissTravelerRecommendationAsync(userId, propertyId, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/recommendations/{propertyId:guid}/restore")]
+    public async Task<ActionResult<TravelerRecommendationDto>> RestoreTravelerRecommendation(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.RestoreTravelerRecommendationAsync(userId, propertyId, cancellationToken));
+    }
+
+    [HttpPut("traveler/{userId:guid}/preferences")]
+    public async Task<ActionResult<TravelerPreferenceDto>> SaveTravelerPreferences(Guid userId, SaveTravelerPreferencesRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.SaveTravelerPreferencesAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/wishlist/collections")]
+    public async Task<ActionResult<WishlistCollectionDto>> CreateWishlistCollection(Guid userId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.CreateWishlistCollectionAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPut("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}")]
+    public async Task<ActionResult<WishlistCollectionDto>> RenameWishlistCollection(Guid userId, Guid collectionId, SaveWishlistCollectionRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.RenameWishlistCollectionAsync(userId, collectionId, request, cancellationToken));
+    }
+
+    [HttpDelete("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}")]
+    public async Task<IActionResult> DeleteWishlistCollection(Guid userId, Guid collectionId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.DeleteWishlistCollectionAsync(userId, collectionId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("traveler/{userId:guid}/wishlist/collections/{collectionId:guid}/items")]
+    public async Task<ActionResult<WishlistItemDto>> AddWishlistItem(Guid userId, Guid collectionId, SaveWishlistItemRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.AddWishlistItemAsync(userId, collectionId, request, cancellationToken));
+    }
+
+    [HttpDelete("traveler/{userId:guid}/wishlist/items/{itemId:guid}")]
+    public async Task<IActionResult> RemoveWishlistItem(Guid userId, Guid itemId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.RemoveWishlistItemAsync(userId, itemId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("traveler/{userId:guid}/payment-methods")]
+    public async Task<ActionResult<PaymentMethodDto>> AddPaymentMethod(Guid userId, SavePaymentMethodRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.AddPaymentMethodAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/payment-methods/setup-intents")]
+    public async Task<ActionResult<PaymentMethodSetupIntentDto>> CreatePaymentMethodSetupIntent(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.CreatePaymentMethodSetupIntentAsync(userId, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/payment-methods/{paymentMethodId:guid}/default")]
+    public async Task<IActionResult> SetDefaultPaymentMethod(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.SetDefaultPaymentMethodAsync(userId, paymentMethodId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("traveler/{userId:guid}/payment-methods/{paymentMethodId:guid}")]
+    public async Task<IActionResult> RemovePaymentMethod(Guid userId, Guid paymentMethodId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.RemovePaymentMethodAsync(userId, paymentMethodId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("traveler/{userId:guid}/identity-documents/uploads")]
+    public async Task<ActionResult<IdentityDocumentUploadDto>> PrepareIdentityDocumentUpload(
+        Guid userId,
+        PrepareIdentityDocumentUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.PrepareIdentityDocumentUploadAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPut("traveler/{userId:guid}/identity-documents/uploads/{uploadId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<IdentityDocumentUploadDto>> UploadIdentityDocumentContent(
+        Guid userId,
+        Guid uploadId,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.UploadIdentityDocumentContentAsync(
+            userId,
+            uploadId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/reviews")]
+    public async Task<ActionResult<ReviewDto>> SubmitReview(Guid userId, SaveReviewRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.SubmitReviewAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPost("host/{hostUserId:guid}/reviews/{reviewId:guid}/reply")]
+    public async Task<ActionResult<ReviewDto>> ReplyToReview(Guid hostUserId, Guid reviewId, SaveReviewReplyRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        return Ok(await store.ReplyToReviewAsync(hostUserId, reviewId, request, cancellationToken));
+    }
+
+    [HttpPost("traveler/{userId:guid}/notifications/{notificationId:guid}/read")]
+    public async Task<IActionResult> MarkNotificationRead(Guid userId, Guid notificationId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.MarkNotificationReadAsync(userId, notificationId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("traveler/{userId:guid}/notifications/read-all")]
+    public async Task<IActionResult> MarkAllNotificationsRead(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.MarkAllNotificationsReadAsync(userId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("directories/providers")]
+    public async Task<ActionResult<IReadOnlyList<DirectoryProviderDto>>> GetDirectoryProviders(
+        [FromQuery] string? kind,
+        [FromQuery] string? category,
+        [FromQuery] string? parish,
+        [FromQuery] string? query,
+        CancellationToken cancellationToken) =>
+        Ok(await store.GetDirectoryProvidersAsync(kind, category, parish, query, cancellationToken));
+
+    [HttpGet("directories/providers/{slug}")]
+    public async Task<ActionResult<DirectoryProviderDto>> GetDirectoryProvider(string slug, CancellationToken cancellationToken) =>
+        await store.GetDirectoryProviderAsync(slug, cancellationToken) is { } provider ? Ok(provider) : NotFound();
+
+    [HttpPost("directories/providers")]
+    public async Task<ActionResult<DirectoryProviderDto>> UpsertDirectoryProvider(UpsertDirectoryProviderRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.UpsertDirectoryProviderAsync(request, actor, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpGet("directories/providers/{providerId:guid}/documents")]
+    public async Task<ActionResult<IReadOnlyList<DirectoryProviderDocumentDto>>> GetDirectoryProviderDocuments(Guid providerId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.GetDirectoryProviderDocumentsAsync(providerId, actor, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("directories/providers/{providerId:guid}/documents/uploads")]
+    public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> PrepareDirectoryProviderDocumentUpload(Guid providerId, PrepareDirectoryProviderDocumentUploadRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.PrepareDirectoryProviderDocumentUploadAsync(providerId, actor, request, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPut("directories/providers/{providerId:guid}/documents/{documentId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> UploadDirectoryProviderDocumentContent(Guid providerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.UploadDirectoryProviderDocumentContentAsync(providerId, actor, documentId, Request.ContentType ?? string.Empty, Request.ContentLength ?? 0, Request.Body, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpGet("directories/providers/{providerId:guid}/documents/{documentId:guid}/download")]
+    public async Task<ActionResult<DirectoryProviderDocumentDownloadDto>> GetDirectoryProviderDocumentDownload(Guid providerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        return Ok(await store.GetDirectoryProviderDocumentDownloadAsync(providerId, actor, documentId, cancellationToken));
+    }
+
+    [HttpGet("messages/inbox")]
+    public async Task<ActionResult<MessagingInboxDto>> GetInbox([FromQuery] Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GetInboxAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("messages/conversations/{conversationId:guid}")]
+    public async Task<ActionResult<ConversationDto>> GetConversation(Guid conversationId, [FromQuery] Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return await store.GetConversationAsync(userId, conversationId, cancellationToken) is { } conversation ? Ok(conversation) : NotFound();
+    }
+
+    [HttpPost("messages/conversations")]
+    public async Task<ActionResult<ConversationDto>> CreateConversation([FromQuery] Guid userId, CreateConversationRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.CreateConversationAsync(userId, request, cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/attachments/uploads")]
+    public async Task<ActionResult<AttachmentUploadDto>> PrepareMessageAttachmentUpload(
+        Guid conversationId,
+        [FromQuery] Guid userId,
+        PrepareMessageAttachmentUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.PrepareMessageAttachmentUploadAsync(userId, conversationId, request, cancellationToken));
+    }
+
+    [HttpPut("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/content")]
+    [EnableRateLimiting(RateLimitPolicies.Upload)]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<AttachmentUploadDto>> UploadMessageAttachmentContent(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.UploadMessageAttachmentContentAsync(
+            userId,
+            conversationId,
+            attachmentId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/complete")]
+    public async Task<ActionResult<AttachmentUploadDto>> CompleteMessageAttachmentUpload(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CompleteMessageAttachmentUploadRequest? request,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        if (request is null)
+        {
+            throw new InvalidOperationException("Upload verification evidence is required.");
+        }
+
+        return Ok(await store.CompleteMessageAttachmentUploadAsync(userId, conversationId, attachmentId, request, cancellationToken));
+    }
+
+    [HttpGet("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<ActionResult<AttachmentDownloadDto>> GetMessageAttachmentDownload(
+        Guid conversationId,
+        Guid attachmentId,
+        [FromQuery] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GetMessageAttachmentDownloadAsync(userId, conversationId, attachmentId, cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/messages")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
+    public async Task<ActionResult<MessageDto>> SendMessage(Guid conversationId, [FromQuery] Guid userId, SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.SendMessageAsync(userId, conversationId, request, cancellationToken));
+    }
+
+    [HttpPost("messages/conversations/{conversationId:guid}/read")]
+    public async Task<IActionResult> MarkConversationRead(Guid conversationId, [FromQuery] Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        await store.MarkConversationReadAsync(userId, conversationId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("host/{hostUserId:guid}/operations")]
+    public async Task<ActionResult<HostOperationsDto>> GetHostOperations(Guid hostUserId, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        return Ok(await store.GetHostOperationsAsync(hostUserId, cancellationToken));
+    }
+
+    [Authorize(Policy = AdminAuthorizationPolicies.FinancialReporting)]
+    [HttpPost("admin/host-payouts/{payoutId:guid}/settle")]
+    public async Task<ActionResult<HostPayoutDto>> SettleHostPayout(Guid payoutId, SettleHostPayoutRequest request, CancellationToken cancellationToken)
+    {
+        var actor = authorization.RequireSignedInUser();
+        var payout = await store.SettleHostPayoutAsync(payoutId, actor, request.Notes, cancellationToken);
+        if (payout is null) return NotFound();
+        if (store is IPrivilegedAuditStore auditStore)
+        {
+            await auditStore.RecordPrivilegedAuditAsync(
+                new PrivilegedAuditRecord(AuditActor(AdminPermissionCatalog.FinancialReporting), "HostPayoutSettled", "HostPayout", payout.Id, request.Notes ?? "Manual host payout settlement.", null, payout), cancellationToken);
+        }
+        return Ok(payout);
+    }
+
+    [HttpPost("host/{hostUserId:guid}/pricing-rules")]
+    public async Task<ActionResult<HostPricingRuleDto>> SavePricingRule(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId))
+        {
+            return NotFound();
+        }
+
+        return Ok(await store.SaveHostPricingRuleAsync(hostUserId, request, cancellationToken));
+    }
+
+    [HttpPost("host/{hostUserId:guid}/promotions")]
+    public async Task<ActionResult<HostPromotionDto>> SavePromotion(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId))
+        {
+            return NotFound();
+        }
+
+        return Ok(await store.SaveHostPromotionAsync(hostUserId, request, cancellationToken));
+    }
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpGet("admin/operations")]
+    public async Task<ActionResult<AdminOperationsDto>> GetAdminOperations(CancellationToken cancellationToken) =>
+        Ok(await store.GetAdminOperationsAsync(cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpPost("admin/cases")]
+    public async Task<ActionResult<AdminCaseDto>> CreateAdminCase(CreateAdminCaseRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.CreateAdminCaseAsync(request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpPost("admin/cases/{caseId:guid}/resolve")]
+    public async Task<ActionResult<AdminCaseDto>> ResolveAdminCase(Guid caseId, ResolveAdminCaseRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.ResolveAdminCaseAsync(caseId, request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpPost("admin/cases/{caseId:guid}/evidence/uploads")]
+    public async Task<ActionResult<AdminCaseEvidenceUploadDto>> PrepareAdminCaseEvidenceUpload(
+        Guid caseId,
+        PrepareAdminCaseEvidenceUploadRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await store.PrepareAdminCaseEvidenceUploadAsync(caseId, request, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpPut("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/content")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<AdminCaseEvidenceUploadDto>> UploadAdminCaseEvidenceContent(
+        Guid caseId,
+        Guid evidenceId,
+        CancellationToken cancellationToken) =>
+        Ok(await store.UploadAdminCaseEvidenceContentAsync(
+            caseId,
+            evidenceId,
+            Request.ContentType ?? string.Empty,
+            Request.ContentLength ?? 0,
+            Request.Body,
+            AuditActor(AdminPermissionCatalog.UserManagement),
+            cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
+    [HttpGet("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/download")]
+    public async Task<ActionResult<AdminCaseEvidenceDownloadDto>> GetAdminCaseEvidenceDownload(
+        Guid caseId,
+        Guid evidenceId,
+        CancellationToken cancellationToken) =>
+        Ok(await store.GetAdminCaseEvidenceDownloadAsync(caseId, evidenceId, AuditActor(AdminPermissionCatalog.UserManagement), cancellationToken));
+
+    [Authorize(Policy = AdminAuthorizationPolicies.AuditLogAccess)]
+    [HttpGet("admin/audit-log")]
+    public async Task<ActionResult<IReadOnlyList<AuditEventDto>>> GetAuditLog(CancellationToken cancellationToken) =>
+        Ok(await store.GetAuditEventsAsync(cancellationToken));
+
+    [HttpPost("auth/flows")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> StartAuthFlow(StartAuthFlowRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.StartAuthFlowAsync(request with { RequestIp = ResolveRequesterIp() }, cancellationToken));
+
+    [HttpPost("auth/flows/complete")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> CompleteAuthFlow(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.CompleteAuthFlowAsync(request, cancellationToken));
+
+    [HttpPost("auth/owner-invitation/accept")]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
+    public async Task<ActionResult<AuthFlowResultDto>> AcceptOwnerInvitation(CompleteAuthFlowRequest request, CancellationToken cancellationToken) =>
+        Ok(await store.AcceptOwnerInvitationAsync(request, cancellationToken));
+
+    [HttpGet("auth/development/flows/{flowId:guid}")]
+    public async Task<ActionResult<DevelopmentAuthFlowSecretDto>> GetDevelopmentAuthFlowSecret(Guid flowId, CancellationToken cancellationToken)
+    {
+        var developmentCodesAllowed =
+            environment.IsEnvironment("Testing") ||
+            (environment.IsDevelopment() && configuration.GetValue<bool>("Security:EnableDevelopmentAuthCodes"));
+        if (!developmentCodesAllowed)
+        {
+            return NotFound();
+        }
+
+        return await store.GetDevelopmentAuthFlowSecretAsync(flowId, cancellationToken) is { } secret
+            ? Ok(secret)
+            : NotFound();
+    }
+
+    [HttpPost("auth/{userId:guid}/recovery-codes")]
+    public async Task<ActionResult<IReadOnlyList<RecoveryCodeDto>>> GenerateRecoveryCodes(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(await store.GenerateRecoveryCodesAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("auth/social-config")]
+    public async Task<ActionResult<SocialAuthConfigDto>> SocialConfig(CancellationToken cancellationToken) =>
+        Ok(await store.GetSocialAuthConfigAsync(cancellationToken));
+
+    private string ResolveRequesterIp() =>
+        HttpContext.Connection.RemoteIpAddress?.ToString() ??
+        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
+        "unknown";
+
+    private bool IsSecureCookie() =>
+        configuration.GetValue<bool?>("Security:SessionCookieSecure") ?? environment.IsProduction();
+
+    private string? ResolveCookieDomain() =>
+        configuration["Security:SessionCookieDomain"] ??
+        Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_DOMAIN");
+
+    private Microsoft.AspNetCore.Http.SameSiteMode ResolveCookieSameSite()
+    {
+        var configured = configuration["Security:SessionCookieSameSite"] ??
+                         Environment.GetEnvironmentVariable("NESTYSTAY_SESSION_COOKIE_SAMESITE");
+        return Enum.TryParse<Microsoft.AspNetCore.Http.SameSiteMode>(configured, true, out var sameSite)
+            ? sameSite
+            : Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+    }
+
+    private AuditActorContext AuditActor(string effectivePermission) => new(
+        authorization.TryGetSignedInUser(),
+        "Admin",
+        effectivePermission,
+        HttpContext.TraceIdentifier);
+}
+
+public sealed record SettleHostPayoutRequest(string? Notes = null);

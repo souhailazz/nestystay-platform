@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#FAF3E4; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+</style>
+</helmet>
+<!-- BOOK-01 Dates & guests · [CORE] · API: GET /properties/:id (availability) · dates YYYY-MM-DD · next → BOOK-02 -->
+<div data-screen-label="BOOK-01 Dates & guests" style="font-family:'Sora',sans-serif;color:#12241F;font-size:15px;line-height:1.55;min-height:100vh;display:flex;flex-direction:column">
+  <nav style="position:sticky;top:14px;z-index:40;padding:0 clamp(16px,3vw,28px)">
+    <div style="max-width:1160px;margin:0 auto;background:#062B2B;border-radius:999px;box-shadow:0 12px 32px rgba(4,31,31,0.35);display:flex;align-items:center;gap:8px;padding:7px 10px 7px 8px;flex-wrap:wrap">
+      <a href="PUB-01.dc.html" style="display:flex;align-items:center;gap:10px;min-height:44px;padding-left:4px"><span style="width:40px;height:40px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:106px;margin:-5px 0 0 -33px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.14em;color:#FAF3E4">NESTY STAY</span></a>
+      <div style="display:flex;gap:2px;margin-left:auto;align-items:center;flex-wrap:wrap">
+        <a href="PUB-02.dc.html" style="color:#C9DAD5;font-size:13.5px;font-weight:600;padding:0 14px;min-height:44px;display:inline-flex;align-items:center" style-hover="color:#FBF7EC">Explore</a>
+        <a href="PUB-04.dc.html" style="color:#C9DAD5;font-size:13.5px;font-weight:600;padding:0 14px;min-height:44px;display:inline-flex;align-items:center" style-hover="color:#FBF7EC">Back to listing</a>
+      </div>
+    </div>
+  </nav>
+  <main style="max-width:1160px;margin:0 auto;padding:36px clamp(16px,3vw,28px) 64px;display:flex;flex-direction:column;gap:22px;width:100%;box-sizing:border-box">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="display:inline-flex;align-items:center;gap:8px;background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:44px;padding:0 18px;font-size:13px;font-weight:700"><span style="width:20px;height:20px;border-radius:50%;background:#FFD21F;color:#062B2B;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">1</span>Dates</span><span style="display:inline-flex;align-items:center;gap:8px;color:#8A7F5E;border:1px dashed #C7BC9C;border-radius:999px;min-height:44px;padding:0 16px;font-size:13px;font-weight:600">2 · Quote</span><span style="display:inline-flex;align-items:center;gap:8px;color:#8A7F5E;border:1px dashed #C7BC9C;border-radius:999px;min-height:44px;padding:0 16px;font-size:13px;font-weight:600">3 · Identity</span><span style="display:inline-flex;align-items:center;gap:8px;color:#8A7F5E;border:1px dashed #C7BC9C;border-radius:999px;min-height:44px;padding:0 16px;font-size:13px;font-weight:600">4 · Payment</span><span style="display:inline-flex;align-items:center;gap:8px;color:#8A7F5E;border:1px dashed #C7BC9C;border-radius:999px;min-height:44px;padding:0 16px;font-size:13px;font-weight:600">5 · Done</span></div>
+    <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start">
+      <section style="flex:1.6 1 420px;display:flex;flex-direction:column;gap:18px"><h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,3.6vw,42px);margin:0;letter-spacing:-0.01em">Choose your <em style="font-style:italic;color:#0E4A45">dates</em></h1><div style="background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Check-in</span><input type="text" value="2026-12-12" style="min-height:48px;border:1.5px solid #0E4A45;border-radius:14px;padding:0 16px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff;outline:none;box-shadow:0 0 0 3px rgba(14,74,69,0.12)"></label>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Check-out</span><input type="text" value="2026-12-18" style="min-height:48px;border:1.5px solid #C7BC9C;border-radius:14px;padding:0 16px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff;outline:none"></label>
+  </div>
+  <label style="display:flex;flex-direction:column;gap:6px;max-width:220px"><span style="font-size:13px;font-weight:600">Guests</span><select style="min-height:48px;border:1.5px solid #C7BC9C;border-radius:14px;padding:0 12px;font-size:14.5px;font-family:'Sora',sans-serif;background:#fff"><option>2 guests</option><option>3 guests</option><option>4 guests</option></select></label>
+  <div style="background:#E3F2E9;border-radius:14px;padding:12px 16px;font-size:13px;color:#135A38">✓ Available — 6 nights, Dec 12 – 18</div>
+  <div style="background:#FBE7E6;border-radius:14px;padding:12px 16px;font-size:13px;color:#9E2B23">Unavailable state — "Those dates are already booked. Try Dec 19 – 25."</div></div><div style="font-size:12.5px;color:#8A7F5E">Cancellation policy: Flexible — free until 7 days before check-in; the service fee is never refundable.</div></section>
+      <aside style="flex:0 1 360px;position:sticky;top:96px;background:#FBF7EC;border:1px solid #E7DCC2;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px;align-self:flex-start">
+        <div style="display:flex;gap:12px;align-items:center;border-bottom:1px solid #F3EAC8;padding-bottom:14px">
+          <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=400&auto=format&fit=crop" alt="Cliffside Retreat at night" style="width:72px;height:72px;border-radius:14px;object-fit:cover;flex:none">
+          <div><div style="font-family:'Fraunces',serif;font-weight:500;font-size:17px">Cliffside Retreat</div><div style="font-size:12.5px;color:#5A6B63">Negril · Westmoreland · ★ 4.9</div><div style="display:flex;gap:6px;margin-top:4px"><span style="background:#DFF6EF;color:#0E6B57;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px">◆ WELLNESS HOST</span><span style="background:#E5EDFB;color:#1D4FA8;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px">eKYC REQUIRED</span></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;font-size:13.5px">
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3EAC8"><span>$450 × 6 nights</span><strong>$2,700</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3EAC8;gap:8px"><span>Service fee (10%) <span style="background:#FBE7E6;color:#9E2B23;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px">NON-REFUNDABLE</span></span><strong>$270</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3EAC8"><span>eKYC verification</span><strong>$0</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 0"><strong>Total (USD)</strong><strong style="font-family:'Fraunces',serif;font-size:20px">$2,970</strong></div>
+        </div>
+        <div style="font-size:11.5px;color:#8A7F5E">Degressive service fee: 12% under $1,000 · 10% to $5,000 · 8% above. Refundable vs non-refundable split shown on every quote.</div>
+        <a href="BOOK-02.dc.html" style="background:#062B2B;color:#FBF7EC;border-radius:999px;min-height:50px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 26px;font-size:15px;font-weight:600" style-hover="background:#0E4A45;color:#FBF7EC">Continue to quote <span>→</span></a>
+      </aside>
+    </div>
+  </main>
+  <footer style="background:#052A22;padding:20px 24px;display:flex;justify-content:center;margin-top:auto"><span style="font-size:13px;color:#9FB3AC">nestystay.net · <a href="https://wa.me/17542482435" style="color:#9FB3AC">754-248-2435</a></span></footer>
+</div>
+</x-dc>
+</body>
+</html>

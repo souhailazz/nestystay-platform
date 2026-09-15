@@ -1,0 +1,24 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace NestyStay.Infrastructure.Persistence.Milestones;
+
+internal static class MilestoneJson
+{
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
+
+    public static T? Deserialize<T>(string? json) =>
+        string.IsNullOrWhiteSpace(json)
+            ? default
+            : JsonSerializer.Deserialize<T>(json, Options);
+
+    public static List<T> DeserializeList<T>(string? json) =>
+        string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith("{", StringComparison.Ordinal)
+            ? []
+            : JsonSerializer.Deserialize<List<T>>(json, Options) ?? [];
+}

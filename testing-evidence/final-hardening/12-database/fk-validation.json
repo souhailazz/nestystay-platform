@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-09-02",
+  "database": "nestystay_dev",
+  "provider": "PostgreSQL 18",
+  "tables": 145,
+  "foreignKeysBefore": 0,
+  "foreignKeysAfter": 45,
+  "migrationsApplied": [
+    "20260902125555_FinalHardeningM5Relationships",
+    "20260902125706_FixMaintenanceVendorForeignKey"
+  ],
+  "enforcedM5Orphans": 0,
+  "contextualQrScanPropertyOrphans": 1,
+  "contextualQrScanPropertyPolicy": "reviewed-not-constrained; records guard-supplied mismatch values",
+  "migrationApply": "PASS",
+  "relationshipIntegrity": "PASS",
+  "foreignKeyReview": "PASS"
+}

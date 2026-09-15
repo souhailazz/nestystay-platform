@@ -1,0 +1,9 @@
+bin/
+obj/
+TestResults/
+.env
+.env.local
+.env.*
+!.env.example
+!.env.production.example
+*.log

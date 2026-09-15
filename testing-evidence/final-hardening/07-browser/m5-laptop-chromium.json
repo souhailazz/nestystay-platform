@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-02T17:41:05.624Z",
+  "project": "laptop-chromium",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "568f68e5-94d6-429c-b6bb-6a1647789f5a",
+    "invoiceId": "2877e393-6c3f-4385-8eb7-3022835b14db",
+    "maintenanceId": "40923e61-ef69-4c12-82ac-e1faf3e86616",
+    "proposalId": "275eaa88-339f-4a65-a0a0-8cafbbd96eed"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "buttons": 0
+  },
+  "passed": true
+}

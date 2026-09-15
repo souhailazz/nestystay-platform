@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUB-MAP — NestyStay map view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#FAF3E4; font-family:'Sora',sans-serif; color:#12241F; font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  a { color:#0E4A45; text-decoration:none; } a:hover { color:#062B2B; }
+  .topbar { position:sticky; top:0; z-index:40; background:rgba(250,243,228,0.96); border-bottom:1px solid #E7DCC2; }
+  .topbar-inner { padding:10px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .btn-back { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; border:1.5px solid #0E4A45; color:#0E4A45; border-radius:14px; font-size:14px; font-weight:600; background:#FBF7EC; cursor:pointer; }
+  .btn-back:hover { background:#F3EAC8; }
+  .brand { display:flex; align-items:center; gap:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:13.5px; color:#062B2B; letter-spacing:0.14em; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; align-items:center; }
+  .chip { min-height:44px; padding:0 18px; border-radius:999px; font-size:13.5px; font-weight:600; border:1.5px solid #C7BC9C; background:#FBF7EC; color:#5A6B63; cursor:pointer; font-family:inherit; }
+  .chip:hover { border-color:#0E4A45; color:#0E4A45; }
+  .chip.active { background:#062B2B; color:#fff; border-color:#062B2B; }
+  .layout { display:flex; height:calc(100vh - 65px); min-height:520px; }
+  .panel { width:372px; flex:none; overflow-y:auto; border-right:1px solid #E7DCC2; background:#FAF3E4; padding:18px; display:flex; flex-direction:column; gap:12px; }
+  .panel-count { font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#8A7F5E; font-weight:600; }
+  .mini { display:flex; gap:12px; background:#FBF7EC; border:1px solid #E7DCC2; border-radius:14px; padding:10px; align-items:center; cursor:pointer; }
+  .mini:hover { box-shadow:0 4px 14px rgba(6,43,43,0.1); }
+  .mini.active { border:1.5px solid #0E4A45; }
+  .mini img { width:96px; height:76px; object-fit:cover; border-radius:12px; flex:none; display:block; }
+  .mini .t { font-family:'Fraunces',serif; font-weight:600; font-size:15px; }
+  .mini .l { font-size:12.5px; color:#5A6B63; margin-top:1px; }
+  .mini .p { font-size:14px; margin-top:4px; }
+  .tier { display:inline-flex; padding:3px 9px; border-radius:999px; font-size:9.5px; font-weight:700; letter-spacing:0.06em; vertical-align:middle; white-space:nowrap; flex:none; }
+  .mini .p { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tier.trusted { background:#062B2B; color:#FFD21F; }
+  .tier.verified { background:#0E4A45; color:#fff; }
+  .tier.wellness { background:#DFF6EF; color:#0E6B57; border:1px solid #2FB893; }
+  .mapwrap { flex:1; position:relative; background:#D8E9E4; min-width:0; }
+  .mapwrap svg { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .maphint { position:absolute; bottom:14px; right:16px; background:rgba(255,255,255,0.9); border-radius:8px; padding:5px 10px; font-size:11px; color:#5A6B63; }
+  .drawer { display:none; }
+  @media (max-width:700px) {
+    .panel { display:none; }
+    .layout { height:calc(100vh - 65px); }
+    .drawer { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:45; background:#FAF3E4; border-top:1px solid #E7DCC2; border-radius:18px 18px 0 0; box-shadow:0 -8px 24px rgba(6,43,43,0.14); padding:10px 14px 16px; gap:12px; overflow-x:auto; flex-direction:column; }
+    .drawer-handle { width:44px; height:5px; border-radius:99px; background:#C7BC9C; margin:2px auto 0; flex:none; }
+    .drawer-row { display:flex; gap:12px; overflow-x:auto; padding-bottom:2px; }
+    .drawer .mini { flex:0 0 280px; }
+    .chips { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="btn-back" href="PUB-02.dc.html">← Back to list view</a>
+    <span class="brand"><span style="width:40px;height:40px;border-radius:50%;background:#062B2B;overflow:hidden;display:inline-block;flex:none;vertical-align:middle"><img src="uploads/pasted-1784678954416-0.png" alt="" style="width:106px;margin:-5px 0 0 -33px;display:block"></span>NESTY STAY</span>
+    <div class="chips">
+      <button class="chip active">All badges</button>
+      <button class="chip">✓ Verified</button>
+      <button class="chip">★ Trusted</button>
+      <button class="chip">✦ Wellness</button>
+      <button class="chip">Price · any</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="panel">
+    <div class="panel-count">9 stays on the map</div>
+    <div class="mini active">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=400&auto=format&fit=crop" alt="Seaview Villa pool at dusk">
+      <div><div class="t">Seaview Villa</div><div class="l">Ocho Rios · St. Ann</div><div class="p"><strong>$320</strong> / night &nbsp;<span class="tier trusted">★ TRUSTED</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=400&auto=format&fit=crop" alt="Cliffside Retreat at night">
+      <div><div class="t">Cliffside Retreat</div><div class="l">Negril · Westmoreland</div><div class="p"><strong>$450</strong> / night &nbsp;<span class="tier wellness">✦ WELLNESS</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=400&auto=format&fit=crop" alt="Garden Cottage exterior">
+      <div><div class="t">Garden Cottage</div><div class="l">Port Antonio · Portland</div><div class="p"><strong>$280</strong> / night &nbsp;<span class="tier verified">✓ VERIFIED</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=400&auto=format&fit=crop" alt="Bay Suite terrace">
+      <div><div class="t">Bay Suite</div><div class="l">Montego Bay · St. James</div><div class="p"><strong>$260</strong> / night &nbsp;<span class="tier verified">✓ VERIFIED</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=400&auto=format&fit=crop" alt="Reef House aerial view">
+      <div><div class="t">Reef House</div><div class="l">Falmouth · Trelawny</div><div class="p"><strong>$340</strong> / night &nbsp;<span class="tier trusted">★ TRUSTED</span></div></div>
+    </div>
+  </aside>
+
+  <div class="mapwrap">
+    <svg id="map" role="img" aria-label="Map of Jamaica with priced stays by parish"></svg>
+    <div class="maphint">Static map view — pins are illustrative positions</div>
+  </div>
+</div>
+
+<!-- Mobile bottom drawer -->
+<div class="drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-row">
+    <div class="mini active">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=400&auto=format&fit=crop" alt="Seaview Villa pool at dusk">
+      <div><div class="t">Seaview Villa</div><div class="l">Ocho Rios · St. Ann</div><div class="p"><strong>$320</strong> / night &nbsp;<span class="tier trusted">★ TRUSTED</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=400&auto=format&fit=crop" alt="Cliffside Retreat at night">
+      <div><div class="t">Cliffside Retreat</div><div class="l">Negril · Westmoreland</div><div class="p"><strong>$450</strong> / night &nbsp;<span class="tier wellness">✦ WELLNESS</span></div></div>
+    </div>
+    <div class="mini">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=400&auto=format&fit=crop" alt="Garden Cottage exterior">
+      <div><div class="t">Garden Cottage</div><div class="l">Port Antonio · Portland</div><div class="p"><strong>$280</strong> / night &nbsp;<span class="tier verified">✓ VERIFIED</span></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const svg = d3.select('#map');
+  const wrap = document.querySelector('.mapwrap');
+  const W = Math.max(wrap.clientWidth, 320), H = Math.max(wrap.clientHeight, 400);
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  // Real geometry — Natural Earth via world-atlas (public domain)
+  const topo = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-10m.json');
+  const countries = topojson.feature(topo, topo.objects.countries);
+  const jamaica = countries.features.find(f => f.id === '388' || (f.properties && f.properties.name === 'Jamaica'));
+
+  const proj = d3.geoMercator().fitExtent([[W * 0.06, H * 0.14], [W * 0.94, H * 0.86]], jamaica);
+  const path = d3.geoPath(proj);
+
+  // Land
+  svg.append('path').attr('d', path(jamaica))
+    .attr('fill', '#F3F4EC').attr('stroke', '#0E4A45').attr('stroke-width', 1.4);
+
+  // Layer for parish boundaries (inserted async below, kept beneath labels/pins)
+  const boundaryLayer = svg.append('g');
+
+  // Parish boundaries (watermark) — real ADM1 geometry from geoBoundaries, multiple sources tried in order.
+  // Loaded WITHOUT await so labels and pins paint immediately.
+  async function loadParishes() {
+    const direct = [
+      // git-LFS media endpoint — the only URL that serves the real geojson (raw/jsdelivr return LFS pointers)
+      'https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/JAM/ADM1/geoBoundaries-JAM-ADM1_simplified.geojson'
+    ];
+    for (const u of direct) { try { return await d3.json(u); } catch (e) {} }
+    try { // fallback: official API's current download URL
+      const meta = await d3.json('https://www.geoboundaries.org/api/current/gbOpen/JAM/ADM1/');
+      const url = meta.simplifiedGeometryGeoJSON || meta.gjDownloadURL;
+      if (url) return await d3.json(url);
+    } catch (e) {}
+    return null;
+  }
+  loadParishes().then(adm1 => {
+    if (adm1 && adm1.features) {
+      boundaryLayer.selectAll('path').data(adm1.features).join('path')
+        .attr('d', path)
+        .attr('fill', 'none')
+        .attr('stroke', '#062B2B').attr('stroke-opacity', 0.26)
+        .attr('stroke-width', 1).attr('stroke-dasharray', '3 3');
+    }
+  });
+
+  // Parish labels (filigrane)
+  const parishes = [
+    ['HANOVER', 18.42, -78.11], ['WESTMORELAND', 18.24, -78.02], ['ST. JAMES', 18.40, -77.88],
+    ['TRELAWNY', 18.34, -77.60], ['ST. ANN', 18.32, -77.23], ['ST. MARY', 18.32, -76.88],
+    ['PORTLAND', 18.13, -76.53], ['ST. THOMAS', 17.95, -76.42], ['ST. ANDREW', 18.06, -76.76],
+    ['ST. CATHERINE', 18.08, -77.03], ['CLARENDON', 17.98, -77.28], ['MANCHESTER', 18.06, -77.52],
+    ['ST. ELIZABETH', 18.09, -77.83]
+  ];
+  svg.append('g').selectAll('text').data(parishes).join('text')
+    .attr('x', d => proj([d[2], d[1]])[0]).attr('y', d => proj([d[2], d[1]])[1])
+    .attr('text-anchor', 'middle')
+    .attr('font-family', "'Sora',sans-serif").attr('font-size', 9.5)
+    .attr('font-weight', 600).attr('letter-spacing', '0.12em')
+    .attr('fill', '#062B2B').attr('fill-opacity', 0.3)
+    .text(d => d[0]);
+
+  // Price pins
+  const pins = [
+    { p: '$450', lat: 18.27, lng: -78.34 },            // Negril
+    { p: '$260', lat: 18.47, lng: -77.92 },            // Montego Bay
+    { p: '$340', lat: 18.49, lng: -77.65 },            // Falmouth
+    { p: '$230', lat: 18.45, lng: -77.33 },            // Runaway Bay
+    { p: '$320', lat: 18.41, lng: -77.11, active: 1 }, // Ocho Rios
+    { p: '$280', lat: 18.18, lng: -76.45 },            // Port Antonio
+    { p: '$195', lat: 17.99, lng: -76.80 },            // Kingston
+    { p: '$210', lat: 18.04, lng: -77.51 },            // Mandeville
+    { p: '$410', lat: 17.89, lng: -77.76 }             // Treasure Beach
+  ];
+  const g = svg.append('g');
+  pins.forEach(d => {
+    const [x, y] = proj([d.lng, d.lat]);
+    const w = 14 + d.p.length * 8.4, h = 30;
+    const pin = g.append('g').attr('transform', `translate(${x},${y})`).style('cursor', 'pointer');
+    pin.append('path').attr('d', `M -5 ${h / 2 - 1} L 5 ${h / 2 - 1} L 0 ${h / 2 + 6} Z`)
+      .attr('fill', d.active ? '#062B2B' : '#ffffff').attr('stroke', d.active ? '#062B2B' : '#C7BC9C').attr('stroke-width', 1);
+    pin.append('rect').attr('x', -w / 2).attr('y', -h / 2).attr('width', w).attr('height', h).attr('rx', h / 2)
+      .attr('fill', d.active ? '#062B2B' : '#ffffff')
+      .attr('stroke', d.active ? '#062B2B' : '#C7BC9C').attr('stroke-width', 1)
+      .attr('filter', 'drop-shadow(0 2px 4px rgba(6,43,43,0.22))');
+    pin.append('text').attr('text-anchor', 'middle').attr('dy', '0.36em')
+      .attr('font-family', "'Sora',sans-serif").attr('font-size', 13.5).attr('font-weight', 700)
+      .attr('fill', d.active ? '#ffffff' : '#062B2B').text(d.p);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-09-02",
+  "command": "NESTYSTAY_E2E_ADMIN_TOKEN=test-admin-token npx playwright test e2e/final-hardening-email.spec.ts --config=playwright.hardening.config.ts --project=laptop-chromium",
+  "result": "PASS",
+  "flows": [
+    "local .eml capture contains an email-verification PUBLIC_APP_URL path",
+    "email-verification link completes through /auth/email-verification",
+    "owner-invitation link completes through /owner/invitation",
+    "password-reset link completes through /auth/reset-password"
+  ],
+  "secretsRecorded": false
+}
