@@ -12,6 +12,7 @@ namespace NestyStay.Api.Controllers;
 [Route("api/badges-pricing")]
 public sealed class BadgesPricingController(
     IPhaseTwoStore phaseTwoStore,
+    IBadgePaymentStore badgePaymentStore,
     IResourceAuthorizationService authorization,
     IPrivilegedAuditStore auditStore) : ControllerBase
 {
@@ -43,20 +44,26 @@ public sealed class BadgesPricingController(
     public IActionResult GetBadgeEligibility(PurchaseBadgeRequest request) =>
         Ok(phaseTwoStore.GetBadgeEligibility(request));
 
+    [HttpPost("badges/purchase-intent")]
+    [Authorize]
+    public Task<IActionResult> CreateBadgePurchaseIntent(PurchaseBadgeRequest request, CancellationToken cancellationToken) =>
+        CreateBadgePurchaseIntentCore(request, cancellationToken);
+
+    // Kept as a compatibility alias for existing clients. It now creates a
+    // provider-backed payment intent; it no longer grants a badge directly.
     [HttpPost("badges/purchase")]
-    [Authorize(Policy = AdminAuthorizationPolicies.SystemConfiguration)]
-    public async Task<IActionResult> PurchaseBadge(PurchaseBadgeRequest request, CancellationToken cancellationToken)
+    [Authorize]
+    public Task<IActionResult> PurchaseBadge(PurchaseBadgeRequest request, CancellationToken cancellationToken) =>
+        CreateBadgePurchaseIntentCore(request, cancellationToken);
+
+    [HttpGet("payments/{paymentId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> GetBadgePayment(Guid paymentId, CancellationToken cancellationToken)
     {
-        var assignment = phaseTwoStore.PurchaseBadge(request);
-        await RecordSystemAuditAsync(
-            "BadgeAssignmentCreated",
-            "BadgeAssignment",
-            assignment.Id,
-            $"Administrator assigned {assignment.Level} badge to {assignment.SubjectType} {assignment.SubjectId}.",
-            null,
-            assignment,
-            cancellationToken);
-        return Ok(assignment);
+        var payment = await badgePaymentStore.GetPaymentAsync(paymentId, cancellationToken);
+        if (payment is null) return NotFound();
+        RequireBadgeSubjectAccess(payment.SubjectType, payment.SubjectId);
+        return Ok(payment);
     }
 
     [HttpGet("badges/assignments")]
@@ -130,10 +137,39 @@ public sealed class BadgesPricingController(
             RequireAssignmentAccess(assignmentId);
         }
 
-        var previous = FindAssignment(assignmentId);
-        var assignment = phaseTwoStore.PayRenewal(assignmentId);
-        await RecordSystemAuditAsync("BadgeRenewalRecorded", "BadgeAssignment", assignmentId, authorization.IsInRole(UserRole.Admin) ? "Administrator recorded a successful badge renewal." : "Host owner paid a successful badge renewal.", previous, assignment, cancellationToken);
-        return Ok(assignment);
+        var idempotencyKey = ResolveIdempotencyKey();
+        var payment = await badgePaymentStore.CreateRenewalIntentAsync(assignmentId, idempotencyKey, cancellationToken);
+        await RecordSystemAuditAsync(
+            "BadgeRenewalPaymentStarted",
+            "BadgePayment",
+            payment.Id,
+            authorization.IsInRole(UserRole.Admin) ? "Administrator started a badge renewal payment." : "Host owner started a badge renewal payment.",
+            null,
+            payment,
+            cancellationToken);
+        return Ok(payment);
+    }
+
+    private async Task<IActionResult> CreateBadgePurchaseIntentCore(PurchaseBadgeRequest request, CancellationToken cancellationToken)
+    {
+        RequireBadgeSubjectAccess(request.SubjectType, request.SubjectId);
+        var payment = await badgePaymentStore.CreatePurchaseIntentAsync(request, ResolveIdempotencyKey(request.IdempotencyKey), cancellationToken);
+        await RecordSystemAuditAsync(
+            "BadgePaymentStarted",
+            "BadgePayment",
+            payment.Id,
+            $"{request.Level} badge payment started for {request.SubjectType} {request.SubjectId}.",
+            null,
+            payment,
+            cancellationToken);
+        return Ok(payment);
+    }
+
+    private string ResolveIdempotencyKey(string? requestKey = null)
+    {
+        var headerKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var key = string.IsNullOrWhiteSpace(headerKey) ? requestKey : headerKey;
+        return string.IsNullOrWhiteSpace(key) ? $"badge-{Guid.NewGuid():N}" : key.Trim();
     }
 
     [HttpGet("campaigns")]

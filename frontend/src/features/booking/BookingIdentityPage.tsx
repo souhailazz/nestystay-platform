@@ -28,9 +28,9 @@ const DOCUMENTS = [
   ["driver_license", "Driver license", "Front and back required", false],
 ] as const;
 
-/* BOOK-03 (DS v2) — eKYC document choice. The verification session itself is
-   created by the backend on booking creation; the external transaction link
-   (booking.ekycTransactionUrl) opens from here or from BOOK-07. */
+/* BOOK-03 (DS v2) — identity document choice. The verification session is
+   created by the configured backend provider on booking creation; its hosted
+   transaction link opens from here or from BOOK-07. */
 export function BookingIdentityPage({ bookingId, auth }: BookingIdentityPageProps) {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [documentType, setDocumentType] = useState<string>("passport");
@@ -51,6 +51,8 @@ export function BookingIdentityPage({ bookingId, auth }: BookingIdentityPageProp
       active = false;
     };
   }, [bookingId, auth.session?.accessToken]);
+
+  const verificationProvider = booking?.ekycProvider ?? "identity verification partner";
 
   function handleContinue() {
     if (booking?.ekycTransactionUrl) {
@@ -84,7 +86,7 @@ export function BookingIdentityPage({ bookingId, auth }: BookingIdentityPageProp
       <BookingHeading accent="identity" pre="Verify your" />
       <div className="max-w-[520px] text-sm text-gray-600">
         This host requires traveler verification for every booking. Pick the document you&apos;ll present — you&apos;ll
-        be redirected to our secure verification partner.
+        continue securely with {verificationProvider}.
       </div>
 
       <div className="flex flex-col gap-3">
@@ -123,8 +125,8 @@ export function BookingIdentityPage({ bookingId, auth }: BookingIdentityPageProp
         <div className="flex items-start gap-3">
           <Lock className="mt-0.5 shrink-0 text-deep-hover" size={18} />
           <div className="text-[12.5px] text-gray-600">
-            Verification happens on our partner&apos;s secure page (external redirect). NestyStay never stores your
-            document images. Your dates are <strong className="text-ink">held for 60 minutes</strong> while you verify.
+            Verification happens on {verificationProvider}&apos;s secure page (external redirect). NestyStay never
+            stores your document images. Your dates are <strong className="text-ink">held for 60 minutes</strong> while you verify.
           </div>
         </div>
       </div>

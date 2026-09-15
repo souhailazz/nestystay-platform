@@ -40,7 +40,7 @@ public sealed class BadgeAuthorizationTests : IClassFixture<NestyStayApiFactory>
         var hostEligibility = await client.PostAsJsonAsync("/api/badges-pricing/badges/eligibility", request);
         var hostPurchase = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase", request);
         Assert.Equal(HttpStatusCode.Forbidden, hostEligibility.StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, hostPurchase.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, hostPurchase.StatusCode);
     }
 
     [Fact]

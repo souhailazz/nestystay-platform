@@ -43,6 +43,33 @@ public sealed class EmailProductionConfigurationTests
         ProductionIntegrationValidator.Validate(configuration, new TestHostEnvironment(Environments.Production));
     }
 
+    [Fact]
+    public void StripeIdentityModeRequiresReturnUrl()
+    {
+        var configuration = BaseConfiguration(new Dictionary<string, string?>
+        {
+            ["Integrations:EkycProvider"] = "stripe_identity",
+            ["Integrations:StripeIdentityReturnUrl"] = null
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ProductionIntegrationValidator.Validate(configuration, new TestHostEnvironment(Environments.Production)));
+
+        Assert.Contains("Stripe Identity return URL", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void StripeIdentityModeAcceptsHttpsReturnUrl()
+    {
+        var configuration = BaseConfiguration(new Dictionary<string, string?>
+        {
+            ["Integrations:EkycProvider"] = "stripe_identity",
+            ["Integrations:StripeIdentityReturnUrl"] = "https://app.example.test/booking/{bookingId}/pending"
+        });
+
+        ProductionIntegrationValidator.Validate(configuration, new TestHostEnvironment(Environments.Production));
+    }
+
     private static IConfiguration BaseConfiguration(Dictionary<string, string?> overrides)
     {
         var values = new Dictionary<string, string?>
@@ -54,15 +81,8 @@ public sealed class EmailProductionConfigurationTests
             ["Webhooks:StripeSigningSecret"] = "production-stripe-webhook-secret",
             ["Integrations:StripeSecretKey"] = "production-stripe-secret-key",
             ["Integrations:StripePublishableKey"] = "production-stripe-publishable-key",
-            ["Integrations:AlibabaCloudAccessKeyId"] = "ram-access-key-id",
-            ["Integrations:AlibabaCloudAccessKeySecret"] = "ram-access-key-secret",
-            ["Integrations:AlibabaEkycRegion"] = "ap-southeast-1",
-            ["Integrations:AlibabaEkycEndpoint"] = "cloudauth-intl.ap-southeast-1.aliyuncs.com",
-            ["Integrations:AlibabaEkycProductCode"] = "eKYC_PRO",
-            ["Integrations:AlibabaEkycSceneCode"] = "NESTYWEB",
-            ["Integrations:AlibabaEkycCallbackUrl"] = "https://api.example.test/api/webhooks/alibaba-ekyc/callback",
-            ["Integrations:AlibabaEkycReturnUrl"] = "https://app.example.test/ekyc/complete",
-            ["Integrations:AlibabaEkycCallbackToken"] = "callback-token",
+            ["Integrations:EkycProvider"] = "stripe_identity",
+            ["Integrations:StripeIdentityReturnUrl"] = "https://app.example.test/booking/{bookingId}/pending",
             ["Integrations:InsuraGuestApiBaseUrl"] = "https://insurance.provider.invalid"
         };
         foreach (var (key, value) in overrides) values[key] = value;

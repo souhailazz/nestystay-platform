@@ -459,7 +459,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
           <div className="space-y-4">
             <label className="checkbox-card">
               <input type="checkbox" checked={formData.verificationEnabled} onChange={(e) => setFormData({ ...formData, verificationEnabled: e.target.checked })} />
-              <span>Enable Alibaba Cloud eKYC verification for guests</span>
+              <span>Enable Stripe Identity verification for guests</span>
             </label>
             <label className="checkbox-card">
               <input type="checkbox" checked={formData.insuraGuestEnabled} onChange={(e) => setFormData({ ...formData, insuraGuestEnabled: e.target.checked })} />

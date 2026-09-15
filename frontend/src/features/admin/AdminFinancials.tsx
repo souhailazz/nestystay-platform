@@ -63,7 +63,7 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
       ) : bookings.length === 0 ? (
         <EmptyState title="No transactions yet" copy="Captured payments and refund-eligible bookings will appear here." />
       ) : (
-        <div className="card-box">
+        <div className="card-box responsive-table-cards">
           <table className="table-styled w-full">
             <thead>
               <tr>
@@ -78,12 +78,12 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
             <tbody>
               {bookings.map((b) => (
                 <tr key={b.id}>
-                  <td><strong>NSTY-BK-{b.id.substring(0, 8)}</strong></td>
-                  <td>{b.hostName}</td>
-                  <td><strong>{formatMoney(b.totalAmount, b.currency)}</strong></td>
-                  <td><span className="badge badge-green">{b.paymentStatus}</span></td>
-                  <td><code className="text-xs">{b.id}</code></td>
-                  <td className="text-right">
+                  <td data-label="Booking ref"><strong>NSTY-BK-{b.id.substring(0, 8)}</strong></td>
+                  <td data-label="Host">{b.hostName}</td>
+                  <td data-label="Total"><strong>{formatMoney(b.totalAmount, b.currency)}</strong></td>
+                  <td data-label="Status"><span className="badge badge-green">{b.paymentStatus}</span></td>
+                  <td data-label="Reference"><code className="text-xs">{b.id}</code></td>
+                  <td className="text-right" data-label="Refund action">
                     {b.paymentStatus === "CAPTURED" && (
                       <button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => handleRefund(b.id)}>
                         <RotateCcw size={14} /> Process Refund

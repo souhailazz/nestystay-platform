@@ -30,7 +30,7 @@ the release.
    privately on the server; managed services are also supported).
 3. DNS/TLS for `app.example.com` and `api.example.com` under the same parent
    domain.
-4. Client-owned Stripe, Alibaba eKYC and email/provider accounts when moving
+4. Client-owned Stripe, Stripe Identity and email/provider accounts when moving
    beyond local/test mode.
 5. A GitHub Container Registry read token and an SSH key for the deployment
    user.
@@ -62,8 +62,8 @@ database backup before the first production rollout.
 ## Important provider distinction
 
 The local/test application integration is included. Production readiness still
-requires the client's live Stripe webhook/domain/Connect validation, Alibaba
-eKYC credentials and callbacks, email/SMS/push delivery credentials, backups,
+requires the client's live Stripe webhook/domain/Connect and Stripe Identity validation,
+email/SMS/push delivery credentials, backups,
 monitoring and a production smoke test. Those values cannot be supplied by the
 repository and must not be committed.
 

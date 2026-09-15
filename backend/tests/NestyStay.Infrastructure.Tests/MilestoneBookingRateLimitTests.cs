@@ -219,7 +219,7 @@ public sealed class MilestoneBookingRateLimitTests
 
     private sealed class TestEkycProvider : IEkycProvider
     {
-        public string ProviderName => "Alibaba Cloud eKYC";
+        public string ProviderName => "Stripe Identity";
 
         public Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new EkycStartResult(

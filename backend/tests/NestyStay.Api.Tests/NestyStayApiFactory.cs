@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NestyStay.Api.Auth;
 using NestyStay.Application.Abstractions;
 using NestyStay.Infrastructure.Persistence;
+using NestyStay.Infrastructure.Persistence.Milestones;
 using NestyStay.Domain;
 using System.Security.Cryptography;
 using System.Text;
@@ -58,6 +59,105 @@ public sealed class NestyStayApiFactory : WebApplicationFactory<Program>
         }
 
         base.Dispose(disposing);
+    }
+
+    public async Task SeedBadgePaymentFactsAsync(
+        Guid hostId,
+        int approvedBookingCount = 0,
+        bool hasPropertyAddress = false,
+        bool hasWellnessSubscription = false)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NestyStayDbContext>();
+        await db.Database.EnsureCreatedAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        var host = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == hostId);
+        if (host is null)
+        {
+            host = new MilestoneUser
+            {
+                Id = hostId,
+                Email = $"badge-payment-{hostId:N}@test.local",
+                NormalizedEmail = $"badge-payment-{hostId:N}@test.local",
+                PasswordHash = "test-only",
+                DisplayName = "Badge Payment Test Host",
+                Status = "Active",
+                IsTwoFactorEnabled = false,
+                RolesJson = JsonSerializer.Serialize(new[] { UserRole.Host }),
+                AdminPermissionsJson = "[]"
+            };
+            db.MilestoneUsers.Add(host);
+        }
+
+        host.HostVerificationStatus = "Approved";
+        host.HostVerificationDocumentType = "Passport";
+        host.HostVerificationReviewedAt = now;
+
+        if (hasPropertyAddress)
+        {
+            db.MilestoneProperties.Add(new MilestoneProperty
+            {
+                Id = Guid.NewGuid(),
+                HostUserId = hostId,
+                HostName = host.DisplayName,
+                HostEmail = host.Email,
+                Title = "Badge Payment Test Property",
+                Location = "Kingston, Jamaica",
+                Country = "Jamaica",
+                NightlyRate = 100m,
+                Currency = "USD",
+                BadgeLevel = BadgeLevel.Free,
+                CancellationPolicy = "Flexible",
+                IsDraft = false,
+                IsArchived = false
+            });
+        }
+
+        for (var index = 0; index < approvedBookingCount; index++)
+        {
+            db.MilestoneBookings.Add(new MilestoneBooking
+            {
+                Id = Guid.NewGuid(),
+                HostUserId = hostId,
+                HostName = host.DisplayName,
+                HostEmail = host.Email,
+                GuestUserId = Guid.NewGuid(),
+                GuestEmail = $"badge-guest-{hostId:N}-{index}@test.local",
+                GuestName = "Badge Payment Test Guest",
+                CheckIn = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(index + 1)),
+                CheckOut = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(index + 2)),
+                Status = BookingStatus.Confirmed,
+                VerificationStatus = VerificationStatus.Passed,
+                PaymentStatus = PaymentStatus.Captured,
+                Nights = 1,
+                NightlyRate = 100m,
+                StaySubtotal = 100m,
+                GuestPlatformFee = 0m,
+                TotalAmount = 100m,
+                Currency = "USD",
+                PropertyTitle = "Badge Payment Test Property"
+            });
+        }
+
+        if (hasWellnessSubscription)
+        {
+            db.MilestoneWellnessSubscriptions.Add(new MilestoneWellnessSubscription
+            {
+                Id = Guid.NewGuid(),
+                HostUserId = hostId,
+                PlanKey = "wellness-monthly",
+                MonthlyAmount = 19m,
+                Currency = "USD",
+                Status = "Active",
+                CurrentPeriodStart = now.AddDays(-1),
+                CurrentPeriodEnd = now.AddDays(30),
+                PaymentProvider = "Test",
+                PaymentReference = $"test-subscription-{hostId:N}"
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     public static string UserToken(Guid userId, params UserRole[] roles)

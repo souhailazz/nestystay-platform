@@ -142,6 +142,13 @@ public sealed class SpecCompletionController(
         return Ok(await store.GetTravelerWorkspaceAsync(userId, cancellationToken));
     }
 
+    [HttpGet("traveler/{userId:guid}/notifications/unread-count")]
+    public async Task<ActionResult<object>> GetUnreadNotificationCount(Guid userId, CancellationToken cancellationToken)
+    {
+        authorization.RequireResourceOwner(userId);
+        return Ok(new { unreadCount = await store.GetUnreadNotificationCountAsync(userId, cancellationToken) });
+    }
+
     [HttpGet("traveler/{userId:guid}/recommendations")]
     public async Task<ActionResult<IReadOnlyList<TravelerRecommendationDto>>> GetTravelerRecommendations(
         Guid userId,

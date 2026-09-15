@@ -57,6 +57,7 @@ export function PageHeader({
         <motion.h1
           animate={{ opacity: 1, y: 0 }}
           className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal leading-[1.12] text-ink"
+          data-route-heading="true"
           initial={reducedMotion ? false : { opacity: 0, y: 22 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >

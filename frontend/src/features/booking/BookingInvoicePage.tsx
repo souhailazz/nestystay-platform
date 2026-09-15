@@ -83,7 +83,8 @@ export function BookingInvoicePage({ bookingId, auth }: BookingInvoicePageProps)
           </div>
         </div>
 
-        <table className="table-styled w-full mb-6">
+        <div className="responsive-table-cards mb-6">
+        <table className="table-styled w-full">
           <thead>
             <tr>
               <th>Description</th>
@@ -93,18 +94,19 @@ export function BookingInvoicePage({ bookingId, auth }: BookingInvoicePageProps)
           <tbody>
             {booking.priceBreakdown.map((line, idx) => (
               <tr key={idx}>
-                <td>{line.description}</td>
-                <td className="text-right">{formatMoney(line.amount, line.currency)}</td>
+                <td data-label="Description">{line.description}</td>
+                <td className="text-right" data-label="Amount">{formatMoney(line.amount, line.currency)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="font-bold border-t">
-              <td>Total Invoice Amount</td>
-              <td className="text-right">{formatMoney(booking.totalAmount, booking.currency)}</td>
+              <td data-label="Total">Total Invoice Amount</td>
+              <td className="text-right" data-label="Amount">{formatMoney(booking.totalAmount, booking.currency)}</td>
             </tr>
           </tfoot>
         </table>
+        </div>
 
         <footer className="invoice-footer flex justify-between items-center border-t pt-4 no-print">
           <button type="button" className="btn btn-ghost" onClick={() => window.print()}>

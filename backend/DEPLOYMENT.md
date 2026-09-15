@@ -1,143 +1,125 @@
-# NestyStay M1–M2 deployment guide
+# NestyStay backend deployment guide
 
-This repository is the backend release for the contractual Milestones 1 and 2
-(Core Booking and Badges). It is an ASP.NET Core 10 API with EF Core migrations.
-The repository also contains shared application modules used by the existing
-platform; the production deployment scope in this guide is M1–M2.
+This repository is the ASP.NET Core 10 backend release. The client staging
+server runs the published API directly under `systemd`; it does not use Docker
+or Docker Compose. Nginx terminates TLS and forwards `/api/*`, `/openapi/*` and
+`/swagger/*` to the local ASP.NET listener.
 
 ## What the client receives
 
 - Registration, login, logout, 2FA/recovery and signed cookie sessions.
-- Host properties, booking quotes, PENDING/APPROVED/REJECTED booking states,
-  date holds and overlap protection.
-- Application-level Stripe authorization/capture/refund boundaries.
-- Guest eKYC application flow and verification state handling.
-- FREE, VERIFIED, TRUSTED and WELLNESS badges, pricebook, eligibility and
-  server-side feature restrictions.
-- Annual renewal/review records and owner/admin badge dashboard APIs.
-- PostgreSQL migrations, API tests and a production Docker image.
+- Host properties, booking quotes, PENDING/APPROVED/REJECTED states, date holds
+  and overlap protection.
+- Stripe payment authorization/capture/refund boundaries and Stripe Identity
+  verification flow.
+- FREE, VERIFIED, TRUSTED and WELLNESS badges with server-side restrictions.
+- PostgreSQL migrations, API tests and a release publish artifact.
 
-Live Stripe, Alibaba eKYC, email/SMS/push and payout certification require the
-client's provider accounts and are intentionally configured as deployment-time
-secrets. Do not paste them into GitHub, source files, Dockerfiles or chat.
+Live provider credentials remain deployment-time configuration. Never commit a
+populated `.env`, API key, webhook secret, database password or session secret.
 
-## Server prerequisites
+## One-time server layout
 
-- Linux VPS or managed container host with Docker Engine 24+ and Compose v2.
-- DNS and TLS for `staging.nestystay.net` (the recommended staging setup is
-  the root full-stack Compose deployment with Caddy forwarding `/api/*` to
-  this API).
-- A firewall that exposes only 22/tcp, 80/tcp and 443/tcp. PostgreSQL, Redis
-  and MinIO must stay on the private Docker network.
-- A GitHub deploy key with access to the server and a GitHub Container Registry
-  read-only token (`read:packages`).
-- A managed backup or scheduled PostgreSQL dump/restore process.
+The deployment user must own the release directory and have passwordless sudo
+for restarting the API service:
 
-## First-time server setup
-
-Create a private deployment directory and copy the compose file from this
-repository to it:
-
-```bash
-sudo mkdir -p /opt/nestystay/backend
-sudo chown "$USER":"$USER" /opt/nestystay/backend
-cp deploy/docker-compose.yml /opt/nestystay/backend/docker-compose.yml
-chmod 700 /opt/nestystay/backend
+```text
+/opt/nestystay/backend/
+  .env                         # server-only secrets; never in Git
+  current -> releases/<sha>    # active release
+  releases/<sha>/              # published .NET files
 ```
 
-Create `/opt/nestystay/backend/.env` from `.env.production.example`. The file
-must contain the database, session, CORS, provider and storage values. At
-minimum, set:
+The `systemd` unit should run the symlinked release, for example:
+
+```ini
+[Service]
+WorkingDirectory=/opt/nestystay/backend/current
+ExecStart=/usr/bin/dotnet /opt/nestystay/backend/current/NestyStay.Api.dll
+EnvironmentFile=/opt/nestystay/backend/.env
+Restart=always
+```
+
+The actual unit name is configurable in GitHub Actions as
+`BACKEND_SYSTEMD_SERVICE`; the workflow default is `nestystay-api.service`.
+
+Create the server-only environment from `.env.production.example`. For the
+staging domain, the important values include:
 
 ```env
-ASPNETCORE_ENVIRONMENT=Production
-ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=nesty_prod;Username=nesty_app;Password=<strong-password>
-ConnectionStrings__Redis=redis:6379,password=<redis-password>
-POSTGRES_DB=nesty_prod
-POSTGRES_USER=nesty_app
-POSTGRES_PASSWORD=<same-strong-password>
-REDIS_PASSWORD=<redis-password>
-MINIO_ROOT_USER=<minio-admin-user>
-MINIO_ROOT_PASSWORD=<minio-admin-password>
+ASPNETCORE_ENVIRONMENT=Staging
+ConnectionStrings__Postgres=Host=127.0.0.1;Port=5432;Database=nesty_prod;Username=nesty_app;Password=<strong-password>
+ConnectionStrings__Redis=127.0.0.1:6379,password=<redis-password>
 NESTYSTAY_CORS_ALLOWED_ORIGINS=https://staging.nestystay.net
 NESTYSTAY_SESSION_COOKIE_DOMAIN=.nestystay.net
 NESTYSTAY_SESSION_COOKIE_SAMESITE=Lax
 PUBLIC_APP_URL=https://staging.nestystay.net
+EKYC_PROVIDER=stripe_identity
+STRIPE_IDENTITY_RETURN_URL=https://staging.nestystay.net/booking/{bookingId}/pending
 NESTYSTAY_SESSION_TOKEN_SECRET=<at-least-32-random-bytes>
 NESTYSTAY_TOTP_SECRET_PROTECTION_KEY=<different-at-least-32-random-bytes>
 NESTYSTAY_WEBHOOK_SHARED_SECRET=<random-webhook-secret>
 ```
 
-Use the real Stripe/Brevo/approved identity-provider values only when the
-client has completed provider onboarding. Keep local/test adapters enabled
-until live certification is approved. The API applies additive EF migrations
-during startup; take a backup before the first production upgrade.
+Keep Stripe test mode enabled for staging until production approval. Brevo,
+Zoho, Stripe and Stripe Identity values belong only in the server secret
+manager or `.env` file. Stripe Identity is the only supported eKYC provider.
 
-## Manual first deployment
+## GitHub Actions deployment
 
-```bash
-cd /opt/nestystay/backend
-printf '%s' '<read-packages-token>' | docker login ghcr.io --username '<github-user>' --password-stdin
-BACKEND_IMAGE=ghcr.io/nestystayjamaica/nesty-stay-backend:<commit-sha> \
-  docker compose pull backend
-BACKEND_IMAGE=ghcr.io/nestystayjamaica/nesty-stay-backend:<commit-sha> \
-  docker compose up -d backend
-curl --fail https://staging.nestystay.net/api/health/ready
-```
+`.github/workflows/ci-cd.yml` runs restore, build and the full test suite for
+pull requests. A push to `main` then publishes the API, uploads a SHA-named
+release archive over SSH, switches `/opt/nestystay/backend/current`, restarts
+the `systemd` service and checks `/api/health/ready`.
 
-The API runs migrations before serving requests. If a migration fails, stop
-the release, restore the database backup if necessary, inspect the API logs and
-do not delete migration history.
-
-## GitHub Actions automatic deployment
-
-The checked-in `.github/workflows/ci-cd.yml` runs on pull requests and on every
-push to `main`. A push is deployed only after restore, build and the complete
-backend test suite pass. It publishes an immutable SHA-tagged image to GHCR,
-copies the compose file, pulls that exact image over SSH and checks
-  `/api/health/ready` on the configured public staging URL.
-
-Create a GitHub `production` environment and add these **Actions secrets**:
+Create a GitHub `production` environment with these Actions secrets:
 
 | Secret | Value |
 |---|---|
-| `DEPLOY_HOST` | Server DNS name or IP |
+| `DEPLOY_HOST` | Client server DNS name or IP |
 | `DEPLOY_PORT` | SSH port, normally `22` |
-| `DEPLOY_USER` | Non-root deployment user in the `docker` group |
-| `DEPLOY_SSH_KEY` | Private key matching the server's `authorized_keys` |
+| `DEPLOY_USER` | Non-root deployment user that owns the release path |
+| `DEPLOY_SSH_KEY` | Private key matching the server `authorized_keys` |
 | `DEPLOY_PATH` | `/opt/nestystay/backend` |
-| `GHCR_USERNAME` | GitHub account allowed to read the package |
-| `GHCR_TOKEN` | Fine-grained token with `read:packages` only |
-| `NESTYSTAY_PUBLIC_URL` | `https://staging.nestystay.net` |
+| `BACKEND_HEALTHCHECK_URL` | `https://staging.nestystay.net` |
 
-Do not put database or provider secrets in GitHub Actions. Keep them in the
-server-only `.env`/secret manager. Protect `main` with required pull-request
-checks and require approval for the `production` environment.
+Create this Actions variable if the unit has a different name:
+
+| Variable | Value |
+|---|---|
+| `BACKEND_SYSTEMD_SERVICE` | e.g. `NestyStay.Api.service` |
+
+The deploy user must be able to run `sudo -n systemctl restart` and
+`sudo -n systemctl is-active` for that one unit. No database or provider
+secrets are sent through GitHub Actions.
 
 ## Verification and rollback
 
 ```bash
-docker compose ps
-docker compose logs --tail=200 backend
+sudo systemctl status nestystay-api.service
+sudo journalctl -u nestystay-api.service --no-pager -n 200
 curl --fail https://staging.nestystay.net/api/health
 curl --fail https://staging.nestystay.net/api/health/ready
 curl --fail https://staging.nestystay.net/api/properties
 ```
 
-To roll back, choose a previous immutable image SHA and run:
+To roll back, repoint `current` to a known-good release and restart the unit:
 
 ```bash
-BACKEND_IMAGE=ghcr.io/nestystayjamaica/nesty-stay-backend:<known-good-sha> \
-  docker compose up -d --no-deps backend
+ln -sfn /opt/nestystay/backend/releases/<known-good-sha> /opt/nestystay/backend/current
+sudo systemctl restart nestystay-api.service
 ```
 
-Never roll back by deleting PostgreSQL data or migration rows. After deployment,
-the frontend repository's smoke test should complete registration/login, 2FA,
-property listing, booking state and badge-gating checks.
+Do not delete PostgreSQL data or migration history during rollback.
 
-## Claude handoff
+## Local validation
 
-Tell Claude to read this file and `README.md` before changing anything. It must
-preserve API paths and response shapes, never invent production environment
-variables, never commit secrets/logs/artifacts, run `dotnet build` and
-`dotnet test`, and wait for client approval before changing provider mode.
+```bash
+dotnet restore NestyStay.sln
+dotnet build NestyStay.sln --configuration Release
+dotnet test NestyStay.sln --configuration Release --no-restore
+```
+
+Before changing deployment behavior, preserve the public API paths and run the
+complete build and test commands above. Do not commit secrets or populated
+environment files.

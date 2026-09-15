@@ -41,7 +41,37 @@ public sealed record PurchaseBadgeRequest(
     int CompletedApprovedBookings = 0,
     bool HasPropertyAddress = false,
     bool HasWellnessSubscription = false,
-    bool PaymentSucceeded = true);
+    string? IdempotencyKey = null);
+
+public sealed record BadgePurchaseQuoteDto(
+    BadgeLevel Level,
+    bool Eligible,
+    IReadOnlyList<string> MissingRequirements,
+    decimal Amount,
+    string Currency,
+    string Cadence,
+    bool IsFree);
+
+public sealed record BadgePaymentIntentDto(
+    Guid Id,
+    Guid SubjectId,
+    string SubjectType,
+    BadgeLevel Level,
+    decimal Amount,
+    string Currency,
+    string Provider,
+    string ProviderPaymentIntentId,
+    string? ClientSecret,
+    string? PublishableKey,
+    string Status,
+    Guid? AssignmentId,
+    Guid? RenewalId,
+    string IdempotencyKey,
+    string? FailureReason,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt,
+    bool IsFree = false,
+    bool AlreadyActive = false);
 
 public sealed record BadgeAssignmentDto(
     Guid Id,

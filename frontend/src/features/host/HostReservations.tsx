@@ -4,6 +4,7 @@ import { api, type Booking } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { announceFeedback } from "../../lib/feedback";
+import { Modal } from "../../components/ui/Modal";
 
 interface HostReservationsProps {
   token: string;
@@ -21,6 +22,8 @@ export function HostReservations({ token }: HostReservationsProps) {
   const [rejecting, setRejecting] = useState<Booking | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  const requestedBookingId = new URLSearchParams(window.location.search).get("bookingId");
+
   useEffect(() => {
     let active = true;
     async function load() {
@@ -36,6 +39,13 @@ export function HostReservations({ token }: HostReservationsProps) {
     load();
     return () => { active = false; };
   }, [token]);
+
+  useEffect(() => {
+    if (requestedBookingId && bookings.some((booking) => booking.id === requestedBookingId)) {
+      setQuery(requestedBookingId);
+      setPage(0);
+    }
+  }, [bookings, requestedBookingId]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -150,7 +160,11 @@ export function HostReservations({ token }: HostReservationsProps) {
           {selected.length > 0 && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-field border border-sand-border bg-shell px-3 py-2 text-sm"><span>{selected.length} reservation{selected.length === 1 ? "" : "s"} selected</span><button className="btn btn-outline btn-sm" onClick={() => setSelected([])} type="button">Clear selection</button></div>}
         </>
       )}
-      {rejecting && <div className="modal-backdrop" role="dialog" aria-modal="true"><div className="modal-card w-[min(100%-2rem,520px)]"><h3>Decline booking request</h3><p className="subtext">This reason is shown to the guest and stored in the booking history.</p><textarea aria-label="Reason for declining booking" className="input-control mt-3" rows={4} placeholder="For example: The property is no longer available for these dates." value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} /><div className="mt-4 flex flex-wrap justify-end gap-2"><button type="button" className="btn btn-ghost" onClick={() => setRejecting(null)}>Cancel</button><button type="button" className="btn btn-primary" onClick={() => void handleReject()}>Confirm decline</button></div></div></div>}
+      <Modal open={Boolean(rejecting)} title="Decline booking request" onClose={() => setRejecting(null)} variant="sheet">
+        <p className="subtext">This reason is shown to the guest and stored in the booking history.</p>
+        <textarea aria-label="Reason for declining booking" className="input-control mt-3" rows={4} placeholder="For example: The property is no longer available for these dates." value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} />
+        <div className="mt-4 flex flex-wrap justify-end gap-2"><button type="button" className="btn btn-ghost" onClick={() => setRejecting(null)}>Cancel</button><button type="button" className="btn btn-primary" onClick={() => void handleReject()}>Confirm decline</button></div>
+      </Modal>
     </div>
   );
 }

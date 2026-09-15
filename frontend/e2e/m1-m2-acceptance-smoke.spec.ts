@@ -142,7 +142,7 @@ async function stubLocalStorageHost(page: Page) {
 async function visitAdminAndCapture(page: Page, testInfo: TestInfo) {
   if (!adminToken) return;
   await installSession(page, {
-    userId: "admin-e2e",
+    userId: "00000000-0000-0000-0000-000000000001",
     email: "admin@nestystay.local",
     displayName: "E2E Admin",
     accessToken: adminToken,

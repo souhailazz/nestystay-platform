@@ -613,7 +613,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
             guestVerificationEnabled = true,
             insuraGuestEnabled = true,
             cancellationPolicy = "Moderate",
-            highlights = new[] { "API created", "Alibaba eKYC" }
+            highlights = new[] { "API created", "Stripe Identity" }
         });
         Assert.Equal(HttpStatusCode.OK, createdPropertyResponse.StatusCode);
         var createdProperty = await createdPropertyResponse.Content.ReadFromJsonAsync<PropertyResponse>();
@@ -799,7 +799,7 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal("PENDING", booking.Status);
         Assert.Equal(registered.UserId, booking.GuestUserId);
         Assert.True(booking.DatesHeld);
-        Assert.Equal("Alibaba Cloud eKYC", booking.EkycProvider);
+        Assert.Equal("Stripe Identity", booking.EkycProvider);
         Assert.NotNull(booking.EkycTransactionId);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -837,14 +837,30 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.Forbidden, travelerVerificationWrite.StatusCode);
 
-        var approvedResponse = await client.PostAsJsonAsync("/api/webhooks/alibaba-ekyc", new
-        {
-            bookingId = booking.Id,
-            transactionId = booking.EkycTransactionId,
-            passed = true
-        });
+        StringContent StripeIdentityEvent(string eventId, string eventType) => new(
+            JsonSerializer.Serialize(new
+            {
+                id = eventId,
+                type = eventType,
+                data = new
+                {
+                    @object = new
+                    {
+                        id = booking.EkycTransactionId,
+                        client_reference_id = booking.Id,
+                        metadata = new { booking_id = booking.Id }
+                    }
+                }
+            }),
+            Encoding.UTF8,
+            "application/json");
+
+        var approvedResponse = await client.PostAsync(
+            "/api/webhooks/stripe/raw",
+            StripeIdentityEvent("evt_identity_verified", "identity.verification_session.verified"));
         Assert.Equal(HttpStatusCode.Accepted, approvedResponse.StatusCode);
-        var approved = await approvedResponse.Content.ReadFromJsonAsync<BookingResponse>();
+        var approvedLookup = await client.GetAsync($"/api/bookings/{booking.Id}");
+        var approved = await approvedLookup.Content.ReadFromJsonAsync<BookingResponse>();
         Assert.NotNull(approved);
         Assert.Equal("APPROVED", approved.Status);
         Assert.Equal("AUTHORIZED", approved.PaymentStatus);
@@ -859,23 +875,18 @@ public sealed class HealthEndpointTests : IClassFixture<NestyStayApiFactory>
         var receiptBeforeCaptureResponse = await client.GetAsync($"/api/bookings/{booking.Id}/receipt");
         Assert.Equal(HttpStatusCode.BadRequest, receiptBeforeCaptureResponse.StatusCode);
 
-        var duplicateWebhookResponse = await client.PostAsJsonAsync("/api/webhooks/alibaba-ekyc", new
-        {
-            bookingId = booking.Id,
-            transactionId = booking.EkycTransactionId,
-            passed = true
-        });
+        var duplicateWebhookResponse = await client.PostAsync(
+            "/api/webhooks/stripe/raw",
+            StripeIdentityEvent("evt_identity_verified", "identity.verification_session.verified"));
         Assert.Equal(HttpStatusCode.Accepted, duplicateWebhookResponse.StatusCode);
-        var duplicateWebhook = await duplicateWebhookResponse.Content.ReadFromJsonAsync<BookingResponse>();
+        var duplicateLookup = await client.GetAsync($"/api/bookings/{booking.Id}");
+        var duplicateWebhook = await duplicateLookup.Content.ReadFromJsonAsync<BookingResponse>();
         Assert.NotNull(duplicateWebhook);
         Assert.Equal(approved.Notifications.Count, duplicateWebhook.Notifications.Count);
 
-        var conflictingWebhookResponse = await client.PostAsJsonAsync("/api/webhooks/alibaba-ekyc", new
-        {
-            bookingId = booking.Id,
-            transactionId = booking.EkycTransactionId,
-            passed = false
-        });
+        var conflictingWebhookResponse = await client.PostAsync(
+            "/api/webhooks/stripe/raw",
+            StripeIdentityEvent("evt_identity_canceled", "identity.verification_session.canceled"));
         Assert.Equal(HttpStatusCode.Conflict, conflictingWebhookResponse.StatusCode);
         using (var conflictProblem = await JsonDocument.ParseAsync(await conflictingWebhookResponse.Content.ReadAsStreamAsync()))
         {

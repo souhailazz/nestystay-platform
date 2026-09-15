@@ -4,6 +4,7 @@ import { AppLink } from "../../components/AppLink";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { api, formatMoney, type AuditEvent, type BadgeAssignment, type BadgeDefinition, type BadgeRenewal } from "../../lib/api";
 import { requestConfirmation } from "../../lib/confirmation";
+import { requestTextInput } from "../../lib/textInput";
 
 interface AdminBadgesProps {
   token: string;
@@ -89,7 +90,15 @@ export function AdminBadges({ token }: AdminBadgesProps) {
     if (!selected.length) return;
     const label = kind === "expire" ? "expire" : "suspend";
     if (!(await requestConfirmation({ title: `${label} badge assignments?`, message: `Are you sure you want to ${label} ${selected.length} badge assignment${selected.length === 1 ? "" : "s"}?` }))) return;
-    const reason = window.prompt("Add an audit reason for this bulk action:", `Bulk ${label} from badge management queue.`)?.trim();
+    const reason = (await requestTextInput({
+      title: "Add an audit reason",
+      message: `Explain why these ${selected.length} assignments should be ${label}d. The reason is written to the audit log.`,
+      label: "Audit reason",
+      initialValue: `Bulk ${label} from badge management queue.`,
+      placeholder: "Describe the administrative decision",
+      confirmLabel: "Continue",
+      required: true,
+    }))?.trim();
     if (!reason) return;
     setBusy(true);
     setNotice(null);
@@ -112,7 +121,15 @@ export function AdminBadges({ token }: AdminBadgesProps) {
   async function singleAction(kind: "expire" | "suspend", assignment: BadgeAssignment) {
     setSelected([assignment.id]);
     if (!(await requestConfirmation({ title: `${kind} badge assignment?`, message: `Confirm ${kind} for ${assignment.subjectType} ${assignment.subjectId}?` }))) return;
-    const reason = window.prompt("Add an audit reason:", `${kind === "expire" ? "Expiry" : "Suspension"} reviewed by administrator.`)?.trim();
+    const reason = (await requestTextInput({
+      title: "Add an audit reason",
+      message: `Explain why this ${assignment.level} assignment should be ${kind}d. The reason is written to the audit log.`,
+      label: "Audit reason",
+      initialValue: `${kind === "expire" ? "Expiry" : "Suspension"} reviewed by administrator.`,
+      placeholder: "Describe the administrative decision",
+      confirmLabel: "Continue",
+      required: true,
+    }))?.trim();
     if (!reason) return;
     setBusy(true);
     setError(null);
@@ -167,8 +184,8 @@ export function AdminBadges({ token }: AdminBadgesProps) {
               <label className="relative min-w-[240px] flex-1"><Search className="absolute left-3 top-3 text-sand-500" size={16} /><input aria-label="Search badge assignments" className="min-h-[42px] w-full rounded-field border border-sand-input bg-white pl-9 pr-3 text-[13px] outline-none focus:border-deep-hover" onChange={(event) => setQuery(event.target.value)} placeholder="Search subject, badge, or ID" value={query} /></label>
               <select aria-label="Filter assignment status" className="min-h-[42px] rounded-field border border-sand-input bg-white px-3 text-[13px]" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">All statuses</option><option value="active">Active</option><option value="expired">Expired</option><option value="suspended">Suspended</option></select>
             </div>
-            <div className="mt-4 overflow-x-auto rounded-field border border-sand-border bg-white">
-              <table className="w-full min-w-[880px] text-left text-[12px]"><thead className="bg-shell text-[10px] uppercase tracking-[0.08em] text-sand-500"><tr><th className="px-3 py-3"><button aria-label="Select all visible assignments" className="text-sand-500" onClick={toggleAllVisible} type="button">{allVisibleSelected ? <CheckSquare size={16} /> : <Square size={16} />}</button></th><th className="px-3 py-3">Subject</th><th className="px-3 py-3">Badge</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Paid through</th><th className="px-3 py-3">Renewal</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{filteredAssignments.map((assignment) => { const renewal = renewals.find((item) => item.badgeAssignmentId === assignment.id && item.paymentStatus.toLowerCase() === "pending"); return <tr className="border-t border-sand-border" key={assignment.id}><td className="px-3 py-3"><button aria-label={`Select ${assignment.subjectId}`} className="text-sand-500" onClick={() => toggleSelection(assignment.id)} type="button">{selected.includes(assignment.id) ? <CheckSquare size={16} /> : <Square size={16} />}</button></td><td className="px-3 py-3"><strong>{assignment.subjectType}</strong><span className="mt-1 block font-mono text-[10px] text-gray-500">{assignment.subjectId}</span></td><td className="px-3 py-3"><strong>{assignment.level}</strong><span className="mt-1 block text-[10px] text-gray-500">{formatMoney(assignment.amountCharged, assignment.currency)}</span></td><td className="px-3 py-3"><StatusChip value={assignment.status} /></td><td className="px-3 py-3">{dateLabel(assignment.paidThrough)}</td><td className="px-3 py-3">{renewal ? <><StatusChip value="Pending" /><span className="mt-1 block text-[10px] text-gray-500">{dateLabel(renewal.reminderDueAt)}</span></> : "—"}</td><td className="px-3 py-3 text-right"><div className="flex justify-end gap-2"><button className="text-[11px] font-semibold text-coral-text underline disabled:opacity-40" disabled={busy || assignment.status.toLowerCase() !== "active"} onClick={() => void singleAction("suspend", assignment)} type="button">Suspend</button><button className="text-[11px] font-semibold text-deep underline disabled:opacity-40" disabled={busy || assignment.status.toLowerCase() !== "active"} onClick={() => void singleAction("expire", assignment)} type="button">Expire</button></div></td></tr>; })}</tbody></table>
+            <div className="responsive-table-cards mt-4 rounded-field border border-sand-border bg-white">
+              <table className="w-full min-w-[880px] text-left text-[12px]"><thead className="bg-shell text-[10px] uppercase tracking-[0.08em] text-sand-500"><tr><th className="px-3 py-3"><button aria-label="Select all visible assignments" className="text-sand-500" onClick={toggleAllVisible} type="button">{allVisibleSelected ? <CheckSquare size={16} /> : <Square size={16} />}</button></th><th className="px-3 py-3">Subject</th><th className="px-3 py-3">Badge</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Paid through</th><th className="px-3 py-3">Renewal</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{filteredAssignments.map((assignment) => { const renewal = renewals.find((item) => item.badgeAssignmentId === assignment.id && item.paymentStatus.toLowerCase() === "pending"); return <tr className="border-t border-sand-border" key={assignment.id}><td className="px-3 py-3" data-label="Select"><button aria-label={`Select ${assignment.subjectId}`} className="text-sand-500" onClick={() => toggleSelection(assignment.id)} type="button">{selected.includes(assignment.id) ? <CheckSquare size={16} /> : <Square size={16} />}</button></td><td className="px-3 py-3" data-label="Subject"><strong>{assignment.subjectType}</strong><span className="mt-1 block font-mono text-[10px] text-gray-500">{assignment.subjectId}</span></td><td className="px-3 py-3" data-label="Badge"><strong>{assignment.level}</strong><span className="mt-1 block text-[10px] text-gray-500">{formatMoney(assignment.amountCharged, assignment.currency)}</span></td><td className="px-3 py-3" data-label="Status"><StatusChip value={assignment.status} /></td><td className="px-3 py-3" data-label="Paid through">{dateLabel(assignment.paidThrough)}</td><td className="px-3 py-3" data-label="Renewal">{renewal ? <><StatusChip value="Pending" /><span className="mt-1 block text-[10px] text-gray-500">{dateLabel(renewal.reminderDueAt)}</span></> : "—"}</td><td className="px-3 py-3 text-right" data-label="Actions"><div className="flex justify-end gap-2"><button className="text-[11px] font-semibold text-coral-text underline disabled:opacity-40" disabled={busy || assignment.status.toLowerCase() !== "active"} onClick={() => void singleAction("suspend", assignment)} type="button">Suspend</button><button className="text-[11px] font-semibold text-deep underline disabled:opacity-40" disabled={busy || assignment.status.toLowerCase() !== "active"} onClick={() => void singleAction("expire", assignment)} type="button">Expire</button></div></td></tr>; })}</tbody></table>
               {filteredAssignments.length === 0 && <div className="p-8 text-center text-[13px] text-gray-500">No badge assignments match this search.</div>}
             </div>
           </section>

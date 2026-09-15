@@ -5,7 +5,6 @@ export function navigate(path: string) {
   window.dispatchEvent(new PopStateEvent("popstate"));
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-  window.setTimeout(() => document.getElementById("main-content")?.focus() ?? document.getElementById("route-main")?.focus(), 0);
 }
 
 export function AppLink({ href = "/", onClick, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) {

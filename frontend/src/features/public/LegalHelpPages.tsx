@@ -13,7 +13,7 @@ export function LegalHelpPages({ view }: LegalHelpPagesProps) {
   const faqs = [
     {
       q: "How does guest identity verification work?",
-      a: "NestyStay integrates with Alibaba Cloud eKYC to verify official government IDs (passports, driver's licenses) securely before check-in."
+      a: "NestyStay integrates with Stripe Identity to verify official government IDs (passports, driver's licenses) securely before check-in."
     },
     {
       q: "What is the InsuraGuest damage protection plan?",
@@ -119,7 +119,7 @@ export function LegalHelpPages({ view }: LegalHelpPagesProps) {
 
       <div className="card-box max-w-3xl space-y-4 text-sm leading-relaxed">
         <p>
-          NestyStay is Jamaica's premier peer-to-peer vacation rental platform, providing authenticated accommodations with verified host badges, Alibaba Cloud eKYC identity checks, and InsuraGuest coverage.
+          NestyStay is Jamaica's premier peer-to-peer vacation rental platform, providing authenticated accommodations with verified host badges, Stripe Identity checks, and InsuraGuest coverage.
         </p>
         <p>
           All transactions are secured via Stripe Elements card processing with full 3D Secure verification and 256-bit encryption.

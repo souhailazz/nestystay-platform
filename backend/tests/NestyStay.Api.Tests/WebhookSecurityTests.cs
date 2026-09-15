@@ -16,25 +16,24 @@ namespace NestyStay.Api.Tests;
 public sealed class WebhookSecurityTests
 {
     [Fact]
-    public async Task GenericWebhookRejectsMissingSecretInProduction()
+    public async Task GenericWebhookRejectsUnsupportedProviderInProduction()
     {
         var controller = CreateController();
 
         var result = await controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}"), CancellationToken.None);
 
-        Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task GenericWebhookAcceptsMatchingSecretInProduction()
+    public async Task GenericWebhookRejectsUnsupportedProviderEvenWithMatchingSecret()
     {
         var controller = CreateController();
         controller.Request.Headers["X-NestyStay-Webhook-Secret"] = "test-webhook-secret";
 
         var result = await controller.Receive("provider", new WebhookEventRequest("provider", "event.received", "{}", Guid.NewGuid().ToString("N")), CancellationToken.None);
 
-        var accepted = Assert.IsType<AcceptedResult>(result);
-        Assert.NotNull(accepted.Value);
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
@@ -126,6 +125,160 @@ public sealed class WebhookSecurityTests
         Assert.Equal(PaymentStatus.Captured, update.Status);
         var processed = Assert.Single(eventStore.Results);
         Assert.Equal("Processed", processed.Status);
+    }
+
+    [Fact]
+    public async Task StripeRawWebhookMapsProcessingPaymentIntentToPending()
+    {
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var payload = $$"""
+            {
+              "id": "{{eventId}}",
+              "type": "payment_intent.processing",
+              "data": {
+                "object": {
+                  "id": "pi_test_processing",
+                  "amount": 4900,
+                  "currency": "usd",
+                  "created": 1784768400
+                }
+              }
+            }
+            """;
+        var store = new StubPhaseOneStore();
+        var eventStore = new StubProviderEventStore();
+        var controller = CreateController(store, eventStore);
+        controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        SetRawBody(controller, payload);
+
+        var result = await controller.ReceiveStripeRaw(CancellationToken.None);
+
+        Assert.IsType<AcceptedResult>(result);
+        var update = Assert.Single(store.PaymentWebhookUpdates);
+        Assert.Equal("payment_intent.processing", update.EventType);
+        Assert.Equal("pi_test_processing", update.PaymentIntentReference);
+        Assert.Equal(PaymentStatus.Pending, update.Status);
+    }
+
+    [Fact]
+    public async Task StripeRawWebhookPreservesPaymentFailureReason()
+    {
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var payload = $$"""
+            {
+              "id": "{{eventId}}",
+              "type": "payment_intent.payment_failed",
+              "data": {
+                "object": {
+                  "id": "pi_test_failed",
+                  "amount": 4900,
+                  "currency": "usd",
+                  "last_payment_error": { "message": "Your card was declined." }
+                }
+              }
+            }
+            """;
+        var store = new StubPhaseOneStore();
+        var controller = CreateController(store);
+        controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        SetRawBody(controller, payload);
+
+        var result = await controller.ReceiveStripeRaw(CancellationToken.None);
+
+        Assert.IsType<AcceptedResult>(result);
+        var update = Assert.Single(store.PaymentWebhookUpdates);
+        Assert.Equal(PaymentStatus.Failed, update.Status);
+        Assert.Equal("Your card was declined.", update.Reason);
+    }
+
+    [Fact]
+    public async Task StripeRawWebhookAppliesOnlySucceededRefundEvents()
+    {
+        var store = new StubPhaseOneStore();
+        var eventStore = new StubProviderEventStore();
+
+        var pendingEventId = $"evt_refund_pending_{Guid.NewGuid():N}";
+        var pendingPayload = $$"""
+            {
+              "id": "{{pendingEventId}}",
+              "type": "refund.created",
+              "data": {
+                "object": {
+                  "id": "re_pending",
+                  "payment_intent": "pi_refund_test",
+                  "status": "pending",
+                  "amount": 61050,
+                  "currency": "usd"
+                }
+              }
+            }
+            """;
+        var pendingController = CreateController(store, eventStore);
+        pendingController.Request.Headers["Stripe-Signature"] = CreateStripeSignature(pendingPayload);
+        SetRawBody(pendingController, pendingPayload);
+
+        await pendingController.ReceiveStripeRaw(CancellationToken.None);
+
+        Assert.Empty(store.PaymentWebhookUpdates);
+
+        var succeededEventId = $"evt_refund_succeeded_{Guid.NewGuid():N}";
+        var succeededPayload = pendingPayload
+            .Replace(pendingEventId, succeededEventId, StringComparison.Ordinal)
+            .Replace("re_pending", "re_succeeded", StringComparison.Ordinal)
+            .Replace("pending", "succeeded", StringComparison.Ordinal);
+        var succeededController = CreateController(store, eventStore);
+        succeededController.Request.Headers["Stripe-Signature"] = CreateStripeSignature(succeededPayload);
+        SetRawBody(succeededController, succeededPayload);
+
+        await succeededController.ReceiveStripeRaw(CancellationToken.None);
+
+        var update = Assert.Single(store.PaymentWebhookUpdates);
+        Assert.Equal("refund.created", update.EventType);
+        Assert.Equal("pi_refund_test", update.PaymentIntentReference);
+        Assert.Equal("re_succeeded", update.ProviderReference);
+        Assert.Equal(PaymentStatus.Refunded, update.Status);
+        Assert.Equal(610.50m, update.Amount);
+    }
+
+    [Fact]
+    public async Task StripeRawWebhookResolvesIdentityVerificationEvents()
+    {
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var bookingId = Guid.NewGuid();
+        var payload = $$"""
+            {
+              "id": "{{eventId}}",
+              "type": "identity.verification_session.verified",
+              "data": {
+                "object": {
+                  "id": "vs_test_identity",
+                  "client_reference_id": "{{bookingId:N}}",
+                  "metadata": { "booking_id": "{{bookingId:N}}" },
+                  "status": "verified",
+                  "verified_outputs": { "first_name": "Private", "last_name": "Identity" }
+                }
+              }
+            }
+            """;
+        var store = new StubPhaseOneStore();
+        var eventStore = new StubProviderEventStore();
+        var controller = CreateController(store, eventStore);
+        controller.Request.Headers["Stripe-Signature"] = CreateStripeSignature(payload);
+        SetRawBody(controller, payload);
+
+        var result = await controller.ReceiveStripeRaw(CancellationToken.None);
+
+        Assert.IsType<AcceptedResult>(result);
+        var resolution = Assert.Single(store.VerificationResolutions);
+        Assert.True(resolution.Passed);
+        Assert.Equal("vs_test_identity", resolution.ProviderReference);
+        var stored = Assert.Single(eventStore.Records);
+        Assert.Equal(ProviderKind.Ekyc, stored.Kind);
+        Assert.Equal("Stripe Identity", stored.ProviderName);
+        Assert.Equal("identity.verification_session.verified", stored.EventType);
+        Assert.DoesNotContain("verified_outputs", stored.PayloadJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Private", stored.PayloadJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Processed", Assert.Single(eventStore.Results).Status);
     }
 
     private static WebhooksController CreateController(
@@ -266,8 +419,7 @@ public sealed class WebhookSecurityTests
         public IReadOnlyList<BookingDto> GetBookings(Guid? guestUserId = null) =>
             throw new NotSupportedException();
 
-        public BookingDto? GetBooking(Guid id) =>
-            throw new NotSupportedException();
+        public BookingDto? GetBooking(Guid id) => null;
 
         public Task<BookingDocumentDto?> GetBookingInvoiceAsync(Guid bookingId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
@@ -279,7 +431,15 @@ public sealed class WebhookSecurityTests
             throw new NotSupportedException();
 
         public Task<BookingDto?> ResolveVerificationAsync(Guid bookingId, ResolveVerificationRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            RecordVerificationResolution(request);
+
+        public List<ResolveVerificationRequest> VerificationResolutions { get; } = [];
+
+        private Task<BookingDto?> RecordVerificationResolution(ResolveVerificationRequest request)
+        {
+            VerificationResolutions.Add(request);
+            return Task.FromResult<BookingDto?>(null);
+        }
 
         public Task<BookingDto?> CapturePaymentAsync(Guid bookingId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

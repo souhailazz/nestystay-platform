@@ -67,7 +67,7 @@ export function AdminInsights({ view, token }: { view: AdminInsightsView; token:
             </Card>
             <Card>
               <h3 className="m-0 font-display text-2xl">Recent audit activity</h3>
-              {data.auditEvents.length === 0 ? <EmptyState title="No audit activity" copy="Privileged actions will appear here as the platform is used." /> : <div className="mt-4 overflow-x-auto"><table className="table-styled w-full"><thead><tr><th>Action</th><th>Subject</th><th>Reason</th><th>Created</th></tr></thead><tbody>{data.auditEvents.slice(0, 20).map((event) => <tr key={event.id}><td><span className="badge badge-sun">{event.action}</span></td><td>{event.subjectType}</td><td>{event.reason}</td><td>{new Date(event.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}
+              {data.auditEvents.length === 0 ? <EmptyState title="No audit activity" copy="Privileged actions will appear here as the platform is used." /> : <div className="mt-4 responsive-table-cards"><table className="table-styled w-full"><thead><tr><th>Action</th><th>Subject</th><th>Reason</th><th>Created</th></tr></thead><tbody>{data.auditEvents.slice(0, 20).map((event) => <tr key={event.id}><td data-label="Action"><span className="badge badge-sun">{event.action}</span></td><td data-label="Subject">{event.subjectType}</td><td data-label="Reason">{event.reason}</td><td data-label="Created">{new Date(event.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}
             </Card>
           </>}
         </div>

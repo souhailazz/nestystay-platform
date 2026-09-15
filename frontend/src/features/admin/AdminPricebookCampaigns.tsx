@@ -74,7 +74,7 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
           ))}
         </div>
       ) : (
-        <div className="card-box">
+        <div className="card-box responsive-table-cards">
           <table className="table-styled w-full">
             <thead>
               <tr>
@@ -89,12 +89,12 @@ export function AdminPricebookCampaigns({ view, token }: AdminPricebookCampaigns
             <tbody>
               {pricebook.length === 0 ? <tr><td colSpan={6}><EmptyState title="No pricebook entries yet" copy="Platform fee and pricing rules will appear here when configured." /></td></tr> : pricebook.map((pb) => (
                 <tr key={pb.key}>
-                  <td><code>{pb.key}</code></td>
-                  <td><strong>{pb.label}</strong></td>
-                  <td><strong>{formatMoney(pb.amount, pb.currency)}</strong></td>
-                  <td>{pb.cadence}</td>
-                  <td>{pb.appliesTo}</td>
-                  <td><span className={`badge ${pb.isActive ? "badge-green" : "badge-red"}`}>{pb.isActive ? "Active" : "Inactive"}</span></td>
+                  <td data-label="Key"><code>{pb.key}</code></td>
+                  <td data-label="Label"><strong>{pb.label}</strong></td>
+                  <td data-label="Amount"><strong>{formatMoney(pb.amount, pb.currency)}</strong></td>
+                  <td data-label="Cadence">{pb.cadence}</td>
+                  <td data-label="Applies to">{pb.appliesTo}</td>
+                  <td data-label="Status"><span className={`badge ${pb.isActive ? "badge-green" : "badge-red"}`}>{pb.isActive ? "Active" : "Inactive"}</span></td>
                 </tr>
               ))}
             </tbody>

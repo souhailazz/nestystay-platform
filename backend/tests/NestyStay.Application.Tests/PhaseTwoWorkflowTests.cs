@@ -55,7 +55,7 @@ public sealed class PhaseTwoWorkflowTests
         Assert.Throws<InvalidOperationException>(() =>
             store.PurchaseBadge(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Trusted, CompletedApprovedBookings: 2)));
 
-        var wellnessEligibility = store.GetBadgeEligibility(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Wellness, HasPropertyAddress: true));
+        var wellnessEligibility = store.GetBadgeEligibility(new PurchaseBadgeRequest("Host", hostId, BadgeLevel.Wellness, HasPropertyAddress: true, HasWellnessSubscription: true));
         Assert.True(wellnessEligibility.Eligible);
     }
 
@@ -70,8 +70,8 @@ public sealed class PhaseTwoWorkflowTests
             "Host",
             hostId,
             BadgeLevel.Trusted,
-            CompletedApprovedBookings: 3,
-            PaymentSucceeded: false));
+            CompletedApprovedBookings: 3),
+            paymentSucceeded: false);
 
         Assert.Equal("FAILED", failedTrusted.PaymentStatus);
         Assert.Equal("Suspended", failedTrusted.Status);

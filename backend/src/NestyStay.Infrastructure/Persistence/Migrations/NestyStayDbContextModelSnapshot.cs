@@ -2513,13 +2513,13 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("bb92e267-1ae5-7f5f-5a68-1a769647db7f"),
+                            Id = new Guid("0485c08d-334a-865d-7ca4-9685eded0d5e"),
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            EncryptedConfigReference = "vault://nestystay/ekyc/alibabacloud",
+                            EncryptedConfigReference = "vault://nestystay/ekyc/stripeidentity",
                             IsDeleted = false,
                             IsPrimary = true,
                             Kind = "Ekyc",
-                            ProviderName = "AlibabaCloud",
+                            ProviderName = "StripeIdentity",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -3807,7 +3807,7 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("4e2ec970-92a2-0943-f9d0-b275378e1450"),
+                            Id = new Guid("02ee1343-7659-7c54-51cb-cac06c2d7df2"),
                             Amount = 0.14m,
                             AppliesTo = "NestyStay",
                             Cadence = "Per check",
@@ -3815,8 +3815,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                             CurrencyOrUnit = "USD",
                             IsConfigurable = true,
                             IsDeleted = false,
-                            Key = "alibaba-ekyc-vendor-cost",
-                            Label = "alibaba ekyc vendor cost",
+                            Key = "stripe-identity-vendor-cost",
+                            Label = "stripe identity vendor cost",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
@@ -6193,6 +6193,124 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("milestone_badge_definition");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneBadgePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid?>("BadgeAssignmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("badge_assignment_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("LastProviderEventId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("last_provider_event_id");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderPaymentIntentId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("provider_payment_intent_id");
+
+                    b.Property<Guid?>("RenewalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("renewal_id");
+
+                    b.Property<string>("RequestSnapshotJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("request_snapshot_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("subject_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderPaymentIntentId");
+
+                    b.HasIndex("SubjectType", "SubjectId", "Level", "Status");
+
+                    b.ToTable("milestone_badge_payment");
                 });
 
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneBadgeRenewal", b =>

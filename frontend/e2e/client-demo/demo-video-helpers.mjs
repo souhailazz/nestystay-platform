@@ -130,7 +130,7 @@ async function ensureBadge(context, adminToken, subjectId, level, requirements) 
   const assignments = await apiJson(context, "GET", "/api/badges-pricing/badges/assignments", undefined, adminToken);
   const existing = assignments.find((item) => item.subjectId === subjectId && item.level === level && item.status.toLowerCase() === "active");
   if (existing) return existing;
-  return apiJson(context, "POST", "/api/badges-pricing/badges/purchase", {
+  return apiJson(context, "POST", "/api/badges-pricing/badges/purchase-intent", {
     subjectType: "Host",
     subjectId,
     level,
@@ -138,7 +138,7 @@ async function ensureBadge(context, adminToken, subjectId, level, requirements) 
     completedApprovedBookings: requirements.completedApprovedBookings ?? 0,
     hasPropertyAddress: requirements.hasPropertyAddress ?? false,
     hasWellnessSubscription: requirements.hasWellnessSubscription ?? false,
-    paymentSucceeded: true,
+    idempotencyKey: `client-demo-${level.toLowerCase()}-${subjectId}`,
   }, adminToken);
 }
 

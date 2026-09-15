@@ -327,6 +327,25 @@ public sealed class MilestoneBadgeRenewal : BaseEntity
     public string Currency { get; set; } = "USD";
 }
 
+public sealed class MilestoneBadgePayment : BaseEntity
+{
+    public Guid SubjectId { get; set; }
+    public string SubjectType { get; set; } = "Host";
+    public BadgeLevel Level { get; set; }
+    public Guid? BadgeAssignmentId { get; set; }
+    public Guid? RenewalId { get; set; }
+    public string Provider { get; set; } = "Stripe";
+    public string ProviderPaymentIntentId { get; set; } = string.Empty;
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public string RequestSnapshotJson { get; set; } = "{}";
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
+    public string? FailureReason { get; set; }
+    public string? LastProviderEventId { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+}
+
 public sealed class MilestoneCampaign : BaseEntity
 {
     public string Key { get; set; } = string.Empty;

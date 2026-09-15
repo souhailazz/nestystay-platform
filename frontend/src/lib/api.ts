@@ -469,7 +469,39 @@ export type PurchaseBadgeRequest = {
   completedApprovedBookings?: number;
   hasPropertyAddress?: boolean;
   hasWellnessSubscription?: boolean;
-  paymentSucceeded?: boolean;
+  idempotencyKey?: string | null;
+};
+
+export type BadgePurchaseQuote = {
+  level: BadgeLevel;
+  eligible: boolean;
+  missingRequirements: string[];
+  amount: number;
+  currency: string;
+  cadence: string;
+  isFree: boolean;
+};
+
+export type BadgePaymentIntent = {
+  id: string;
+  subjectId: string;
+  subjectType: string;
+  level: BadgeLevel;
+  amount: number;
+  currency: string;
+  provider: string;
+  providerPaymentIntentId: string;
+  clientSecret?: string | null;
+  publishableKey?: string | null;
+  status: PaymentStatus | string;
+  assignmentId?: string | null;
+  renewalId?: string | null;
+  idempotencyKey: string;
+  failureReason?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  isFree: boolean;
+  alreadyActive: boolean;
 };
 
 export type BadgeEligibility = {
@@ -782,6 +814,8 @@ export type TravelerWorkspace = {
   reviews: TravelerReview[];
   notifications: TravelerNotification[];
 };
+
+export type NotificationUnreadCount = { unreadCount: number };
 
 export type WishlistCollection = {
   id: string;
@@ -1666,8 +1700,15 @@ export const api = {
   getBadgeDefinitions: () => request<BadgeDefinition[]>("/badges-pricing/badges"),
   getBadgeEligibility: (body: PurchaseBadgeRequest, token: string) =>
     request<BadgeEligibility>("/badges-pricing/badges/eligibility", { method: "POST", body, token }),
-  purchaseBadge: (body: PurchaseBadgeRequest, token: string) =>
-    request<BadgeAssignment>("/badges-pricing/badges/purchase", { method: "POST", body, token }),
+  createBadgePurchaseIntent: (body: PurchaseBadgeRequest, token: string, idempotencyKey: string) =>
+    request<BadgePaymentIntent>("/badges-pricing/badges/purchase-intent", {
+      method: "POST",
+      body: { ...body, idempotencyKey },
+      token,
+      headers: { "Idempotency-Key": idempotencyKey },
+    }),
+  getBadgePayment: (paymentId: string, token: string) =>
+    request<BadgePaymentIntent>(`/badges-pricing/payments/${paymentId}`, { token }),
   getBadgeAssignments: (token: string, subjectType?: string, subjectId?: string) =>
     request<BadgeAssignment[]>(
       withQuery("/badges-pricing/badges/assignments", { subjectType, subjectId }),
@@ -1690,8 +1731,13 @@ export const api = {
     }),
   getBadgeRenewals: (token: string, assignmentId?: string) =>
     request<BadgeRenewal[]>(withQuery("/badges-pricing/renewals", { assignmentId }), { token }),
-  payBadgeRenewal: (assignmentId: string, token: string) =>
-    request<BadgeAssignment>(`/badges-pricing/renewals/${assignmentId}/pay`, { method: "POST", token }),
+  payBadgeRenewal: (assignmentId: string, token: string, idempotencyKey = crypto.randomUUID()) =>
+    request<BadgePaymentIntent>(`/badges-pricing/renewals/${assignmentId}/pay`, {
+      method: "POST",
+      token,
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: { idempotencyKey },
+    }),
   getCampaigns: () => request<Campaign[]>("/badges-pricing/campaigns"),
   createCampaign: (body: CreateCampaignRequest, token: string) =>
     request<Campaign>("/badges-pricing/campaigns", { method: "POST", body, token }),
@@ -1847,6 +1893,8 @@ export const api = {
     request<HostProfile>(`/spec/host-profiles/${slug}`, { method: "PUT", token, body }),
   getTravelerWorkspace: (userId: string, token: string) =>
     request<TravelerWorkspace>(`/spec/traveler/${userId}`, { token }),
+  getNotificationUnreadCount: (userId: string, token: string) =>
+    request<NotificationUnreadCount>(`/spec/traveler/${userId}/notifications/unread-count`, { token }),
   prepareIdentityDocumentUpload: (userId: string, token: string, body: { documentType: string; fileName: string; contentType: string; sizeBytes: number; issuingCountry?: string | null; expiresOn?: string | null }) =>
     request<IdentityDocumentUpload>(`/spec/traveler/${userId}/identity-documents/uploads`, { method: "POST", token, body }),
   uploadIdentityDocumentContent: (userId: string, uploadId: string, token: string, file: File, options?: UploadOptions) =>

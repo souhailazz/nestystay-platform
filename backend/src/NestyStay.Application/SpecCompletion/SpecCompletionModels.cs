@@ -16,6 +16,7 @@ public interface ISpecCompletionStore
     Task<HostProfileDto?> GetHostProfileAsync(string slug, CancellationToken cancellationToken);
     Task<HostProfileDto> UpsertHostProfileAsync(string slug, UpsertHostProfileRequest request, Guid actorUserId, CancellationToken cancellationToken);
     Task<TravelerWorkspaceDto> GetTravelerWorkspaceAsync(Guid userId, CancellationToken cancellationToken);
+    Task<int> GetUnreadNotificationCountAsync(Guid userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<TravelerRecommendationDto>> GetTravelerRecommendationsAsync(Guid userId, TravelerRecommendationQuery query, CancellationToken cancellationToken);
     Task<TravelerRecommendationDto> DismissTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken);
     Task<TravelerRecommendationDto> RestoreTravelerRecommendationAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken);

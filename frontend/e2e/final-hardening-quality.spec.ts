@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { manifestCanonicalTestPaths } from "../src/app/routeManifest";
 
 type Session = {
   userId: string;
@@ -18,17 +19,16 @@ const password = "NestyStay1";
 
 test.describe.configure({ mode: "serial" });
 
-test("representative pages have no critical or serious axe violations", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium");
-  const routes = ["/", "/explore", "/login", "/register", "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/gate/qr", "/design-system", "/401", "/404"];
+test("every reachable manifest screen has no critical or serious axe violations", async ({ page }) => {
+  // Accessibility assertions must measure the settled UI, not translucent
+  // entrance frames while Framer Motion is still painting intermediate colors.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const routes = manifestCanonicalTestPaths();
   const pages: Array<Record<string, unknown>> = [];
   const impactTotals = { critical: 0, serious: 0, moderate: 0, minor: 0, unknown: 0 };
   for (const route of routes) {
-    await page.goto(route, { waitUntil: "networkidle" });
-    // Axe samples computed colors, so wait until opacity-based entrance
-    // transitions reach their final state rather than measuring a translucent
-    // intermediate frame.
-    await page.waitForTimeout(1_000);
+    await page.goto(route, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(100);
     const analysis = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     for (const violation of analysis.violations) {
       impactTotals[(violation.impact ?? "unknown") as keyof typeof impactTotals] += 1;
@@ -45,7 +45,7 @@ test("representative pages have no critical or serious axe violations", async ({
       })),
     });
   }
-  writeEvidence("08-accessibility/axe-results.json", { generatedAt: new Date().toISOString(), pages: routes.length, impactTotals, results: pages });
+  writeEvidence("08-accessibility/axe-results.json", { generatedAt: new Date().toISOString(), coverage: "all reachable manifest screen routes", pages: routes.length, impactTotals, results: pages });
   expect(impactTotals.critical).toBe(0);
   expect(impactTotals.serious).toBe(0);
 });
@@ -91,8 +91,7 @@ test("major public screens do not overflow and controls meet the WCAG minimum ta
   writeEvidence(`17-mobile/responsive-${testInfo.project.name}.json`, { generatedAt: new Date().toISOString(), project: testInfo.project.name, viewport: testInfo.project.use.viewport, screens: routes.length, failures: 0, results });
 });
 
-test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium");
+test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and modal UI", async ({ page }) => {
   await page.goto("/login", { waitUntil: "networkidle" });
   await page.keyboard.press("Tab");
   const firstFocus = await page.evaluate(() => ({ tag: document.activeElement?.tagName, outline: getComputedStyle(document.activeElement as Element).outlineStyle }));
@@ -115,8 +114,7 @@ test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and mo
   writeEvidence("08-accessibility/keyboard-navigation.json", { generatedAt: new Date().toISOString(), tab: "pass", shiftTab: "pass", enter: "pass", escape: await openButton.count() ? "pass" : "not-applicable-no-dialog-trigger", visibleFocusTarget: firstFocus });
 });
 
-test("representative page performance is measured with browser timing APIs", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium");
+test("representative page performance is measured with browser timing APIs", async ({ page }) => {
   const routes = ["/", "/explore", "/login", "/register", "/directory/custodians", "/directory/trades", "/directory/businesses", "/directory/police", "/gate/qr"];
   const results: Array<Record<string, unknown>> = [];
   for (const route of routes) {
@@ -158,8 +156,7 @@ test("representative page performance is measured with browser timing APIs", asy
   writeEvidence("09-performance/browser-performance.json", { generatedAt: new Date().toISOString(), environment: "local production preview; synthetic unthrottled", pages: results });
 });
 
-test("critical UI smoke works in Chromium, Firefox, and WebKit", async ({ baseURL, page }, testInfo) => {
-  test.skip(!["desktop-chromium", "desktop-firefox", "desktop-webkit"].includes(testInfo.project.name));
+test("critical UI smoke works in Chromium, Firefox, WebKit, and mobile Chromium", async ({ baseURL, page }, testInfo) => {
   const api = await playwrightRequest.newContext({ baseURL });
   const session = await createSession(api, "Guest");
   await page.goto("/login", { waitUntil: "networkidle" });
@@ -174,8 +171,7 @@ test("critical UI smoke works in Chromium, Firefox, and WebKit", async ({ baseUR
   await api.dispose();
 });
 
-test("stable representative screens match visual baselines", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium");
+test("stable representative screens match visual baselines", async ({ page }) => {
   for (const route of ["/login", "/register", "/401", "/403", "/404", "/directory/police"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page).toHaveScreenshot(`${route.replaceAll("/", "-").replace(/^-/, "") || "home"}.png`, { fullPage: true, animations: "disabled", maxDiffPixelRatio: 0.01 });

@@ -43,7 +43,7 @@ public static class NestyStaySeed
         Price("guest-ekyc-first-html", 9.99m, "USD", "Per first check", "Guests"),
         Price("guest-ekyc-return-html", 4.99m, "USD", "Per return check", "Guests"),
         Price("guest-ekyc-host-paid-pdf", 0.14m, "USD", "Per booking", "Hosts"),
-        Price("alibaba-ekyc-vendor-cost", 0.14m, "USD", "Per check", "NestyStay"),
+        Price("stripe-identity-vendor-cost", 0.14m, "USD", "Per check", "NestyStay"),
         Price("verified-host-standard-annual", 0m, "USD", "Included", "Hosts"),
         Price("trusted-host-standard-annual", 49m, "USD", "One time (annual renewal capability)", "Hosts"),
         Price("trusted-host-pdf-campaign", 49m, "USD", "One time", "Hosts"),
@@ -101,7 +101,7 @@ public static class NestyStaySeed
 
     private static IReadOnlyList<ProviderConfig> DefaultProviders() =>
     [
-        Provider(ProviderKind.Ekyc, "AlibabaCloud", true),
+        Provider(ProviderKind.Ekyc, "StripeIdentity", true),
         Provider(ProviderKind.Ekyc, "Jumio", false),
         Provider(ProviderKind.Ekyc, "Onfido", false),
         Provider(ProviderKind.Payment, "Stripe", true),

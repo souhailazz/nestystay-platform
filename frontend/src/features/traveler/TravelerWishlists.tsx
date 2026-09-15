@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Heart, MapPin, Plus, Trash2 } from "lucide-react";
 import { api, formatMoney, type PropertyListing, type WishlistCollection } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
+import { Modal } from "../../components/ui/Modal";
 
 interface TravelerWishlistsProps {
   userId: string;
@@ -100,25 +101,23 @@ export function TravelerWishlists({ userId, token }: TravelerWishlistsProps) {
         </button>
       </header>
 
-      {showAddModal && (
-        <div className="modal-backdrop" role="presentation">
-          <div aria-labelledby="wishlist-create-title" aria-modal="true" className="modal-card" role="dialog">
-            <h3 id="wishlist-create-title">Create New Wishlist Collection</h3>
-            <input
-              aria-label="Collection name"
-              type="text"
-              className="input-control my-3"
-              placeholder="e.g. Honeymoon Beach Stays"
-              value={newColName}
-              onChange={(event) => setNewColName(event.target.value)}
-            />
-            <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button type="button" className="btn btn-primary" disabled={busy || !newColName.trim()} onClick={() => void handleCreateCollection()}>Create</button>
-            </div>
-          </div>
+      <Modal open={showAddModal} title="Create new wishlist collection" onClose={() => setShowAddModal(false)} variant="sheet">
+        <label className="field-label" htmlFor="wishlist-collection-name">Collection name</label>
+        <input
+          id="wishlist-collection-name"
+          aria-describedby="wishlist-collection-help"
+          type="text"
+          className="input-control my-3"
+          placeholder="e.g. Honeymoon Beach Stays"
+          value={newColName}
+          onChange={(event) => setNewColName(event.target.value)}
+        />
+        <p id="wishlist-collection-help" className="m-0 text-xs text-sand-500">Use a name that helps you find these stays later.</p>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <button type="button" className="btn btn-ghost" onClick={() => setShowAddModal(false)}>Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={busy || !newColName.trim()} onClick={() => void handleCreateCollection()}>Create collection</button>
         </div>
-      )}
+      </Modal>
 
       {loading && <div className="card-box">Loading your saved stays…</div>}
       {error && <div className="notice-panel" role="alert">{error}</div>}

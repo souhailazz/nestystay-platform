@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using NestyStay.Application.Abstractions;
 using NestyStay.Application.PhaseOne;
+using NestyStay.Application.PhaseTwo;
 using NestyStay.Api.Webhooks;
 using NestyStay.Domain;
 
@@ -17,83 +18,20 @@ public sealed class WebhooksController(
     IProviderEventStore providerEventStore,
     IConfiguration configuration,
     IHostEnvironment environment,
-    IEkycResultProvider? ekycResultProvider = null) : ControllerBase
+    IBadgePaymentStore? badgePaymentStore = null) : ControllerBase
 {
     private static readonly ConcurrentDictionary<string, DateTimeOffset> ProcessedWebhookEvents = new();
     private static readonly TimeSpan StripeSignatureTolerance = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan WebhookReplayMemory = TimeSpan.FromDays(1);
 
-    [HttpGet("alibaba-ekyc/callback")]
-    public async Task<IActionResult> ReceiveAlibabaEkycCallback(
-        [FromQuery] AlibabaEkycCallbackRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!IsAlibabaCallbackAuthorized(request.CallbackToken))
-        {
-            return Unauthorized(new { message = "Alibaba eKYC callback token is missing or invalid." });
-        }
-
-        if (ekycResultProvider is null)
-        {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Alibaba eKYC result provider is not configured." });
-        }
-
-        if (!Guid.TryParse(request.BookingId, out var bookingId) ||
-            string.IsNullOrWhiteSpace(request.TransactionId) ||
-            !IsAlibabaPassedValue(request.Passed))
-        {
-            return BadRequest(new { message = "Alibaba eKYC callback parameters are incomplete or invalid." });
-        }
-
-        var transactionId = request.TransactionId.Trim();
-        var booking = phaseOneStore.GetBooking(bookingId);
-        if (booking is null)
-        {
-            return NotFound();
-        }
-
-        if (!string.Equals(booking.EkycTransactionId, transactionId, StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { message = "Alibaba eKYC transaction does not match the booking." });
-        }
-
-        var result = await ekycResultProvider.CheckResultAsync(
-            new EkycCheckRequest(bookingId.ToString("N"), transactionId),
-            cancellationToken);
-        var resolved = await phaseOneStore.ResolveVerificationAsync(
-            bookingId,
-            new ResolveVerificationRequest(result.Status == VerificationStatus.Passed, result.TransactionId),
-            cancellationToken);
-
-        return resolved is null
-            ? NotFound()
-            : Accepted(new
-            {
-                accepted = true,
-                passed = result.Status == VerificationStatus.Passed,
-                subCode = result.SubCode
-            });
-    }
-
-    [HttpPost("alibaba-ekyc")]
-    public async Task<IActionResult> ReceiveAlibabaEkyc(AlibabaEkycWebhookRequest request, CancellationToken cancellationToken)
-    {
-        if (!IsWebhookAuthorized())
-        {
-            return Unauthorized(new { message = "Webhook shared secret is missing or invalid." });
-        }
-
-        var booking = await phaseOneStore.ResolveVerificationAsync(
-            request.BookingId,
-            new ResolveVerificationRequest(request.Passed, request.TransactionId),
-            cancellationToken);
-
-        return booking is null ? NotFound() : Accepted(booking);
-    }
-
     [HttpPost("{provider}")]
     public async Task<IActionResult> Receive(string provider, WebhookEventRequest request, CancellationToken cancellationToken)
     {
+        if (!IsStripeProvider(provider))
+        {
+            return BadRequest(new { message = "Unsupported webhook provider. NestyStay accepts Stripe events only." });
+        }
+
         if (IsStripeProvider(provider) && environment.IsProduction())
         {
             return BadRequest(new { message = "Stripe webhooks must use the raw-body endpoint." });
@@ -133,13 +71,14 @@ public sealed class WebhooksController(
 
         var eventType = ResolveStripeEventType(payloadJson, "stripe.event");
         var eventId = ResolveWebhookEventId(eventType, payloadJson, null);
+        var identityEvent = IsStripeIdentityEvent(eventType);
         var receipt = await providerEventStore.RecordReceivedAsync(
             new ProviderEventRecord(
-                ProviderKind.Payment,
-                "Stripe",
+                identityEvent ? ProviderKind.Ekyc : ProviderKind.Payment,
+                identityEvent ? "Stripe Identity" : "Stripe",
                 eventId,
                 eventType,
-                payloadJson,
+                identityEvent ? SanitizeStripeIdentityWebhookPayload(payloadJson, eventType, eventId) : payloadJson,
                 ComputeSha256Hex(payloadJson),
                 DateTimeOffset.UtcNow),
             cancellationToken);
@@ -159,6 +98,65 @@ public sealed class WebhooksController(
         try
         {
             var request = new WebhookEventRequest("stripe", eventType, payloadJson, eventId);
+            if (identityEvent)
+            {
+                var identityUpdate = TryCreateStripeIdentityUpdate(request);
+                if (identityUpdate is null)
+                {
+                    await providerEventStore.MarkProcessedAsync(
+                        receipt.Id,
+                        new ProviderEventProcessingResult("Ignored", string.Empty, null, "Unsupported Stripe Identity event type or payload.", DateTimeOffset.UtcNow),
+                        cancellationToken);
+
+                    return Accepted(new
+                    {
+                        provider = "stripe_identity",
+                        eventType,
+                        accepted = true,
+                        duplicate = false,
+                        providerEventId = receipt.Id
+                    });
+                }
+
+                var identityBooking = phaseOneStore.GetBooking(identityUpdate.BookingId);
+                var processingMessage = identityUpdate.FailureReason is null
+                    ? "Stripe Identity verification is still processing."
+                    : $"Stripe Identity requires additional information: {identityUpdate.FailureReason}";
+                if (identityUpdate.Passed is not null)
+                {
+                    identityBooking = await phaseOneStore.ResolveVerificationAsync(
+                        identityUpdate.BookingId,
+                        new ResolveVerificationRequest(
+                            identityUpdate.Passed.Value,
+                            identityUpdate.TransactionId,
+                            identityUpdate.FailureReason),
+                        cancellationToken);
+                    processingMessage = identityBooking is null
+                        ? "No matching booking found."
+                        : identityUpdate.Passed.Value ? "Stripe Identity verification approved." : "Stripe Identity verification rejected.";
+                }
+
+                await providerEventStore.MarkProcessedAsync(
+                    receipt.Id,
+                    new ProviderEventProcessingResult(
+                        "Processed",
+                        identityBooking is null ? string.Empty : "Booking",
+                        identityBooking?.Id,
+                        processingMessage,
+                        DateTimeOffset.UtcNow),
+                    cancellationToken);
+
+                return Accepted(new
+                {
+                    provider = "stripe_identity",
+                    eventType,
+                    accepted = true,
+                    duplicate = false,
+                    providerEventId = receipt.Id,
+                    bookingId = identityBooking?.Id
+                });
+            }
+
             if (TryCreateStripePaymentUpdate(request) is not { } update)
             {
                 await providerEventStore.MarkProcessedAsync(
@@ -177,13 +175,18 @@ public sealed class WebhooksController(
             }
 
             var booking = await phaseOneStore.ApplyPaymentWebhookAsync(update, cancellationToken);
+            var badgePayment = booking is null && badgePaymentStore is not null
+                ? await badgePaymentStore.ApplyWebhookAsync(update, cancellationToken)
+                : null;
+            var processedSubjectType = booking is not null ? "Booking" : badgePayment is not null ? "BadgePayment" : string.Empty;
+            var processedSubjectId = booking?.Id ?? badgePayment?.Id;
             await providerEventStore.MarkProcessedAsync(
                 receipt.Id,
                 new ProviderEventProcessingResult(
                     "Processed",
-                    booking is null ? string.Empty : "Booking",
-                    booking?.Id,
-                    booking is null ? "No matching booking found." : "Applied to booking.",
+                    processedSubjectType,
+                    processedSubjectId,
+                    booking is not null ? "Applied to booking." : badgePayment is not null ? "Applied to badge payment." : "No matching booking or badge payment found.",
                     DateTimeOffset.UtcNow),
                 cancellationToken);
 
@@ -194,7 +197,9 @@ public sealed class WebhooksController(
                 accepted = true,
                 duplicate = false,
                 providerEventId = receipt.Id,
-                bookingId = booking?.Id
+                bookingId = booking?.Id,
+                badgePaymentId = badgePayment?.Id,
+                badgePaymentStatus = badgePayment?.Status
             });
         }
         catch (Exception exception)
@@ -216,6 +221,138 @@ public sealed class WebhooksController(
 
         return await phaseOneStore.ApplyPaymentWebhookAsync(update, cancellationToken);
     }
+
+    private static bool IsStripeIdentityEvent(string eventType) =>
+        eventType.StartsWith("identity.verification_session.", StringComparison.OrdinalIgnoreCase);
+
+    private static string SanitizeStripeIdentityWebhookPayload(string payloadJson, string eventType, string eventId)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payloadJson);
+            var root = document.RootElement;
+            var payload = root.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("object", out var dataObject)
+                    ? dataObject
+                    : root;
+            var metadataBookingId = ResolveMetadataValue(payload, "booking_id");
+            var failureReason = ResolveIdentityFailureReason(payload);
+
+            return JsonSerializer.Serialize(new
+            {
+                id = eventId,
+                type = eventType,
+                data = new
+                {
+                    @object = new
+                    {
+                        id = ResolveString(payload, "id"),
+                        client_reference_id = ResolveString(payload, "client_reference_id"),
+                        booking_id = metadataBookingId,
+                        status = ResolveString(payload, "status"),
+                        failure_reason = failureReason
+                    }
+                }
+            });
+        }
+        catch (JsonException)
+        {
+            return JsonSerializer.Serialize(new { id = eventId, type = eventType });
+        }
+    }
+
+    private static StripeIdentityWebhookUpdate? TryCreateStripeIdentityUpdate(WebhookEventRequest request)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(request.PayloadJson);
+            var root = document.RootElement;
+            var eventType = root.TryGetProperty("type", out var typeElement) && !string.IsNullOrWhiteSpace(typeElement.GetString())
+                ? typeElement.GetString()!
+                : request.EventType;
+            var normalizedEventType = eventType.Trim().ToLowerInvariant();
+            if (!IsStripeIdentityEvent(normalizedEventType))
+            {
+                return null;
+            }
+
+            var payload = root.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("object", out var dataObject)
+                    ? dataObject
+                    : root;
+            var transactionId = ResolveString(payload, "id");
+            if (string.IsNullOrWhiteSpace(transactionId))
+            {
+                return null;
+            }
+
+            var bookingReference = ResolveMetadataValue(payload, "booking_id") ?? ResolveString(payload, "client_reference_id");
+            if (!Guid.TryParse(bookingReference, out var bookingId))
+            {
+                return null;
+            }
+
+            var passed = normalizedEventType switch
+            {
+                "identity.verification_session.verified" => true,
+                "identity.verification_session.canceled" => false,
+                "identity.verification_session.requires_input" or "identity.verification_session.processing" => (bool?)null,
+                _ => (bool?)null
+            };
+            if (passed is null &&
+                !normalizedEventType.Equals("identity.verification_session.processing", StringComparison.Ordinal) &&
+                !normalizedEventType.Equals("identity.verification_session.requires_input", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var failureReason = passed == false
+                ? ResolveIdentityFailureReason(payload) ?? "Stripe Identity verification session was canceled"
+                : normalizedEventType.Equals("identity.verification_session.requires_input", StringComparison.Ordinal)
+                    ? ResolveIdentityFailureReason(payload) ?? "Stripe Identity requires additional information"
+                    : null;
+            return new StripeIdentityWebhookUpdate(bookingId, transactionId, passed, failureReason);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ResolveMetadataValue(JsonElement payload, string key)
+    {
+        if (!payload.TryGetProperty("metadata", out var metadata) || metadata.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return ResolveString(metadata, key);
+    }
+
+    private static string? ResolveIdentityFailureReason(JsonElement payload)
+    {
+        if (!payload.TryGetProperty("last_error", out var lastError) || lastError.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var code = ResolveString(lastError, "code");
+        var reason = ResolveString(lastError, "reason");
+        var value = string.IsNullOrWhiteSpace(reason) ? code : string.IsNullOrWhiteSpace(code) ? reason : $"{code}: {reason}";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.ReplaceLineEndings(" ").Trim();
+        return normalized[..Math.Min(240, normalized.Length)];
+    }
+
+    private sealed record StripeIdentityWebhookUpdate(
+        Guid BookingId,
+        string TransactionId,
+        bool? Passed,
+        string? FailureReason);
 
     private IActionResult? TryRejectReplay(string provider, WebhookEventRequest request)
     {
@@ -304,10 +441,11 @@ public sealed class WebhooksController(
             return eventType switch
             {
                 "payment_intent.succeeded" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Captured),
+                "payment_intent.processing" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Pending),
                 "payment_intent.payment_failed" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Failed),
                 "payment_intent.canceled" => CreatePaymentIntentUpdate(eventId, eventType, payload, PaymentStatus.Cancelled),
                 "charge.refunded" => CreateRefundUpdate(eventId, eventType, payload, "amount_refunded"),
-                "refund.succeeded" => CreateRefundUpdate(eventId, eventType, payload, "amount"),
+                "refund.created" or "refund.updated" => CreateSucceededRefundUpdate(eventId, eventType, payload),
                 _ => null
             };
         }
@@ -338,7 +476,7 @@ public sealed class WebhooksController(
             ResolveMinorUnitAmount(payload, "amount_received") ?? ResolveMinorUnitAmount(payload, "amount"),
             ResolveCurrency(payload),
             ResolveString(payload, "latest_charge"),
-            ResolveString(payload, "cancellation_reason"),
+            ResolveString(payload, "cancellation_reason") ?? ResolvePaymentFailureMessage(payload),
             ResolveCreatedAt(payload));
     }
 
@@ -363,6 +501,11 @@ public sealed class WebhooksController(
             ResolveCreatedAt(payload));
     }
 
+    private static PaymentWebhookUpdateRequest? CreateSucceededRefundUpdate(string eventId, string eventType, JsonElement payload) =>
+        string.Equals(ResolveString(payload, "status"), "succeeded", StringComparison.OrdinalIgnoreCase)
+            ? CreateRefundUpdate(eventId, eventType, payload, "amount")
+            : null;
+
     private static string? ResolveString(JsonElement payload, string propertyName) =>
         payload.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
             ? property.GetString()
@@ -370,6 +513,11 @@ public sealed class WebhooksController(
 
     private static string? ResolveCurrency(JsonElement payload) =>
         ResolveString(payload, "currency")?.ToUpperInvariant();
+
+    private static string? ResolvePaymentFailureMessage(JsonElement payload) =>
+        payload.TryGetProperty("last_payment_error", out var error) && error.ValueKind == JsonValueKind.Object
+            ? ResolveString(error, "message")
+            : null;
 
     private static decimal? ResolveMinorUnitAmount(JsonElement payload, string propertyName) =>
         payload.TryGetProperty(propertyName, out var property) && property.TryGetInt64(out var minorUnits)
@@ -449,27 +597,6 @@ public sealed class WebhooksController(
         var actual = Encoding.UTF8.GetBytes(providedSecret);
         return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(actual, expected);
     }
-
-    private bool IsAlibabaCallbackAuthorized(string? providedToken)
-    {
-        var expectedToken = ResolveSecret("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN");
-        if (string.IsNullOrWhiteSpace(expectedToken))
-        {
-            return !environment.IsProduction();
-        }
-
-        if (string.IsNullOrWhiteSpace(providedToken))
-        {
-            return false;
-        }
-
-        var expected = Encoding.UTF8.GetBytes(expectedToken);
-        var actual = Encoding.UTF8.GetBytes(providedToken);
-        return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(actual, expected);
-    }
-
-    private static bool IsAlibabaPassedValue(string? passed) =>
-        passed?.Trim().ToUpperInvariant() is "Y" or "N";
 
     private string? ResolveSecret(string configurationKey, string environmentKey)
     {

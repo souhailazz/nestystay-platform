@@ -8,18 +8,21 @@ test.describe.configure({ mode: "serial", timeout: 180_000 });
 type AuthFlow = { id: string; status: string };
 type FlowSecret = { token: string; code: string };
 
-function latestCapturedEmail(): string {
+function capturedEmailContaining(fragment: string): string {
   const root = join(tmpdir(), "nestystay-email-outbox");
   if (!existsSync(root)) return "";
   const files = readdirSync(root)
     .filter((name) => name.endsWith(".eml"))
     .map((name) => ({ name, modified: statSync(join(root, name)).mtimeMs }))
     .sort((a, b) => b.modified - a.modified);
-  return files.length ? readFileSync(join(root, files[0].name), "utf8") : "";
+  for (const file of files) {
+    const content = readFileSync(join(root, file.name), "utf8");
+    if (content.includes(fragment)) return content;
+  }
+  return "";
 }
 
-test("transactional email links are captured and complete through the real browser routes", async ({ page, baseURL }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+test("transactional email links are captured and complete through the real browser routes", async ({ page, baseURL }) => {
   const api = await playwrightRequest.newContext({ baseURL });
   const destination = `clickable-${Date.now()}@test.local`;
 
@@ -32,7 +35,7 @@ test("transactional email links are captured and complete through the real brows
   expect(emailSecretResponse.ok(), await emailSecretResponse.text()).toBeTruthy();
   const emailSecret = await emailSecretResponse.json() as FlowSecret;
 
-  await expect.poll(() => latestCapturedEmail(), { timeout: 20_000, intervals: [250, 500, 1000] })
+  await expect.poll(() => capturedEmailContaining(`/auth/email-verification?flowId=${emailFlow.id.replaceAll("-", "")}`), { timeout: 20_000, intervals: [250, 500, 1000] })
     .toContain(`/auth/email-verification?flowId=${emailFlow.id.replaceAll("-", "")}`);
   await page.goto(`/auth/email-verification?flowId=${emailFlow.id}&token=${encodeURIComponent(emailSecret.token)}`);
   await expect(page.getByText("Email verified. You can continue to NestyStay.")).toBeVisible();

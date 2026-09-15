@@ -22,7 +22,7 @@ public sealed record ProviderFeatureFlags(
         // production explicitly selects Brevo through EMAIL_PROVIDER.
         Resolve(configuration, "Email:Provider", "EMAIL_PROVIDER", "file"),
         Resolve(configuration, "BusinessMail:Provider", "BUSINESS_MAIL_PROVIDER", "zoho"),
-        Resolve(configuration, "Integrations:EkycProvider", "EKYC_PROVIDER", "alibaba"),
+        Resolve(configuration, "Integrations:EkycProvider", "EKYC_PROVIDER", "stripe_identity"),
         Resolve(configuration, "Integrations:PaymentProvider", "PAYMENT_PROVIDER", "stripe"),
         Resolve(configuration, "Payout:Mode", "PAYOUT_MODE", "manual"),
         Resolve(configuration, "Integrations:StorageProvider", "OBJECT_STORAGE_PROVIDER", "local"),

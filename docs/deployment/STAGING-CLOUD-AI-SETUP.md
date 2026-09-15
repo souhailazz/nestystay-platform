@@ -52,11 +52,13 @@ Use dedicated staging data and test-mode provider accounts.
   billing, privacy and security mailboxes in Zoho and configure their DNS.
 - Payments: Stripe test mode for staging. Use a `pk_test_` public key in the
   frontend and `sk_test_`/test webhook values on the server.
-- Identity verification: the current backend release still contains the
-  Alibaba eKYC adapter. Stripe Identity is the intended replacement, but the
-  Stripe Identity adapter and webhook contract must be merged and tested
-  before changing `EKYC_PROVIDER` to a Stripe value. Do not claim Stripe
-  Identity is active until that code is deployed and its test flow passes.
+- Identity verification: Stripe Identity is the selected staging provider
+  (`EKYC_PROVIDER=stripe_identity`). Set `STRIPE_IDENTITY_RETURN_URL` and use
+  the same Stripe account/webhook secret as the payment integration. The
+  backend creates Stripe VerificationSessions and consumes signed
+  `identity.verification_session.processing`, `.verified`, `.requires_input`
+  and `.canceled` events at `/api/webhooks/stripe/raw`. Alibaba remains an
+  explicit legacy option only.
 
 ## Cloud AI deployment checklist
 
@@ -127,11 +129,13 @@ Configure the providers as follows:
   and mailbox security.
 - Stripe test mode for staging. Set the test publishable/secret keys and test
   webhook signing secret, and use only Stripe test data.
-- Do not enable or describe Stripe Identity as active yet. The current backend
-  release still has the Alibaba eKYC adapter; Stripe Identity requires its
-  adapter/webhook implementation to be merged and validated first. Keep the
-  current configured eKYC mode until that release is approved, or coordinate
-  the provider migration as a separate code change.
+- Enable Stripe Identity for staging with `EKYC_PROVIDER=stripe_identity` and
+  `STRIPE_IDENTITY_RETURN_URL=https://staging.nestystay.net/booking/{bookingId}/pending`.
+  Stripe Identity uses the hosted verification URL returned by the backend;
+  no Stripe client secret is persisted in the database. Configure the Stripe
+  webhook endpoint at `https://staging.nestystay.net/api/webhooks/stripe/raw`
+  for the four identity verification-session events listed above. Use Stripe
+  test mode for staging and do not describe it as production verification.
 
 After deployment, verify from outside the server:
 

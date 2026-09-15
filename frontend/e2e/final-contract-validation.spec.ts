@@ -30,9 +30,19 @@ test.beforeAll(async ({ baseURL }) => {
     // The no-eKYC contract path is self-contained. Leave the privileged
     // clean-room fixture for the second test to its explicit skip below.
     if (!adminToken) return;
-    const badge = await api.post("/api/badges-pricing/badges/purchase", {
-      headers: { Authorization: `Bearer ${adminToken}` },
-      data: { subjectType: "Host", subjectId: host.userId, level: "Verified", hostVerificationPassed: true, paymentSucceeded: true },
+    const submittedVerification = await api.post("/api/host-verification", {
+      headers: { Authorization: "Bearer " + host.accessToken },
+      data: { documentType: "Passport", notes: "Contract badge eligibility fixture." },
+    });
+    expect(submittedVerification.ok(), await submittedVerification.text()).toBeTruthy();
+    const reviewedVerification = await api.post("/api/host-verification/" + host.userId + "/decision", {
+      headers: { Authorization: "Bearer " + adminToken },
+      data: { status: "Approved", reason: "Contract badge eligibility fixture approved." },
+    });
+    expect(reviewedVerification.ok(), await reviewedVerification.text()).toBeTruthy();
+    const badge = await api.post("/api/badges-pricing/badges/purchase-intent", {
+      headers: { Authorization: `Bearer ${adminToken}`, "Idempotency-Key": `contract-verified-${host.userId}` },
+      data: { subjectType: "Host", subjectId: host.userId, level: "Verified", hostVerificationPassed: true },
     });
     expect(badge.ok(), await badge.text()).toBeTruthy();
     const property = await api.post("/api/properties", {
@@ -139,7 +149,7 @@ test("guest completes the enabled eKYC UI path through PENDING and held dates", 
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/pending$/);
   await expect(page.getByText("DATES HELD FOR", { exact: true })).toBeVisible();
   await expect(page.getByText(/of 60:00 · holdExpiresAt/i)).toBeVisible();
-  await expect(page.getByText(/Open eKYC transaction|Preparing verification session/i)).toBeVisible();
+  await expect(page.getByText(/Open Stripe Identity verification|Preparing verification session/i)).toBeVisible();
 
   const bookingId = page.url().match(/\/booking\/([0-9a-f-]+)\/pending$/)?.[1];
   expect(bookingId).toBeTruthy();
@@ -201,9 +211,10 @@ async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: st
 
 async function chooseUniqueDates(page: Page, projectName: string, baseOffset: number) {
   const viewportOffset = projectName.includes("tablet") ? 17 : projectName.includes("mobile") ? 23 : 11;
-  const inputs = page.locator('input[type="date"]');
-  const quoteButton = page.getByRole("button", { name: "Get quote", exact: true });
-  const createButton = page.getByRole("button", { name: "Create booking", exact: true });
+  const dialog = page.getByRole("dialog");
+  const inputs = dialog.locator('input[type="date"]');
+  const quoteButton = dialog.getByRole("button", { name: "Get quote", exact: true });
+  const createButton = dialog.getByRole("button", { name: "Create booking", exact: true });
   const seedOffset = baseOffset + viewportOffset + Math.floor(Math.random() * 500);
   // Persistent PostgreSQL evidence can legitimately occupy a previously chosen
   // far-future range. Probe a few deterministic alternatives rather than making

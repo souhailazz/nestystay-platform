@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, CircleAlert, CreditCard, LockKeyhole, RefreshCcw, Star } from "lucide-react";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import { AppLink } from "../../components/AppLink";
 import { StatusChip } from "../../components/ui/StatusChip";
 import {
@@ -9,6 +11,7 @@ import {
   type BadgeDefinition,
   type BadgeFeatureAccess,
   type BadgeLevel,
+  type BadgePaymentIntent,
   type BadgeRenewal,
 } from "../../lib/api";
 
@@ -54,6 +57,86 @@ function activeAssignmentFor(assignments: BadgeAssignment[], level: BadgeLevel) 
   );
 }
 
+let badgeStripeKey: string | undefined;
+let badgeStripePromise: ReturnType<typeof loadStripe> | null | undefined;
+
+function stripeFor(key?: string | null) {
+  const resolvedKey = key || (import.meta.env.VITE_STRIPE_PUBLIC_KEY as string | undefined);
+  if (!resolvedKey) return null;
+  if (badgeStripeKey !== resolvedKey || badgeStripePromise === undefined) {
+    badgeStripeKey = resolvedKey;
+    badgeStripePromise = loadStripe(resolvedKey);
+  }
+  return badgeStripePromise;
+}
+
+function BadgeStripeCheckout({
+  payment,
+  token,
+  onResolved,
+}: {
+  payment: BadgePaymentIntent;
+  token: string;
+  onResolved: (payment: BadgePaymentIntent) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function waitForProviderState(paymentId: string) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const latest = await api.getBadgePayment(paymentId, token);
+      if (["CAPTURED", "FAILED", "CANCELLED", "REFUNDED"].includes(latest.status.toUpperCase())) {
+        onResolved(latest);
+        return latest;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 750));
+    }
+    return null;
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!stripe || !elements || isSubmitting) return;
+    setIsSubmitting(true);
+    setError(null);
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message || "Please complete the payment details.");
+      setIsSubmitting(false);
+      return;
+    }
+    const result = await stripe.confirmPayment({
+      elements,
+      clientSecret: payment.clientSecret!,
+      redirect: "if_required",
+    });
+    if (result.error) {
+      setError(result.error.message || "Stripe could not confirm this payment.");
+      setIsSubmitting(false);
+      return;
+    }
+    const latest = await waitForProviderState(payment.id);
+    if (!latest) setError("Payment is still processing. This page will update when Stripe confirms it.");
+    setIsSubmitting(false);
+  }
+
+  return (
+    <form className="mt-4 flex flex-col gap-3 rounded-field border border-sand-border bg-white p-4" onSubmit={submit}>
+      <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-sand-500">
+        <span>Secure Stripe payment</span>
+        <span>PCI handled by Stripe</span>
+      </div>
+      <PaymentElement />
+      {error && <div className="rounded-field bg-coral-tint px-3 py-2 text-[12px] text-coral-text" role="alert">{error}</div>}
+      <button className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-pill bg-deep px-4 text-[12.5px] font-semibold text-on-dark-heading hover:bg-deep-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={!stripe || isSubmitting} type="submit">
+        <CreditCard size={15} /> {isSubmitting ? "Confirming payment…" : `Pay ${formatMoney(payment.amount, payment.currency)}`}
+      </button>
+    </form>
+  );
+}
+
 export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostReviewsBadgesSettingsProps) {
   const [replies, setReplies] = useState<Record<string, string>>({
     "rev-1": "Thank you for staying at Ocho Rios Verified Villa!",
@@ -65,6 +148,8 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
   const [featureAccess, setFeatureAccess] = useState<BadgeFeatureAccess | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const [paymentIntent, setPaymentIntent] = useState<BadgePaymentIntent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -132,6 +217,52 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
   const hasVerified = currentLevelIndex >= badgeOrder.indexOf("Verified");
   const nextUpgrade = definitions.find((definition) => badgeOrder.indexOf(definition.level) > currentLevelIndex);
 
+  async function reloadBadgeData() {
+    const [nextAssignments, nextFeatureAccess] = await Promise.all([
+      api.getBadgeAssignments(token, "Host", hostUserId),
+      api.getBadgeFeatureAccess("Host", hostUserId, token),
+    ]);
+    const renewalGroups = await Promise.all(nextAssignments.map((assignment) => api.getBadgeRenewals(token, assignment.id)));
+    setAssignments(nextAssignments);
+    setFeatureAccess(nextFeatureAccess);
+    setRenewals(renewalGroups.flat());
+  }
+
+  async function startBadgePayment(level: BadgeLevel) {
+    setIsStartingPayment(true);
+    setActionError(null);
+    setNotice(null);
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const nextPayment = await api.createBadgePurchaseIntent(
+        { subjectType: "Host", subjectId: hostUserId, level },
+        token,
+        idempotencyKey,
+      );
+      setPaymentIntent(nextPayment);
+      if (nextPayment.status.toUpperCase() === "CAPTURED") {
+        await reloadBadgeData();
+        setNotice(`${level} badge payment confirmed. Your access is now active.`);
+      } else if (nextPayment.status.toUpperCase() === "FAILED" || nextPayment.status.toUpperCase() === "CANCELLED") {
+        setActionError(nextPayment.failureReason || "Badge payment was not completed.");
+      }
+    } catch (error: unknown) {
+      setActionError(error instanceof Error ? error.message : "Badge payment could not be started.");
+    } finally {
+      setIsStartingPayment(false);
+    }
+  }
+
+  async function handlePaymentResolved(nextPayment: BadgePaymentIntent) {
+    setPaymentIntent(nextPayment);
+    if (nextPayment.status.toUpperCase() === "CAPTURED") {
+      await reloadBadgeData();
+      setNotice(`${nextPayment.level} badge payment confirmed. Your access is now active.`);
+    } else if (["FAILED", "CANCELLED", "REFUNDED"].includes(nextPayment.status.toUpperCase())) {
+      setActionError(nextPayment.failureReason || `Badge payment ${nextPayment.status.toLowerCase()}.`);
+    }
+  }
+
   function checklistState(level: BadgeLevel, requirementIndex: number): "complete" | "pending" | "missing" {
     if (level === "Free") return "complete";
     if (activeAssignmentFor(assignments, level)) return "complete";
@@ -156,11 +287,12 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
     setActionError(null);
     setNotice(null);
     try {
-      const updated = await api.payBadgeRenewal(activeAssignment.id, token);
-      setAssignments((current) => current.map((item) => item.id === updated.id ? updated : item));
-      const nextRenewals = await api.getBadgeRenewals(token, updated.id);
-      setRenewals((current) => [...current.filter((item) => item.badgeAssignmentId !== updated.id), ...nextRenewals]);
-      setNotice(`Renewal captured. Your ${updated.level} badge is paid through ${dateLabel(updated.paidThrough)}.`);
+      const nextPayment = await api.payBadgeRenewal(activeAssignment.id, token);
+      setPaymentIntent(nextPayment);
+      if (nextPayment.status.toUpperCase() === "CAPTURED") {
+        await reloadBadgeData();
+        setNotice("Renewal captured. Your badge access has been extended.");
+      }
     } catch (error: unknown) {
       setActionError(error instanceof Error ? error.message : "Renewal payment could not be completed.");
     } finally {
@@ -234,6 +366,26 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
       {loadError && <div className="rounded-card border border-coral bg-coral-tint p-5 text-coral-text" role="alert">{loadError}</div>}
       {actionError && <div className="rounded-card border border-coral bg-coral-tint p-5 text-coral-text" role="alert">{actionError}</div>}
       {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-[13px] text-mint-text" role="status">{notice}</div>}
+
+      {paymentIntent && (
+        <section className="rounded-card border border-sand-border bg-cream p-5" aria-labelledby="badge-payment-heading" data-testid="badge-payment-panel">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-sand-500">Payment status</p>
+              <h2 className="m-0 font-display text-[22px] font-medium" id="badge-payment-heading">{paymentIntent.level} badge payment</h2>
+              <p className="mb-0 mt-2 text-[13px] text-gray-600" aria-live="polite">
+                {paymentIntent.status.toUpperCase() === "CAPTURED" ? "Confirmed by the payment provider and applied to your badge." : paymentIntent.status.toUpperCase() === "PENDING" || paymentIntent.status.toUpperCase() === "AUTHORIZED" ? "Payment is awaiting provider confirmation." : paymentIntent.failureReason || `Payment status: ${paymentIntent.status}.`}
+              </p>
+            </div>
+            <StatusChip value={paymentIntent.status} />
+          </div>
+          {(paymentIntent.status.toUpperCase() === "PENDING" || paymentIntent.status.toUpperCase() === "AUTHORIZED") && paymentIntent.clientSecret && stripeFor(paymentIntent.publishableKey) && (
+            <Elements options={{ clientSecret: paymentIntent.clientSecret }} stripe={stripeFor(paymentIntent.publishableKey)}>
+              <BadgeStripeCheckout payment={paymentIntent} token={token} onResolved={(next) => void handlePaymentResolved(next)} />
+            </Elements>
+          )}
+        </section>
+      )}
 
       {!isLoading && !loadError && featureAccess && (
         <>
@@ -329,9 +481,9 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
                     </ul>
                     {assignment && <p className="mb-0 text-[11px] text-gray-500">Active through {dateLabel(assignment.expiresAt)}</p>}
                     {isAvailableUpgrade && (
-                      <AppLink className={`mt-auto inline-flex min-h-[42px] items-center justify-center gap-2 rounded-pill px-4 text-[12.5px] font-semibold ${definition.level === "Trusted" ? "bg-yellow text-deep hover:bg-yellow-press" : "bg-deep text-on-dark-heading hover:bg-deep-hover"}`} href={`/messages?topic=badge-${definition.level.toLowerCase()}`}>
-                        Apply for {definition.level} <ArrowUpRight size={15} />
-                      </AppLink>
+                      <button className={`mt-auto inline-flex min-h-[42px] items-center justify-center gap-2 rounded-pill px-4 text-[12.5px] font-semibold ${definition.level === "Trusted" ? "bg-yellow text-deep hover:bg-yellow-press" : "bg-deep text-on-dark-heading hover:bg-deep-hover"}`} disabled={isStartingPayment} onClick={() => void startBadgePayment(definition.level)} type="button">
+                        <CreditCard size={15} /> {isStartingPayment ? "Preparing secure payment…" : `Upgrade to ${definition.level}`}
+                      </button>
                     )}
                   </article>
                 );

@@ -1647,7 +1647,7 @@ public sealed class EfPhaseOneStore(
             PriceBreakdownJson = MilestoneJson.Serialize(quote.PriceBreakdown),
             NotificationsJson = MilestoneJson.Serialize(Array.Empty<BookingNotificationDto>()),
             TimelineJson = MilestoneJson.Serialize<IReadOnlyList<string>>(requiresVerification
-                ? ["Booking created", "Dates held", "Alibaba Cloud eKYC started"]
+                ? ["Booking created", "Dates held", $"{ekycProvider.ProviderName} started"]
                 : ["Booking created", "No guest eKYC required", "Booking approved"])
         };
 
@@ -1706,10 +1706,12 @@ public sealed class EfPhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Failed;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
-            booking.RejectionReason = "identity verification failed with the configured provider";
+            booking.RejectionReason = string.IsNullOrWhiteSpace(request.FailureReason)
+                ? "identity verification failed with the configured provider"
+                : request.FailureReason.Trim();
             booking.RejectionSource = "GuestVerification";
             booking.RejectedAt = timeProvider.GetUtcNow();
-            AddTimeline(booking, "Alibaba Cloud eKYC failed", "Booking rejected", "Dates released");
+            AddTimeline(booking, $"{ekycProvider.ProviderName} failed", "Booking rejected", "Dates released");
             notifications = BuildRejectionNotifications(booking);
         }
         else
@@ -1718,7 +1720,7 @@ public sealed class EfPhaseOneStore(
             booking.Status = BookingStatus.Approved;
             booking.VerificationStatus = VerificationStatus.Passed;
             booking.HoldExpiresAt = null;
-            AddTimeline(booking, "Alibaba Cloud eKYC approved", "Booking approved");
+            AddTimeline(booking, $"{ekycProvider.ProviderName} approved", "Booking approved");
             notifications = BuildApprovalNotifications(booking);
         }
 
@@ -1873,6 +1875,21 @@ public sealed class EfPhaseOneStore(
         if (status == "Approved") property.IsDraft = false;
         property.UpdatedAt = timeProvider.GetUtcNow();
         property.UpdatedByUserId = adminUserId;
+        db.MilestoneTravelerNotifications.Add(new MilestoneTravelerNotification
+        {
+            UserId = property.HostUserId,
+            Type = "Moderation",
+            Title = $"Listing {status.ToLowerInvariant()}",
+            Body = status == "Approved"
+                ? $"{property.Title} is approved and visible in Explore."
+                : $"{property.Title} needs attention: {reason ?? "Please review the listing details."}",
+            DeepLink = $"/host/properties/edit?id={property.Id}",
+            IsRead = false,
+            CreatedAt = property.ModeratedAt.Value,
+            UpdatedAt = property.ModeratedAt.Value,
+            CreatedByUserId = adminUserId,
+            UpdatedByUserId = adminUserId
+        });
         await db.SaveChangesAsync(cancellationToken);
         return ToListingDto(property);
     }
@@ -2054,7 +2071,7 @@ public sealed class EfPhaseOneStore(
             booking.EkycTransactionId = result.TransactionId;
             booking.EkycTransactionUrl = result.TransactionUrl;
             booking.VerificationStatus = result.Status;
-            AddTimeline(booking, $"Alibaba Cloud eKYC transaction created: {result.TransactionId}");
+            AddTimeline(booking, $"{result.ProviderName} transaction created: {result.TransactionId}");
             await db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception exception)
@@ -2063,10 +2080,10 @@ public sealed class EfPhaseOneStore(
             booking.VerificationStatus = VerificationStatus.Failed;
             booking.PaymentStatus = PaymentStatus.Cancelled;
             booking.HoldExpiresAt = null;
-            AddTimeline(booking, "Alibaba Cloud eKYC could not be started", "Dates released");
+            AddTimeline(booking, $"{ekycProvider.ProviderName} could not be started", "Dates released");
             await db.SaveChangesAsync(cancellationToken);
 
-            throw new InvalidOperationException("Alibaba Cloud eKYC could not be started for this booking.", exception);
+            throw new InvalidOperationException($"{ekycProvider.ProviderName} could not be started for this booking.", exception);
         }
     }
 
@@ -2177,6 +2194,19 @@ public sealed class EfPhaseOneStore(
                 notification.Message.Recipient,
                 notification.Message.Subject,
                 queuedAt));
+            db.MilestoneTravelerNotifications.Add(new MilestoneTravelerNotification
+            {
+                UserId = notification.RecipientUserId,
+                Type = notification.Type,
+                Title = notification.Message.Subject,
+                Body = notification.Message.Body,
+                DeepLink = notification.DeepLink,
+                IsRead = false,
+                CreatedAt = queuedAt,
+                UpdatedAt = queuedAt,
+                CreatedByUserId = notification.RecipientUserId,
+                UpdatedByUserId = notification.RecipientUserId
+            });
             AddTimeline(booking, $"Notification queued for {notification.RecipientType}");
         }
 
@@ -2234,7 +2264,7 @@ public sealed class EfPhaseOneStore(
 
         if (property.GuestVerificationEnabled)
         {
-            lines.Add(new("guest-verification", "Alibaba Cloud eKYC verification required before approval", 0m, property.Currency, false));
+            lines.Add(new("guest-verification", $"{ekycProvider.ProviderName} verification required before approval", 0m, property.Currency, false));
         }
 
         return new BookingQuoteDto(
@@ -2563,13 +2593,13 @@ public sealed class EfPhaseOneStore(
         return changed;
     }
 
-    private static IReadOnlyList<PendingNotification> BuildApprovalNotifications(MilestoneBooking booking) =>
+    private IReadOnlyList<PendingNotification> BuildApprovalNotifications(MilestoneBooking booking) =>
     [
-        new("guest", new NotificationMessage(
+        new("guest", booking.GuestUserId, "Booking", $"/booking/{booking.Id}/checkout", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking approved",
-            $"Your booking for {booking.PropertyTitle} is APPROVED after Alibaba Cloud eKYC.")),
-        new("host", new NotificationMessage(
+            $"Your booking for {booking.PropertyTitle} is APPROVED after {ekycProvider.ProviderName}.")),
+        new("host", booking.HostUserId, "Booking", $"/bookings?bookingId={booking.Id}", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking approved",
             $"{booking.GuestName}'s booking for {booking.PropertyTitle} is APPROVED."))
@@ -2577,11 +2607,11 @@ public sealed class EfPhaseOneStore(
 
     private static IReadOnlyList<PendingNotification> BuildRejectionNotifications(MilestoneBooking booking) =>
     [
-        new("guest", new NotificationMessage(
+        new("guest", booking.GuestUserId, "Booking", $"/booking/{booking.Id}/rejected", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking rejected",
             $"Your booking for {booking.PropertyTitle} was REJECTED because {booking.RejectionReason ?? "the booking could not be approved"}.")),
-        new("host", new NotificationMessage(
+        new("host", booking.HostUserId, "Booking", $"/bookings?bookingId={booking.Id}", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking dates released",
             $"{booking.GuestName}'s booking for {booking.PropertyTitle} was rejected and the dates were released."))
@@ -2589,11 +2619,11 @@ public sealed class EfPhaseOneStore(
 
     private static IReadOnlyList<PendingNotification> BuildHostRejectionNotifications(MilestoneBooking booking, string reason) =>
     [
-        new("guest", new NotificationMessage(
+        new("guest", booking.GuestUserId, "Booking", $"/booking/{booking.Id}/rejected", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking request declined",
             $"Your booking request for {booking.PropertyTitle} was declined by the host. Reason: {reason}")),
-        new("host", new NotificationMessage(
+        new("host", booking.HostUserId, "Booking", "/bookings", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking request declined",
             $"You declined {booking.GuestName}'s booking request for {booking.PropertyTitle}."))
@@ -2683,11 +2713,11 @@ public sealed class EfPhaseOneStore(
 
     private static IReadOnlyList<PendingNotification> BuildPaymentCapturedNotifications(MilestoneBooking booking) =>
     [
-        new("guest", new NotificationMessage(
+        new("guest", booking.GuestUserId, "Payments", $"/booking/{booking.Id}/receipt", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay payment processed",
             $"Stripe payment for {booking.PropertyTitle} has been captured.")),
-        new("host", new NotificationMessage(
+        new("host", booking.HostUserId, "Payments", $"/bookings?bookingId={booking.Id}", new NotificationMessage(
             booking.HostEmail,
             "NestyStay payment processed",
             $"Stripe payment for {booking.GuestName}'s booking has been captured."))
@@ -2695,11 +2725,11 @@ public sealed class EfPhaseOneStore(
 
     private static IReadOnlyList<PendingNotification> BuildPaymentRefundedNotifications(MilestoneBooking booking, decimal amount, string currency) =>
     [
-        new("guest", new NotificationMessage(
+        new("guest", booking.GuestUserId, "Payments", "/traveler/invoices", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay payment refunded",
             $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.PropertyTitle}.")),
-        new("host", new NotificationMessage(
+        new("host", booking.HostUserId, "Payments", $"/bookings?bookingId={booking.Id}", new NotificationMessage(
             booking.HostEmail,
             "NestyStay payment refunded",
             $"Refund of {currency.ToUpperInvariant()} {amount:0.00} has been issued for {booking.GuestName}'s booking."))
@@ -3401,7 +3431,7 @@ public sealed class EfPhaseOneStore(
             Longitude = -77.1031m,
             ImageUrl = "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85",
             GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85"]),
-            HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Alibaba eKYC", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"])
+            HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Stripe Identity", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"])
         },
         new()
         {
@@ -3464,6 +3494,37 @@ public sealed class EfPhaseOneStore(
             ImageUrl = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=85",
             GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1600566753051-f0b89df2dd90?auto=format&fit=crop&w=1200&q=85"]),
             HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Free listing", "Calendar", "Messaging", "Host keeps 97% payout"])
+        },
+        new()
+        {
+            Id = Guid.Parse("44444444-4444-4444-8444-444444444444"),
+            HostUserId = Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+            HostName = "Negril Wellness Retreats",
+            HostEmail = "host-wellness@nestystay.local",
+            Title = "Negril Wellness Beach House",
+            Location = "Negril, Westmoreland",
+            Country = "Jamaica",
+            NightlyRate = 245m,
+            Currency = "USD",
+            BadgeLevel = BadgeLevel.Wellness,
+            GuestVerificationEnabled = true,
+            InsuraGuestEnabled = true,
+            CancellationPolicy = "Moderate",
+            Parish = "Westmoreland",
+            Description = "A wellness-qualified beach house with a trusted host, optional wellness visits, and sunset views near Seven Mile Beach.",
+            Bedrooms = 3,
+            Bathrooms = 3,
+            MaxGuests = 6,
+            AmenitiesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Wi-Fi", "Beach access", "Pool", "Air conditioning", "Wellness-ready"]),
+            SleepingArrangementsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Bedroom 1: king bed", "Bedroom 2: queen bed", "Bedroom 3: two single beds"]),
+            HouseRulesJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["No smoking indoors", "Quiet hours after 10:00 PM", "Registered guests only"]),
+            CleaningFee = 45m,
+            ServiceFee = 30m,
+            Latitude = 18.2683m,
+            Longitude = -78.3472m,
+            ImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=85",
+            GalleryUrlsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=85", "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85"]),
+            HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Wellness badge", "Wellness visits", "Police directory access", "Stripe Identity"])
         }
     ];
 
@@ -3480,7 +3541,11 @@ public sealed class EfPhaseOneStore(
         CreateDisabledSeedHost(
             Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
             "host-mobay@nestystay.local",
-            "Montego Bay Apartments")
+            "Montego Bay Apartments"),
+        CreateDisabledSeedHost(
+            Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+            "host-wellness@nestystay.local",
+            "Negril Wellness Retreats")
     ];
 
     private static MilestoneUser CreateDisabledSeedHost(Guid id, string email, string displayName)
@@ -3726,5 +3791,10 @@ public sealed class EfPhaseOneStore(
         return (binaryCode % 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
     }
 
-    private sealed record PendingNotification(string RecipientType, NotificationMessage Message);
+    private sealed record PendingNotification(
+        string RecipientType,
+        Guid RecipientUserId,
+        string Type,
+        string DeepLink,
+        NotificationMessage Message);
 }

@@ -7,6 +7,7 @@ import { cx } from "../../lib/ui";
 import type { FeedbackTone } from "../../lib/feedback";
 import { getScreenDefinition, navigationForRole, type NavigationItem } from "../../app/routeManifest";
 import { requestConfirmation } from "../../lib/confirmation";
+import { api } from "../../lib/api";
 
 const roleLabels: Record<AuthSession["roles"][number], string> = {
   Guest: "Guest workspace", Host: "Host workspace", Officer: "Officer workspace", ServiceProvider: "Provider workspace",
@@ -76,6 +77,7 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
   const moreItems = allVisibleItems.filter((item) => !mobileItems.some((mobileItem) => mobileItem.screenId === item.screenId));
   const [searchTerm, setSearchTerm] = useState("");
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const shortcuts = roleQuickActions[activeRole] ?? allVisibleItems.slice(0, 3).map((item) => [item.label, item.href] as [string, string]);
   const searchResults = useMemo(() => {
@@ -109,6 +111,28 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const refreshUnreadCount = () => {
+      if (!session) {
+        setUnreadCount(null);
+        return;
+      }
+      void api.getNotificationUnreadCount(session.userId, session.accessToken)
+        .then((result) => { if (active) setUnreadCount(Math.max(0, result.unreadCount)); })
+        .catch(() => { if (active) setUnreadCount(null); });
+    };
+    refreshUnreadCount();
+    const onNotificationsChanged = () => refreshUnreadCount();
+    window.addEventListener("nesty:notifications-changed", onNotificationsChanged);
+    const poll = window.setInterval(refreshUnreadCount, 60_000);
+    return () => {
+      active = false;
+      window.removeEventListener("nesty:notifications-changed", onNotificationsChanged);
+      window.clearInterval(poll);
+    };
+  }, [session?.accessToken, session?.userId]);
+
   return (
     <div className="workspace-layout grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink" data-route-name={routeName}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -140,7 +164,7 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
         <main className="workspace-main w-full max-w-[1120px] flex-1 px-[clamp(20px,3.5vw,44px)] pb-24 pt-6 lg:py-9" id="main-content" tabIndex={-1}>
           <div className="workspace-toolbar mb-5 flex flex-wrap items-center justify-between gap-3">
             <Breadcrumbs pathname={pathname} screenId={screenId} />
-            <div className="flex items-center gap-2"><button aria-label="Go back" className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" onClick={() => window.history.length > 1 && window.history.back()} type="button"><ArrowLeft aria-hidden="true" size={14} /> Back</button><AppLink aria-label="Open notifications" className="relative inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" href="/traveler/notifications"><Bell aria-hidden="true" size={14} /> Alerts</AppLink></div>
+            <div className="flex items-center gap-2"><button aria-label="Go back" className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" onClick={() => window.history.length > 1 && window.history.back()} type="button"><ArrowLeft aria-hidden="true" size={14} /> Back</button><AppLink aria-label={unreadCount && unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" href="/traveler/notifications"><Bell aria-hidden="true" size={14} /> Alerts{unreadCount !== null && unreadCount > 0 && <span aria-label={`${unreadCount} unread`} className="inline-flex min-w-5 items-center justify-center rounded-pill bg-coral px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}</AppLink></div>
           </div>
           <section aria-label="Quick actions" className="quick-actions mb-6 flex flex-wrap items-center gap-2 rounded-card border border-sand-border bg-cream p-3 shadow-card"><span className="mr-1 text-xs font-semibold uppercase tracking-[0.08em] text-sand-600">Quick actions</span>{shortcuts.map(([label, href]) => <AppLink className="inline-flex min-h-9 items-center rounded-pill border border-sand-input bg-white px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover hover:bg-shell" href={href} key={href}>{label}</AppLink>)}</section>
           {feedback && <div aria-live="polite" className={cx("mb-4 flex items-center justify-between gap-3 rounded-field border px-4 py-3 text-sm font-semibold", feedback.tone === "error" ? "border-coral/30 bg-coral-tint text-coral-text" : feedback.tone === "info" ? "border-blue/20 bg-info-tint text-info-text" : "border-green/20 bg-success-tint text-success-text")} role={feedback.tone === "error" ? "alert" : "status"}><span>{feedback.message}</span><button aria-label="Dismiss notification" className="rounded-pill px-2 text-lg leading-none" onClick={() => setFeedback(null)} type="button">×</button></div>}

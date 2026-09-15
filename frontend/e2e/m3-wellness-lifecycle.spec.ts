@@ -19,9 +19,9 @@ test("M3 wellness lifecycle: host request, officer report, completion and payout
   const headers = (token: string) => ({ Authorization: `Bearer ${token}` });
 
   for (const level of ["Verified", "Wellness"]) {
-    const badge = await api.post("/api/badges-pricing/badges/purchase", {
-      headers: headers(adminToken),
-      data: { subjectType: "Host", subjectId: host.userId, level, hostVerificationPassed: true, completedApprovedBookings: 3, hasPropertyAddress: true, hasWellnessSubscription: true, paymentSucceeded: true },
+    const badge = await api.post("/api/badges-pricing/badges/purchase-intent", {
+      headers: { ...headers(adminToken), "Idempotency-Key": `m3-${level.toLowerCase()}-${host.userId}` },
+      data: { subjectType: "Host", subjectId: host.userId, level, hostVerificationPassed: true, completedApprovedBookings: 3, hasPropertyAddress: true, hasWellnessSubscription: true },
     });
     expect(badge.ok(), await badge.text()).toBeTruthy();
   }

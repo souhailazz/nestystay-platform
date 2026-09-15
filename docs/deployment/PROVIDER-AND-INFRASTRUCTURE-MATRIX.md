@@ -10,7 +10,7 @@
 | Transactional email | Brevo + PostgreSQL outbox | External | Free allowance, then usage | Yes for email delivery | PASS (application); BLOCKED CREDENTIAL (real) | PASS (queue/config) | In-app + file capture |
 | Business email | Zoho (default) or Google Workspace | External | Client mailbox plan | Client decision | CLIENT DECISION | DOCUMENTED | Provider-neutral addresses |
 | Payments | Stripe | External | Per-transaction fees | Yes for live payments | PASS (application); BLOCKED CREDENTIAL (real) | PASS (local/idempotency) | Safe local/test mode |
-| eKYC | Alibaba Cloud eKYC | External | Per-check fees | Yes where required | PASS (application); BLOCKED CREDENTIAL (real) | PASS (callback/security tests) | Explicit manual admin review only if approved |
+| eKYC | Stripe Identity | External | Per-check fees | Yes where required | PASS (application); BLOCKED CREDENTIAL (real) | PASS (signed webhook/security tests) | Explicit manual admin review only if approved |
 | Payout | Audited manual mode | Self-hosted | Bank transfer cost only | Yes initially | PASS | PASS (authorization/idempotency) | Stripe Connect optional |
 | Messaging | NestyStay PostgreSQL/attachments | Self-hosted | VPS only | Yes | PASS | PASS (API/browser) | In-app only |
 | Notifications | In-app + email worker | Self-hosted + Brevo | VPS + email allowance | Yes | PASS / BLOCKED CREDENTIAL for Brevo | PASS (queue/retry) | In-app |
@@ -24,4 +24,4 @@
 | TLS | Caddy + Let's Encrypt | Self-hosted/external CA | Free | Yes | PASS (config); BLOCKED DOMAIN | PASS (Caddy validate) | Staging HTTP only |
 | DNS/proxy | Cloudflare free | External | Free tier | Yes | CLIENT ACTION | Documented | Registrar DNS |
 
-No mail provider other than Brevo/Zoho/Google appears in the runtime plan. Stripe and Alibaba eKYC remain the only commercial application integrations required by the signed milestones.
+No mail provider other than Brevo/Zoho/Google appears in the runtime plan. Stripe and Stripe Identity are the selected commercial application integrations; Alibaba eKYC remains available only for legacy migration compatibility.

@@ -34,7 +34,7 @@ export default function Hero3D() {
         }}
       >
         <img
-          src="/assets/reference/landing-hero-editorial.png"
+          src="/assets/reference/landing-hero-editorial-realistic.png"
           alt=""
           className="reference-hero__photo"
           draggable={false}

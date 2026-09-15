@@ -48,9 +48,9 @@ import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
 import { TierBadge } from "../components/layout/PublicShell";
-import { SampleDataChip } from "./SpecScreens";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
+import { HostReviewsBadgesSettings } from "../features/host/HostReviewsBadgesSettings";
 import { AdminStateContainer } from "../features/admin/AdminStateContainer";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
 
@@ -196,16 +196,24 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const canUseDevelopmentDelivery = import.meta.env.DEV || import.meta.env.MODE === "test";
+  const normalizedKind = ({
+    "email-verification": "email",
+    "phone-verification": "phone",
+    "forgot-password": "forgot",
+    "reset-password": "reset",
+    "2fa-setup": "twofa",
+    "social-consent": "social",
+  } as Record<string, string>)[kind] ?? kind;
 
   useEffect(() => {
-    if (kind !== "email" || !linkFlowId || !resetToken) return;
+    if (normalizedKind !== "email" || !linkFlowId || !resetToken) return;
     setNotice("Verifying your secure email link…");
     void api.completeAuthFlow({ flowId: linkFlowId, token: resetToken })
       .then((completed) => setNotice(completed.status === "Completed" ? "Email verified. You can continue to NestyStay." : "Verification " + completed.status.toLowerCase() + "."))
       .catch((caught) => setError(caught instanceof Error ? caught.message : "This verification link is invalid or expired."));
-  }, [kind, linkFlowId, resetToken]);
+  }, [normalizedKind, linkFlowId, resetToken]);
 
-  async function start(flowType = kind) {
+  async function start(flowType = normalizedKind) {
     setError(null);
     const started = await api.startAuthFlow({ userId: auth.session?.userId, flowType, destination });
     setFlow({
@@ -286,7 +294,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
     recovery: ["AUTH-10", "Recovery codes", "Generate, copy, and download local recovery codes."],
     social: ["AUTH-04", "Social auth consent", "Provider consent is shown only when configured."],
   };
-  const [id, title, copy] = titleMap[kind] ?? titleMap.email;
+  const [id, title, copy] = titleMap[normalizedKind] ?? titleMap.email;
 
   return (
     <CompletionShell
@@ -298,7 +306,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
     >
       <section className="product-section management-layout">
         <Card className="settings-card">
-          {kind === "role" ? (
+          {normalizedKind === "role" ? (
             <>
               <PatoisPhrase phrase="Come Een!" translation="Come in! Welcome!" />
               <div className="spec-card-grid">
@@ -306,11 +314,11 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
                 <AppLink className={buttonClassName("outline")} href="/register?role=host">Join as Host</AppLink>
               </div>
             </>
-          ) : kind === "twofa" || kind === "recovery" ? (
+          ) : normalizedKind === "twofa" || normalizedKind === "recovery" ? (
             <RequireSession auth={auth}>
               {(session) => <RecoveryCodesPanel userId={session.userId} token={session.accessToken} />}
             </RequireSession>
-          ) : kind === "forgot" ? (
+          ) : normalizedKind === "forgot" ? (
             <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(requestReset); }}>
               <PatoisPhrase phrase="Nuh Worry Yuhself" translation="Don't worry about it - we'll sort this out." />
               <Field label="Email">
@@ -318,7 +326,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
               </Field>
               <Button type="submit"><ShieldCheck size={17} /> Send reset link</Button>
             </form>
-          ) : kind === "reset" ? (
+          ) : normalizedKind === "reset" ? (
             <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(completeReset); }}>
               <PatoisPhrase phrase="Yuh Back Inna Di Mix!" translation="You're back in the mix! Welcome back!" />
               <Field label="Request ID">
@@ -340,8 +348,8 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
             </form>
           ) : (
             <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(() => start()); }}>
-              <PatoisPhrase phrase={kind === "forgot" ? "Nuh Worry Yuhself" : kind === "otp" ? "Easy Nuh" : "Respek!"} translation="English translation is shown directly below the patois phrase." />
-              <Field label={kind === "phone" ? "Phone number" : "Email"}>
+              <PatoisPhrase phrase={normalizedKind === "forgot" ? "Nuh Worry Yuhself" : normalizedKind === "otp" ? "Easy Nuh" : "Respek!"} translation="English translation is shown directly below the patois phrase." />
+              <Field label={normalizedKind === "phone" ? "Phone number" : "Email"}>
                 <Input value={destination} onChange={(event) => setDestination(event.target.value)} />
               </Field>
               <Button type="submit"><ShieldCheck size={17} /> Start flow</Button>
@@ -539,8 +547,8 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
       {notice && <div className="notice-panel">{notice}</div>}
       {error && <ErrorState message={error} />}
       {codes.length > 0 && (
-        <div className="spec-table-wrap">
-          <table className="spec-table"><tbody>{codes.map((item) => <tr key={item.code}><td>{item.code}</td><td>{item.used ? "Used" : "Unused"}</td></tr>)}</tbody></table>
+          <div className="spec-table-wrap responsive-table-cards">
+            <table className="spec-table"><tbody>{codes.map((item) => <tr key={item.code}><td data-label="Code">{item.code}</td><td data-label="Status">{item.used ? "Used" : "Unused"}</td></tr>)}</tbody></table>
           <Button onClick={() => void navigator.clipboard.writeText(codes.map((item) => item.code).join("\n"))} variant="outline">Copy</Button>
           <Button onClick={download} variant="ghost"><Download size={17} /> Download</Button>
         </div>
@@ -1229,7 +1237,7 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
     <Card className="settings-card identity-document-card">
       <ShieldCheck size={28} />
       <h3>Identity verification</h3>
-      <p>Alibaba eKYC status: Verified / Pending / Action required. Use your camera on mobile or upload a file. Re-verification launches through the protected booking and auth flow.</p>
+      <p>Configured identity verification status: Verified / Pending / Action required. Use your camera on mobile or upload a file. Re-verification launches through the protected booking and auth flow.</p>
       <div className="form-grid form-grid--two">
         <Field label="Document type">
           <Select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
@@ -1457,9 +1465,15 @@ function NotificationPreferencesPanel({ userId }: { userId: string }) {
 function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
   async function readAll() {
     await api.markAllNotificationsRead(userId, token);
+    window.dispatchEvent(new Event("nesty:notifications-changed"));
     reload();
   }
-  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink href={item.deepLink}>Open</AppLink></Card>)}</div></>;
+  function markRead(notificationId: string) {
+    void api.markNotificationRead(userId, notificationId, token).then(() => {
+      window.dispatchEvent(new Event("nesty:notifications-changed"));
+    });
+  }
+  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink aria-label={`Open ${item.title}`} href={item.deepLink} onClick={() => markRead(item.id)}>Open</AppLink></Card>)}</div></>;
 }
 
 function travelerScreenId(view: string) {
@@ -2324,6 +2338,9 @@ export function HostSpecPage({ view, auth, propertyId }: { view: string; auth: A
 
 function HostOps({ view, hostUserId, token }: { view: string; hostUserId: string; token: string }) {
   const ops = useAsync(() => api.getHostOperations(hostUserId, token), [hostUserId, token]);
+  if (view === "badges" || view === "settings") {
+    return <HostReviewsBadgesSettings view={view} token={token} hostUserId={hostUserId} />;
+  }
   return (
     <CompletionShell id={hostScreenId(view)} eyebrow="Host portal" title={travelerTitle(view)} copy="Host-facing analytics, seasonal pricing, promotions, exports, reviews, badges, settings, and archive controls.">
       <DataGate state={ops}>{(data) => <HostOpsPanel view={view} data={data} hostUserId={hostUserId} token={token} reload={ops.reload} />}</DataGate>
@@ -2341,8 +2358,8 @@ function HostOpsPanel({ view, data, hostUserId, token, reload }: { view: string;
     reload();
   }
   if (view === "analytics") return <MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["ADR", formatMoney(data.analytics.averageNightlyRate)], ["Bookings", String(data.analytics.bookingCount)]]} />;
-  if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
-  if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
+  if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table labels={["Rule", "Starts", "Ends", "Nightly rate", "Minimum stay"]} rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
+  if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table labels={["Promotion", "Discount", "Starts", "Ends", "Status"]} rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
   if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} view="reviews-given" bookings={[]} userId={hostUserId} token={token} reload={reload} />;
   if (view === "exports" || view === "reports") return <><Button onClick={() => downloadCsv("nesty-host-report.csv", ["Metric", "Value"], [["Revenue", String(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]])}>Download CSV report</Button><MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]]} /></>;
   return <MetricCards items={[["Badge progress", "Verified -> Trusted"], ["Exports", "CSV ready"], ["Archived properties", "0"], ["Notifications", "Enabled"]]} />;
@@ -2357,8 +2374,8 @@ function MetricCards({ items }: { items: [string, string][] }) {
   return <section className="product-section metric-grid">{items.map(([label, value]) => <Card className="metric-card" key={label}><span><LayoutDashboard size={20} /></span><small>{label}</small><strong>{value}</strong></Card>)}</section>;
 }
 
-function Table({ rows }: { rows: ReactNode[][] }) {
-  return <div className="spec-table-wrap"><table className="spec-table"><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
+function Table({ labels, rows }: { labels: string[]; rows: ReactNode[][] }) {
+  return <div className="spec-table-wrap responsive-table-cards"><table className="spec-table"><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td data-label={labels[cellIndex] ?? `Column ${cellIndex + 1}`} key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 
 export function AdminOpsSpecPage({ view, auth }: { view: string; auth: AuthController }) {
@@ -2530,9 +2547,9 @@ function AdminOpsPanel({ data, token, reload, view }: { data: AdminOperations; t
     <>
       <MetricCards items={data.metrics.map((item) => [item.label, item.value]) as [string, string][]} />
       <Button onClick={create}>Create admin case</Button>
-      <Table rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <AdminCaseEvidenceControl adminCase={item} key={`${item.id}-evidence`} reload={reload} token={token} />, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
+      <Table labels={["Case", "Priority", "Status", "Reason", "Evidence", "Action"]} rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <AdminCaseEvidenceControl adminCase={item} key={`${item.id}-evidence`} reload={reload} token={token} />, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
       <h3 className="section-subtitle">Audit log</h3>
-      <Table rows={data.auditEvents.slice(0, 10).map((item) => [item.action, item.subjectType, item.reason, new Date(item.createdAt).toLocaleString()])} />
+      <Table labels={["Action", "Subject", "Reason", "Created"]} rows={data.auditEvents.slice(0, 10).map((item) => [item.action, item.subjectType, item.reason, new Date(item.createdAt).toLocaleString()])} />
       <Modal open={Boolean(caseToResolve)} title="Resolve admin case" onClose={() => setCaseToResolve(null)}>
         <p>Every sensitive action requires a reason and writes an audit record.</p>
         <Button onClick={resolve}>Confirm resolution</Button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Check, CloudSun, KeyRound, Waves } from "lucide-react";
@@ -37,44 +37,73 @@ export default function ScrollStory() {
     const media = gsap.matchMedia();
     let timeline: gsap.core.Timeline | undefined;
 
+    const motionQuery = window.matchMedia(
+      "(min-width: 861px) and (prefers-reduced-motion: no-preference)",
+    );
+    const connection = (
+      navigator as Navigator & {
+        connection?: { effectiveType?: string; saveData?: boolean };
+      }
+    ).connection;
+    const constrainedConnection =
+      connection?.saveData === true ||
+      connection?.effectiveType === "slow-2g" ||
+      connection?.effectiveType === "2g";
+    const useStaticLayout = !motionQuery.matches || constrainedConnection;
+    const scene = sceneRef.current;
+    if (scene && useStaticLayout) {
+      scene.classList.add("story-scene--static");
+    }
+
     media.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
       const section = sectionRef.current;
       const scene = sceneRef.current;
-      if (!section || !scene) return;
+      if (!section || !scene || constrainedConnection) return;
 
       const panels = gsap.utils.toArray<HTMLElement>(".story-panel", section);
       timeline = gsap.timeline({
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: "+=2400",
+          end: () => {
+            const isTablet = window.innerWidth < 1200;
+            const distance = isTablet
+              ? Math.max(1200, Math.round(window.innerHeight * 1.35))
+              : Math.max(1600, Math.round(window.innerHeight * 1.9));
+            return `+=${distance}`;
+          },
           pin: true,
-          scrub: 1,
+          scrub: 1.1,
           anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onEnter: () => scene.classList.add("story-scene--active"),
+          onEnterBack: () => scene.classList.add("story-scene--active"),
+          onLeave: () => scene.classList.remove("story-scene--active"),
+          onLeaveBack: () => scene.classList.remove("story-scene--active"),
         },
       });
 
       timeline
-        .to(scene, { "--story-shift": "50%", "--sky-mix": "52%", duration: 1 })
-        .to(".story-sun", { x: 130, y: 140, scale: 1.15, duration: 1 }, "<")
-        .to(".story-hammock", { rotate: 4, y: 10, duration: 1 }, "<")
-        .to(panels[0], { opacity: 0, y: -50, duration: 0.35 }, 0.65)
+        .to(scene, {
+          "--sunset-mix": 1,
+          "--photo-scale": () => (window.innerWidth < 1200 ? 1.02 : 1.035),
+          "--photo-y": () => (window.innerWidth < 1200 ? "-1.5%" : "-3%"),
+          duration: 2.4,
+          ease: "none",
+        }, 0)
+        .to(panels[0], { opacity: 0, y: -50, duration: 0.4, ease: "power1.out" }, 0.5)
         .fromTo(
           panels[1],
           { opacity: 0, y: 70 },
-          { opacity: 1, y: 0, duration: 0.35 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power1.out" },
           0.72,
         )
-        .to(scene, { "--story-shift": "100%", "--sky-mix": "100%", duration: 1 }, 1)
-        .to(".story-sun", { x: 260, y: 250, opacity: 0.6, duration: 1 }, 1)
-        .to(".story-stars", { opacity: 1, duration: 0.8 }, 1.1)
-        .to(".story-hammock", { rotate: -3, y: -2, duration: 1 }, 1)
-        .to(panels[1], { opacity: 0, y: -50, duration: 0.35 }, 1.65)
+        .to(panels[1], { opacity: 0, y: -50, duration: 0.4, ease: "power1.out" }, 1.48)
         .fromTo(
           panels[2],
           { opacity: 0, y: 70 },
-          { opacity: 1, y: 0, duration: 0.35 },
-          1.72,
+          { opacity: 1, y: 0, duration: 0.45, ease: "power1.out" },
+          1.7,
         );
     });
 
@@ -84,37 +113,61 @@ export default function ScrollStory() {
       // and all inline transforms are removed when navigating away from home.
       timeline?.scrollTrigger?.kill();
       timeline?.kill();
+      scene?.classList.remove("story-scene--active", "story-scene--static");
       media.revert();
     };
   }, []);
 
   return (
     <section className="story-section" id="experience" ref={sectionRef}>
-      <div className="story-scene" ref={sceneRef}>
-        <div className="story-stars" aria-hidden="true">
-          {Array.from({ length: 18 }, (_, index) => (
-            <i key={index} />
-          ))}
-        </div>
-        <div className="story-sun" aria-hidden="true" />
-        <div className="story-cloud story-cloud--one" aria-hidden="true" />
-        <div className="story-cloud story-cloud--two" aria-hidden="true" />
-
-        <div className="story-landscape" aria-hidden="true">
-          <div className="story-mountain story-mountain--back" />
-          <div className="story-mountain story-mountain--front" />
-          <div className="story-water">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="story-palm story-palm--left">
-            <i />
-          </div>
-          <div className="story-palm story-palm--right">
-            <i />
-          </div>
-          <div className="story-hammock" />
+      <div
+        className="story-scene"
+        ref={sceneRef}
+        style={{
+          "--sunset-mix": 0,
+          "--photo-scale": 1,
+          "--photo-y": "0%",
+        } as CSSProperties}
+      >
+        <div className="story-photo-stage" aria-hidden="true">
+          <picture className="story-photo story-photo--day">
+            <source
+              type="image/avif"
+              srcSet="/assets/landing/jamaica-coast-day-sm.avif 960w, /assets/landing/jamaica-coast-day.avif 1672w"
+              sizes="100vw"
+            />
+            <source
+              type="image/webp"
+              srcSet="/assets/landing/jamaica-coast-day-sm.webp 960w, /assets/landing/jamaica-coast-day.webp 1672w"
+              sizes="100vw"
+            />
+            <img
+              src="/assets/landing/jamaica-coast-day.png"
+              alt=""
+              decoding="async"
+              fetchPriority="high"
+            />
+          </picture>
+          <picture className="story-photo story-photo--sunset">
+            <source
+              type="image/avif"
+              srcSet="/assets/landing/jamaica-coast-sunset-sm.avif 960w, /assets/landing/jamaica-coast-sunset.avif 1672w"
+              sizes="100vw"
+            />
+            <source
+              type="image/webp"
+              srcSet="/assets/landing/jamaica-coast-sunset-sm.webp 960w, /assets/landing/jamaica-coast-sunset.webp 1672w"
+              sizes="100vw"
+            />
+            <img
+              src="/assets/landing/jamaica-coast-sunset.png"
+              alt=""
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
+          </picture>
+          <div className="story-photo-shade" />
         </div>
 
         <div className="story-copy">

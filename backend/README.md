@@ -49,7 +49,7 @@ Health and API documentation:
 - `http://localhost:5019/api/health/ready`
 - `http://localhost:5019/openapi/v1.json`
 
-Local mode uses deterministic adapters for Stripe, Alibaba eKYC, email and
+Local mode uses deterministic adapters for Stripe, Stripe Identity, email and
 object storage. Real credentials are not needed for local milestone testing.
 
 ## Split frontend/API deployment
@@ -81,7 +81,7 @@ docker run --rm -p 8080:8080 --env-file .env nestystay-api:release
 ```
 
 The production environment must include PostgreSQL, session/TOTP/webhook
-secrets, Stripe, Alibaba eKYC, InsuraGuest, MinIO, Brevo and CORS settings.
+secrets, Stripe, Stripe Identity, InsuraGuest, MinIO, Brevo and CORS settings.
 Use `.env.production.example` as the complete API-side template. Do not put
 secrets in Git, Dockerfiles, logs or chat.
 

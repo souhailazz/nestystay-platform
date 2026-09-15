@@ -11,12 +11,17 @@ public interface IPhaseTwoStore
     PhaseTwoPricebookItemDto UpdatePricebookItem(string key, UpdatePricebookItemRequest request);
     IReadOnlyList<BadgeDefinitionDto> GetBadgeDefinitions();
     BadgeEligibilityDto GetBadgeEligibility(PurchaseBadgeRequest request);
+    BadgePurchaseQuoteDto GetBadgePurchaseQuote(PurchaseBadgeRequest request);
     BadgeFeatureAccessDto GetFeatureAccess(string subjectType, Guid subjectId);
     IReadOnlyList<BadgeAssignmentDto> GetBadgeAssignments(string? subjectType = null, Guid? subjectId = null);
     IReadOnlyList<BadgeRenewalDto> GetRenewals(Guid? assignmentId = null);
     BadgeMaintenanceResult RunBadgeMaintenance();
-    BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request);
+    [Obsolete("Use the provider-backed IBadgePaymentStore workflow for production badge purchases.")]
+    BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request, bool paymentSucceeded = true);
+    BadgeAssignmentDto FinalizeBadgePurchase(PurchaseBadgeRequest request, string paymentReference);
     BadgeAssignmentDto PayRenewal(Guid assignmentId);
+    BadgeAssignmentDto FinalizeBadgeRenewal(Guid assignmentId, string paymentReference);
+    BadgeAssignmentDto RefundBadge(Guid assignmentId, string paymentReference);
     BadgeAssignmentDto ExpireBadge(Guid assignmentId);
     BadgeAssignmentDto SuspendBadge(Guid assignmentId);
     IReadOnlyList<CampaignDto> GetCampaigns();
@@ -168,6 +173,25 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
         }
     }
 
+    public BadgePurchaseQuoteDto GetBadgePurchaseQuote(PurchaseBadgeRequest request)
+    {
+        var subjectType = NormalizeSubjectType(request.SubjectType);
+        lock (_gate)
+        {
+            var definition = FindBadgeDefinition(request.Level, subjectType);
+            var eligibility = EvaluateEligibilityNoLock(request with { SubjectType = subjectType });
+            var price = ResolveBadgePrice(definition, subjectType, request.SubjectId, request.CampaignKey);
+            return new BadgePurchaseQuoteDto(
+                request.Level,
+                eligibility.Eligible,
+                eligibility.MissingRequirements,
+                price.Amount,
+                price.Currency,
+                "Annual",
+                request.Level == BadgeLevel.Free || price.Amount == 0m);
+        }
+    }
+
     public BadgeFeatureAccessDto GetFeatureAccess(string subjectType, Guid subjectId)
     {
         var normalizedSubjectType = NormalizeSubjectType(subjectType);
@@ -242,7 +266,8 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
         }
     }
 
-    public BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request)
+    [Obsolete("Use the provider-backed IBadgePaymentStore workflow for production badge purchases.")]
+    public BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request, bool paymentSucceeded = true)
     {
         var subjectType = NormalizeSubjectType(request.SubjectType);
         lock (_gate)
@@ -271,7 +296,7 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
             }
 
             var isFree = request.Level == BadgeLevel.Free || price.Amount == 0m;
-            var paymentStatus = isFree || request.PaymentSucceeded ? PaymentStatus.Captured : PaymentStatus.Failed;
+            var paymentStatus = isFree || paymentSucceeded ? PaymentStatus.Captured : PaymentStatus.Failed;
             var assignmentStatus = paymentStatus == PaymentStatus.Captured ? BadgeAssignmentStatus.Active : BadgeAssignmentStatus.Suspended;
             var expiresAt = isFree ? DateTimeOffset.MaxValue : now.AddYears(1);
 
@@ -300,6 +325,43 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                 QueueRenewalNoLock(assignment, price.Amount, price.Currency);
             }
 
+            return ToDto(assignment);
+        }
+    }
+
+    public BadgeAssignmentDto FinalizeBadgePurchase(PurchaseBadgeRequest request, string paymentReference)
+    {
+        var subjectType = NormalizeSubjectType(request.SubjectType);
+        lock (_gate)
+        {
+            var definition = FindBadgeDefinition(request.Level, subjectType);
+            var eligibility = EvaluateEligibilityNoLock(request with { SubjectType = subjectType });
+            if (!eligibility.Eligible)
+            {
+                throw new InvalidOperationException($"Badge eligibility failed: {string.Join(" ", eligibility.MissingRequirements)}");
+            }
+
+            var price = ResolveBadgePrice(definition, subjectType, request.SubjectId, request.CampaignKey);
+            var now = _timeProvider.GetUtcNow();
+            var existing = _assignments.SingleOrDefault(assignment =>
+                assignment.SubjectType.Equals(subjectType, StringComparison.OrdinalIgnoreCase) &&
+                assignment.SubjectId == request.SubjectId &&
+                assignment.Level == request.Level &&
+                assignment.Status == BadgeAssignmentStatus.Active &&
+                assignment.PaymentStatus == PaymentStatus.Captured &&
+                assignment.ExpiresAt > now);
+            if (existing is not null) return ToDto(existing);
+
+            var expiresAt = request.Level == BadgeLevel.Free || price.Amount == 0m
+                ? DateTimeOffset.MaxValue
+                : now.AddYears(1);
+            var assignment = new BadgeAssignmentState(
+                Guid.NewGuid(), definition.Id, definition.Key, definition.Level, subjectType,
+                request.SubjectId, BadgeAssignmentStatus.Active, now, expiresAt, expiresAt,
+                price.Amount, price.Currency, PaymentStatus.Captured,
+                paymentReference, definition.Unlocks);
+            _assignments.Add(assignment);
+            QueueRenewalNoLock(assignment, price.Amount, price.Currency);
             return ToDto(assignment);
         }
     }
@@ -339,6 +401,54 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
 
             QueueRenewalNoLock(assignment, price.Amount, price.Currency);
 
+            return ToDto(assignment);
+        }
+    }
+
+    public BadgeAssignmentDto FinalizeBadgeRenewal(Guid assignmentId, string paymentReference)
+    {
+        lock (_gate)
+        {
+            var assignment = _assignments.SingleOrDefault(item => item.Id == assignmentId)
+                ?? throw new InvalidOperationException("Badge assignment not found.");
+            if (assignment.Status != BadgeAssignmentStatus.Active)
+            {
+                throw new InvalidOperationException("Only active badge assignments can be renewed.");
+            }
+
+            var definition = _badgeDefinitions.Single(item => item.Id == assignment.BadgeDefinitionId);
+            var price = ResolveBadgePrice(definition, assignment.SubjectType, assignment.SubjectId, null);
+            var renewal = _renewals
+                .Where(item => item.BadgeAssignmentId == assignmentId && item.PaymentStatus == PaymentStatus.Pending)
+                .OrderBy(item => item.ReminderDueAt)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException("No pending renewal exists for this badge assignment.");
+            var now = _timeProvider.GetUtcNow();
+            renewal.PaymentAttemptedAt = now;
+            renewal.PaymentStatus = PaymentStatus.Captured;
+            renewal.AmountDue = price.Amount;
+            renewal.Currency = price.Currency;
+            var nextExpiry = (assignment.ExpiresAt > now ? assignment.ExpiresAt : now).AddYears(1);
+            assignment.PaidThrough = nextExpiry;
+            assignment.ExpiresAt = nextExpiry;
+            assignment.AmountCharged = price.Amount;
+            assignment.Currency = price.Currency;
+            assignment.PaymentStatus = PaymentStatus.Captured;
+            assignment.PaymentReference = paymentReference;
+            QueueRenewalNoLock(assignment, price.Amount, price.Currency);
+            return ToDto(assignment);
+        }
+    }
+
+    public BadgeAssignmentDto RefundBadge(Guid assignmentId, string paymentReference)
+    {
+        lock (_gate)
+        {
+            var assignment = _assignments.SingleOrDefault(item => item.Id == assignmentId)
+                ?? throw new InvalidOperationException("Badge assignment not found.");
+            assignment.Status = BadgeAssignmentStatus.Suspended;
+            assignment.PaymentStatus = PaymentStatus.Refunded;
+            assignment.PaymentReference = paymentReference;
             return ToDto(assignment);
         }
     }
@@ -641,6 +751,11 @@ public sealed class PhaseTwoStore : IPhaseTwoStore
                 if (!request.HasPropertyAddress)
                 {
                     missing.Add("Wellness badge requires a property address.");
+                }
+
+                if (!request.HasWellnessSubscription)
+                {
+                    missing.Add("Wellness badge requires an active wellness subscription.");
                 }
 
                 break;

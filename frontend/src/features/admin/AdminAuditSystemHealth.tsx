@@ -75,7 +75,7 @@ export function AdminAuditSystemHealth({ view, token }: AdminAuditSystemHealthPr
           </div>
         </div>
       ) : (
-        <div className="card-box">
+        <div className="card-box responsive-table-cards">
           <table className="table-styled w-full">
             <thead>
               <tr>
@@ -89,11 +89,11 @@ export function AdminAuditSystemHealth({ view, token }: AdminAuditSystemHealthPr
             <tbody>
               {logs.map((l) => (
                 <tr key={l.id}>
-                  <td><code className="text-xs">{l.timestamp}</code></td>
-                  <td>{l.actorEmail}</td>
-                  <td><span className="badge badge-sun">{l.action}</span></td>
-                  <td>{l.resourceType} ({l.resourceId})</td>
-                  <td className="subtext text-xs">{l.details}</td>
+                  <td data-label="Timestamp"><code className="text-xs">{l.timestamp}</code></td>
+                  <td data-label="Actor">{l.actorEmail}</td>
+                  <td data-label="Action"><span className="badge badge-sun">{l.action}</span></td>
+                  <td data-label="Resource">{l.resourceType} ({l.resourceId})</td>
+                  <td className="subtext text-xs" data-label="Details">{l.details}</td>
                 </tr>
               ))}
             </tbody>

@@ -42,7 +42,7 @@ export default function FinalCTA() {
       </motion.div>
 
       <div className="footer-bar">
-        <AppLink className="brand-lockup" href="/">
+        <AppLink aria-label="Nesty Stay home" className="brand-lockup" href="/">
           <span>NESTY STAY</span>
         </AppLink>
         <p>© 2026 Nesty Stay. Made for slower mornings and good vibes.</p>

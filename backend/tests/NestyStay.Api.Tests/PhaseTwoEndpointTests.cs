@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -21,6 +22,7 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
         var hostId = Guid.NewGuid();
         var propertyId = Guid.NewGuid();
+        await _factory.SeedBadgePaymentFactsAsync(hostId, approvedBookingCount: 3, hasPropertyAddress: true);
 
         var pricebook = await client.GetFromJsonAsync<List<PricebookResponse>>("/api/badges-pricing/pricebook");
         Assert.NotNull(pricebook);
@@ -70,30 +72,43 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.NotNull(ineligible);
         Assert.False(ineligible.Eligible);
 
-        var verifiedPurchase = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase", new
+        var verifiedPurchase = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
         {
             subjectType = "Host",
             subjectId = hostId,
             level = "Verified",
-            hostVerificationPassed = true
+            hostVerificationPassed = true,
+            idempotencyKey = "verified-badge-payment"
         });
         Assert.Equal(HttpStatusCode.OK, verifiedPurchase.StatusCode);
-        var verified = await verifiedPurchase.Content.ReadFromJsonAsync<BadgeAssignmentResponse>();
+        var verified = await verifiedPurchase.Content.ReadFromJsonAsync<BadgePaymentResponse>();
         Assert.NotNull(verified);
         Assert.Equal("Verified", verified.Level);
+        Assert.Equal("CAPTURED", verified.Status);
 
-        var failedTrustedPayment = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase", new
+        var duplicateVerifiedPayment = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
         {
             subjectType = "Host",
             subjectId = hostId,
-            level = "Trusted",
-            completedApprovedBookings = 3,
-            paymentSucceeded = false
+            level = "Verified",
+            hostVerificationPassed = true,
+            paymentSucceeded = false,
+            idempotencyKey = "verified-badge-payment"
         });
-        Assert.Equal(HttpStatusCode.OK, failedTrustedPayment.StatusCode);
-        var failedTrusted = await failedTrustedPayment.Content.ReadFromJsonAsync<BadgeAssignmentResponse>();
-        Assert.NotNull(failedTrusted);
-        Assert.Equal("FAILED", failedTrusted.PaymentStatus);
+        Assert.Equal(HttpStatusCode.OK, duplicateVerifiedPayment.StatusCode);
+        var duplicateVerified = await duplicateVerifiedPayment.Content.ReadFromJsonAsync<BadgePaymentResponse>();
+        Assert.NotNull(duplicateVerified);
+        Assert.Equal("CAPTURED", duplicateVerified.Status);
+
+        var duplicateWithNewKey = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
+        {
+            subjectType = "Host",
+            subjectId = hostId,
+            level = "Verified",
+            hostVerificationPassed = true,
+            idempotencyKey = "verified-badge-payment-second-attempt"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, duplicateWithNewKey.StatusCode);
 
         var enrollmentResponse = await client.PostAsJsonAsync("/api/badges-pricing/campaigns/trusted-host-pdf-campaign/enroll", new
         {
@@ -102,7 +117,7 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.OK, enrollmentResponse.StatusCode);
 
-        var purchaseResponse = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase", new
+        var purchaseResponse = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
         {
             subjectType = "Host",
             subjectId = hostId,
@@ -111,11 +126,15 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
             completedApprovedBookings = 3
         });
         Assert.Equal(HttpStatusCode.OK, purchaseResponse.StatusCode);
-        var assignment = await purchaseResponse.Content.ReadFromJsonAsync<BadgeAssignmentResponse>();
-        Assert.NotNull(assignment);
-        Assert.Equal("Trusted", assignment.Level);
-        Assert.Equal(49m, assignment.AmountCharged);
-        Assert.Equal("CAPTURED", assignment.PaymentStatus);
+        var trustedPayment = await purchaseResponse.Content.ReadFromJsonAsync<BadgePaymentResponse>();
+        Assert.NotNull(trustedPayment);
+        Assert.Equal("Trusted", trustedPayment.Level);
+        Assert.Equal(49m, trustedPayment.Amount);
+        Assert.Equal("CAPTURED", trustedPayment.Status);
+        Assert.NotNull(trustedPayment.AssignmentId);
+        var hostAssignments = await client.GetFromJsonAsync<List<BadgeAssignmentResponse>>($"/api/badges-pricing/badges/assignments?subjectType=Host&subjectId={hostId}");
+        Assert.NotNull(hostAssignments);
+        var assignment = Assert.Single(hostAssignments, item => item.Level == "Trusted");
 
         var trustedFeatures = await client.GetFromJsonAsync<FeatureAccessResponse>($"/api/badges-pricing/badges/features/Host/{hostId}");
         Assert.NotNull(trustedFeatures);
@@ -128,9 +147,12 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
 
         var renewalPaymentResponse = await client.PostAsync($"/api/badges-pricing/renewals/{assignment.Id}/pay", null);
         Assert.Equal(HttpStatusCode.OK, renewalPaymentResponse.StatusCode);
-        var renewed = await renewalPaymentResponse.Content.ReadFromJsonAsync<BadgeAssignmentResponse>();
-        Assert.NotNull(renewed);
-        Assert.True(renewed.ExpiresAt > assignment.ExpiresAt);
+        var renewedPayment = await renewalPaymentResponse.Content.ReadFromJsonAsync<BadgePaymentResponse>();
+        Assert.NotNull(renewedPayment);
+        Assert.Equal("CAPTURED", renewedPayment.Status);
+        var renewedAssignments = await client.GetFromJsonAsync<List<BadgeAssignmentResponse>>($"/api/badges-pricing/badges/assignments?subjectType=Host&subjectId={hostId}");
+        Assert.NotNull(renewedAssignments);
+        Assert.True(renewedAssignments.Single(item => item.Level == "Trusted").ExpiresAt > assignment.ExpiresAt);
 
         var expireResponse = await client.PostAsync($"/api/badges-pricing/badges/assignments/{assignment.Id}/expire", null);
         Assert.Equal(HttpStatusCode.OK, expireResponse.StatusCode);
@@ -249,6 +271,73 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
     }
 
     [Fact]
+    public async Task BadgePaymentRefundWebhookSuspendsBadgeAndReplayIsIdempotent()
+    {
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var hostId = Guid.NewGuid();
+        await _factory.SeedBadgePaymentFactsAsync(hostId, approvedBookingCount: 3, hasPropertyAddress: true);
+
+        var verifiedResponse = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
+        {
+            subjectType = "Host",
+            subjectId = hostId,
+            level = "Verified",
+            idempotencyKey = $"refund-test-verified-{hostId:N}"
+        });
+        Assert.Equal(HttpStatusCode.OK, verifiedResponse.StatusCode);
+
+        var trustedResponse = await client.PostAsJsonAsync("/api/badges-pricing/badges/purchase-intent", new
+        {
+            subjectType = "Host",
+            subjectId = hostId,
+            level = "Trusted",
+            idempotencyKey = $"refund-test-trusted-{hostId:N}"
+        });
+        Assert.Equal(HttpStatusCode.OK, trustedResponse.StatusCode);
+        var trustedPayment = await trustedResponse.Content.ReadFromJsonAsync<BadgePaymentResponse>();
+        Assert.NotNull(trustedPayment);
+        Assert.Equal("CAPTURED", trustedPayment.Status);
+        Assert.False(string.IsNullOrWhiteSpace(trustedPayment.ProviderPaymentIntentId));
+
+        var eventId = $"evt_badge_refund_{hostId:N}";
+        var payload = $$"""
+            {
+              "id": "{{eventId}}",
+              "type": "charge.refunded",
+              "data": {
+                "object": {
+                  "id": "ch_badge_refund_{{hostId:N}}",
+                  "payment_intent": "{{trustedPayment.ProviderPaymentIntentId}}",
+                  "amount_refunded": 4900,
+                  "currency": "usd"
+                }
+              }
+            }
+            """;
+
+        var refundResponse = await client.PostAsync(
+            "/api/webhooks/stripe/raw",
+            new StringContent(payload, System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Accepted, refundResponse.StatusCode);
+        using var refundJson = JsonDocument.Parse(await refundResponse.Content.ReadAsStringAsync());
+        Assert.Equal("REFUNDED", refundJson.RootElement.GetProperty("badgePaymentStatus").GetString());
+
+        var replayResponse = await client.PostAsync(
+            "/api/webhooks/stripe/raw",
+            new StringContent(payload, System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Accepted, replayResponse.StatusCode);
+        using var replayJson = JsonDocument.Parse(await replayResponse.Content.ReadAsStringAsync());
+        Assert.True(replayJson.RootElement.GetProperty("duplicate").GetBoolean());
+
+        var assignments = await client.GetFromJsonAsync<List<BadgeAssignmentResponse>>($"/api/badges-pricing/badges/assignments?subjectType=Host&subjectId={hostId}");
+        Assert.NotNull(assignments);
+        var trustedAssignment = Assert.Single(assignments, item => item.Level == "Trusted");
+        Assert.Equal("Suspended", trustedAssignment.Status);
+        Assert.Equal("REFUNDED", trustedAssignment.PaymentStatus);
+    }
+
+    [Fact]
     public async Task AllAdminOnlyMutationEndpointsRejectMissingBearerToken()
     {
         using var client = _factory.CreateClient();
@@ -299,7 +388,9 @@ public sealed class PhaseTwoEndpointTests : IClassFixture<NestyStayApiFactory>
 
     private sealed record BadgeDefinitionResponse(string Level, decimal AnnualPrice);
 
-    private sealed record BadgeAssignmentResponse(Guid Id, string Level, decimal AmountCharged, string PaymentStatus, DateTimeOffset ExpiresAt);
+    private sealed record BadgeAssignmentResponse(Guid Id, string Level, string Status, decimal AmountCharged, string PaymentStatus, DateTimeOffset ExpiresAt);
+
+    private sealed record BadgePaymentResponse(Guid Id, string Level, decimal Amount, string ProviderPaymentIntentId, string Status, Guid? AssignmentId);
 
     private sealed record RenewalResponse(string PaymentStatus);
 

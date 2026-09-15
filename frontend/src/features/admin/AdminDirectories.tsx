@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, FileSearch, Search, ShieldAlert, X } from "lucide-react";
+import { Check, FileSearch, Search, X } from "lucide-react";
 import { api, type DirectoryProvider } from "../../lib/api";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -7,6 +7,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Field, Input, Select, Textarea } from "../../components/ui/Input";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { StatusChip } from "../../components/ui/StatusChip";
+import { Modal } from "../../components/ui/Modal";
 
 /** Live moderation queue for M4 directory providers. */
 export function AdminDirectories({ token }: { token: string }) {
@@ -76,6 +77,13 @@ export function AdminDirectories({ token }: { token: string }) {
         <div className="mt-auto flex flex-wrap gap-2"><Button variant="outline" onClick={() => setSelected(provider)}><FileSearch size={15} /> Compare documents</Button><Button onClick={() => void moderate(provider, "approve")}><Check size={15} /> Approve</Button><Button variant="ghost" onClick={() => { setSelected(provider); setReason(""); }}><X size={15} /> Review decision</Button></div>
       </Card>)}
     </div>}
-    {selected && <div className="modal-backdrop" role="dialog" aria-modal="true"><div className="modal-card max-w-xl"><div className="flex items-start justify-between gap-3"><div><h3 className="m-0">Review {selected.name}</h3><p className="subtext">Compare the submitted profile, risk flags, and verification evidence before changing status.</p></div><ShieldAlert className="text-deep-hover" /></div><div className="my-4 grid gap-2 rounded-field border border-sand-border bg-shell p-3 text-sm"><div><strong>Submitted:</strong> {selected.category} · {selected.parish}</div><div><strong>Contact:</strong> {selected.contactMode}</div><div><strong>Documents:</strong> Provider document uploads are retained in the secure review record.</div></div><Field label="Decision reason"><Textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain approval, rejection, or requested changes" /></Field><div className="mt-4 flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button><Button variant="ghost" onClick={() => void moderate(selected, "request-changes")}>Request changes</Button><Button variant="ghost" onClick={() => void moderate(selected, "reject")}>Reject</Button><Button onClick={() => void moderate(selected, "approve")}>Approve</Button></div></div></div>}
+    <Modal open={Boolean(selected)} title={selected ? `Review ${selected.name}` : "Review provider"} onClose={() => setSelected(null)} variant="sheet">
+      {selected && <>
+        <p className="subtext">Compare the submitted profile, risk flags, and verification evidence before changing status.</p>
+        <div className="my-4 grid gap-2 rounded-field border border-sand-border bg-shell p-3 text-sm"><div><strong>Submitted:</strong> {selected.category} · {selected.parish}</div><div><strong>Contact:</strong> {selected.contactMode}</div><div><strong>Documents:</strong> Provider document uploads are retained in the secure review record.</div></div>
+        <Field label="Decision reason"><Textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain approval, rejection, or requested changes" /></Field>
+        <div className="mt-4 flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button><Button variant="ghost" onClick={() => void moderate(selected, "request-changes")}>Request changes</Button><Button variant="ghost" onClick={() => void moderate(selected, "reject")}>Reject</Button><Button onClick={() => void moderate(selected, "approve")}>Approve</Button></div>
+      </>}
+    </Modal>
   </div>;
 }

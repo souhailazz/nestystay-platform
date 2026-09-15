@@ -141,7 +141,7 @@ public sealed class PhaseOneStore(
             true,
             true,
             "Moderate",
-            ["Alibaba eKYC", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"],
+            ["Stripe Identity", "QR gate access", "InsuraGuest available", "Emergency 119 displayed"],
             false,
             false),
         new(
@@ -1377,7 +1377,7 @@ public sealed class PhaseOneStore(
                 null,
                 quote.PriceBreakdown,
                 requiresVerification
-                    ? ["Booking created", "Dates held", "Alibaba Cloud eKYC started"]
+                    ? ["Booking created", "Dates held", $"{ekycProvider.ProviderName} started"]
                     : ["Booking created", "No guest eKYC required", "Booking approved"]);
 
             _bookings.Add(booking);
@@ -1445,10 +1445,12 @@ public sealed class PhaseOneStore(
                 booking.VerificationStatus = VerificationStatus.Failed;
                 booking.PaymentStatus = PaymentStatus.Cancelled;
                 booking.HoldExpiresAt = null;
-                booking.RejectionReason = "identity verification failed with the configured provider";
+                booking.RejectionReason = string.IsNullOrWhiteSpace(request.FailureReason)
+                    ? "identity verification failed with the configured provider"
+                    : request.FailureReason.Trim();
                 booking.RejectionSource = "GuestVerification";
                 booking.RejectedAt = timeProvider.GetUtcNow();
-                booking.Timeline.Add("Alibaba Cloud eKYC failed");
+                booking.Timeline.Add($"{ekycProvider.ProviderName} failed");
                 booking.Timeline.Add("Booking rejected");
                 booking.Timeline.Add("Dates released");
                 notifications = BuildRejectionNotifications(booking);
@@ -1459,7 +1461,7 @@ public sealed class PhaseOneStore(
                 booking.Status = BookingStatus.Approved;
                 booking.VerificationStatus = VerificationStatus.Passed;
                 booking.HoldExpiresAt = null;
-                booking.Timeline.Add("Alibaba Cloud eKYC approved");
+                booking.Timeline.Add($"{ekycProvider.ProviderName} approved");
                 booking.Timeline.Add("Booking approved");
                 notifications = BuildApprovalNotifications(booking);
             }
@@ -1654,7 +1656,7 @@ public sealed class PhaseOneStore(
                 booking.EkycTransactionId = result.TransactionId;
                 booking.EkycTransactionUrl = result.TransactionUrl;
                 booking.VerificationStatus = result.Status;
-                booking.Timeline.Add($"Alibaba Cloud eKYC transaction created: {result.TransactionId}");
+                booking.Timeline.Add($"{result.ProviderName} transaction created: {result.TransactionId}");
             }
         }
         catch (Exception exception)
@@ -1665,11 +1667,11 @@ public sealed class PhaseOneStore(
                 booking.VerificationStatus = VerificationStatus.Failed;
                 booking.PaymentStatus = PaymentStatus.Cancelled;
                 booking.HoldExpiresAt = null;
-                booking.Timeline.Add("Alibaba Cloud eKYC could not be started");
+                booking.Timeline.Add($"{ekycProvider.ProviderName} could not be started");
                 booking.Timeline.Add("Dates released");
             }
 
-            throw new InvalidOperationException("Alibaba Cloud eKYC could not be started for this booking.", exception);
+            throw new InvalidOperationException($"{ekycProvider.ProviderName} could not be started for this booking.", exception);
         }
     }
 
@@ -1779,7 +1781,7 @@ public sealed class PhaseOneStore(
 
         if (property.GuestVerificationEnabled)
         {
-            lines.Add(new("guest-verification", "Alibaba Cloud eKYC verification required before approval", 0m, property.Currency, false));
+            lines.Add(new("guest-verification", $"{ekycProvider.ProviderName} verification required before approval", 0m, property.Currency, false));
         }
 
         return new BookingQuoteDto(
@@ -1834,12 +1836,12 @@ public sealed class PhaseOneStore(
     private static bool DateRangesOverlap(DateOnly firstCheckIn, DateOnly firstCheckOut, DateOnly secondCheckIn, DateOnly secondCheckOut) =>
         firstCheckIn < secondCheckOut && secondCheckIn < firstCheckOut;
 
-    private static IReadOnlyList<PendingNotification> BuildApprovalNotifications(PhaseOneBooking booking) =>
+    private IReadOnlyList<PendingNotification> BuildApprovalNotifications(PhaseOneBooking booking) =>
     [
         new("guest", new NotificationMessage(
             booking.GuestEmail,
             "NestyStay booking approved",
-            $"Your booking for {booking.PropertyTitle} is APPROVED after Alibaba Cloud eKYC.")),
+            $"Your booking for {booking.PropertyTitle} is APPROVED after {ekycProvider.ProviderName}.")),
         new("host", new NotificationMessage(
             booking.HostEmail,
             "NestyStay booking approved",

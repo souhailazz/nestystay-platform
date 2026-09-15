@@ -17,7 +17,7 @@
 - [x] Verification, password-reset, and owner-invitation emails render clickable `PUBLIC_APP_URL` links with plain-text fallbacks; local capture and browser completion journeys pass.
 - [x] Prometheus starter alerts, Grafana dashboards, Loki config, Uptime Kuma monitor definitions, and structured backup status/checksum scripts are checked in.
 - [ ] Live Stripe and webhook rehearsal.
-- [ ] Live Alibaba eKYC callback/signature rehearsal.
+- [ ] Live Stripe Identity verification-session/webhook rehearsal.
 - [ ] Real Brevo delivery and complaint handling test.
 - [ ] Client domain and `PUBLIC_APP_URL` validation, including client approval of
       the current code/token-based auth and invitation notification format. The

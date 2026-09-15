@@ -71,6 +71,7 @@ export function BookingPendingPage({ bookingId, auth }: BookingPendingPageProps)
   );
   const countdown = useHoldCountdown(booking?.holdExpiresAt);
   const timeline = booking?.timeline ?? [];
+  const verificationProvider = booking?.ekycProvider ?? "identity verification partner";
 
   return (
     <div data-testid="book-07-page" id="BOOK-07">
@@ -142,14 +143,14 @@ export function BookingPendingPage({ bookingId, auth }: BookingPendingPageProps)
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  Open eKYC transaction ↗
+                  Open {verificationProvider} verification ↗
                 </a>
               ) : (
                 <span className="inline-flex min-h-12 items-center rounded-pill bg-on-dark-heading/10 px-6 text-sm font-semibold text-on-dark-muted">
                   Preparing verification session…
                 </span>
               )}
-              <span className="text-xs text-on-dark-faint">External secure page — returns here automatically</span>
+              <span className="text-xs text-on-dark-faint">Secure provider page — returns here automatically</span>
             </div>
           </div>
         )}

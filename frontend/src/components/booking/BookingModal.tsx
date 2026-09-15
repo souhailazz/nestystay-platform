@@ -151,7 +151,7 @@ export function BookingModal({
               <Input min={0} max={Math.max(0, (property.maxGuests ?? 2) - adults)} type="number" value={children} onChange={(event) => updateGuestCount(adults, Number(event.target.value))} />
             </Field>
             {property.guestVerificationEnabled && (
-              <Field label="eKYC document" className="form-grid__full">
+              <Field label="Identity document" className="form-grid__full">
                 <Select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
                   <option value="GLB03002">Passport (global e-passport)</option>
                   <option value="02000000">National ID</option>
@@ -230,7 +230,7 @@ export function BookingModal({
               )}
               {booking.ekycTransactionUrl && (
                 <a href={booking.ekycTransactionUrl} rel="noreferrer" target="_blank">
-                  Open eKYC transaction <ArrowRight size={14} />
+                  Open {booking.ekycProvider ?? "identity provider"} verification <ArrowRight size={14} />
                 </a>
               )}
             </div>

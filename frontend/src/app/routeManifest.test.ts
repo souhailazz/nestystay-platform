@@ -5,6 +5,7 @@ import {
   getRouteAccess,
   getRouteDefinition,
   getScreenDefinition,
+  manifestCanonicalTestPaths,
   manifestAliases,
   manifestTestPaths,
   navigationForRole,
@@ -167,6 +168,13 @@ describe("canonical route manifest", () => {
     expect(getRouteAccess(protectedRoute, null).kind).toBe("auth-required");
     expect(getRouteAccess(protectedRoute, { roles: ["Guest"] }).kind).toBe("forbidden");
     expect(getRouteAccess(protectedRoute, { roles: ["PropertyManager"] }).kind).toBe("allowed");
+  });
+
+  it("materializes one canonical URL for every reachable registered screen", () => {
+    const paths = manifestCanonicalTestPaths();
+    expect(paths.length).toBeGreaterThanOrEqual(SCREEN_MANIFEST.length - 1);
+    expect(new Set(paths).size).toBe(paths.length);
+    paths.forEach((path) => expect(path).not.toContain(":"));
   });
 
   it("keeps the public QR validator on its dedicated route", () => {

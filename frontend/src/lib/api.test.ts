@@ -216,17 +216,21 @@ describe("api client", () => {
     const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse({ userId: "traveler-1", notifications: [{ id: "notification-1", isRead: false }] }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ unreadCount: 2 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const workspace = await api.getTravelerWorkspace("traveler-1", "signed-session-token");
     await api.markNotificationRead("traveler-1", "notification-1", "signed-session-token");
     await api.markAllNotificationsRead("traveler-1", "signed-session-token");
+    const unread = await api.getNotificationUnreadCount("traveler-1", "signed-session-token");
 
     expect(fetchMock.mock.calls[0][0] as string).toBe("/api/spec/traveler/traveler-1");
     expect(fetchMock.mock.calls[1][0] as string).toBe("/api/spec/traveler/traveler-1/notifications/notification-1/read");
     expect(fetchMock.mock.calls[2][0] as string).toBe("/api/spec/traveler/traveler-1/notifications/read-all");
+    expect(fetchMock.mock.calls[3][0] as string).toBe("/api/spec/traveler/traveler-1/notifications/unread-count");
     expect(workspace.notifications[0].isRead).toBe(false);
+    expect(unread.unreadCount).toBe(2);
     vi.unstubAllGlobals();
   });
 

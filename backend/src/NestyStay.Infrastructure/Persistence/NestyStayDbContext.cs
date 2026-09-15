@@ -154,6 +154,7 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneBadgeDefinition> MilestoneBadgeDefinitions => Set<MilestoneBadgeDefinition>();
     public DbSet<MilestoneBadgeAssignment> MilestoneBadgeAssignments => Set<MilestoneBadgeAssignment>();
     public DbSet<MilestoneBadgeRenewal> MilestoneBadgeRenewals => Set<MilestoneBadgeRenewal>();
+    public DbSet<MilestoneBadgePayment> MilestoneBadgePayments => Set<MilestoneBadgePayment>();
     public DbSet<MilestoneCampaign> MilestoneCampaigns => Set<MilestoneCampaign>();
     public DbSet<MilestoneCampaignEnrollment> MilestoneCampaignEnrollments => Set<MilestoneCampaignEnrollment>();
     public DbSet<MilestoneFoundingBenefit> MilestoneFoundingBenefits => Set<MilestoneFoundingBenefit>();
@@ -294,6 +295,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneBadgeDefinition>().HasIndex(definition => new { definition.Level, definition.AppliesTo }).IsUnique();
         modelBuilder.Entity<MilestoneBadgeAssignment>().HasIndex(assignment => new { assignment.SubjectType, assignment.SubjectId, assignment.Level });
         modelBuilder.Entity<MilestoneBadgeRenewal>().HasIndex(renewal => new { renewal.BadgeAssignmentId, renewal.ReminderDueAt });
+        modelBuilder.Entity<MilestoneBadgePayment>().HasIndex(payment => payment.IdempotencyKey).IsUnique();
+        modelBuilder.Entity<MilestoneBadgePayment>().HasIndex(payment => payment.ProviderPaymentIntentId);
+        modelBuilder.Entity<MilestoneBadgePayment>().HasIndex(payment => new { payment.SubjectType, payment.SubjectId, payment.Level, payment.Status });
         modelBuilder.Entity<MilestoneCampaign>().HasIndex(campaign => campaign.Key).IsUnique();
         modelBuilder.Entity<MilestoneCampaignEnrollment>().HasIndex(enrollment => new { enrollment.CampaignKey, enrollment.SubjectType, enrollment.SubjectId }).IsUnique();
         modelBuilder.Entity<MilestoneFoundingBenefit>().HasIndex(benefit => benefit.PropertyId).IsUnique();

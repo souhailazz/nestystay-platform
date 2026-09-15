@@ -18,7 +18,7 @@ public sealed class PricebookService : IPricebookService
         new("guest-standard-fee-short", "Contract guest platform fee", 9m, "PERCENT", "Per booking", "Guests", true),
         new("guest-ekyc-first-html", "First guest verification", 9.99m, "USD", "Per first check", "Guests", true),
         new("guest-ekyc-return-html", "Return guest verification", 4.99m, "USD", "Per repeat check", "Guests", true),
-        new("guest-ekyc-host-paid-pdf", "Alibaba eKYC host-paid vendor cost", 0.14m, "USD", "Per booking", "Hosts", true),
+        new("guest-ekyc-host-paid-pdf", "Identity verification host-paid vendor cost", 0.14m, "USD", "Per booking", "Hosts", true),
         new("verified-host-standard-annual", "Verified host badge", 0m, "USD", "Included", "Hosts", true),
         new("trusted-host-standard-annual", "Trusted host badge", 49m, "USD", "One time (annual renewal capability)", "Hosts", true),
         new("trusted-host-pdf-campaign", "Trusted host PDF campaign", 49m, "USD", "One time", "Hosts", true),

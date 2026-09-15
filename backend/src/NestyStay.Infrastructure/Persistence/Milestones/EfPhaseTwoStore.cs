@@ -82,6 +82,23 @@ public sealed class EfPhaseTwoStore(
         return EvaluateEligibility(request with { SubjectType = subjectType });
     }
 
+    public BadgePurchaseQuoteDto GetBadgePurchaseQuote(PurchaseBadgeRequest request)
+    {
+        EnsureSeeded();
+        var subjectType = NormalizeSubjectType(request.SubjectType);
+        var definition = FindBadgeDefinition(request.Level, subjectType);
+        var eligibility = EvaluateEligibility(request with { SubjectType = subjectType });
+        var price = ResolveBadgePrice(definition, subjectType, request.SubjectId, request.CampaignKey);
+        return new BadgePurchaseQuoteDto(
+            request.Level,
+            eligibility.Eligible,
+            eligibility.MissingRequirements,
+            price.Amount,
+            price.Currency,
+            pricebookCadence(definition.PricebookKey),
+            request.Level == BadgeLevel.Free || price.Amount == 0m);
+    }
+
     public BadgeFeatureAccessDto GetFeatureAccess(string subjectType, Guid subjectId)
     {
         EnsureSeeded();
@@ -163,7 +180,8 @@ public sealed class EfPhaseTwoStore(
         return new BadgeMaintenanceResult(active.Count, expired, remindersDue, now);
     }
 
-    public BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request)
+    [Obsolete("Use the provider-backed IBadgePaymentStore workflow for production badge purchases.")]
+    public BadgeAssignmentDto PurchaseBadge(PurchaseBadgeRequest request, bool paymentSucceeded = true)
     {
         EnsureSeeded();
         var subjectType = NormalizeSubjectType(request.SubjectType);
@@ -192,7 +210,7 @@ public sealed class EfPhaseTwoStore(
         }
 
         var isFree = request.Level == BadgeLevel.Free || price.Amount == 0m;
-        var paymentStatus = isFree || request.PaymentSucceeded ? PaymentStatus.Captured : PaymentStatus.Failed;
+        var paymentStatus = isFree || paymentSucceeded ? PaymentStatus.Captured : PaymentStatus.Failed;
         var assignmentStatus = paymentStatus == PaymentStatus.Captured ? BadgeAssignmentStatus.Active : BadgeAssignmentStatus.Suspended;
         var expiresAt = isFree ? DateTimeOffset.MaxValue : now.AddYears(1);
 
@@ -223,6 +241,59 @@ public sealed class EfPhaseTwoStore(
             QueueRenewal(assignment, price.Amount, price.Currency);
         }
 
+        db.SaveChanges();
+        return ToDto(assignment);
+    }
+
+    public BadgeAssignmentDto FinalizeBadgePurchase(PurchaseBadgeRequest request, string paymentReference)
+    {
+        EnsureSeeded();
+        var subjectType = NormalizeSubjectType(request.SubjectType);
+        var definition = FindBadgeDefinition(request.Level, subjectType);
+        var eligibility = EvaluateEligibility(request with { SubjectType = subjectType });
+        if (!eligibility.Eligible)
+        {
+            throw new InvalidOperationException($"Badge eligibility failed: {string.Join(" ", eligibility.MissingRequirements)}");
+        }
+
+        var price = ResolveBadgePrice(definition, subjectType, request.SubjectId, request.CampaignKey);
+        var now = timeProvider.GetUtcNow();
+        var existing = db.MilestoneBadgeAssignments
+            .ToList()
+            .SingleOrDefault(assignment =>
+                assignment.SubjectType.Equals(subjectType, StringComparison.OrdinalIgnoreCase) &&
+                assignment.SubjectId == request.SubjectId &&
+                assignment.Level == request.Level &&
+                assignment.Status == BadgeAssignmentStatus.Active &&
+                assignment.PaymentStatus == PaymentStatus.Captured &&
+                assignment.ExpiresAt > now);
+        if (existing is not null) return ToDto(existing);
+
+        var expiresAt = request.Level == BadgeLevel.Free || price.Amount == 0m
+            ? DateTimeOffset.MaxValue
+            : now.AddYears(1);
+        var assignment = new MilestoneBadgeAssignment
+        {
+            Id = Guid.NewGuid(),
+            BadgeDefinitionId = definition.Id,
+            BadgeKey = definition.Key,
+            Level = definition.Level,
+            SubjectType = subjectType,
+            SubjectId = request.SubjectId,
+            Status = BadgeAssignmentStatus.Active,
+            EarnedAt = now,
+            PaidThrough = expiresAt,
+            ExpiresAt = expiresAt,
+            AmountCharged = price.Amount,
+            Currency = price.Currency,
+            PaymentStatus = PaymentStatus.Captured,
+            PaymentReference = paymentReference,
+            UnlocksJson = definition.UnlocksJson,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        db.MilestoneBadgeAssignments.Add(assignment);
+        QueueRenewal(assignment, price.Amount, price.Currency);
         db.SaveChanges();
         return ToDto(assignment);
     }
@@ -262,6 +333,53 @@ public sealed class EfPhaseTwoStore(
         QueueRenewal(assignment, price.Amount, price.Currency);
         db.SaveChanges();
 
+        return ToDto(assignment);
+    }
+
+    public BadgeAssignmentDto FinalizeBadgeRenewal(Guid assignmentId, string paymentReference)
+    {
+        EnsureSeeded();
+        var assignment = db.MilestoneBadgeAssignments.SingleOrDefault(item => item.Id == assignmentId)
+            ?? throw new InvalidOperationException("Badge assignment not found.");
+        if (assignment.Status != BadgeAssignmentStatus.Active)
+        {
+            throw new InvalidOperationException("Only active badge assignments can be renewed.");
+        }
+
+        var definition = db.MilestoneBadgeDefinitions.Single(item => item.Id == assignment.BadgeDefinitionId);
+        var price = ResolveBadgePrice(definition, assignment.SubjectType, assignment.SubjectId, null);
+        var renewal = db.MilestoneBadgeRenewals
+            .Where(item => item.BadgeAssignmentId == assignmentId && item.PaymentStatus == PaymentStatus.Pending)
+            .OrderBy(item => item.ReminderDueAt)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException("No pending renewal exists for this badge assignment.");
+        var now = timeProvider.GetUtcNow();
+        renewal.PaymentAttemptedAt = now;
+        renewal.PaymentStatus = PaymentStatus.Captured;
+        renewal.AmountDue = price.Amount;
+        renewal.Currency = price.Currency;
+        var nextExpiry = (assignment.ExpiresAt > now ? assignment.ExpiresAt : now).AddYears(1);
+        assignment.PaidThrough = nextExpiry;
+        assignment.ExpiresAt = nextExpiry;
+        assignment.AmountCharged = price.Amount;
+        assignment.Currency = price.Currency;
+        assignment.PaymentStatus = PaymentStatus.Captured;
+        assignment.PaymentReference = paymentReference;
+        QueueRenewal(assignment, price.Amount, price.Currency);
+        db.SaveChanges();
+        return ToDto(assignment);
+    }
+
+    public BadgeAssignmentDto RefundBadge(Guid assignmentId, string paymentReference)
+    {
+        EnsureSeeded();
+        var assignment = db.MilestoneBadgeAssignments.SingleOrDefault(item => item.Id == assignmentId)
+            ?? throw new InvalidOperationException("Badge assignment not found.");
+        assignment.Status = BadgeAssignmentStatus.Suspended;
+        assignment.PaymentStatus = PaymentStatus.Refunded;
+        assignment.PaymentReference = paymentReference;
+        assignment.UpdatedAt = timeProvider.GetUtcNow();
+        db.SaveChanges();
         return ToDto(assignment);
     }
 
@@ -579,6 +697,64 @@ public sealed class EfPhaseTwoStore(
             changed = true;
         }
 
+        // Keep one deterministic, non-customer assignment for each badge
+        // state so the public host profiles and admin workspace always have
+        // real records to inspect in development and staging demos.
+        var demoAssignments = new[]
+        {
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000000"), Level = BadgeLevel.Free, SubjectId = Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), Amount = 0m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000000"), BadgeKey = "host-free", Renewal = false },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000001"), Level = BadgeLevel.Verified, SubjectId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"), Amount = 0m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000001"), BadgeKey = "host-verified", Renewal = false },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000002"), Level = BadgeLevel.Verified, SubjectId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), Amount = 0m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000001"), BadgeKey = "host-verified", Renewal = false },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000003"), Level = BadgeLevel.Trusted, SubjectId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), Amount = 49m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000002"), BadgeKey = "host-trusted", Renewal = true },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000004"), Level = BadgeLevel.Verified, SubjectId = Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"), Amount = 0m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000001"), BadgeKey = "host-verified", Renewal = false },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000005"), Level = BadgeLevel.Trusted, SubjectId = Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"), Amount = 49m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000002"), BadgeKey = "host-trusted", Renewal = true },
+            new { Id = Guid.Parse("30000000-0000-4000-8000-000000000006"), Level = BadgeLevel.Wellness, SubjectId = Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"), Amount = 19m, DefinitionId = Guid.Parse("10000000-0000-4000-8000-000000000003"), BadgeKey = "host-wellness", Renewal = true }
+        };
+        foreach (var demo in demoAssignments)
+        {
+            if (db.MilestoneBadgeAssignments.Any(item => item.SubjectType == "Host" && item.SubjectId == demo.SubjectId && item.Level == demo.Level))
+            {
+                continue;
+            }
+
+            var expiresAt = demo.Renewal ? now.AddYears(1) : DateTimeOffset.MaxValue;
+            db.MilestoneBadgeAssignments.Add(new MilestoneBadgeAssignment
+            {
+                Id = demo.Id,
+                BadgeDefinitionId = demo.DefinitionId,
+                BadgeKey = demo.BadgeKey,
+                Level = demo.Level,
+                SubjectType = "Host",
+                SubjectId = demo.SubjectId,
+                Status = BadgeAssignmentStatus.Active,
+                EarnedAt = now,
+                PaidThrough = expiresAt,
+                ExpiresAt = expiresAt,
+                AmountCharged = demo.Amount,
+                Currency = "USD",
+                PaymentStatus = PaymentStatus.Captured,
+                PaymentReference = $"demo_{demo.BadgeKey}",
+                UnlocksJson = MilestoneJson.Serialize(FeatureSetFor(demo.Level)),
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            if (demo.Renewal)
+            {
+                db.MilestoneBadgeRenewals.Add(new MilestoneBadgeRenewal
+                {
+                    Id = Guid.Parse($"31000000-0000-4000-8000-{demo.Id:N}"[0..24] + demo.Id.ToString("N")[^12..]),
+                    BadgeAssignmentId = demo.Id,
+                    ReminderDueAt = expiresAt.AddDays(-30),
+                    PaymentStatus = PaymentStatus.Pending,
+                    AmountDue = demo.Amount,
+                    Currency = "USD",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+            changed = true;
+        }
+
         if (changed)
         {
             db.SaveChanges();
@@ -650,6 +826,11 @@ public sealed class EfPhaseTwoStore(
                 if (!request.HasPropertyAddress)
                 {
                     missing.Add("Wellness badge requires a property address.");
+                }
+
+                if (!request.HasWellnessSubscription)
+                {
+                    missing.Add("Wellness badge requires an active wellness subscription.");
                 }
 
                 break;
@@ -757,6 +938,12 @@ public sealed class EfPhaseTwoStore(
 
         return new PriceResolution(overrideAmount ?? pricebook.Amount, pricebook.Currency);
     }
+
+    private string pricebookCadence(string pricebookKey) =>
+        db.MilestonePricebookEntries
+            .AsNoTracking()
+            .ToList()
+            .SingleOrDefault(item => KeyEquals(item.Key, pricebookKey))?.Cadence ?? "Annual";
 
     private decimal ResolveHostCommissionPercent()
     {

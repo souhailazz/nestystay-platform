@@ -74,7 +74,7 @@ public sealed class PlatformBlueprintService : IPlatformBlueprintService
 
     public IReadOnlyList<VendorAdapterDescriptor> GetVendorAdapters() =>
     [
-        new(ProviderKind.Ekyc, "Alibaba Cloud eKYC", ["Jumio", "Onfido"], "Days", "Subject checks retain provider, status, cost, and audit history."),
+        new(ProviderKind.Ekyc, "Stripe Identity", ["Jumio", "Onfido"], "Days", "Verification sessions retain provider, status, failure reason, and audit history."),
         new(ProviderKind.Payment, "Stripe", ["PayPal"], "Days", "Supports checkout, split schedules, escrow, subscriptions, refunds, and payouts."),
         new(ProviderKind.Storage, "Local persistent object storage", ["MinIO (S3-compatible)"], "Hours", "Private self-hosted storage supports documents, reports and media without a mandatory cloud bucket."),
         new(ProviderKind.Notification, "Brevo transactional email", ["Provider-neutral web push", "Optional SMS"], "Hours", "Email events are queued behind one provider boundary; SMS and push remain opt-in channels."),

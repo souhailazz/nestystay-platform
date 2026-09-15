@@ -1,5 +1,5 @@
-/* Measured against the 1672 × 941 reference. The photo carries the curved arch,
-   coastline, palm shadows and signature; all navigation and search UI is live. */
+/* Measured against the 1672 × 941 hero photograph. The scenic image is a real
+   visual anchor; all navigation and search UI remains live application UI. */
 .route-home .site-nav-shell {
   position: fixed;
   top: 15px;
@@ -103,7 +103,7 @@
 .reference-search__field > svg { flex-shrink: 0; width: calc(21 * var(--hero-unit)); }
 .reference-search__field > span { display: grid; gap: 3px; min-width: 0; }
 .reference-search__field strong { font-size: calc(12.5 * var(--hero-unit)); font-weight: 600; letter-spacing: -.045em; white-space: nowrap; }
-.reference-search__value { font-size: calc(12 * var(--hero-unit)); color: #777a81; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.025em; }
+.reference-search__value { font-size: calc(12 * var(--hero-unit)); color: #5f6368; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.025em; }
 .reference-search__field--dates::before,
 .reference-search__field--guests::before { position: absolute; left: -2px; top: 20%; height: 60%; width: 1px; background: #ded7cc; content: ""; }
 .reference-search__field--guests { padding-inline: calc(19 * var(--hero-unit)); gap: calc(17 * var(--hero-unit)); }
@@ -158,7 +158,7 @@
   .route-home .site-nav > div > form[aria-label="Global search"] { display: none; }
   .reference-hero { --hero-unit: 1px; aspect-ratio: auto; min-height: 850px; }
   .reference-hero__backdrop { width: 100%; height: 440px; }
-  .reference-hero__photo { object-fit: cover; object-position: left 20%; width: 155%; max-width: none; }
+  .reference-hero__photo { object-fit: cover; object-position: 32% 24%; width: 125%; max-width: none; }
   .reference-hero__content { position: relative; inset: auto; width: auto; margin: 0; padding: 470px 32px 40px; }
   .reference-hero__rule { margin-bottom: 22px; }
   .reference-hero h1 { font-size: 68px; line-height: .98; }
@@ -175,7 +175,7 @@
   .route-home .site-nav > nav form[aria-label="Global search"] { width: 100%; margin: 0 0 8px; }
   .reference-hero { min-height: 0; }
   .reference-hero__backdrop { height: 350px; }
-  .reference-hero__photo { width: 180%; object-position: left 24%; }
+  .reference-hero__photo { width: 135%; object-position: 30% 24%; }
   .reference-hero__content { padding: 380px 22px 38px; }
   .reference-hero h1 { font-size: clamp(42px, 12vw, 65px); }
   .reference-hero__left-copy { top: 225px; }

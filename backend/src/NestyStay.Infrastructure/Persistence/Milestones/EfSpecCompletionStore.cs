@@ -249,6 +249,13 @@ public sealed class EfSpecCompletionStore(
             await db.MilestoneTravelerNotifications.AsNoTracking().Where(item => item.UserId == userId && !item.IsDeleted).OrderByDescending(item => item.CreatedAt).Select(item => ToDto(item)).ToListAsync(cancellationToken));
     }
 
+    public async Task<int> GetUnreadNotificationCountAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        await SeedTravelerAsync(userId, cancellationToken);
+        return await db.MilestoneTravelerNotifications.AsNoTracking()
+            .CountAsync(item => item.UserId == userId && !item.IsDeleted && !item.IsRead, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<TravelerRecommendationDto>> GetTravelerRecommendationsAsync(Guid userId, TravelerRecommendationQuery query, CancellationToken cancellationToken)
     {
         await EnsurePropertyCatalogAsync(cancellationToken);
@@ -1239,6 +1246,25 @@ public sealed class EfSpecCompletionStore(
         db.MilestoneMessages.Add(message);
         var conversation = await db.MilestoneConversations.SingleAsync(item => item.Id == conversationId, cancellationToken);
         conversation.UpdatedAt = message.SentAt;
+        var recipients = await db.MilestoneConversationParticipants
+            .Where(item => item.ConversationId == conversationId && item.UserId != userId && !item.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var recipient in recipients)
+        {
+            db.MilestoneTravelerNotifications.Add(new MilestoneTravelerNotification
+            {
+                UserId = recipient.UserId,
+                Type = "Messages",
+                Title = "New NestyStay message",
+                Body = message.Body.Length > 140 ? $"{message.Body[..140]}…" : message.Body,
+                DeepLink = $"/messages/{conversationId}",
+                IsRead = false,
+                CreatedAt = message.SentAt,
+                UpdatedAt = message.SentAt,
+                CreatedByUserId = userId,
+                UpdatedByUserId = userId
+            });
+        }
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(message);
     }
@@ -1814,7 +1840,7 @@ public sealed class EfSpecCompletionStore(
     {
         if (await db.MilestoneProperties.AnyAsync(item => !item.IsDeleted, cancellationToken)) return;
         db.MilestoneProperties.AddRange(
-            new MilestoneProperty { Id = SeedPropertyId, HostUserId = SeedHostUserId, HostName = "Island Villa Hosting", HostEmail = "host-villa@nestystay.local", Title = "Ocho Rios Verified Villa", Location = "Ocho Rios, St. Ann", Country = "Jamaica", NightlyRate = 185m, Currency = "USD", BadgeLevel = BadgeLevel.Verified, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Moderate", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Alibaba eKYC", "QR gate access", "InsuraGuest available"]) },
+            new MilestoneProperty { Id = SeedPropertyId, HostUserId = SeedHostUserId, HostName = "Island Villa Hosting", HostEmail = "host-villa@nestystay.local", Title = "Ocho Rios Verified Villa", Location = "Ocho Rios, St. Ann", Country = "Jamaica", NightlyRate = 185m, Currency = "USD", BadgeLevel = BadgeLevel.Verified, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Moderate", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Stripe Identity", "QR gate access", "InsuraGuest available"]) },
             new MilestoneProperty { Id = Guid.Parse("22222222-2222-4222-8222-222222222222"), HostUserId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), HostName = "Kingston Corporate Homes", HostEmail = "host-kingston@nestystay.local", Title = "Kingston Business Stay", Location = "New Kingston, St. Andrew", Country = "Jamaica", NightlyRate = 140m, Currency = "USD", BadgeLevel = BadgeLevel.Trusted, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Flexible", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Trusted host", "Local business directory", "Split payments"]) },
             new MilestoneProperty { Id = Guid.Parse("33333333-3333-4333-8333-333333333333"), HostUserId = Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), HostName = "Montego Bay Apartments", HostEmail = "host-mobay@nestystay.local", Title = "Montego Bay Standard Apartment", Location = "Montego Bay, St. James", Country = "Jamaica", NightlyRate = 110m, Currency = "USD", BadgeLevel = BadgeLevel.Free, GuestVerificationEnabled = false, InsuraGuestEnabled = false, CancellationPolicy = "Strict", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Free listing", "Calendar", "Messaging"]) });
         await db.SaveChangesAsync(cancellationToken);
@@ -1888,22 +1914,29 @@ public sealed class EfSpecCompletionStore(
                 Article("booking-with-confidence", "Booking With Confidence", "Traveler", "NestyStay Support", "What guests see from quote to approval, payment capture, invoice, and receipt."));
         }
 
-        if (!await db.MilestoneHostProfiles.AnyAsync(cancellationToken))
+        foreach (var seed in DefaultHostProfiles())
         {
-            db.MilestoneHostProfiles.Add(new MilestoneHostProfile
+            var profile = await db.MilestoneHostProfiles.SingleOrDefaultAsync(item => item.Slug == seed.Slug, cancellationToken);
+            if (profile is null)
             {
-                HostUserId = SeedHostUserId,
-                Slug = "island-villa-hosting",
-                DisplayName = "Island Villa Hosting",
-                Parish = "St. Ann",
-                Bio = "Verified Jamaican host team managing guest-ready stays near Ocho Rios with platform messaging only.",
-                ResponseTime = "Replies in 10 minutes",
-                BadgesJson = MilestoneJson.Serialize<IReadOnlyList<BadgeLevel>>([BadgeLevel.Verified, BadgeLevel.Trusted]),
-                ListingIdsJson = MilestoneJson.Serialize<IReadOnlyList<Guid>>([SeedPropertyId]),
-                Rating = 4.96m,
-                ReviewCount = 38,
-                HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Verified host", "Trusted badge", "119 listing guidance", "97% host payout"])
-            });
+                db.MilestoneHostProfiles.Add(seed);
+                continue;
+            }
+
+            // Reserved demo slugs stay deterministic so all four badge tiers
+            // can be reviewed without touching customer records.
+            profile.HostUserId = seed.HostUserId;
+            profile.DisplayName = seed.DisplayName;
+            profile.Parish = seed.Parish;
+            profile.Bio = seed.Bio;
+            profile.ResponseTime = seed.ResponseTime;
+            profile.BadgesJson = seed.BadgesJson;
+            profile.ListingIdsJson = seed.ListingIdsJson;
+            profile.Rating = seed.Rating;
+            profile.ReviewCount = seed.ReviewCount;
+            profile.IsPublic = true;
+            profile.HighlightsJson = seed.HighlightsJson;
+            profile.UpdatedAt = timeProvider.GetUtcNow();
         }
 
         // Keep the deterministic demo directory usable even after a previous
@@ -2059,6 +2092,85 @@ public sealed class EfSpecCompletionStore(
         Body = $"{summary}\n\nThis article is stored in PostgreSQL-backed milestone content and appears through the journal routes.",
         TagsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([category, "Jamaica", "NestyStay"]),
         RelatedSlugsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["host-badges-explained", "booking-with-confidence"])
+    };
+
+    private static IReadOnlyList<MilestoneHostProfile> DefaultHostProfiles() =>
+    [
+        DemoHostProfile(
+            Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+            "montego-bay-free-host",
+            "Montego Bay Apartments",
+            "St. James",
+            "A practical local host offering clear pricing, platform messaging, and calendar-managed stays.",
+            "Replies within 4 hours",
+            [BadgeLevel.Free],
+            [Guid.Parse("33333333-3333-4333-8333-333333333333")],
+            4.72m,
+            12,
+            ["Free host", "Calendar managed", "Platform messaging"]),
+        DemoHostProfile(
+            SeedHostUserId,
+            "island-villa-hosting",
+            "Island Villa Hosting",
+            "St. Ann",
+            "Verified Jamaican host team managing guest-ready stays near Ocho Rios with platform messaging only.",
+            "Replies in 10 minutes",
+            [BadgeLevel.Verified],
+            [SeedPropertyId],
+            4.96m,
+            38,
+            ["Verified host", "Identity reviewed", "97% host payout"]),
+        DemoHostProfile(
+            Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            "kingston-trusted-host",
+            "Kingston Corporate Homes",
+            "St. Andrew",
+            "A proven Kingston host with verified identity, approved booking history, and strong account standing.",
+            "Replies in 20 minutes",
+            [BadgeLevel.Verified, BadgeLevel.Trusted],
+            [Guid.Parse("22222222-2222-4222-8222-222222222222")],
+            4.91m,
+            57,
+            ["Trusted host", "Approved booking history", "Search boost"]),
+        DemoHostProfile(
+            Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+            "negril-wellness-host",
+            "Negril Wellness Retreats",
+            "Westmoreland",
+            "A wellness-qualified host providing guest-ready stays with access to NestyStay wellness services.",
+            "Replies in 12 minutes",
+            [BadgeLevel.Verified, BadgeLevel.Trusted, BadgeLevel.Wellness],
+            [Guid.Parse("44444444-4444-4444-8444-444444444444")],
+            4.98m,
+            64,
+            ["Wellness badge", "Wellness-qualified", "Police directory access"])
+    ];
+
+    private static MilestoneHostProfile DemoHostProfile(
+        Guid hostUserId,
+        string slug,
+        string displayName,
+        string parish,
+        string bio,
+        string responseTime,
+        IReadOnlyList<BadgeLevel> badges,
+        IReadOnlyList<Guid> listingIds,
+        decimal rating,
+        int reviewCount,
+        IReadOnlyList<string> highlights) => new()
+    {
+        HostUserId = hostUserId,
+        Slug = slug,
+        DisplayName = displayName,
+        Parish = parish,
+        Bio = bio,
+        ResponseTime = responseTime,
+        BadgesJson = MilestoneJson.Serialize(badges),
+        ListingIdsJson = MilestoneJson.Serialize(listingIds),
+        Rating = rating,
+        ReviewCount = reviewCount,
+        IsPublic = true,
+        HighlightsJson = MilestoneJson.Serialize(highlights)
     };
 
     private static MilestoneDirectoryProvider Provider(string slug, string kind, string category, string name, string parish, string badgeLevel, string description, string availability) => new()

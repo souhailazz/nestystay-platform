@@ -6,7 +6,7 @@ public sealed class VerificationCheck : BaseEntity
 {
     public VerificationSubjectType SubjectType { get; set; }
     public Guid SubjectId { get; set; }
-    public string Provider { get; set; } = "AlibabaCloud";
+    public string Provider { get; set; } = "StripeIdentity";
     public VerificationStatus Status { get; set; } = VerificationStatus.NotStarted;
     public decimal CostAmount { get; set; }
     public string CostCurrency { get; set; } = "USD";

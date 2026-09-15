@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, Search, UserRound, X } from "lucide-react";
 import { AppLink, navigate } from "./components/AppLink";
@@ -19,6 +19,7 @@ import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
 import type { ConfirmationRequest } from "./lib/confirmation";
+import type { TextInputRequest } from "./lib/textInput";
 import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
 const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
 const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
@@ -61,7 +62,7 @@ const ComingSoonPage = lazy(() => import("./pages/SpecScreens").then(({ ComingSo
 const DesignSystemReferencePage = lazy(() => import("./pages/SpecScreens").then(({ DesignSystemReferencePage }) => ({ default: DesignSystemReferencePage })));
 const LoadingStatePage = lazy(() => import("./pages/SpecScreens").then(({ LoadingStatePage }) => ({ default: LoadingStatePage })));
 const LogoutScreenPage = lazy(() => import("./pages/SpecScreens").then(({ LogoutScreenPage }) => ({ default: LogoutScreenPage })));
-const MapSearchPage = lazy(() => import("./pages/SpecScreens").then(({ MapSearchPage }) => ({ default: MapSearchPage })));
+const MapSearchPage = lazy(() => import("./features/public/InteractiveMapPage").then(({ InteractiveMapPage }) => ({ default: InteractiveMapPage })));
 const NoFavoritesPage = lazy(() => import("./pages/SpecScreens").then(({ NoFavoritesPage }) => ({ default: NoFavoritesPage })));
 const NoReservationsPage = lazy(() => import("./pages/SpecScreens").then(({ NoReservationsPage }) => ({ default: NoReservationsPage })));
 const NotFoundPage = lazy(() => import("./pages/SpecScreens").then(({ NotFoundPage }) => ({ default: NotFoundPage })));
@@ -350,6 +351,73 @@ function ConfirmationHost() {
   );
 }
 
+type PendingTextInput = TextInputRequest & { resolve: (value: string | null) => void };
+
+function TextInputHost() {
+  const [pending, setPending] = useState<PendingTextInput | null>(null);
+  const [value, setValue] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onInput = (event: Event) => {
+      const detail = (event as CustomEvent<{ request?: TextInputRequest; resolve?: (value: string | null) => void }>).detail;
+      if (!detail?.request || !detail.resolve) return;
+      setPending({ ...detail.request, resolve: detail.resolve });
+      setValue(detail.request.initialValue ?? "");
+      setValidationError(null);
+    };
+    window.addEventListener("nesty:text-input", onInput);
+    return () => window.removeEventListener("nesty:text-input", onInput);
+  }, []);
+
+  const close = (result: string | null) => {
+    pending?.resolve(result);
+    setPending(null);
+    setValue("");
+    setValidationError(null);
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const normalized = pending?.type === "datetime-local" ? value : value.trim();
+    if (pending?.required && !normalized) {
+      setValidationError("Enter a value before continuing.");
+      return;
+    }
+    close(normalized);
+  };
+
+  return (
+    <Modal open={Boolean(pending)} title={pending?.title ?? "Enter a value"} onClose={() => close(null)} variant="sheet">
+      <form className="grid gap-4" onSubmit={submit}>
+        {pending?.message && <p className="m-0 text-sm leading-6 text-sand-700">{pending.message}</p>}
+        <label className="grid gap-1.5 text-sm font-semibold" htmlFor="nesty-text-input-value">
+          {pending?.label ?? "Value"}
+          <input
+            autoFocus
+            className="min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 text-[14.5px] font-normal text-ink outline-none focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]"
+            id="nesty-text-input-value"
+            onChange={(event) => { setValue(event.target.value); setValidationError(null); }}
+            placeholder={pending?.placeholder}
+            required={pending?.required}
+            type={pending?.type ?? "text"}
+            value={value}
+          />
+        </label>
+        {validationError && <div className="notice-panel" role="alert">{validationError}</div>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <button className="min-h-11 rounded-pill border border-sand-input bg-transparent px-4 text-sm font-semibold text-ink" onClick={() => close(null)} type="button">
+            {pending?.cancelLabel ?? "Cancel"}
+          </button>
+          <button className="min-h-11 rounded-pill bg-deep px-4 text-sm font-semibold text-on-dark-heading" type="submit">
+            {pending?.confirmLabel ?? "Continue"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
   switch (route.name) {
     case "design-screen": {
@@ -550,9 +618,39 @@ export default function App() {
     document.title = definition ? `${definition.title} · NestyStay` : "NestyStay";
   }, [route]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer: number | undefined;
+    const startedAt = performance.now();
+    const focusRouteHeading = () => {
+      if (cancelled) return;
+      const target = document.querySelector<HTMLElement>("[data-route-heading], main h1, main h2");
+      if (!target) {
+        if (performance.now() - startedAt < 2000) {
+          retryTimer = window.setTimeout(focusRouteHeading, 80);
+        } else {
+          const fallback = document.querySelector<HTMLElement>("#main-content, #route-main");
+          if (fallback) {
+            fallback.focus({ preventScroll: true });
+          }
+        }
+        return;
+      }
+      if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    };
+    const frame = window.requestAnimationFrame(focusRouteHeading);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+    };
+  }, [route, `${window.location.pathname}${window.location.search}`]);
+
   return (
     <PatoisProvider>
       <ConfirmationHost />
+      <TextInputHost />
       <div
         className={`app-shell route-${route.name} ${canRenderWorkspace ? "app-shell--workspace" : ""}`}
       >

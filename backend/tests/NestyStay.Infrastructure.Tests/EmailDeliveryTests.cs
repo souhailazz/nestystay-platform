@@ -71,4 +71,33 @@ public sealed class EmailDeliveryTests
         Assert.Contains("<script>", rendered.TextBody, StringComparison.Ordinal);
         Assert.NotNull(rendered.HtmlBody);
     }
+
+    [Fact]
+    public void TemplateCatalogCoversMilestoneWorkflowsWithOneUnifiedShell()
+    {
+        var expectedKeys = new[]
+        {
+            "passwordless-login", "auth-code", "password-reset", "owner-invitation", "two-factor-enabled", "new-login-alert",
+            "booking-request-received", "booking-request-to-host", "booking-pending-verification", "verification-processing",
+            "verification-approved", "verification-rejected", "booking-approved", "booking-rejected", "booking-host-declined",
+            "booking-cancelled", "payment-authorized", "payment-failed", "payment-confirmed", "payment-refunded", "receipt-issued", "trip-reminder",
+            "badge-upgrade-submitted", "badge-upgrade-approved", "badge-upgrade-rejected", "badge-renewal-due",
+            "officer-application-submitted", "officer-application-approved", "officer-application-changes-requested",
+            "wellness-assignment-confirmed", "wellness-report-ready", "wellness-booking-cancelled", "subscription-renewal-due",
+            "subscription-payment-failed", "payout-statement-ready", "provider-application-submitted", "provider-approved",
+            "provider-rejected", "provider-changes-requested", "directory-quote-received", "review-response", "qr-issued", "qr-revoked",
+            "invoice-issued", "invoice-payment-received", "invoice-payment-reminder", "maintenance-update", "community-notice",
+            "governance-vote-opened", "gate-pass-issued", "gate-pass-revoked", "document-expiry", "booking-update"
+        };
+
+        Assert.Equal(expectedKeys.Length, EmailTemplateCatalog.All.Count);
+        foreach (var key in expectedKeys)
+        {
+            var template = EmailTemplateCatalog.Find(key);
+            Assert.NotNull(template);
+            Assert.Contains("NESTY STAY", template!.HtmlBody!, StringComparison.Ordinal);
+            Assert.Contains("support@nestystay.net", template.HtmlBody, StringComparison.Ordinal);
+            Assert.Contains("Jamaica stays, made personal.", template.HtmlBody, StringComparison.Ordinal);
+        }
+    }
 }

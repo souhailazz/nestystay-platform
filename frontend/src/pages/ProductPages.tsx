@@ -53,6 +53,7 @@ import { StatusChip } from "../components/ui/StatusChip";
 import { TierBadge } from "../components/layout/PublicShell";
 import { usePatois } from "../lib/patois";
 import { requestConfirmation } from "../lib/confirmation";
+import { requestTextInput } from "../lib/textInput";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
@@ -616,10 +617,18 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
     });
   }
 
-  function rescheduleVisit(visit: WellnessVisit) {
+  async function rescheduleVisit(visit: WellnessVisit) {
     const current = new Date(visit.scheduledAt);
     const initial = Number.isNaN(current.getTime()) ? defaultWellnessDateTime() : current.toISOString().slice(0, 16);
-    const next = window.prompt("Enter the new date and time (YYYY-MM-DDTHH:mm, Jamaica time):", initial);
+    const next = await requestTextInput({
+      title: "Reschedule wellness visit",
+      message: "Choose the new appointment time. Times are saved and displayed in Jamaica time.",
+      label: "New date and time",
+      initialValue: initial,
+      type: "datetime-local",
+      confirmLabel: "Save new time",
+      required: true,
+    });
     if (!next) return;
     const parsed = new Date(next);
     if (Number.isNaN(parsed.getTime())) {
@@ -2608,7 +2617,6 @@ export function AdminPage({ auth }: { auth: AuthController }) {
       completedApprovedBookings: Number(completedBookings || 0),
       hasPropertyAddress: propertyAddress.trim().length > 0,
       hasWellnessSubscription: wellnessActive,
-      paymentSucceeded: true,
     };
   }
 
@@ -3124,8 +3132,8 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               type="button"
               onClick={() =>
                 void runAction(async () => {
-                  const result = await api.purchaseBadge(buildBadgeRequest(), adminToken);
-                  return `${result.level} badge purchased.`;
+                  const result = await api.createBadgePurchaseIntent(buildBadgeRequest(), adminToken, crypto.randomUUID());
+                  return `${result.level} badge payment ${result.status.toLowerCase()}.`;
                 })
               }
             >
@@ -3206,8 +3214,8 @@ export function AdminPage({ auth }: { auth: AuthController }) {
               onClick={() =>
                 void runAction(async () => {
                   if (!selectedAssignment) throw new Error("No assignment is available.");
-                  await api.payBadgeRenewal(selectedAssignment.id, adminToken);
-                  return "Renewal paid.";
+                  const result = await api.payBadgeRenewal(selectedAssignment.id, adminToken);
+                  return `Renewal payment ${result.status.toLowerCase()}.`;
                 })
               }
             >

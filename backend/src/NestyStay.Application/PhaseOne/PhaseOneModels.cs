@@ -413,7 +413,10 @@ public sealed record BookingDocumentDto(
     byte[] Content,
     DateTimeOffset GeneratedAt);
 
-public sealed record ResolveVerificationRequest(bool Passed, string? ProviderReference = null);
+public sealed record ResolveVerificationRequest(
+    bool Passed,
+    string? ProviderReference = null,
+    string? FailureReason = null);
 
 public sealed record BookingDecisionRequest(string? Reason = null);
 

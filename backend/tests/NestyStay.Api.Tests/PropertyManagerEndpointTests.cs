@@ -185,14 +185,17 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         var export = await exportResponse.Content.ReadFromJsonAsync<JsonElement>();
         var exportId = export.GetProperty("id").GetGuid();
         var exportService = factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NestyStay.Api.Services.PropertyManagerDocumentExportService>().Single();
-        _ = await exportService.ProcessOneAsync();
         JsonElement exportState = default;
-        for (var attempt = 0; attempt < 20; attempt++)
+        for (var attempt = 0; attempt < 100; attempt++)
         {
+            // The hosted worker may claim the same durable queue item between
+            // assertions. Keep asking the public deterministic processing hook
+            // to drain it, then poll until the worker has committed its result.
+            _ = await exportService.ProcessOneAsync();
             var stateResponse = await client.GetAsync($"/api/property-manager/documents/exports/{exportId}");
             exportState = await stateResponse.Content.ReadFromJsonAsync<JsonElement>();
             if (exportState.GetProperty("status").GetString() is "COMPLETED" or "FAILED") break;
-            await Task.Delay(25);
+            await Task.Delay(100);
         }
         Assert.Equal("COMPLETED", exportState.GetProperty("status").GetString());
         var exportDownload = await client.GetAsync($"/api/property-manager/documents/exports/{exportId}/download");

@@ -34,6 +34,10 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   await page.getByRole("button", { name: "Create my account", exact: true }).click();
   console.log("guest: submitted registration");
   await expect(page).toHaveURL(/\/guest-dashboard$/);
+  const loginResponse = await request.post("/api/auth/login", { data: { email, password } });
+  expect(loginResponse.ok(), await loginResponse.text()).toBeTruthy();
+  const guestSession = await loginResponse.json() as { accessToken: string; userId: string };
+  const guestHeaders = { Authorization: `Bearer ${guestSession.accessToken}` };
 
   console.log("guest: open a safe seeded listing");
   const propertiesResponse = await page.request.get("/api/properties");
@@ -68,6 +72,8 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   await createButton.click();
   console.log("guest: created booking from quote");
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/(identity|checkout)$/);
+  const bookingId = page.url().match(/\/booking\/([0-9a-f-]+)\/(?:identity|checkout)$/)?.[1];
+  expect(bookingId).toBeTruthy();
   await expect(page.getByText(/booking|identity|payment/i).first()).toBeVisible();
   await capture(page, testInfo, "guest-booking-created");
   if (await page.getByRole("button", { name: /Hold dates & verify/ }).isVisible()) {
@@ -75,6 +81,54 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
     await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/pending$/);
     await expect(page.getByText(/verification|pending/i).first()).toBeVisible();
     await capture(page, testInfo, "guest-booking-pending");
+
+    const pendingResponse = await request.get(`/api/bookings/${bookingId}`, { headers: guestHeaders });
+    expect(pendingResponse.ok(), await pendingResponse.text()).toBeTruthy();
+    const pending = await pendingResponse.json() as { ekycTransactionId?: string; status: string; verificationStatus: string };
+    expect(pending.ekycTransactionId).toBeTruthy();
+    expect(pending.status).toBe("PENDING");
+
+    const identityWebhook = await request.post("/api/webhooks/stripe/raw", {
+      data: {
+        id: `evt_browser_identity_${bookingId}`,
+        type: "identity.verification_session.verified",
+        data: {
+          object: {
+            id: pending.ekycTransactionId,
+            client_reference_id: bookingId,
+            metadata: { booking_id: bookingId },
+            status: "verified",
+          },
+        },
+      },
+    });
+    expect(identityWebhook.ok(), await identityWebhook.text()).toBeTruthy();
+
+    const approvedResponse = await request.get(`/api/bookings/${bookingId}`, { headers: guestHeaders });
+    const approved = await approvedResponse.json() as { status: string; verificationStatus: string; paymentStatus: string };
+    expect(approved.status).toBe("APPROVED");
+    expect(approved.verificationStatus).toBe("PASSED");
+    expect(approved.paymentStatus).toBe("AUTHORIZED");
+
+    const captureResponse = await request.post(`/api/bookings/${bookingId}/capture-payment`, {
+      headers: { Authorization: `Bearer ${process.env.NESTYSTAY_E2E_ADMIN_TOKEN ?? "test-admin-token"}` },
+    });
+    expect(captureResponse.ok(), await captureResponse.text()).toBeTruthy();
+    const captured = await captureResponse.json() as { status: string; paymentStatus: string };
+    expect(captured.status).toBe("APPROVED");
+    expect(captured.paymentStatus).toBe("CAPTURED");
+
+    await page.goto(`/booking/${bookingId}/success`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(/confirmed|captured|success/i).first()).toBeVisible();
+    await capture(page, testInfo, "guest-booking-confirmed");
+
+    await page.goto("/traveler/notifications", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("link", { name: "Open NestyStay booking approved" })).toBeVisible();
+    const paymentNotification = page.getByRole("link", { name: "Open NestyStay payment processed" });
+    await expect(paymentNotification).toBeVisible();
+    await paymentNotification.click();
+    await expect(page).toHaveURL(new RegExp(`/booking/${bookingId}/receipt$`));
+    await expect(page.getByText(/receipt/i).first()).toBeVisible();
   }
   await page.goto("/guest-dashboard", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Your stay hub" })).toBeVisible();
@@ -111,9 +165,9 @@ test("host badge page renders live ownership-scoped assignment and feature acces
   await installCookieSession(page, session);
 
   await page.goto("/host/badges", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Badges", exact: true })).toBeVisible();
-  await expect(page.getByText("Badge progress", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Verified.*Trusted/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your badge plan", exact: true })).toBeVisible();
+  await expect(page.getByText("Upgrade comparison", { exact: true })).toBeVisible();
+  await expect(page.getByText("Choose the access you need", { exact: true })).toBeVisible();
   await capture(page, testInfo, "host-badges-live");
 
   await page.goto("/host/verification", { waitUntil: "domcontentloaded" });

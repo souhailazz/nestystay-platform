@@ -22,8 +22,6 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using AlibabaCloud.SDK.Cloudauth_intl20220809.Models;
-using AlibabaCloudauthClient = AlibabaCloud.SDK.Cloudauth_intl20220809.Client;
 
 namespace NestyStay.Infrastructure;
 
@@ -35,9 +33,19 @@ public static class DependencyInjection
             options.UseNpgsql(postgresConnectionString ??
                               "Host=localhost;Port=5432;Database=nestystay_dev;Username=nestystay"));
 
-        services.AddSingleton<AlibabaEkycProvider>();
-        services.AddSingleton<IEkycProvider>(provider => provider.GetRequiredService<AlibabaEkycProvider>());
-        services.AddSingleton<IEkycResultProvider>(provider => provider.GetRequiredService<AlibabaEkycProvider>());
+        services.AddSingleton<StripeIdentityProvider>();
+        services.AddSingleton<IEkycProvider>(provider =>
+        {
+            var selected = ProviderFeatureFlags.From(provider.GetRequiredService<IConfiguration>()).EkycProvider;
+            return selected.Equals("stripe_identity", StringComparison.OrdinalIgnoreCase) ||
+                   selected.Equals("stripe-identity", StringComparison.OrdinalIgnoreCase) ||
+                   selected.Equals("stripeidentity", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<StripeIdentityProvider>()
+                : throw new InvalidOperationException($"Unsupported identity provider '{selected}'. NestyStay supports stripe_identity only.");
+        });
+        services.AddSingleton<IEkycResultProvider>(provider =>
+            provider.GetRequiredService<IEkycProvider>() as IEkycResultProvider
+            ?? throw new InvalidOperationException("The configured identity provider does not support result checks."));
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
         services.AddHttpClient("object-storage", client =>
         {
@@ -89,6 +97,7 @@ public static class DependencyInjection
         services.AddSingleton<IInsuranceProvider, InsuraGuestProvider>();
         services.AddScoped<IPhaseOneStore, EfPhaseOneStore>();
         services.AddScoped<IPhaseTwoStore, EfPhaseTwoStore>();
+        services.AddScoped<IBadgePaymentStore, EfBadgePaymentStore>();
         services.AddScoped<IWellnessStore, EfWellnessStore>();
         services.AddScoped<IWellnessEnhancementStore, EfWellnessEnhancementStore>();
         services.AddScoped<EfSpecCompletionStore>();
@@ -104,200 +113,205 @@ public static class DependencyInjection
     }
 }
 
-internal sealed class AlibabaEkycProvider(IConfiguration configuration, IHostEnvironment environment) : IEkycProvider, IEkycResultProvider
+/// <summary>
+/// Stripe Identity adapter for guest verification.
+///
+/// The booking flow stores only the Stripe VerificationSession id and hosted
+/// verification URL. Stripe client secrets are intentionally never persisted
+/// in booking records or logs because they are short-lived sensitive values.
+/// </summary>
+internal sealed class StripeIdentityProvider(IConfiguration configuration, IHostEnvironment environment) : IEkycProvider, IEkycResultProvider
 {
-    private const string DefaultRegion = "ap-southeast-1";
-    private const string DefaultEndpoint = "cloudauth-intl.ap-southeast-1.aliyuncs.com";
-    private const string DefaultProductCode = "eKYC_PRO";
-    private const string DefaultSceneCode = "NESTYWEB";
-    private const string GlobalPassportCode = "GLB03002";
+    private static readonly HttpClient HttpClient = new()
+    {
+        BaseAddress = new Uri("https://api.stripe.com")
+    };
 
-    public string ProviderName => "Alibaba Cloud eKYC";
+    public string ProviderName => "Stripe Identity";
 
     public async Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken)
     {
         var merchantBizId = RequireValue(request.MerchantBizId, "merchant business id");
-        if (!environment.IsProduction() &&
-            string.IsNullOrWhiteSpace(ResolveSetting("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID")) &&
-            string.IsNullOrWhiteSpace(ResolveSetting("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET")))
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey))
         {
-            return CreateDevelopmentResult(request, merchantBizId);
+            if (environment.IsProduction())
+            {
+                throw new InvalidOperationException("Stripe Identity requires STRIPE_SECRET_KEY in production.");
+            }
+
+            return new EkycStartResult(
+                ProviderName,
+                VerificationStatus.Pending,
+                $"stripe_identity_local_{merchantBizId[..Math.Min(24, merchantBizId.Length)]}",
+                $"https://identity.stripe.local/verify?bookingId={Uri.EscapeDataString(merchantBizId)}",
+                JsonSerializer.Serialize(new { provider = "stripe_identity", mode = "development" }));
         }
 
-        var callbackUrl = ResolveCallbackUrl(request, merchantBizId);
-        var returnUrl = RequireHttpsUrl(
-            ResolveSetting("Integrations:AlibabaEkycReturnUrl", "ALIBABA_EKYC_RETURN_URL"),
-            "ALIBABA_EKYC_RETURN_URL");
-        var productCode = ResolveSetting("Integrations:AlibabaEkycProductCode", "ALIBABA_EKYC_PRODUCT_CODE") ?? DefaultProductCode;
-        var sceneCode = ResolveSetting("Integrations:AlibabaEkycSceneCode", "ALIBABA_EKYC_SCENE_CODE") ?? DefaultSceneCode;
-        var callbackToken = RequireSetting("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN");
-
-        if (sceneCode.Length > 10)
+        var returnUrl = ResolveReturnUrl(merchantBizId, request.CallbackUrl);
+        var payload = new Dictionary<string, string>
         {
-            throw new InvalidOperationException("Alibaba eKYC scene code must be at most 10 characters.");
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        var response = await CreateClient().InitializeV2Async(new InitializeV2Request
-        {
-            ProductCode = productCode,
-            SceneCode = sceneCode,
-            MerchantBizId = merchantBizId,
-            MerchantUserId = RequireValue(request.SubjectId, "subject id"),
-            MetaInfo = NormalizeMetaInfo(request.MetaInfo),
-            DocType = NormalizeDocumentType(request.DocumentType),
-            Pages = "01",
-            Model = ResolveSetting("Integrations:AlibabaEkycModel", "ALIBABA_EKYC_MODEL") ?? "LIVENESS",
-            DocVideo = "N",
-            FaceAttributeCheck = "N",
-            ShowGuidePage = "1",
-            CallbackUrl = callbackUrl,
-            CallbackToken = callbackToken,
-            SecurityLevel = ResolveSetting("Integrations:AlibabaEkycSecurityLevel", "ALIBABA_EKYC_SECURITY_LEVEL") ?? "01",
-            Authorize = "F",
-            IdThreshold = "2",
-            IdSpoof = "Y",
-            OcrValueStandard = "0",
-            ShowAlbumIcon = "1",
-            ShowOcrResult = "1",
-            EditOcrResult = "1",
-            ReturnUrl = returnUrl,
-            ProcedurePriority = "url"
-        });
-
-        var body = response?.Body;
-        if (body is null || !string.Equals(body.Code, "Success", StringComparison.OrdinalIgnoreCase) || body.Result is null)
-        {
-            throw new InvalidOperationException(
-                $"Alibaba InitializeV2 failed ({body?.Code ?? "unknown"}): {body?.Message ?? "No response details."}");
-        }
-
-        if (string.IsNullOrWhiteSpace(body.Result.TransactionId) || string.IsNullOrWhiteSpace(body.Result.TransactionUrl))
-        {
-            throw new InvalidOperationException("Alibaba InitializeV2 returned no transaction id or web transaction URL.");
-        }
-
-        var clientPayload = string.IsNullOrWhiteSpace(body.Result.Protocol)
-            ? null
-            : JsonSerializer.Serialize(new { protocol = body.Result.Protocol });
-
-        return new EkycStartResult(
-            ProviderName,
-            VerificationStatus.Pending,
-            body.Result.TransactionId,
-            body.Result.TransactionUrl,
-            clientPayload);
-    }
-
-    public async Task<EkycCheckResult> CheckResultAsync(EkycCheckRequest request, CancellationToken cancellationToken)
-    {
-        var merchantBizId = RequireValue(request.MerchantBizId, "merchant business id");
-        var transactionId = RequireValue(request.TransactionId, "transaction id");
-        cancellationToken.ThrowIfCancellationRequested();
-        var response = await CreateClient().CheckResultAsync(new CheckResultRequest
-        {
-            MerchantBizId = merchantBizId,
-            TransactionId = transactionId,
-            IsReturnImage = "N"
-        });
-
-        var body = response?.Body;
-        if (body is null || !string.Equals(body.Code, "Success", StringComparison.OrdinalIgnoreCase) || body.Result is null)
-        {
-            throw new InvalidOperationException(
-                $"Alibaba CheckResult failed ({body?.Code ?? "unknown"}): {body?.Message ?? "No response details."}");
-        }
-
-        var status = body.Result.Passed?.Trim().ToUpperInvariant() switch
-        {
-            "Y" => VerificationStatus.Passed,
-            "N" => VerificationStatus.Failed,
-            _ => throw new InvalidOperationException("Alibaba CheckResult returned an unknown verification result.")
+            ["type"] = "document",
+            ["client_reference_id"] = merchantBizId,
+            ["return_url"] = returnUrl,
+            ["metadata[booking_id]"] = merchantBizId,
+            ["metadata[subject_id]"] = RequireValue(request.SubjectId, "subject id"),
+            ["metadata[subject_role]"] = request.SubjectRole.ToString(),
+            ["metadata[provider]"] = "stripe_identity",
+            ["options[document][require_matching_selfie]"] = "true"
         };
 
-        return new EkycCheckResult(ProviderName, status, transactionId, body.Result.SubCode);
-    }
-
-    private EkycStartResult CreateDevelopmentResult(EkycStartRequest request, string merchantBizId)
-    {
-        var transactionId = $"aliyun_ekyc_dev_{merchantBizId[..Math.Min(merchantBizId.Length, 24)]}";
-        var transactionUrl =
-            $"https://ekyc.alibaba-cloud.local/start?transactionId={Uri.EscapeDataString(transactionId)}&merchantBizId={Uri.EscapeDataString(merchantBizId)}";
-        var clientPayload = JsonSerializer.Serialize(new
+        using var document = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Post,
+            "/v1/identity/verification_sessions",
+            payload,
+            $"nesty_identity_{merchantBizId}",
+            cancellationToken);
+        var root = document.RootElement;
+        var transactionId = ResolveString(root, "id");
+        var transactionUrl = ResolveString(root, "url");
+        if (string.IsNullOrWhiteSpace(transactionId) || string.IsNullOrWhiteSpace(transactionUrl))
         {
-            productCode = DefaultProductCode,
-            documentType = NormalizeDocumentType(request.DocumentType),
-            mode = "development"
-        });
+            throw new InvalidOperationException("Stripe Identity did not return a verification session id and hosted URL.");
+        }
 
         return new EkycStartResult(
             ProviderName,
             VerificationStatus.Pending,
             transactionId,
             transactionUrl,
-            clientPayload);
+            null);
     }
 
-    private AlibabaCloudauthClient CreateClient()
+    public async Task<EkycCheckResult> CheckResultAsync(EkycCheckRequest request, CancellationToken cancellationToken)
     {
-        var region = ResolveSetting("Integrations:AlibabaEkycRegion", "ALIBABA_EKYC_REGION") ?? DefaultRegion;
-        var endpoint = ResolveSetting("Integrations:AlibabaEkycEndpoint", "ALIBABA_EKYC_ENDPOINT") ?? DefaultEndpoint;
-        var config = new AlibabaCloud.OpenApiClient.Models.Config
+        var transactionId = RequireValue(request.TransactionId, "transaction id");
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey))
         {
-            AccessKeyId = RequireSetting("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID"),
-            AccessKeySecret = RequireSetting("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
-            SecurityToken = ResolveSetting("Integrations:AlibabaCloudSecurityToken", "ALIBABA_CLOUD_SECURITY_TOKEN"),
-            RegionId = region,
-            Endpoint = endpoint
+            if (environment.IsProduction())
+            {
+                throw new InvalidOperationException("Stripe Identity requires STRIPE_SECRET_KEY in production.");
+            }
+
+            return new EkycCheckResult(
+                ProviderName,
+                MapLocalResult(ResolveSetting("Integrations:StripeIdentityLocalResult", "STRIPE_IDENTITY_LOCAL_RESULT")),
+                transactionId,
+                null);
+        }
+
+        using var document = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Get,
+            $"/v1/identity/verification_sessions/{Uri.EscapeDataString(transactionId)}",
+            new Dictionary<string, string>(),
+            null,
+            cancellationToken);
+        var root = document.RootElement;
+        var status = ResolveString(root, "status")?.Trim().ToLowerInvariant();
+        var subCode = ResolveFailureReason(root);
+
+        return new EkycCheckResult(ProviderName, MapStatus(status), transactionId, subCode);
+    }
+
+    private string ResolveReturnUrl(string merchantBizId, string? callbackUrl)
+    {
+        var configured = ResolveSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL");
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            configured = callbackUrl;
+        }
+
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            var publicAppUrl = ResolveSetting("PublicAppUrl", "PUBLIC_APP_URL");
+            configured = string.IsNullOrWhiteSpace(publicAppUrl)
+                ? null
+                : $"{publicAppUrl.TrimEnd('/')}/booking/{Uri.EscapeDataString(merchantBizId)}/pending";
+        }
+
+        configured = configured?.Replace("{bookingId}", Uri.EscapeDataString(merchantBizId), StringComparison.OrdinalIgnoreCase);
+        return RequireHttpsUrl(configured, "STRIPE_IDENTITY_RETURN_URL");
+    }
+
+    private static VerificationStatus MapStatus(string? status) =>
+        status switch
+        {
+            "verified" => VerificationStatus.Passed,
+            "canceled" => VerificationStatus.Failed,
+            "requires_input" or "processing" => VerificationStatus.Pending,
+            _ => VerificationStatus.Pending
         };
 
-        return new AlibabaCloudauthClient(config);
-    }
+    private static VerificationStatus MapLocalResult(string? status) =>
+        status?.Trim().ToLowerInvariant() switch
+        {
+            "verified" or "passed" => VerificationStatus.Passed,
+            "failed" or "rejected" => VerificationStatus.Failed,
+            "requires_input" => VerificationStatus.Pending,
+            _ => VerificationStatus.Pending
+        };
 
-    private string ResolveCallbackUrl(EkycStartRequest request, string merchantBizId)
+    private static string? ResolveFailureReason(JsonElement root)
     {
-        var configured = ResolveSetting("Integrations:AlibabaEkycCallbackUrl", "ALIBABA_EKYC_CALLBACK_URL");
-        var callbackUrl = string.IsNullOrWhiteSpace(configured) ? request.CallbackUrl : configured;
-        var validatedUrl = RequireHttpsUrl(callbackUrl, "ALIBABA_EKYC_CALLBACK_URL");
-        var separator = validatedUrl.Contains('?', StringComparison.Ordinal)
-            ? (validatedUrl.EndsWith('?') || validatedUrl.EndsWith('&') ? string.Empty : "&")
-            : "?";
-        return $"{validatedUrl}{separator}bookingId={Uri.EscapeDataString(merchantBizId)}";
+        if (!root.TryGetProperty("last_error", out var lastError) || lastError.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var code = ResolveString(lastError, "code");
+        var reason = ResolveString(lastError, "reason");
+        var value = string.IsNullOrWhiteSpace(reason) ? code : string.IsNullOrWhiteSpace(code) ? reason : $"{code}: {reason}";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.ReplaceLineEndings(" ").Trim();
+        return normalized[..Math.Min(240, normalized.Length)];
     }
 
-    private static string NormalizeMetaInfo(string? metaInfo)
+    private static string? ResolveString(JsonElement root, string propertyName) =>
+        root.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+
+    private static async Task<JsonDocument> SendStripeFormAsync(
+        string secretKey,
+        HttpMethod method,
+        string path,
+        IReadOnlyDictionary<string, string> payload,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(metaInfo))
+        using var request = new HttpRequestMessage(method, path)
         {
-            return "{\"deviceType\":\"web\"}";
+            Content = method == HttpMethod.Get ? null : new FormUrlEncodedContent(payload)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Basic",
+            Convert.ToBase64String(Encoding.ASCII.GetBytes($"{secretKey}:")));
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         }
 
-        try
+        using var response = await HttpClient.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
         {
-            using var document = JsonDocument.Parse(metaInfo);
-            return document.RootElement.ValueKind == JsonValueKind.Object
-                ? metaInfo.Trim()
-                : "{\"deviceType\":\"web\"}";
+            throw new InvalidOperationException(
+                $"Stripe Identity request failed with HTTP {(int)response.StatusCode}. No verification state was changed.");
         }
-        catch (JsonException)
-        {
-            return "{\"deviceType\":\"web\"}";
-        }
+
+        return JsonDocument.Parse(responseBody);
     }
-
-    private static string NormalizeDocumentType(string? documentType) =>
-        string.IsNullOrWhiteSpace(documentType) ||
-        documentType.Equals("01000000", StringComparison.OrdinalIgnoreCase) ||
-        documentType.Equals("Passport", StringComparison.OrdinalIgnoreCase)
-            ? GlobalPassportCode
-            : documentType.Trim();
-
-    private string RequireSetting(string configurationKey, string environmentKey) =>
-        RequireValue(ResolveSetting(configurationKey, environmentKey), environmentKey);
 
     private static string RequireValue(string? value, string description) =>
         string.IsNullOrWhiteSpace(value)
-            ? throw new InvalidOperationException($"Alibaba eKYC requires {description}.")
+            ? throw new InvalidOperationException($"Stripe Identity requires {description}.")
             : value.Trim();
 
     private static string RequireHttpsUrl(string? value, string settingName)
@@ -305,7 +319,7 @@ internal sealed class AlibabaEkycProvider(IConfiguration configuration, IHostEnv
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
             !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Alibaba eKYC setting {settingName} must be an absolute HTTPS URL.");
+            throw new InvalidOperationException($"Stripe Identity setting {settingName} must be an absolute HTTPS URL.");
         }
 
         return uri.ToString().TrimEnd();
@@ -434,6 +448,7 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
     public async Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken)
     {
         var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        var publishableKey = ResolveSetting("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY");
         if (string.IsNullOrWhiteSpace(secretKey))
         {
             var reference = $"stripe_local_auth_{request.BookingId:N}";
@@ -441,15 +456,15 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
                 ProviderName,
                 reference,
                 $"local_client_secret_{request.BookingId:N}",
-                PaymentStatus.Authorized,
-                DateTimeOffset.UtcNow.AddDays(7));
+                request.ManualCapture ? PaymentStatus.Authorized : PaymentStatus.Captured,
+                DateTimeOffset.UtcNow.AddDays(7),
+                publishableKey ?? "pk_test_local");
         }
 
         var payload = new Dictionary<string, string>
         {
             ["amount"] = ToMinorUnits(request.Amount).ToString(CultureInfo.InvariantCulture),
             ["currency"] = request.Currency.ToLowerInvariant(),
-            ["capture_method"] = "manual",
             // Let Stripe advertise Apple Pay/Google Pay and any other wallet
             // enabled on the merchant account. Express Checkout on the web
             // will hide wallets unavailable for the current device/domain.
@@ -457,6 +472,10 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             ["description"] = request.Description,
             ["metadata[booking_id]"] = request.BookingId.ToString("N")
         };
+        if (request.ManualCapture)
+        {
+            payload["capture_method"] = "manual";
+        }
 
         using var document = await SendStripeFormAsync(
             secretKey,
@@ -473,7 +492,8 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             root.GetProperty("id").GetString() ?? string.Empty,
             root.TryGetProperty("client_secret", out var clientSecret) ? clientSecret.GetString() : null,
             MapStripeStatus(status),
-            null);
+            null,
+            publishableKey);
     }
 
     public async Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken)

@@ -174,14 +174,16 @@ public sealed record PaymentAuthorizationRequest(
     decimal Amount,
     string Currency,
     string Description,
-    string IdempotencyKey = "");
+    string IdempotencyKey = "",
+    bool ManualCapture = true);
 
 public sealed record PaymentAuthorizationResult(
     string ProviderName,
     string AuthorizationReference,
     string? ClientSecret,
     PaymentStatus Status,
-    DateTimeOffset? ExpiresAt);
+    DateTimeOffset? ExpiresAt,
+    string? PublishableKey = null);
 
 public sealed record PaymentSetupIntentRequest(
     Guid UserId,

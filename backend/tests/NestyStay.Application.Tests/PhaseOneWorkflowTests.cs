@@ -220,7 +220,7 @@ public sealed class PhaseOneWorkflowTests
             GuestVerificationEnabled: true,
             InsuraGuestEnabled: true,
             CancellationPolicy: "Moderate",
-            Highlights: ["Alibaba eKYC", "Guest verification upsell"]),
+            Highlights: ["Stripe Identity", "Guest verification upsell"]),
             CancellationToken.None);
 
         Assert.Equal("USD", created.Currency);
@@ -256,7 +256,7 @@ public sealed class PhaseOneWorkflowTests
 
         Assert.Equal("PENDING", booking.Status);
         Assert.True(booking.DatesHeld);
-        Assert.Equal("Alibaba Cloud eKYC", booking.EkycProvider);
+        Assert.Equal("Stripe Identity", booking.EkycProvider);
         Assert.NotNull(booking.EkycTransactionId);
         Assert.Equal(1, harness.EkycProvider.StartCount);
 
@@ -563,7 +563,7 @@ public sealed class PhaseOneWorkflowTests
 
     private sealed class TestEkycProvider : IEkycProvider
     {
-        public string ProviderName => "Alibaba Cloud eKYC";
+        public string ProviderName => "Stripe Identity";
         public int StartCount { get; private set; }
 
         public Task<EkycStartResult> StartCheckAsync(EkycStartRequest request, CancellationToken cancellationToken)

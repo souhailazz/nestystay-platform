@@ -5,6 +5,7 @@ import { PatoisPhrase } from "../../lib/patois";
 import { announceFeedback } from "../../lib/feedback";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { Modal } from "../../components/ui/Modal";
 
 interface AdminPropertiesProps {
   view: string;
@@ -112,19 +113,18 @@ export function AdminProperties({ view, token }: AdminPropertiesProps) {
         </div>
       )}
 
-      {selectedProp && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
-            <h3>Reject Property Submission</h3>
-            <p className="subtext mb-3">Provide a clear feedback reason for {selectedProp.title}.</p>
-            <textarea className="input-control mb-4" rows={3} placeholder="Reason for rejection..." value={modReason} onChange={(e) => setModReason(e.target.value)} />
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn btn-ghost" onClick={() => setSelectedProp(null)}>Cancel</button>
-              <button type="button" className="btn btn-primary" onClick={() => handleReject(selectedProp.id)}>Confirm Rejection</button>
-            </div>
+      <Modal open={Boolean(selectedProp)} title="Reject property submission" onClose={() => setSelectedProp(null)} variant="sheet">
+        {selectedProp && <>
+          <p className="subtext mb-3">Provide a clear feedback reason for {selectedProp.title}.</p>
+          <label className="field-label" htmlFor="property-rejection-reason">Rejection reason</label>
+          <textarea id="property-rejection-reason" aria-describedby="property-rejection-help" className="input-control mb-1 mt-1" rows={4} placeholder="Explain what the host needs to correct." value={modReason} onChange={(e) => setModReason(e.target.value)} />
+          <p id="property-rejection-help" className="m-0 text-xs text-sand-500">This reason is saved with the moderation decision and shown to the host.</p>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <button type="button" className="btn btn-ghost" onClick={() => setSelectedProp(null)}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={() => void handleReject(selectedProp.id)}>Confirm rejection</button>
           </div>
-        </div>
-      )}
+        </>}
+      </Modal>
     </div>
   );
 }

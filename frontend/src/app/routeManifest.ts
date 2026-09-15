@@ -157,7 +157,18 @@ export const SCREEN_MANIFEST = [
   publicDefinition(screen("PUB-SOON", "/coming-soon", ["/coming-soon"], () => ({ name: "coming-soon" }), { title: "Coming soon", productArea: "Public discovery", componentKey: "coming-soon", showPublicNav: true, screenType: "preview" })),
   publicDefinition(screen("PUB-CONTENT", "/about", ["/about", "/trust", "/help", "/contact", "/terms", "/privacy", "/maintenance", "/help/:slug"], (path) => ({ name: "public-content", slug: path.slice(1) }), { title: "Public content", productArea: "Public content", componentKey: "public-content", showPublicNav: true })),
   publicDefinition(screen("AUTH-01", "/login", ["/login", "/register"], (path) => ({ name: path === "/register" ? "register" : "login" }), { title: "Login and signup", productArea: "Authentication", componentKey: "login", shell: "minimal", showPublicNav: false })),
-  publicDefinition(screen("AUTH-FLOW", "/auth/role", ["/auth/role", "/auth/email-verification", "/auth/phone-verification", "/auth/otp", "/auth/forgot-password", "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent"], (path) => ({ name: "auth-spec", kind: path.split("/").at(-1) ?? "role" }), { title: "Authentication flow", productArea: "Authentication", componentKey: "auth-spec", shell: "minimal", showPublicNav: false })),
+  publicDefinition(screen("AUTH-FLOW", "/auth/role", ["/auth/role", "/auth/email-verification", "/auth/phone-verification", "/auth/otp", "/auth/forgot-password", "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent"], (path) => {
+    const segment = path.split("/").at(-1) ?? "role";
+    const canonicalKind: Record<string, string> = {
+      "email-verification": "email",
+      "phone-verification": "phone",
+      "forgot-password": "forgot",
+      "reset-password": "reset",
+      "2fa-setup": "twofa",
+      "social-consent": "social",
+    };
+    return { name: "auth-spec", kind: canonicalKind[segment] ?? segment };
+  }, { title: "Authentication flow", productArea: "Authentication", componentKey: "auth-spec", shell: "minimal", showPublicNav: false })),
   publicDefinition(screen("AUTH-PWLESS", "/auth/passwordless", ["/auth/passwordless"], () => ({ name: "passwordless-complete" }), { title: "Passwordless completion", productArea: "Authentication", componentKey: "passwordless-complete", shell: "minimal", showPublicNav: false })),
   publicDefinition(screen("AUTH-POST", "/auth/post-login-toast", ["/auth/post-login-toast"], () => ({ name: "auth-post" }), { title: "Post-login toast", productArea: "Authentication", componentKey: "auth-post", shell: "minimal", screenType: "internal" })),
   publicDefinition(screen("AUTH-LOGOUT", "/logout", ["/logout"], () => ({ name: "logout" }), { title: "Logout", productArea: "Authentication", componentKey: "logout", shell: "minimal" })),
@@ -518,4 +529,9 @@ const TEST_VALUE_BY_PARAM: Record<string, string> = {
 
 export function manifestTestPaths() {
   return SCREEN_MANIFEST.flatMap((definition) => definition.patterns.map((pattern) => pattern.replace(/:([A-Za-z]+)/g, (_, key: string) => TEST_VALUE_BY_PARAM[key] ?? "sample")));
+}
+
+/** Materialized canonical URLs for every reachable manifest screen. */
+export function manifestCanonicalTestPaths() {
+  return [...new Set(SCREEN_MANIFEST.map((definition) => definition.canonicalPath.replace(/:([A-Za-z]+)/g, (_, key: string) => TEST_VALUE_BY_PARAM[key] ?? "sample")))];
 }

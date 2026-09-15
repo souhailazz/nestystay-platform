@@ -4,8 +4,8 @@ import path from "node:path";
 
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
-test("profile photo crosses the real browser, API, and MinIO storage path", async ({ page, baseURL }, testInfo) => {
-  test.skip(testInfo.project.name !== "laptop-chromium");
+test("profile photo crosses the real browser, API, and MinIO storage path", async ({ page, baseURL }) => {
+  test.skip(process.env.NESTYSTAY_MINIO_E2E !== "true", "MinIO browser certification requires an explicitly enabled local MinIO fixture.");
 
   const email = `minio-ui-${Date.now()}@test.local`;
   const password = "NestyStay1";

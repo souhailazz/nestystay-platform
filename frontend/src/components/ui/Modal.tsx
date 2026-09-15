@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
@@ -24,6 +24,7 @@ export function Modal({
   const dialogRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
+  const reduceMotion = useReducedMotion();
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -92,14 +93,16 @@ export function Modal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0.01 : 0.18 }}
         >
           <motion.section
             aria-labelledby={titleId}
             aria-modal="true"
             className={`${surfaceClass} overflow-y-auto bg-cream shadow-modal`}
-            initial={{ opacity: 0, y: 28, scale: 0.98 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: reduceMotion ? 0.01 : 0.22 }}
             ref={dialogRef}
             role="dialog"
             tabIndex={-1}

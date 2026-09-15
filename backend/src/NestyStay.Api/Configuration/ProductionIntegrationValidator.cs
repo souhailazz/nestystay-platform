@@ -17,15 +17,6 @@ public static class ProductionIntegrationValidator
         new("Webhooks:StripeSigningSecret", "STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"),
         new("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY", "Stripe secret key"),
         new("Integrations:StripePublishableKey", "STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"),
-        new("Integrations:AlibabaCloudAccessKeyId", "ALIBABA_CLOUD_ACCESS_KEY_ID", "Alibaba Cloud access key id"),
-        new("Integrations:AlibabaCloudAccessKeySecret", "ALIBABA_CLOUD_ACCESS_KEY_SECRET", "Alibaba Cloud access key secret"),
-        new("Integrations:AlibabaEkycRegion", "ALIBABA_EKYC_REGION", "Alibaba eKYC region"),
-        new("Integrations:AlibabaEkycEndpoint", "ALIBABA_EKYC_ENDPOINT", "Alibaba eKYC endpoint"),
-        new("Integrations:AlibabaEkycProductCode", "ALIBABA_EKYC_PRODUCT_CODE", "Alibaba eKYC product code"),
-        new("Integrations:AlibabaEkycSceneCode", "ALIBABA_EKYC_SCENE_CODE", "Alibaba eKYC scene code"),
-        new("Integrations:AlibabaEkycCallbackUrl", "ALIBABA_EKYC_CALLBACK_URL", "Alibaba eKYC callback URL"),
-        new("Integrations:AlibabaEkycReturnUrl", "ALIBABA_EKYC_RETURN_URL", "Alibaba eKYC return URL"),
-        new("Integrations:AlibabaEkycCallbackToken", "ALIBABA_EKYC_CALLBACK_TOKEN", "Alibaba eKYC callback token"),
         new("Integrations:InsuraGuestApiBaseUrl", "INSURAGUEST_API_BASE_URL", "InsuraGuest API base URL")
     ];
 
@@ -36,7 +27,19 @@ public static class ProductionIntegrationValidator
             return;
         }
 
-        var missing = RequiredSettings
+        var providerFlags = ProviderFeatureFlags.From(configuration);
+        if (providerFlags.EkycProvider is not ("stripe_identity" or "stripe-identity" or "stripeidentity"))
+        {
+            throw new InvalidOperationException(
+                $"Unsupported identity provider '{providerFlags.EkycProvider}'. NestyStay supports stripe_identity only.");
+        }
+
+        var identitySettings = new[]
+        {
+            new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL")
+        };
+        var requiredSettings = RequiredSettings.Concat(identitySettings).ToArray();
+        var missing = requiredSettings
             .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
             .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
             .ToArray();
@@ -47,7 +50,7 @@ public static class ProductionIntegrationValidator
                 "Production integration configuration is incomplete. Missing: " + string.Join("; ", missing));
         }
 
-        foreach (var setting in RequiredSettings)
+        foreach (var setting in requiredSettings)
         {
             RejectPlaceholderValue(configuration, setting);
         }
@@ -101,10 +104,10 @@ public static class ProductionIntegrationValidator
             throw new InvalidOperationException("Production Stripe webhook signing secret must be a live secret.");
         }
 
-        var alibabaProductCode = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Integrations:AlibabaEkycProductCode"));
-        if (!string.Equals(alibabaProductCode, "eKYC_PRO", StringComparison.Ordinal))
+        var returnUrl = Resolve(configuration, new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL"));
+        if (!Uri.TryCreate(returnUrl, UriKind.Absolute, out var uri) || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Production Alibaba eKYC product code must be eKYC_PRO.");
+            throw new InvalidOperationException("Production Stripe Identity return URL must be an absolute HTTPS URL.");
         }
 
         var emailProvider = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
@@ -123,7 +126,6 @@ public static class ProductionIntegrationValidator
             }
         }
 
-        var providerFlags = ProviderFeatureFlags.From(configuration);
         if (providerFlags.ObjectStorageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
             providerFlags.ObjectStorageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase))
         {

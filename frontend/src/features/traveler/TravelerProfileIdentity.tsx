@@ -91,7 +91,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
       <header className="page-header mb-6">
         <span className="badge badge-sun">TRAV-12 / TRAV-13 / TRAV-14</span>
         <h2>Profile & Identity Verification</h2>
-        <PatoisPhrase phrase="Keep Yuh Info Fresh" translation="Manage your account profile, preferences, and Alibaba Cloud eKYC verification." />
+        <PatoisPhrase phrase="Keep Yuh Info Fresh" translation="Manage your account profile, preferences, and Stripe Identity verification." />
       </header>
 
       <div className="layout-grid-2-1">
@@ -207,7 +207,7 @@ export function TravelerProfileIdentity({ userId, token, sessionExpiresAt, onLog
 
         {/* Identity Verification Sidebar (TRAV-13) */}
         <div className="card-box sticky-top" id="TRAV-13" data-testid="trav-13-identity">
-          <h3>Alibaba eKYC Verification</h3>
+          <h3>Stripe Identity Verification</h3>
           <div className="status-badge-row my-3">
             <span className="badge badge-green flex items-center gap-1">
               <ShieldCheck size={16} /> Verified Guest Status
