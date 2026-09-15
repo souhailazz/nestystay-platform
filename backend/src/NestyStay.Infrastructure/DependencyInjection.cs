@@ -15,6 +15,7 @@ using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
 using NestyStay.Infrastructure.Notifications;
 using NestyStay.Infrastructure.Storage;
+using NestyStay.Infrastructure.Payments;
 using NestyStay.Application.Configuration;
 using System.Globalization;
 using System.Net.Http.Headers;
@@ -47,6 +48,27 @@ public static class DependencyInjection
             provider.GetRequiredService<IEkycProvider>() as IEkycResultProvider
             ?? throw new InvalidOperationException("The configured identity provider does not support result checks."));
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
+        services.AddHttpClient<StripeConnectPayoutProvider>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.stripe.com");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddSingleton<LocalConnectPayoutProvider>();
+        services.AddSingleton<ManualConnectPayoutProvider>();
+        services.AddSingleton<IConnectPayoutProvider>(provider =>
+        {
+            var environment = provider.GetRequiredService<IHostEnvironment>();
+            var flags = ProviderFeatureFlags.From(provider.GetRequiredService<IConfiguration>());
+            if (environment.IsDevelopment() || environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase))
+            {
+                return provider.GetRequiredService<LocalConnectPayoutProvider>();
+            }
+
+            return flags.PayoutMode.Equals("stripe_connect", StringComparison.OrdinalIgnoreCase) ||
+                   flags.PayoutMode.Equals("connect", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<StripeConnectPayoutProvider>()
+                : provider.GetRequiredService<ManualConnectPayoutProvider>();
+        });
         services.AddHttpClient("object-storage", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);

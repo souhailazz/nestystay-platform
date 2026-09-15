@@ -5,6 +5,7 @@ using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.Wellness;
 using NestyStay.Domain;
 using NestyStay.Domain.Common;
+using NestyStay.Domain.Payments;
 
 namespace NestyStay.Infrastructure.Persistence.Milestones;
 
@@ -16,6 +17,7 @@ public sealed class EfWellnessStore(
     INotificationGateway notificationGateway,
     IStorageProvider storageProvider,
     IFileSafetyScanner fileSafetyScanner,
+    IConnectPayoutProvider connectPayoutProvider,
     TimeProvider timeProvider) : IWellnessStore
 {
     private const string OfficerStatusPending = "Pending";
@@ -694,20 +696,74 @@ public sealed class EfWellnessStore(
             throw new InvalidOperationException("Payout can only be paid after completion, report submission, and captured payment.");
         }
 
+        var account = await db.PaymentAccounts.SingleOrDefaultAsync(
+            item => item.UserId == payout.OfficerId && item.Provider == connectPayoutProvider.ProviderName,
+            cancellationToken);
+        if (account is null || !account.IsPayoutEnabled)
+        {
+            var connected = await connectPayoutProvider.EnsureConnectedAccountAsync(
+                new ConnectAccountRequest(payout.OfficerId), cancellationToken);
+            if (account is null)
+            {
+                account = new PaymentAccount
+                {
+                    UserId = payout.OfficerId,
+                    Provider = connectPayoutProvider.ProviderName,
+                    ExternalAccountId = connected.AccountReference,
+                    IsPayoutEnabled = connected.PayoutsEnabled
+                };
+                db.PaymentAccounts.Add(account);
+            }
+            else
+            {
+                account.ExternalAccountId = connected.AccountReference;
+                account.IsPayoutEnabled = connected.PayoutsEnabled;
+                account.UpdatedAt = timeProvider.GetUtcNow();
+            }
+
+            if (!connected.PayoutsEnabled)
+            {
+                payout.Status = connected.Status;
+                payout.ProviderReference = connected.AccountReference;
+                payout.LedgerNotes = connected.FailureReason ?? "Connected-account onboarding is still required.";
+                payout.UpdatedAt = timeProvider.GetUtcNow();
+                await db.SaveChangesAsync(cancellationToken);
+                return ToPayoutDto(payout);
+            }
+        }
+
+        var transfer = await connectPayoutProvider.CreateTransferAsync(
+            new ConnectTransferRequest(
+                payout.Id,
+                payout.OfficerId,
+                payout.OfficerAmount,
+                payout.Currency,
+                $"wellness-payout-{payout.Id:N}",
+                account?.ExternalAccountId),
+            cancellationToken);
         var now = timeProvider.GetUtcNow();
-        payout.Status = "Paid";
-        payout.PaidAt = now;
-        payout.ProviderReference = string.IsNullOrWhiteSpace(request.ProviderReference)
-            ? $"local_payout_{payout.Id:N}"
-            : request.ProviderReference.Trim();
+        payout.Status = transfer.Status;
+        payout.PaidAt = transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? now : null;
+        payout.ProviderReference = transfer.TransferReference;
         payout.LedgerNotes = request.Notes ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(transfer.FailureReason))
+        {
+            payout.LedgerNotes = $"{payout.LedgerNotes} {transfer.FailureReason}".Trim();
+        }
         payout.UpdatedAt = now;
-        visit.PaymentStatus = PaymentPaidOut;
+        if (transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+        {
+            visit.PaymentStatus = PaymentPaidOut;
+        }
         visit.UpdatedAt = now;
-        AddVisitTimeline(visit, "Officer payout paid");
-        AddVisitEvent(visit, "Payout paid");
+        AddVisitTimeline(visit, transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)
+            ? "Officer payout paid"
+            : $"Officer payout {transfer.Status.ToLowerInvariant()}");
+        AddVisitEvent(visit, transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)
+            ? "Payout paid"
+            : $"Payout {transfer.Status}");
         await db.SaveChangesAsync(cancellationToken);
-        await QueueEventAsync("Payout paid", $"Officer payout was paid for visit {visit.Id:N}.", cancellationToken);
+        await QueueEventAsync($"Payout {transfer.Status}", $"Officer payout for visit {visit.Id:N} is {transfer.Status.ToLowerInvariant()}.", cancellationToken);
 
         return ToPayoutDto(payout);
     }

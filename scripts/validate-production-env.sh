@@ -34,7 +34,7 @@ check BACKUP_CONFIGURATION "${BACKUP_ROOT:-}"
 check OBJECT_STORAGE_PROVIDER "${OBJECT_STORAGE_PROVIDER:-minio}"
 check EMAIL_PROVIDER "${EMAIL_PROVIDER:-${NESTYSTAY_EMAIL_PROVIDER:-brevo}}"
 check BUSINESS_MAIL_PROVIDER "${BUSINESS_MAIL_PROVIDER:-zoho}"
-check EKYC_PROVIDER "${EKYC_PROVIDER:-alibaba}"
+check EKYC_PROVIDER "${EKYC_PROVIDER:-stripe_identity}"
 check PAYMENT_PROVIDER "${PAYMENT_PROVIDER:-stripe}"
 check PAYOUT_MODE "${PAYOUT_MODE:-manual}"
 
@@ -47,16 +47,10 @@ if [[ "${PAYMENT_PROVIDER:-stripe}" == "stripe" ]]; then
   check STRIPE_PUBLISHABLE_KEY "${STRIPE_PUBLISHABLE_KEY:-}"
   check STRIPE_WEBHOOK_SECRET "${STRIPE_WEBHOOK_SECRET:-}"
 fi
-if [[ "${EKYC_PROVIDER:-alibaba}" == "alibaba" ]]; then
-  check ALIBABA_CLOUD_ACCESS_KEY_ID "${ALIBABA_CLOUD_ACCESS_KEY_ID:-}"
-  check ALIBABA_CLOUD_ACCESS_KEY_SECRET "${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}"
-  check ALIBABA_EKYC_REGION "${ALIBABA_EKYC_REGION:-ap-southeast-1}"
-  check ALIBABA_EKYC_ENDPOINT "${ALIBABA_EKYC_ENDPOINT:-cloudauth-intl.ap-southeast-1.aliyuncs.com}"
-  check ALIBABA_EKYC_PRODUCT_CODE "${ALIBABA_EKYC_PRODUCT_CODE:-eKYC_PRO}"
-  check ALIBABA_EKYC_SCENE_CODE "${ALIBABA_EKYC_SCENE_CODE:-NESTYWEB}"
-  check ALIBABA_EKYC_CALLBACK_URL "${ALIBABA_EKYC_CALLBACK_URL:-}"
-  check ALIBABA_EKYC_RETURN_URL "${ALIBABA_EKYC_RETURN_URL:-}"
-  check ALIBABA_EKYC_CALLBACK_TOKEN "${ALIBABA_EKYC_CALLBACK_TOKEN:-}"
+if [[ "${EKYC_PROVIDER:-stripe_identity}" == "stripe_identity" || "${EKYC_PROVIDER:-stripe_identity}" == "stripe-identity" || "${EKYC_PROVIDER:-stripe_identity}" == "stripeidentity" ]]; then
+  check STRIPE_IDENTITY_RETURN_URL "${STRIPE_IDENTITY_RETURN_URL:-}"
+else
+  printf 'EKYC_PROVIDER: unsupported (Stripe Identity is the only accepted provider)\n'
 fi
 if [[ -n "${RESTIC_REPOSITORY:-}" ]]; then
   check RESTIC_REPOSITORY "${RESTIC_REPOSITORY:-}"

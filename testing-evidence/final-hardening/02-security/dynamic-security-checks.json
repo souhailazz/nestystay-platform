@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T02:43:58.846Z",
+  "generatedAt": "2026-09-15T15:16:16.849Z",
   "total": 7,
   "passed": 7,
   "failed": 0,
@@ -21,7 +21,7 @@
         "vary": "Origin, Access-Control-Request-Headers",
         "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
         "content-length": "0",
-        "date": "Tue, 15 Sep 2026 02:43:55 GMT",
+        "date": "Tue, 15 Sep 2026 15:16:14 GMT",
         "connection": "keep-alive",
         "keep-alive": "timeout=5"
       }
@@ -39,7 +39,7 @@
     {
       "name": "XSS payload persisted as text",
       "passed": true,
-      "evidence": "<img src=x onerror=\"window.__nestyXss=true\">1789440235830"
+      "evidence": "<img src=x onerror=\"window.__nestyXss=true\">1789485374970"
     },
     {
       "name": "React output encoding prevents stored XSS",

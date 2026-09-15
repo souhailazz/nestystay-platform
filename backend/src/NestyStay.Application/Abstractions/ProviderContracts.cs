@@ -23,6 +23,18 @@ public interface IPaymentGateway
     Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Provider-neutral payout seam. Local development uses a deterministic
+/// state-machine implementation; production can select Stripe Connect without
+/// leaking provider objects into the application layer.
+/// </summary>
+public interface IConnectPayoutProvider
+{
+    string ProviderName { get; }
+    Task<ConnectAccountResult> EnsureConnectedAccountAsync(ConnectAccountRequest request, CancellationToken cancellationToken);
+    Task<ConnectTransferResult> CreateTransferAsync(ConnectTransferRequest request, CancellationToken cancellationToken);
+}
+
 public interface IStorageProvider
 {
     string ProviderName { get; }
@@ -236,6 +248,31 @@ public sealed record PaymentRefundResult(
     decimal RefundedAmount,
     string Currency,
     DateTimeOffset RefundedAt);
+
+public sealed record ConnectTransferRequest(
+    Guid PayoutId,
+    Guid RecipientId,
+    decimal Amount,
+    string Currency,
+    string IdempotencyKey,
+    string? DestinationAccountId = null);
+
+public sealed record ConnectAccountRequest(Guid RecipientId, string? DisplayName = null);
+
+public sealed record ConnectAccountResult(
+    string ProviderName,
+    string AccountReference,
+    string Status,
+    bool PayoutsEnabled,
+    string? FailureReason = null);
+
+public sealed record ConnectTransferResult(
+    string ProviderName,
+    string TransferReference,
+    string Status,
+    decimal Amount,
+    string Currency,
+    string? FailureReason = null);
 
 public sealed record NotificationMessage(string Recipient, string Subject, string Body);
 

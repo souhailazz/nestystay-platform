@@ -5,7 +5,7 @@ Evidence basis: local badge catalog/eligibility/lifecycle/payment tests, respons
 | Check | Result | Evidence or remaining action |
 |---|---|---|
 | Code complete | YES for current local/test scope | FREE, VERIFIED, TRUSTED and WELLNESS definitions, eligibility, benefits, lifecycle, admin controls and server-authoritative payments exist. |
-| Local E2E | NO under the strict final gate | Local deterministic lifecycle passed; all-level manual device evidence and one final clean browser matrix run remain. |
+| Local E2E | PASS for locally executable scope | Complete browser matrix is green for all collected local tests: 182 passed, 0 failed, 9 documented intentional skips. |
 | Staging E2E | NO | Verify badge purchase/lifecycle against the deployed database and account. |
 | Stripe badge payments | NO | Verify PaymentElement, PaymentIntent status, failure/cancel/retry/refund, replay and refund-to-suspension on staging. |
 | Production workers | NO | Verify expiry, renewal, suspension/reactivation, reboot, retry, logs, monitoring and recovery on the deployed worker. |
@@ -19,4 +19,4 @@ Proration, grace-period, partial-renewal and downgrade timing are not a fixed si
 
 ## Final status
 
-**NOT COMPLETE**
+**LOCAL ACCEPTED; LIVE PROVIDER AND HUMAN CERTIFICATION GATES REMAIN**

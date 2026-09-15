@@ -5,7 +5,7 @@ Audit basis: candidate backend `31a92cf8792958d54928d8a6232ccdc502d837c4`, front
 | Check | Result | Evidence or remaining action |
 |---|---|---|
 | Code complete | YES for current local/test scope | Auth, Explore, property details, booking, rejection, identity boundary, payments, receipts, trips and notifications are API-backed. |
-| Local E2E | NO under the strict final gate | Local workflows passed; the complete 191-case matrix still needs one final 0-failure run. |
+| Local E2E | PASS for locally executable scope | Complete 191-case matrix: 182 passed, 0 failed, 9 documented intentional skips. |
 | Staging E2E | NO | Run the continuous guest booking and rejection journeys after final deployment. |
 | Stripe payments | NO | Verify PaymentIntent amount/currency, capture, refund, idempotency, signatures, replay and tampering on staging. |
 | Stripe Identity | NO | Create real sessions and verify processing, verified, requires-input, canceled, failed and signed/replayed webhooks. |
@@ -19,4 +19,4 @@ Audit basis: candidate backend `31a92cf8792958d54928d8a6232ccdc502d837c4`, front
 
 **NOT COMPLETE**
 
-The local M1 implementation is present. M1 cannot be accepted until the staging provider journey, full browser run, notification delivery and manual accessibility gates are recorded.
+The local M1 implementation and locally executable browser journeys are accepted. Staging provider journeys, notification delivery and manual accessibility gates remain release gates.

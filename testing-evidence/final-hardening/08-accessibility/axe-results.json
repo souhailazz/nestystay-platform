@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-15T02:43:20.745Z",
+  "generatedAt": "2026-09-15T15:15:38.368Z",
   "coverage": "all reachable manifest screen routes",
-  "pages": 94,
+  "pages": 98,
   "impactTotals": {
     "critical": 0,
     "serious": 0,
@@ -223,6 +223,18 @@
       "violations": []
     },
     {
+      "route": "/pm/p0",
+      "violations": []
+    },
+    {
+      "route": "/pm/professional",
+      "violations": []
+    },
+    {
+      "route": "/pm/professional-completion",
+      "violations": []
+    },
+    {
       "route": "/pm/invoices",
       "violations": []
     },
@@ -304,6 +316,10 @@
     },
     {
       "route": "/owner/dashboard",
+      "violations": []
+    },
+    {
+      "route": "/owner/p0",
       "violations": []
     },
     {
