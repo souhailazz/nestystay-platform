@@ -13,6 +13,7 @@ public sealed class EfPropertyManagerStore(
     NestyStayDbContext db,
     IPaymentGateway paymentGateway,
     IStorageProvider storageProvider,
+    IFileSafetyScanner fileSafetyScanner,
     TimeProvider timeProvider,
     ISpecCompletionStore specCompletionStore) : IPropertyManagerStore
 {
@@ -481,7 +482,40 @@ public sealed class EfPropertyManagerStore(
     { if (isAdmin) return (await db.MilestoneManagerDocuments.Where(x => !x.IsDeleted && !x.IsArchived).ToListAsync(cancellationToken)).Select(ToDto).ToList(); var managerIds = await db.MilestoneManagerOwners.Where(x => x.OwnerUserId == actorUserId && !x.IsDeleted).Select(x => x.ManagerUserId).ToListAsync(cancellationToken); return (await db.MilestoneManagerDocuments.Where(x => managerIds.Contains(x.ManagerUserId) && !x.IsDeleted && !x.IsArchived && (x.OwnerUserId == null || x.OwnerUserId == actorUserId)).ToListAsync(cancellationToken)).Select(ToDto).ToList(); }
 
     public async Task<DocumentDto> AddDocumentAsync(Guid managerUserId, AddDocumentRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); if (request.OwnerUserId is { } owner) await RequireOwnerScopeAsync(managerUserId, owner, cancellationToken); if (request.PropertyId is { } documentProperty && !await db.MilestoneManagerProperties.AnyAsync(x => x.Id == documentProperty && x.ManagerUserId == managerUserId && (!request.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Property is not in the manager portfolio."); if (request.SizeBytes <= 0 || request.SizeBytes > 25 * 1024 * 1024) throw new InvalidOperationException("Document size must be between 1 byte and 25 MB."); if (request.ExpiresOn is { } expiresOn && expiresOn < DateOnly.FromDateTime(DateTime.UtcNow)) throw new InvalidOperationException("Document expiry must be today or later."); var safeName = Path.GetFileName(request.FileName); if (safeName != request.FileName || safeName.Contains("..", StringComparison.Ordinal)) throw new InvalidOperationException("Document filename is invalid."); var allowed = request.ContentType.ToLowerInvariant() is "application/pdf" or "image/jpeg" or "image/png"; if (!allowed) throw new InvalidOperationException("Only PDF, JPEG, and PNG documents are accepted."); var key = $"property-manager/{managerUserId:N}/{Guid.NewGuid():N}/{safeName}"; if (!string.IsNullOrWhiteSpace(request.ContentBase64)) { byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Document content is not valid base64."); } if (bytes.LongLength != request.SizeBytes) throw new InvalidOperationException("Document size does not match content."); await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken); } var item = new MilestoneManagerDocument { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = request.PropertyId, Title = request.Title.Trim(), Category = request.Category.Trim(), FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, AccessScope = request.OwnerUserId is null ? "COMMUNITY" : "OWNER", ExpiresOn = request.ExpiresOn }; db.MilestoneManagerDocuments.Add(item); db.MilestoneManagerDocumentVersions.Add(new MilestoneManagerDocumentVersion { DocumentId = item.Id, ManagerUserId = managerUserId, Version = 1, FileName = safeName, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId }); await AuditAsync(managerUserId, "DocumentStored", "Document", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        if (request.OwnerUserId is { } owner) await RequireOwnerScopeAsync(managerUserId, owner, cancellationToken);
+        if (request.PropertyId is { } documentProperty && !await db.MilestoneManagerProperties.AnyAsync(x => x.Id == documentProperty && x.ManagerUserId == managerUserId && (!request.OwnerUserId.HasValue || x.OwnerUserId == request.OwnerUserId) && !x.IsDeleted, cancellationToken))
+            throw new InvalidOperationException("Property is not in the manager portfolio.");
+        if (request.SizeBytes <= 0 || request.SizeBytes > 25 * 1024 * 1024)
+            throw new InvalidOperationException("Document size must be between 1 byte and 25 MB.");
+        if (request.ExpiresOn is { } expiresOn && expiresOn < DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("Document expiry must be today or later.");
+
+        var safeName = Path.GetFileName(request.FileName);
+        if (safeName != request.FileName || string.IsNullOrWhiteSpace(safeName) || safeName.Contains("..", StringComparison.Ordinal))
+            throw new InvalidOperationException("Document filename is invalid.");
+        var contentType = NormalizePropertyManagerDocumentContentType(request.ContentType);
+        var key = $"property-manager/{managerUserId:N}/{Guid.NewGuid():N}/{safeName}";
+        if (string.IsNullOrWhiteSpace(request.ContentBase64))
+            throw new InvalidOperationException("Document content is required.");
+
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(request.ContentBase64); }
+        catch { throw new InvalidOperationException("Document content is not valid base64."); }
+        if (bytes.LongLength != request.SizeBytes)
+            throw new InvalidOperationException("Document size does not match content.");
+        await ValidatePropertyManagerFileContentAsync(key, safeName, contentType, bytes, cancellationToken);
+        await using (var stream = new MemoryStream(bytes))
+            await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken);
+
+        var item = new MilestoneManagerDocument { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = request.PropertyId, Title = request.Title.Trim(), Category = request.Category.Trim(), FileName = safeName, ContentType = contentType, SizeBytes = request.SizeBytes, StorageKey = key, AccessScope = request.OwnerUserId is null ? "COMMUNITY" : "OWNER", ExpiresOn = request.ExpiresOn };
+        db.MilestoneManagerDocuments.Add(item);
+        db.MilestoneManagerDocumentVersions.Add(new MilestoneManagerDocumentVersion { DocumentId = item.Id, ManagerUserId = managerUserId, Version = 1, FileName = safeName, ContentType = contentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId });
+        await AuditAsync(managerUserId, "DocumentStored", "Document", item.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(item);
+    }
 
     public async Task<DocumentDownloadDto?> GetDocumentDownloadAsync(Guid actorUserId, bool isAdmin, Guid documentId, CancellationToken cancellationToken)
     {
@@ -777,7 +811,33 @@ public sealed class EfPropertyManagerStore(
     { var item = await db.MilestoneManagerMaintenances.AsNoTracking().SingleOrDefaultAsync(x => x.Id == maintenanceId && !x.IsDeleted, cancellationToken); if (item is null || (!isAdmin && item.ManagerUserId != actorUserId && item.OwnerUserId != actorUserId)) return []; return await db.MilestoneManagerMaintenanceActivities.AsNoTracking().Where(x => x.MaintenanceId == maintenanceId && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).Select(x => new MaintenanceActivityDto(x.Id, x.MaintenanceId, x.ActorUserId, x.Action, x.Details, x.CreatedAt)).ToListAsync(cancellationToken); }
 
     public async Task<MaintenanceAttachmentDto> AddMaintenanceAttachmentAsync(Guid managerUserId, AddMaintenanceAttachmentRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); var legacy = await db.MilestoneManagerMaintenances.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); var professional = await db.MilestonePmMaintenanceCases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); var workOrder = await db.MilestoneWorkOrders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (legacy is null && professional is null && workOrder is null) throw new InvalidOperationException("Maintenance request or work order not found."); var safe = Path.GetFileName(request.FileName); var contentType = request.ContentType.Trim().ToLowerInvariant(); if (safe != request.FileName || string.IsNullOrWhiteSpace(request.ContentBase64) || contentType is not ("application/pdf" or "image/jpeg" or "image/png")) throw new InvalidOperationException("Attachment is invalid."); byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Attachment content is not valid base64."); } if (bytes.Length == 0 || bytes.Length > 25 * 1024 * 1024) throw new InvalidOperationException("Attachment must be between 1 byte and 25 MB."); var recordType = workOrder is null ? "maintenance" : "work-orders"; var key = $"property-manager/{managerUserId:N}/{recordType}/{request.MaintenanceId:N}/{Guid.NewGuid():N}-{safe}"; await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken); var attachment = new MilestoneManagerMaintenanceAttachment { ManagerUserId = managerUserId, MaintenanceId = request.MaintenanceId, FileName = safe, ContentType = contentType, StorageKey = key }; db.MilestoneManagerMaintenanceAttachments.Add(attachment); await AuditAsync(managerUserId, workOrder is null ? "MaintenanceAttachmentAdded" : "WorkOrderAttachmentAdded", workOrder is null ? "Maintenance" : "WorkOrder", request.MaintenanceId, cancellationToken); await db.SaveChangesAsync(cancellationToken); return new MaintenanceAttachmentDto(attachment.Id, attachment.MaintenanceId, attachment.FileName, attachment.ContentType, attachment.Status, attachment.CreatedAt); }
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var legacy = await db.MilestoneManagerMaintenances.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        var professional = await db.MilestonePmMaintenanceCases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        var workOrder = await db.MilestoneWorkOrders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (legacy is null && professional is null && workOrder is null) throw new InvalidOperationException("Maintenance request or work order not found.");
+
+        var safe = Path.GetFileName(request.FileName);
+        var contentType = NormalizePropertyManagerDocumentContentType(request.ContentType);
+        if (safe != request.FileName || string.IsNullOrWhiteSpace(safe) || string.IsNullOrWhiteSpace(request.ContentBase64))
+            throw new InvalidOperationException("Attachment is invalid.");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(request.ContentBase64); }
+        catch { throw new InvalidOperationException("Attachment content is not valid base64."); }
+        if (bytes.Length == 0 || bytes.Length > 25 * 1024 * 1024) throw new InvalidOperationException("Attachment must be between 1 byte and 25 MB.");
+
+        var recordType = workOrder is null ? "maintenance" : "work-orders";
+        var key = $"property-manager/{managerUserId:N}/{recordType}/{request.MaintenanceId:N}/{Guid.NewGuid():N}-{safe}";
+        await ValidatePropertyManagerFileContentAsync(key, safe, contentType, bytes, cancellationToken);
+        await using var stream = new MemoryStream(bytes);
+        await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken);
+        var attachment = new MilestoneManagerMaintenanceAttachment { ManagerUserId = managerUserId, MaintenanceId = request.MaintenanceId, FileName = safe, ContentType = contentType, StorageKey = key };
+        db.MilestoneManagerMaintenanceAttachments.Add(attachment);
+        await AuditAsync(managerUserId, workOrder is null ? "MaintenanceAttachmentAdded" : "WorkOrderAttachmentAdded", workOrder is null ? "Maintenance" : "WorkOrder", request.MaintenanceId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return new MaintenanceAttachmentDto(attachment.Id, attachment.MaintenanceId, attachment.FileName, attachment.ContentType, attachment.Status, attachment.CreatedAt);
+    }
     public async Task<IReadOnlyList<MaintenanceAttachmentDto>> ListMaintenanceAttachmentsAsync(Guid managerUserId, Guid maintenanceId, CancellationToken cancellationToken)
     {
         await EnsureManagerAsync(managerUserId, cancellationToken);
@@ -802,7 +862,28 @@ public sealed class EfPropertyManagerStore(
     { await EnsureManagerAsync(managerUserId, cancellationToken); var item = await db.MilestoneManagerVendors.SingleOrDefaultAsync(x => x.Id == vendorId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (item is null) return null; if (request.Contact is not null) item.Contact = request.Contact.Trim(); if (request.Notes is not null) item.Notes = request.Notes.Trim(); if (request.ServiceAreas is not null) item.ServiceAreasJson = JsonSerializer.Serialize(request.ServiceAreas); if (request.AvailabilityJson is not null) item.AvailabilityJson = request.AvailabilityJson; if (request.Rate is not null) item.Rate = request.Rate; if (request.Rating is not null) item.Rating = Math.Clamp(request.Rating.Value, 0, 5); if (request.IsPreferred is not null) item.IsPreferred = request.IsPreferred.Value; if (request.IsSuspended is not null) item.IsSuspended = request.IsSuspended.Value; if (request.IsActive is not null) item.IsActive = request.IsActive.Value; item.UpdatedAt = timeProvider.GetUtcNow(); await AuditAsync(managerUserId, "VendorUpdated", "Vendor", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
 
     public async Task<VendorDocumentDto> AddVendorDocumentAsync(Guid managerUserId, AddVendorDocumentRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); var vendor = await db.MilestoneManagerVendors.SingleOrDefaultAsync(x => x.Id == request.VendorId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Vendor not found."); var safe = Path.GetFileName(request.FileName); if (safe != request.FileName || string.IsNullOrWhiteSpace(request.ContentBase64)) throw new InvalidOperationException("Vendor document is invalid."); byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Vendor document content is not valid base64."); } if (bytes.Length > 25 * 1024 * 1024) throw new InvalidOperationException("Vendor document is too large."); var key = $"property-manager/{managerUserId:N}/vendors/{vendor.Id:N}/{Guid.NewGuid():N}-{safe}"; await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken); var item = new MilestoneManagerVendorDocument { ManagerUserId = managerUserId, VendorId = vendor.Id, DocumentType = request.DocumentType.Trim().ToUpperInvariant(), FileName = safe, ContentType = request.ContentType, StorageKey = key, ExpiresOn = request.ExpiresOn }; db.MilestoneManagerVendorDocuments.Add(item); await AuditAsync(managerUserId, "VendorDocumentAdded", "Vendor", vendor.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var vendor = await db.MilestoneManagerVendors.SingleOrDefaultAsync(x => x.Id == request.VendorId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Vendor not found.");
+        var safe = Path.GetFileName(request.FileName);
+        var contentType = NormalizePropertyManagerDocumentContentType(request.ContentType);
+        if (safe != request.FileName || string.IsNullOrWhiteSpace(safe) || string.IsNullOrWhiteSpace(request.ContentBase64))
+            throw new InvalidOperationException("Vendor document is invalid.");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(request.ContentBase64); }
+        catch { throw new InvalidOperationException("Vendor document content is not valid base64."); }
+        if (bytes.Length == 0 || bytes.Length > 25 * 1024 * 1024) throw new InvalidOperationException("Vendor document must be between 1 byte and 25 MB.");
+
+        var key = $"property-manager/{managerUserId:N}/vendors/{vendor.Id:N}/{Guid.NewGuid():N}-{safe}";
+        await ValidatePropertyManagerFileContentAsync(key, safe, contentType, bytes, cancellationToken);
+        await using var stream = new MemoryStream(bytes);
+        await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken);
+        var item = new MilestoneManagerVendorDocument { ManagerUserId = managerUserId, VendorId = vendor.Id, DocumentType = request.DocumentType.Trim().ToUpperInvariant(), FileName = safe, ContentType = contentType, StorageKey = key, ExpiresOn = request.ExpiresOn };
+        db.MilestoneManagerVendorDocuments.Add(item);
+        await AuditAsync(managerUserId, "VendorDocumentAdded", "Vendor", vendor.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(item);
+    }
 
     public async Task<IReadOnlyList<VendorDocumentDto>> ListVendorDocumentsAsync(Guid managerUserId, Guid vendorId, CancellationToken cancellationToken)
     { await EnsureManagerAsync(managerUserId, cancellationToken); if (!await db.MilestoneManagerVendors.AnyAsync(x => x.Id == vendorId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken)) return []; return (await db.MilestoneManagerVendorDocuments.AsNoTracking().Where(x => x.VendorId == vendorId && x.ManagerUserId == managerUserId && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken)).Select(ToDto).ToList(); }
@@ -854,14 +935,15 @@ public sealed class EfPropertyManagerStore(
         var safe = Path.GetFileName(request.FileName);
         if (safe != request.FileName || string.IsNullOrWhiteSpace(safe)) throw new InvalidOperationException("Document filename is invalid.");
         if (request.SizeBytes <= 0 || request.SizeBytes > 25 * 1024 * 1024) throw new InvalidOperationException("Document size must be between 1 byte and 25 MB.");
-        if (request.ContentType.ToLowerInvariant() is not ("application/pdf" or "image/jpeg" or "image/png")) throw new InvalidOperationException("Only PDF, JPEG, and PNG documents are accepted.");
+        var contentType = NormalizePropertyManagerDocumentContentType(request.ContentType);
         byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Document content is not valid base64."); }
         if (bytes.LongLength != request.SizeBytes) throw new InvalidOperationException("Document size does not match content.");
         var key = $"property-manager/{managerUserId:N}/documents/{document.Id:N}/{Guid.NewGuid():N}/{safe}";
-        await using (var stream = new MemoryStream(bytes)) await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken);
+        await ValidatePropertyManagerFileContentAsync(key, safe, contentType, bytes, cancellationToken);
+        await using (var stream = new MemoryStream(bytes)) await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken);
         var version = document.CurrentVersion + 1;
-        document.CurrentVersion = version; document.FileName = safe; document.ContentType = request.ContentType; document.SizeBytes = request.SizeBytes; document.StorageKey = key; document.UpdatedAt = timeProvider.GetUtcNow();
-        var row = new MilestoneManagerDocumentVersion { DocumentId = document.Id, ManagerUserId = managerUserId, Version = version, FileName = safe, ContentType = request.ContentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId };
+        document.CurrentVersion = version; document.FileName = safe; document.ContentType = contentType; document.SizeBytes = request.SizeBytes; document.StorageKey = key; document.UpdatedAt = timeProvider.GetUtcNow();
+        var row = new MilestoneManagerDocumentVersion { DocumentId = document.Id, ManagerUserId = managerUserId, Version = version, FileName = safe, ContentType = contentType, SizeBytes = request.SizeBytes, StorageKey = key, CreatedByUserId = managerUserId };
         db.MilestoneManagerDocumentVersions.Add(row);
         await AuditAsync(managerUserId, "DocumentVersionAdded", "Document", document.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -1292,6 +1374,31 @@ public sealed class EfPropertyManagerStore(
         });
         return true;
     }
+
+    private async Task ValidatePropertyManagerFileContentAsync(
+        string objectKey,
+        string fileName,
+        string contentType,
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        var headerBytes = bytes[..Math.Min(bytes.Length, 64)];
+        var sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var scan = await fileSafetyScanner.ScanAsync(
+            new FileSafetyScanRequest(objectKey, fileName, contentType, bytes.LongLength, sha256, headerBytes),
+            cancellationToken);
+        if (!string.Equals(scan.Status, "Clean", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(scan.Reason ?? "File content was rejected by the safety scanner.");
+    }
+
+    private static string NormalizePropertyManagerDocumentContentType(string? contentType)
+    {
+        var normalized = contentType?.Trim().ToLowerInvariant();
+        return normalized is "application/pdf" or "image/jpeg" or "image/png"
+            ? normalized
+            : throw new InvalidOperationException("Only PDF, JPEG, and PNG documents are accepted.");
+    }
+
     private static OwnerDto ToDto(MilestoneManagerOwner x) => new(x.Id, x.OwnerUserId, x.DisplayName, x.Email, x.VerificationStatus, x.InvitationStatus, x.CommunityId);
     private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus, x.RentalListingId);
     private static InvoiceDto ToDto(MilestoneManagerInvoice x, IEnumerable<MilestoneManagerInvoiceLine> lines) => new(x.Id, x.OwnerUserId, x.PropertyId, x.InvoiceNumber, x.IssueDate, x.DueDate, x.Subtotal, x.Tax, x.Total, x.AmountPaid, x.Balance, x.Currency, x.Status, lines.Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitAmount, l.Amount)).ToList());

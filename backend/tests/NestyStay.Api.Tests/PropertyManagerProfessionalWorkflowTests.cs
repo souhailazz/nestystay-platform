@@ -130,6 +130,8 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         Assert.Equal("receipt.pdf", attachmentDownload.GetProperty("fileName").GetString());
         var invalidAttachment = await client.PostAsJsonAsync("/api/property-manager/maintenance/attachments", new { maintenanceId = id, fileName = "payload.exe", contentType = "application/octet-stream", contentBase64 = "TVqQ" });
         Assert.Equal(HttpStatusCode.BadRequest, invalidAttachment.StatusCode);
+        var spoofedAttachment = await client.PostAsJsonAsync("/api/property-manager/maintenance/attachments", new { maintenanceId = id, fileName = "spoofed.pdf", contentType = "application/pdf", contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("not a pdf")) });
+        Assert.Equal(HttpStatusCode.BadRequest, spoofedAttachment.StatusCode);
         using var otherManager = factory.CreateClient();
         _ = await CreatePortfolio(otherManager);
         var crossManagerRead = await otherManager.GetAsync($"/api/property-manager/maintenance/{id}/attachments");
@@ -137,6 +139,8 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         var next = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{id}", new { status = "TRIAGED", rowVersion = maintenance.GetProperty("rowVersion").GetInt64(), details = "Reviewed by manager" }));
         Assert.Equal("TRIAGED", next.GetProperty("status").GetString());
         var vendor = await Ok(client.PostAsJsonAsync("/api/property-manager/vendors", new { name = "Trusted Plumbing", category = "PLUMBING", contact = "ops@trusted.example", notes = "Preferred vendor" }));
+        var spoofedVendorDocument = await client.PostAsJsonAsync("/api/property-manager/vendors/documents", new { vendorId = vendor.GetProperty("id").GetGuid(), documentType = "INSURANCE", fileName = "vendor.pdf", contentType = "application/pdf", contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("not a pdf")) });
+        Assert.Equal(HttpStatusCode.BadRequest, spoofedVendorDocument.StatusCode);
         var quoting = await Ok(client.PatchAsJsonAsync($"/api/property-manager/professional/maintenance/{id}", new { status = "QUOTING", rowVersion = next.GetProperty("rowVersion").GetInt64(), details = "Solicit comparable bids" }));
         var quote = await Ok(client.PostAsJsonAsync($"/api/property-manager/professional/maintenance/{id}/quotes", new { vendorId = vendor.GetProperty("id").GetGuid(), amount = 180.00m, scope = "Replace tap", currency = "JMD" }));
         var quotes = await client.GetFromJsonAsync<JsonElement[]>($"/api/property-manager/professional/maintenance/{id}/quotes");

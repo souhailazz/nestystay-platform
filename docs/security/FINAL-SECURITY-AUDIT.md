@@ -5,40 +5,40 @@ Scope: current NestyStay release-candidate worktrees and the clean local develop
 
 ## Executive result
 
-The audit found and fixed one high-severity server-side request forgery (SSRF) weakness in user-controlled iCalendar feed synchronization. The fix is in backend commit `c88e85a` and is covered by seven regression tests. The complete backend suite after the fix is green: **180 passed, 0 failed, 0 skipped**.
+The audit found and fixed one high-severity server-side request forgery (SSRF) weakness in user-controlled iCalendar feed synchronization. The fix is in backend commit `c88e85a` and is covered by seven regression tests. The legacy Property Manager direct-base64 upload gap was then closed in backend commit `ba75107`: property documents, document versions, vendor documents and maintenance/work-order attachments now all use the shared server-side magic-byte/checksum scanner, with spoofed-signature regression coverage. The complete backend suite after these changes is green: **180 passed, 0 failed, 0 skipped**.
 
-There are **0 known Critical findings and 0 known High findings remaining** in the reviewed code after that fix. One Medium defense-in-depth item remains open in the legacy Property Manager direct-base64 document paths: those paths enforce filename, declared MIME type and size, but do not run the shared magic-byte scanner before storing the private object. The paths are authenticated, manager-scoped and not publicly executable; this remains a hardening item, not a release claim.
+There are **0 confirmed application Critical, High or Medium findings** remaining in the reviewed source. Trivy still reports four low deployment hygiene notices (missing Docker HEALTHCHECKs), and ZAP reports local Development-mode header observations; these are documented below and are not being represented as production verification.
 
-**Security GO: NO.** This is not because a known Critical or High vulnerability remains. A final security GO is blocked because Semgrep, CodeQL, Gitleaks, Trivy and OWASP ZAP were unavailable on this runner, production-mode headers/provider behavior was not independently exercised, and human security/accessibility certification is outside automated local evidence.
+**NESTYSTAY LOCAL SECURITY GO: YES, conditional on the documented deployment notes.** Local code, dependency, authorization, dynamic, Semgrep, Gitleaks, Trivy, ZAP and regression evidence is available, with no confirmed application Critical/High/Medium finding after remediation. **NESTYSTAY PRODUCTION SECURITY GO: NO** until the client-controlled staging/production proxy, TLS, provider credentials/webhooks, egress policy and human review are verified.
 
 ## Audited revisions
 
-- Backend: `codex/m1-m2-runtime-hardening`, security fix `c88e85a`.
-- Frontend: `codex/m1-m2-runtime-hardening`, release-candidate commit `e389373`.
-- Root/orchestration: `codex/frontend-hardening-release-candidate`, final audited candidate commit `6c1f23c`.
+- Backend: `codex/m1-m2-runtime-hardening`, upload hardening commit `ba75107` (including SSRF fix `c88e85a`).
+- Frontend: `codex/m1-m2-runtime-hardening`, non-root nginx hardening commit `a3d64a4` (including the prior release candidate `e389373`).
+- Root/orchestration: `codex/frontend-hardening-release-candidate`, current audited candidate pending its root documentation/deployment commit.
 - The protected remote `main` branches were not bypassed. The existing pull requests remain subject to client approval.
 
 ## Tool and evidence inventory
 
 ### Executed successfully
 
-- `dotnet test NestyStay.sln --no-restore --configuration Release`: **180 passed, 0 failed, 0 skipped** across Domain 5, Application 23, Infrastructure 27 and API 125.
+- `dotnet test NestyStay.sln --no-restore`: **180 passed, 0 failed, 0 skipped** across Domain 5, Application 23, Infrastructure 27 and API 125. The only output was existing obsolete-test warnings for the legacy application badge test helper.
 - `dotnet list NestyStay.sln package --vulnerable --include-transitive`: no vulnerable packages reported for any project.
 - `npm audit --omit=dev`: **0 vulnerabilities**.
-- Existing redacted secret scan of the current tree/history and deployment/test material: no active credential values committed. Pattern hits were reviewed as placeholders, examples or test fixtures; secret values were not printed.
+- Gitleaks 8.30.1 ran against root/backend/frontend working trees and Git history with full redaction. Root current-tree findings (493) were dominated by ignored PostgreSQL WAL, local email-outbox/build artifacts and ignored local environment files; backend current-tree findings (2) were in the ignored local `.env`; frontend current-tree findings were 0. History findings were root 18, backend 7 and frontend 0, limited to example/development/test configuration and historical workflow/template matches. No live credential value was printed or committed by this audit; local ignored Stripe values must still be rotated if they are not disposable test credentials.
+- Semgrep 1.177.0 ran successfully on tracked C# sources (274 targets) and tracked frontend JS/TS sources (158 targets): **0 findings**. The initial directory invocation hit a Windows parser error on empty `.gitignore` comment lines; the final tracked-file/source-only scans completed successfully.
+- Trivy 0.74.0 ran with `vuln,misconfig,secret` against filtered source/deployment trees. After the non-root frontend fix: **0 dependency CVEs, 0 secrets**, and four LOW `DS-0026` “no HEALTHCHECK” notices across the backend/API/frontend Dockerfiles. The prior HIGH `DS-0002` root-user frontend findings are gone.
+- OWASP ZAP 2.17.0 ran passively against local frontend/API public URLs: **23 observations** (12 Medium header/policy observations, 7 Low, 4 Informational). A safe active scan was run against the local frontend URL and produced **0 active alerts**, but ZAP found no active-scan nodes in the SPA root, so this is not authenticated API coverage.
+- CodeQL: no local CLI and no CodeQL workflow exists in the inspected GitHub Actions workflows. This remains an external CI/GitHub security-scanning item; it was not fabricated as a passing result.
 - Existing dynamic security checks: **7/7 passed** for CORS allow/deny behavior, malformed JSON handling, SQL-like input as data and stored-XSS output encoding.
 - Existing authorization matrix: **54/54 passed** for unauthenticated access, role boundaries, ownership/tenant boundaries and safe error responses.
 - Existing browser regression evidence: **182 passed, 0 failed, 9 intentional skips** across desktop, tablet and mobile projects. The skips are documented in `docs/testing/LOCAL-M1-M5-COMPLETION.md` and are external-fixture, deployed-credential or viewport-scoped checks.
 
-### Not available on this runner
+### Tool limitations and classification
 
-- Semgrep — executable not installed.
-- GitHub CodeQL CLI — executable not installed.
-- Gitleaks — executable not installed.
-- Trivy — executable not installed.
-- OWASP ZAP/ZAP CLI — executable not installed.
-
-These are coverage limitations, not passing scan results. They must run in CI or on a security-tooling runner before a production security approval.
+- ZAP’s Medium results came from direct Development-mode responses where the reverse-proxy security headers are not present. They require staging capture through the client’s nginx configuration before production approval; they are not treated as an application authorization or injection finding.
+- Trivy’s remaining LOW results are image-health metadata recommendations. The frontend images now run nginx as non-root on port 8080; the existing backend/API images already run as UID 10001. Adding a HEALTHCHECK is a deployment hygiene follow-up, not a confirmed vulnerability.
+- CodeQL requires GitHub Actions/organization enablement or a separately installed runner. No local or remote CodeQL result is claimed.
 
 ## Findings and remediation
 
@@ -60,13 +60,21 @@ Regression evidence:
 - Seven tests cover loopback, IPv6 loopback, cloud metadata/link-local, RFC1918, non-standard ports, embedded credentials and allowed public web ports.
 - The full unfiltered backend suite passed after the change.
 
-### M-001 — Direct Property Manager document uploads lack magic-byte verification — OPEN
+### M-001 — Direct Property Manager document uploads lack magic-byte verification — FIXED
 
-The authenticated M5 direct-base64 document, vendor-document and document-version paths validate path-safe filenames, an allow-listed declared MIME type and a 25 MiB size limit. The shared magic-byte scanner is used by the presigned/spec/wellness upload flows, but these legacy direct-base64 paths do not independently compare the bytes to the declared type before storage.
+The authenticated M5 direct-base64 document, vendor-document, document-version and maintenance/work-order attachment paths previously validated filenames, declared MIME types and sizes without comparing bytes to the declared type.
 
-Impact is reduced because the routes require authenticated Property Manager/Admin access, storage keys are manager-scoped/private, and the inspected public download/export paths do not serve arbitrary content inline. Nevertheless, content-type spoofing can place a mismatched object in private storage and weakens defense in depth.
+Remediation in backend `ba75107`:
 
-Required follow-up: route every direct-base64 M5 upload through the same magic-byte/checksum scanner and add negative API tests for mismatched PDF/JPEG/PNG content. This item was not changed during the SSRF remediation so that existing M5 upload semantics are not silently altered without its targeted test update.
+- Reused the registered `IFileSafetyScanner` for all four legacy direct-base64 paths.
+- Normalized and allow-listed PDF, JPEG and PNG content types before storage.
+- Rejected empty content, invalid base64, size mismatches and spoofed signatures before calling the storage provider.
+- Kept manager ownership scoping unchanged; the existing unrelated-manager document download test still returns 404.
+
+Regression evidence:
+
+- API tests now reject HTML/text bytes declared as PDF for property documents, document versions, vendor documents and maintenance attachments.
+- The targeted M5 security workflow passed 3/3 tests, and the complete backend suite passed 180/180.
 
 ### Informational — Legacy Alibaba references remain outside active runtime wiring
 
@@ -99,8 +107,8 @@ The active backend provider wiring selects Stripe Identity and does not contain 
 ### Uploads and object storage
 
 - Presigned/spec/wellness uploads have path-safe object keys, size limits and magic-byte scanning.
+- Legacy Property Manager direct-base64 documents, versions, vendor documents and maintenance attachments now use the same magic-byte/checksum scanner before storage (M-001 fixed).
 - MinIO signing and local/R2 fallback paths enforce canonical object paths and private download authorization.
-- M-001 above remains for the legacy direct-base64 M5 paths.
 
 ### Injection, XSS and unsafe parsing
 
@@ -129,11 +137,10 @@ The active backend provider wiring selects Stripe Identity and does not contain 
 
 ## Required closure actions
 
-1. Run Semgrep, CodeQL, Gitleaks and Trivy in CI against the exact protected-main candidate SHAs.
-2. Run OWASP ZAP against a disposable production-mode local deployment or staging with test credentials, including authenticated role contexts where approved.
-3. Add the M-001 direct-base64 magic-byte fix and negative tests.
-4. Capture staging headers/TLS/CORS and verify Stripe Identity, payment webhooks, Connect, storage and notification provider failure behavior with client-owned test credentials.
-5. Complete manual attacker-pair tenant checks and human review of sensitive data, accessibility, reduced motion and forced colors.
+1. Enable CodeQL in GitHub Actions (or on the client security runner) against the exact protected-main candidate SHAs.
+2. Repeat ZAP against a disposable production-mode deployment or staging with approved test credentials, including authenticated role contexts.
+3. Capture staging headers/TLS/CORS and verify Stripe Identity, payment webhooks, Connect, storage and notification-provider failure behavior with client-owned test credentials.
+4. Complete manual attacker-pair tenant checks and human review of sensitive data, accessibility, reduced motion and forced colors.
 
 ## Security gate
 
@@ -141,10 +148,11 @@ The active backend provider wiring selects Stripe Identity and does not contain 
 |---|---|
 | Known Critical findings after remediation | 0 |
 | Known High findings after remediation | 0 |
-| Known Medium findings | 1 open (M-001) |
-| Active committed secrets | None found; placeholder matches reviewed without exposing values |
+| Known application Medium findings after remediation | 0 confirmed; ZAP Development-mode header observations are classified as deployment verification items |
+| Active committed secrets | None found; local ignored environment values were not printed |
 | Dependency audit | npm 0 vulnerabilities; .NET no vulnerable packages reported |
 | Dynamic local security checks | 7/7 checks passed; authorization matrix 54/54 passed |
-| Independent security tooling | Incomplete — tools unavailable on runner |
+| Independent security tooling | Gitleaks, Semgrep, Trivy and ZAP executed; CodeQL requires external CI enablement |
 | Production/staging security verification | Incomplete — external environment and credentials required |
-| Final Security GO | **NO** |
+| NestyStay local security GO | **YES, conditional on documented LOW/deployment follow-ups** |
+| NestyStay production security GO | **NO — client staging/provider/human verification remains** |
