@@ -5857,6 +5857,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<Guid?>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
                     b.Property<string>("MetadataJson")
                         .IsRequired()
                         .HasMaxLength(20000)
@@ -5888,6 +5892,8 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "CreatedAt");
 
                     b.HasIndex("SubjectType", "SubjectId", "CreatedAt");
 
@@ -10666,6 +10672,14 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
 
+                    b.Property<Guid?>("RentalListingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rental_listing_id");
+
+                    b.Property<DateTimeOffset?>("RentalListingLinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rental_listing_linked_at");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -10695,6 +10709,9 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("RentalListingId")
+                        .IsUnique();
 
                     b.HasIndex("ManagerUserId", "OwnerUserId");
 
@@ -11357,6 +11374,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
 
                     b.Property<Guid?>("InvoiceId")
                         .HasColumnType("uuid")
@@ -12182,6 +12205,1627 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.ToTable("milestone_owner_payout");
                 });
 
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Account", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("account_type");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<bool>("IsClientMoney")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_client_money");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsPmMoney")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pm_money");
+
+                    b.Property<bool>("IsThirdParty")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_third_party");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Currency");
+
+                    b.ToTable("milestone_p0_account");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Approval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AgreementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agreement_id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("ApprovalType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("approval_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_user_id");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("decision_reason");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence_json");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid?>("FeeRuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fee_rule_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("RequestIdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("request_idempotency_key");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("source_type");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("Threshold")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("threshold");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "RequestIdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "Status");
+
+                    b.ToTable("milestone_p0_approval");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ApprovalEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<Guid>("ApprovalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approval_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence_json");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("ApprovalId", "CreatedAt");
+
+                    b.HasIndex("ApprovalId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("milestone_p0_approval_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("AccountingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("accounting_date");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("JournalNumber")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("journal_number");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Memo")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("memo");
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("posted_at");
+
+                    b.Property<Guid?>("PostedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("posted_by_user_id");
+
+                    b.Property<string>("ReconciliationStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reconciliation_status");
+
+                    b.Property<Guid?>("ReversalOfJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reversal_of_journal_id");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("source_type");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalCredit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_credit");
+
+                    b.Property<decimal>("TotalDebit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_debit");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostedByUserId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "ReversalOfJournalId")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "AccountingDate", "Currency");
+
+                    b.ToTable("milestone_p0_journal");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0JournalLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<decimal>("Credit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("credit");
+
+                    b.Property<decimal>("Debit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("debit");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("JournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("journal_id");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("SourceReference")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("source_reference");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("JournalId", "AccountId");
+
+                    b.ToTable("milestone_p0_journal_line");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ManagementAgreement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("DocumentHash")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("document_hash");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("document_key");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_to");
+
+                    b.Property<decimal>("ExpenseApprovalLimit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("expense_approval_limit");
+
+                    b.Property<string>("FeeRuleJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("fee_rule_json");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<decimal>("MaintenanceApprovalLimit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("maintenance_approval_limit");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersedesAgreementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supersedes_agreement_id");
+
+                    b.Property<DateTimeOffset?>("TerminatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("terminated_at");
+
+                    b.Property<string>("TerminationReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("termination_reason");
+
+                    b.Property<string>("TermsJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("terms_json");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Version")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Status", "EffectiveFrom")
+                        .HasDatabaseName("IX_milestone_p0_management_agreement_manager_user_id_owner_us~1");
+
+                    b.ToTable("milestone_p0_management_agreement");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ManagementFeeRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CalculationBasis")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("calculation_basis");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("category");
+
+                    b.Property<decimal>("CleaningMarkup")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("cleaning_markup");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_to");
+
+                    b.Property<decimal>("FixedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("fixed_amount");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<decimal>("MaintenanceMarkup")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("maintenance_markup");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<decimal>("MinimumAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("minimum_amount");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<decimal>("Percentage")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("percentage");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("RuleType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("rule_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Category", "EffectiveFrom")
+                        .IsUnique();
+
+                    b.ToTable("milestone_p0_management_fee_rule");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0OwnerLifecycleEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "CreatedAt");
+
+                    b.ToTable("milestone_p0_owner_lifecycle_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0OwnerProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("BillingAddress")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("billing_address");
+
+                    b.Property<string>("BillingMetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("billing_metadata_json");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("contact_email");
+
+                    b.Property<string>("ContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("contact_phone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("legal_name");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("OperationalMetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("operational_metadata_json");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("PaymentProviderCustomerReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("payment_provider_customer_reference");
+
+                    b.Property<string>("PreferredCurrency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("preferred_currency");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId")
+                        .IsUnique();
+
+                    b.ToTable("milestone_p0_owner_profile");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_user_id");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("period_from");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date")
+                        .HasColumnName("period_to");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("ProviderReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("provider_reference");
+
+                    b.Property<decimal>("ReservedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("reserved_amount");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<Guid?>("StatementSnapshotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("statement_snapshot_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "Currency", "Status");
+
+                    b.ToTable("milestone_p0_payout_batch");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("ProviderReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("provider_reference");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("BatchId", "CreatedAt");
+
+                    b.ToTable("milestone_p0_payout_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("SourceJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("source_json");
+
+                    b.Property<Guid?>("StatementSnapshotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("statement_snapshot_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.ToTable("milestone_p0_payout_item");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Reconciliation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("ExternalReference")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("external_reference");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("JournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("journal_id");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("ReconciledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reconciled_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("JournalId")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId");
+
+                    b.ToTable("milestone_p0_reconciliation");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StaffEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("MembershipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("membership_id");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("MembershipId", "CreatedAt");
+
+                    b.ToTable("milestone_p0_staff_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StaffMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<decimal>("ApprovalLimit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("approval_limit");
+
+                    b.Property<bool>("CanApprovePayouts")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_approve_payouts");
+
+                    b.Property<bool>("CanManageFinance")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_manage_finance");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("OwnerScopeJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("owner_scope_json");
+
+                    b.Property<string>("PropertyScopeJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("property_scope_json");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("role");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<Guid>("StaffUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("staff_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffUserId");
+
+                    b.HasIndex("ManagerUserId", "StaffUserId")
+                        .IsUnique();
+
+                    b.ToTable("milestone_p0_staff_membership");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StatementSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("ClosingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("closing_balance");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<decimal>("Expenses")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("expenses");
+
+                    b.Property<DateTimeOffset>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finalized_at");
+
+                    b.Property<Guid>("FinalizedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("finalized_by_user_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<decimal>("Income")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("income");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<decimal>("ManagementFees")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("management_fees");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("opening_balance");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<decimal>("Payouts")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("payouts");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("period_from");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date")
+                        .HasColumnName("period_to");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("snapshot_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "OwnerUserId", "PropertyId", "Currency", "PeriodFrom", "PeriodTo")
+                        .IsUnique();
+
+                    b.ToTable("milestone_p0_statement_snapshot");
+                });
+
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePasskeyChallenge", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12428,6 +14072,1784 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId", "Operation", "Status");
 
                     b.ToTable("milestone_payment_attempt");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AssetTag")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("asset_tag");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("condition");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("location");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PhotosJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("photos_json");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<decimal?>("PurchaseCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("purchase_cost");
+
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("purchase_date");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("SerialReference")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("serial_reference");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<DateOnly?>("WarrantyExpiry")
+                        .HasColumnType("date")
+                        .HasColumnName("warranty_expiry");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "AssetTag")
+                        .IsUnique();
+
+                    b.ToTable("milestone_pm_asset");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmChecklistTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("ItemsJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("items_json");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersedesTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supersedes_template_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.Property<string>("WorkflowType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("workflow_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "WorkflowType", "Name", "Version")
+                        .IsUnique();
+
+                    b.ToTable("milestone_pm_checklist_template");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCleaningReadiness", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AssignedUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_user_id");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<string>("ChecklistJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("checklist_json");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Issues")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("issues");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("PhotosJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("photos_json");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("template_name");
+
+                    b.Property<int>("TemplateVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("VendorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vendor_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "DueAt");
+
+                    b.ToTable("milestone_pm_cleaning_readiness");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCorrectiveAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("BlocksReadiness")
+                        .HasColumnType("boolean")
+                        .HasColumnName("blocks_readiness");
+
+                    b.Property<string>("ChecklistItemId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("checklist_item_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("LastIdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("last_idempotency_key");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("ResolutionNotes")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("resolution_notes");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("RetestInspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("retest_inspection_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("WorkOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_order_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("RetestInspectionId");
+
+                    b.HasIndex("WorkOrderId");
+
+                    b.HasIndex("InspectionId", "ChecklistItemId")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "Status");
+
+                    b.ToTable("milestone_pm_corrective_action");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCostLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("LineType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("line_type");
+
+                    b.Property<Guid?>("MaintenanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("maintenance_id");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid?>("ReceiptAttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_attachment_id");
+
+                    b.Property<string>("Responsibility")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("responsibility");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("WorkOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_order_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiptAttachmentId");
+
+                    b.HasIndex("MaintenanceId", "CreatedAt");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("WorkOrderId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_cost_line");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmIncident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActionTaken")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("action_taken");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence_json");
+
+                    b.Property<decimal>("FinancialImpact")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("financial_impact");
+
+                    b.Property<string>("FollowUp")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("follow_up");
+
+                    b.Property<string>("IncidentType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("incident_type");
+
+                    b.Property<string>("InsuranceReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("insurance_reference");
+
+                    b.Property<string>("InvolvedPartiesJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("involved_parties_json");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "OccurredAt");
+
+                    b.ToTable("milestone_pm_incident");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmInspectionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AssignedUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_user_id");
+
+                    b.Property<string>("ChecklistJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("checklist_json");
+
+                    b.Property<Guid?>("CorrectiveWorkOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("corrective_work_order_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence_json");
+
+                    b.Property<string>("FindingsJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("findings_json");
+
+                    b.Property<string>("InspectionType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("inspection_type");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<Guid?>("ReinspectionOfActionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reinspection_of_action_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<DateTimeOffset>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_at");
+
+                    b.Property<DateTimeOffset?>("SignedOffAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("signed_off_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("template_name");
+
+                    b.Property<int>("TemplateVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReinspectionOfActionId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "ScheduledAt");
+
+                    b.ToTable("milestone_pm_inspection_record");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmMaintenanceCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<int>("CorrectionCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("correction_count");
+
+                    b.Property<string>("CostBreakdownJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("cost_breakdown_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<decimal>("ExpenseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("expense_amount");
+
+                    b.Property<Guid?>("FinancialJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("financial_journal_id");
+
+                    b.Property<Guid?>("FinancialReversalJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("financial_reversal_journal_id");
+
+                    b.Property<string>("FinancialStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("financial_status");
+
+                    b.Property<bool>("FinanciallyPosted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("financially_posted");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<decimal>("ManagerFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("manager_fee");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("number");
+
+                    b.Property<Guid?>("OwnerApprovalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_approval_id");
+
+                    b.Property<decimal>("OwnerCharge")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("owner_charge");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("priority");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<Guid?>("ReplacementFinancialJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replacement_financial_journal_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<DateTimeOffset?>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_at");
+
+                    b.Property<decimal?>("SelectedQuoteAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("selected_quote_amount");
+
+                    b.Property<Guid?>("SelectedQuoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("selected_quote_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("VendorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vendor_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinancialJournalId");
+
+                    b.HasIndex("FinancialReversalJournalId");
+
+                    b.HasIndex("ReplacementFinancialJournalId");
+
+                    b.HasIndex("ManagerUserId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("milestone_pm_maintenance_case");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmMaintenanceEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("details");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("MaintenanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("maintenance_id");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaintenanceId", "CreatedAt");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("milestone_pm_maintenance_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmMaintenanceQuote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("MaintenanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("maintenance_id");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vendor_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaintenanceId", "VendorId")
+                        .IsUnique();
+
+                    b.ToTable("milestone_pm_maintenance_quote");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmOwnerBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "StartsAt", "EndsAt");
+
+                    b.ToTable("milestone_pm_owner_block");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmProfessionalRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("area");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("ResourceType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("resource_type");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("SearchText")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("search_text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "OwnerUserId");
+
+                    b.HasIndex("ManagerUserId", "Area", "Status", "UpdatedAt");
+
+                    b.ToTable("milestone_pm_professional_record");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmProfessionalRecordEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("record_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("ManagerUserId", "CreatedAt");
+
+                    b.HasIndex("RecordId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_professional_record_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmPropertyChecklistAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTimeOffset>("EffectiveAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_at");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("WorkflowType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("workflow_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("ManagerUserId", "PropertyId", "WorkflowType", "EndedAt");
+
+                    b.ToTable("milestone_pm_property_checklist_assignment");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmReservationEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid?>("RelatedBookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("related_booking_id");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RelatedBookingId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerUserId", "BookingId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_reservation_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmReservationNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("body");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "BookingId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_reservation_note");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmTeamEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("details");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<Guid>("MembershipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("membership_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MembershipId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_team_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmWorkOrderEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("details");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid>("WorkOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_order_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("WorkOrderId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_work_order_event");
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmWorkOrderQuote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<Guid?>("EvidenceAttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("evidence_attachment_id");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<Guid>("ManagerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_user_id");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vendor_id");
+
+                    b.Property<Guid>("WorkOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_order_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvidenceAttachmentId");
+
+                    b.HasIndex("VendorId");
+
+                    b.HasIndex("ManagerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("WorkOrderId", "CreatedAt");
+
+                    b.ToTable("milestone_pm_work_order_quote");
                 });
 
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePricebookEntry", b =>
@@ -15145,6 +18567,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("approved_amount");
 
+                    b.Property<int>("CorrectionCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("correction_count");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -15152,6 +18578,25 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("currency");
+
+                    b.Property<decimal>("FinalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("final_amount");
+
+                    b.Property<Guid?>("FinancialJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("financial_journal_id");
+
+                    b.Property<Guid?>("FinancialReversalJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("financial_reversal_journal_id");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
@@ -15162,9 +18607,28 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("labor_amount");
 
+                    b.Property<decimal>("ManagerResponsibility")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("manager_responsibility");
+
                     b.Property<Guid>("ManagerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("manager_user_id");
+
+                    b.Property<decimal>("OtherAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("other_amount");
+
+                    b.Property<Guid?>("OwnerApprovalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_approval_id");
+
+                    b.Property<decimal>("OwnerResponsibility")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("owner_responsibility");
 
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
@@ -15175,6 +18639,12 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("parts_amount");
 
+                    b.Property<string>("PostingStatus")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("posting_status");
+
                     b.Property<Guid>("PropertyId")
                         .HasColumnType("uuid")
                         .HasColumnName("property_id");
@@ -15183,6 +18653,15 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("quote_amount");
+
+                    b.Property<Guid?>("ReplacementFinancialJournalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replacement_financial_journal_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("row_version");
 
                     b.Property<DateTimeOffset?>("ScheduledAt")
                         .HasColumnType("timestamp with time zone")
@@ -15194,15 +18673,28 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("scope");
 
+                    b.Property<Guid?>("SelectedQuoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("selected_quote_id");
+
                     b.Property<DateTimeOffset?>("SlaDueAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sla_due_at");
+
+                    b.Property<Guid?>("SourceInspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_inspection_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
                         .HasColumnName("status");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("tax_amount");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -15216,6 +18708,11 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("vendor_id");
 
+                    b.Property<decimal>("VendorResponsibility")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("vendor_responsibility");
+
                     b.Property<string>("WorkOrderNumber")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -15223,6 +18720,18 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnName("work_order_number");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FinancialJournalId");
+
+                    b.HasIndex("FinancialReversalJournalId");
+
+                    b.HasIndex("OwnerApprovalId");
+
+                    b.HasIndex("ReplacementFinancialJournalId");
+
+                    b.HasIndex("SelectedQuoteId");
+
+                    b.HasIndex("SourceInspectionId");
 
                     b.HasIndex("ManagerUserId", "WorkOrderNumber")
                         .IsUnique();
@@ -15600,6 +19109,311 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Account", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Approval", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ApprovalEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Approval", null)
+                        .WithMany()
+                        .HasForeignKey("ApprovalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("PostedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0JournalLine", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("JournalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ManagementAgreement", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0ManagementFeeRule", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0OwnerLifecycleEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0OwnerProfile", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutBatch", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutItem", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0PayoutBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Reconciliation", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("JournalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StaffEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StaffMembership", null)
+                        .WithMany()
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StaffMembership", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("StaffUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0StatementSnapshot", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePasskeyChallenge", b =>
                 {
                     b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
@@ -15613,6 +19427,166 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCorrectiveAction", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmInspectionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmInspectionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RetestInspectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_milestone_pm_corrective_action_milestone_pm_inspection_rec~1");
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWorkOrder", null)
+                        .WithMany()
+                        .HasForeignKey("WorkOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCostLine", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmMaintenanceCase", null)
+                        .WithMany()
+                        .HasForeignKey("MaintenanceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerMaintenanceAttachment", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptAttachmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWorkOrder", null)
+                        .WithMany()
+                        .HasForeignKey("WorkOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmInspectionRecord", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmCorrectiveAction", null)
+                        .WithMany()
+                        .HasForeignKey("ReinspectionOfActionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmChecklistTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmMaintenanceCase", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialJournalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialReversalJournalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_milestone_pm_maintenance_case_milestone_p0_journal_financi~1");
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementFinancialJournalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmProfessionalRecord", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmProfessionalRecordEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneUser", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmProfessionalRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmPropertyChecklistAssignment", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerProperty", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmChecklistTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmWorkOrderEvent", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWorkOrder", null)
+                        .WithMany()
+                        .HasForeignKey("WorkOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmWorkOrderQuote", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerMaintenanceAttachment", null)
+                        .WithMany()
+                        .HasForeignKey("EvidenceAttachmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneManagerVendor", null)
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWorkOrder", null)
+                        .WithMany()
+                        .HasForeignKey("WorkOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -15651,6 +19625,39 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NestyStay.Infrastructure.Persistence.Milestones.MilestoneWorkOrder", b =>
+                {
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialJournalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialReversalJournalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Approval", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerApprovalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestoneP0Journal", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementFinancialJournalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmWorkOrderQuote", null)
+                        .WithMany()
+                        .HasForeignKey("SelectedQuoteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NestyStay.Infrastructure.Persistence.Milestones.MilestonePmInspectionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SourceInspectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

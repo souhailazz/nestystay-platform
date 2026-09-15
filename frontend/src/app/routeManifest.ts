@@ -50,6 +50,9 @@ type RouteData =
   | { name: "host-property-edit" }
   | { name: "pm-gates" }
   | { name: "pm-dashboard" }
+  | { name: "pm-p0" }
+  | { name: "pm-professional" }
+  | { name: "pm-professional-completion" }
   | { name: "pm-invoices" }
   | { name: "pm-maintenance" }
   | { name: "pm-governance" }
@@ -66,6 +69,7 @@ type RouteData =
   | { name: "pm-inspections" }
   | { name: "pm-cleaning" }
   | { name: "owner-dashboard" }
+  | { name: "owner-p0" }
   | { name: "pm-gate" }
   | { name: "pm-utilities" }
   | { name: "pm-verification" }
@@ -219,6 +223,9 @@ export const SCREEN_MANIFEST = [
   workspaceDefinition(screen("OFC-01", "/officer/wellness", ["/officer/wellness"], () => ({ name: "officer-wellness" }), { title: "Officer wellness workspace", productArea: "Wellness", componentKey: "officer-wellness", roleAccess: ["Officer"], navigation: { label: "Assignments", description: "Officer visits and reports" }, mobileNavigation: { label: "Assignments", priority: 1 } })),
   workspaceDefinition(screen("PM-GATE", "/pm/gates", ["/pm/gates"], () => ({ name: "pm-gates" }), { title: "Gate communications", productArea: "Property Manager", componentKey: "pm-gates", roleAccess: ["PropertyManager"], navigation: { label: "Gates", description: "Gate messages and QR access" } })),
   workspaceDefinition(screen("PM-DASH", "/pm/dashboard", ["/pm/dashboard"], () => ({ name: "pm-dashboard" }), { title: "Property manager dashboard", productArea: "Property Manager", componentKey: "pm-dashboard", roleAccess: ["PropertyManager"], navigation: { label: "Home", description: "Portfolio overview" }, mobileNavigation: { label: "Home", priority: 1 } })),
+  workspaceDefinition(screen("PM-P0", "/pm/p0", ["/pm/p0", "/pm/finance"], () => ({ name: "pm-p0" }), { title: "Property manager finance", productArea: "Property Manager", componentKey: "pm-p0", roleAccess: ["PropertyManager"], screenType: "production" })),
+  workspaceDefinition(screen("PM-PRO", "/pm/professional", ["/pm/professional", "/pm/operations"], () => ({ name: "pm-professional" }), { title: "Property manager operations", productArea: "Property Manager", componentKey: "pm-professional", roleAccess: ["PropertyManager"], screenType: "production" })),
+  workspaceDefinition(screen("PM-PRO-COMPLETE", "/pm/professional-completion", ["/pm/professional-completion"], () => ({ name: "pm-professional-completion" }), { title: "Property manager completion", productArea: "Property Manager", componentKey: "pm-professional-completion", roleAccess: ["PropertyManager"], screenType: "production" })),
   workspaceDefinition(screen("PM-INV", "/pm/invoices", ["/pm/invoices"], () => ({ name: "pm-invoices" }), { title: "Property manager invoices", productArea: "Property Manager", componentKey: "pm-invoices", roleAccess: ["PropertyManager"], navigation: { label: "Invoices", description: "Issue and reconcile invoices" } })),
   workspaceDefinition(screen("PM-MAINT", "/pm/maintenance", ["/pm/maintenance"], () => ({ name: "pm-maintenance" }), { title: "Property manager maintenance", productArea: "Property Manager", componentKey: "pm-maintenance", roleAccess: ["PropertyManager"], navigation: { label: "Work", description: "Maintenance and work orders" }, mobileNavigation: { label: "Work", priority: 3 } })),
   workspaceDefinition(screen("PM-GOV", "/pm/governance", ["/pm/governance"], () => ({ name: "pm-governance" }), { title: "Governance", productArea: "Property Manager", componentKey: "pm-governance", roleAccess: ["PropertyManager"] })),
@@ -240,6 +247,7 @@ export const SCREEN_MANIFEST = [
   publicDefinition(screen("PM-GUARD", "/gate", ["/gate", "/gate/qr"], (path) => path === "/gate/qr" ? ({ name: "qr-gate" }) : ({ name: "pm-gate" }), { title: "Gate validator", productArea: "Property Manager", componentKey: "pm-gate", showPublicNav: false })),
   workspaceDefinition(screen("PM-INSURANCE", "/pm/insurance", ["/pm/insurance"], () => ({ name: "pm-insurance" }), { title: "Coverage readiness", productArea: "Property Manager", componentKey: "pm-insurance", roleAccess: ["PropertyManager"], screenType: "production" })),
   workspaceDefinition(screen("OWNER-01", "/owner/dashboard", ["/owner/dashboard"], () => ({ name: "owner-dashboard" }), { title: "Owner portal", productArea: "Owner", componentKey: "owner-dashboard", roleAccess: ["Owner"], navigation: { label: "Home", description: "Assigned units and statements" }, mobileNavigation: { label: "Home", priority: 1 } })),
+  workspaceDefinition(screen("OWNER-P0", "/owner/p0", ["/owner/p0"], () => ({ name: "owner-p0" }), { title: "Owner financial portal", productArea: "Owner", componentKey: "owner-p0", roleAccess: ["Owner"], screenType: "production" })),
   workspaceDefinition(screen("CAL-01", "/calendar", ["/calendar"], () => ({ name: "calendar" }), { title: "Host calendar", productArea: "Host", componentKey: "calendar", roleAccess: ["Host"], navigation: { label: "Calendar", description: "Availability and feeds" }, mobileNavigation: { label: "Calendar", priority: 2 } })),
   workspaceDefinition(screen("BOOKINGS-01", "/bookings", ["/bookings"], () => ({ name: "bookings" }), { title: "Booking management", productArea: "Host", componentKey: "bookings", roleAccess: ["Host"], navigation: { label: "Reservations", description: "Booking review and payment" } })),
   authenticatedDefinition(screen("PAYMENT-01", "/payment-confirmation", ["/payment-confirmation"], (_, search) => ({ name: "payment", bookingId: search.get("bookingId") ?? undefined }), { title: "Payment confirmation", productArea: "Booking", componentKey: "payment", shell: "minimal" })),

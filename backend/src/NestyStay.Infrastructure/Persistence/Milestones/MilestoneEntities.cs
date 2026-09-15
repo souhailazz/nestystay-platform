@@ -983,6 +983,7 @@ public sealed class MilestoneAdminCaseEvidence : BaseEntity
 
 public sealed class MilestoneAuditEvent : BaseEntity
 {
+    public Guid? ManagerUserId { get; set; }
     public Guid? ActorUserId { get; set; }
     public string ActorRole { get; set; } = "System";
     public string Action { get; set; } = string.Empty;
@@ -1031,6 +1032,9 @@ public sealed class MilestoneManagerProperty : BaseEntity
     public string Address { get; set; } = string.Empty;
     public string Status { get; set; } = "ACTIVE";
     public string OccupancyStatus { get; set; } = "VACANT";
+    /// <summary>Optional link to the M1/M2 rental listing used for bookings and availability.</summary>
+    public Guid? RentalListingId { get; set; }
+    public DateTimeOffset? RentalListingLinkedAt { get; set; }
 }
 
 public sealed class MilestoneManagerPropertyAssignmentHistory : BaseEntity
@@ -1138,6 +1142,7 @@ public sealed class MilestoneManagerUtilityCharge : BaseEntity
     public decimal Usage { get; set; }
     public decimal Rate { get; set; }
     public decimal Amount { get; set; }
+    public string Currency { get; set; } = "JMD";
     public Guid? InvoiceId { get; set; }
     public string Status { get; set; } = "ALLOCATED";
 }
@@ -1571,6 +1576,22 @@ public sealed class MilestoneWorkOrder : BaseEntity
     public decimal? ApprovedAmount { get; set; }
     public decimal LaborAmount { get; set; }
     public decimal PartsAmount { get; set; }
+    public decimal OtherAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal FinalAmount { get; set; }
+    public decimal OwnerResponsibility { get; set; }
+    public decimal ManagerResponsibility { get; set; }
+    public decimal VendorResponsibility { get; set; }
+    public string Currency { get; set; } = "JMD";
+    public Guid? OwnerApprovalId { get; set; }
+    public Guid? SelectedQuoteId { get; set; }
+    public string PostingStatus { get; set; } = "UNPOSTED";
+    public Guid? FinancialJournalId { get; set; }
+    public Guid? FinancialReversalJournalId { get; set; }
+    public Guid? ReplacementFinancialJournalId { get; set; }
+    public int CorrectionCount { get; set; }
+    public Guid? SourceInspectionId { get; set; }
+    public long RowVersion { get; set; } = 1;
     public DateTimeOffset? SlaDueAt { get; set; }
     public DateTimeOffset? ScheduledAt { get; set; }
 }

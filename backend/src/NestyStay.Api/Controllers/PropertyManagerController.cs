@@ -32,6 +32,10 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     public async Task<IActionResult> AddProperty(AddPropertyRequest request, CancellationToken cancellationToken) => Ok(await store.AddPropertyAsync(Actor(), request, cancellationToken));
 
     [Authorize(Roles = "PropertyManager,Admin")]
+    [HttpPatch("properties/{propertyId:guid}/rental-listing")]
+    public async Task<IActionResult> LinkRentalListing(Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken) => (await store.LinkRentalListingAsync(Actor(), propertyId, request, cancellationToken)) is { } result ? Ok(result) : NotFound();
+
+    [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("properties/bulk-assign")]
     public async Task<IActionResult> BulkAssignProperties(BulkAssignPropertiesRequest request, CancellationToken cancellationToken) => Ok(await store.BulkAssignPropertiesAsync(Actor(), request, cancellationToken));
 
@@ -134,6 +138,14 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("maintenance/attachments")]
     public async Task<IActionResult> MaintenanceAttachment(AddMaintenanceAttachmentRequest request, CancellationToken cancellationToken) => Ok(await store.AddMaintenanceAttachmentAsync(Actor(), request, cancellationToken));
+
+    [Authorize(Roles = "PropertyManager,Admin")]
+    [HttpGet("maintenance/{maintenanceId:guid}/attachments")]
+    public async Task<IActionResult> MaintenanceAttachments(Guid maintenanceId, CancellationToken cancellationToken) => Ok(await store.ListMaintenanceAttachmentsAsync(Actor(), maintenanceId, cancellationToken));
+
+    [Authorize(Roles = "PropertyManager,Admin")]
+    [HttpGet("maintenance/{maintenanceId:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<IActionResult> MaintenanceAttachmentDownload(Guid maintenanceId, Guid attachmentId, CancellationToken cancellationToken) => (await store.GetMaintenanceAttachmentDownloadAsync(Actor(), maintenanceId, attachmentId, cancellationToken)) is { } result ? Ok(result) : NotFound();
 
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("vendors")]

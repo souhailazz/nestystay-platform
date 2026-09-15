@@ -319,12 +319,9 @@ export type BookingQuote = {
     hostName: string;
     badgeLevel: string;
     guestVerificationEnabled: boolean;
-  insuraGuestEnabled: boolean;
-  cancellationPolicy: string;
-  maxGuests?: number;
-  cleaningFee?: number;
-  serviceFee?: number;
-};
+    insuraGuestEnabled: boolean;
+    cancellationPolicy: string;
+  };
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -470,38 +467,6 @@ export type PurchaseBadgeRequest = {
   hasPropertyAddress?: boolean;
   hasWellnessSubscription?: boolean;
   idempotencyKey?: string | null;
-};
-
-export type BadgePurchaseQuote = {
-  level: BadgeLevel;
-  eligible: boolean;
-  missingRequirements: string[];
-  amount: number;
-  currency: string;
-  cadence: string;
-  isFree: boolean;
-};
-
-export type BadgePaymentIntent = {
-  id: string;
-  subjectId: string;
-  subjectType: string;
-  level: BadgeLevel;
-  amount: number;
-  currency: string;
-  provider: string;
-  providerPaymentIntentId: string;
-  clientSecret?: string | null;
-  publishableKey?: string | null;
-  status: PaymentStatus | string;
-  assignmentId?: string | null;
-  renewalId?: string | null;
-  idempotencyKey: string;
-  failureReason?: string | null;
-  createdAt: string;
-  completedAt?: string | null;
-  isFree: boolean;
-  alreadyActive: boolean;
 };
 
 export type BadgeEligibility = {
@@ -652,6 +617,38 @@ export type OnboardOfficerRequest = {
   latitude?: number | null;
   longitude?: number | null;
   serviceRadiusKm?: number | null;
+};
+
+export type BadgePaymentIntent = {
+  id: string;
+  subjectId: string;
+  subjectType: string;
+  level: BadgeLevel;
+  amount: number;
+  currency: string;
+  provider: string;
+  providerPaymentIntentId: string;
+  clientSecret?: string | null;
+  publishableKey?: string | null;
+  status: PaymentStatus | string;
+  assignmentId?: string | null;
+  renewalId?: string | null;
+  idempotencyKey: string;
+  failureReason?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  isFree: boolean;
+  alreadyActive: boolean;
+};
+
+export type BadgePurchaseQuote = {
+  level: BadgeLevel;
+  eligible: boolean;
+  missingRequirements: string[];
+  amount: number;
+  currency: string;
+  cadence: string;
+  isFree: boolean;
 };
 
 export type WellnessQuote = {
@@ -1340,7 +1337,7 @@ export type DownloadedFile = {
 };
 
 export type PropertyManagerOwner = { id: string; ownerUserId: string; displayName: string; email: string; verificationStatus: string; invitationStatus: string; communityId?: string | null };
-export type PropertyManagerProperty = { id: string; ownerUserId: string; communityId?: string | null; title: string; unitNumber: string; address: string; status: string; occupancyStatus: string; insuraGuestEnabled?: boolean | null };
+export type PropertyManagerProperty = { id: string; ownerUserId: string; communityId?: string | null; title: string; unitNumber: string; address: string; status: string; occupancyStatus: string; rentalListingId?: string | null; insuraGuestEnabled?: boolean | null };
 export type PropertyManagerInvoiceLine = { id: string; description: string; quantity: number; unitAmount: number; amount: number };
 export type PropertyManagerInvoice = { id: string; ownerUserId: string; propertyId?: string | null; invoiceNumber: string; issueDate: string; dueDate: string; subtotal: number; tax: number; total: number; amountPaid: number; balance: number; currency: string; status: string; lines: PropertyManagerInvoiceLine[] };
 export type PropertyManagerUtility = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; usage: number; rate: number; amount: number; invoiceId?: string | null; status: string };
@@ -1364,6 +1361,9 @@ export type PropertyManagerQrValidation = { result: string; status: string; prop
 export type PropertyManagerPaymentOperation = { id: string; invoiceId: string; ownerUserId: string; amount: number; refundedAmount: number; provider: string; providerReference: string; status: string; reconciliationStatus: string; reconciliationReference?: string | null; refundReason?: string | null; createdAt: string };
 export type PropertyManagerMeterReading = { id: string; ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; previousReading: number; currentReading: number; usage: number; isAnomaly: boolean; status: string; createdAt: string };
 export type PropertyManagerReport = { from: string; to: string; propertiesManaged: number; owners: number; openMaintenance: number; openWorkOrders: number; grossInvoiceRevenue: number; paymentRevenue: number; maintenanceSpend: number; utilityRevenue: number; outstandingBalance: number; pmFeeRevenue: number; invoiceIds: string[]; maintenanceIds: string[] };
+export type PropertyManagerProfessionalRecord = { id: string; area: string; resourceType: string; status: string; payloadJson: string; ownerUserId?: string | null; propertyId?: string | null; currency?: string | null; expiresAt?: string | null; rowVersion: number; createdAt: string; updatedAt: string };
+export type PropertyManagerProfessionalEvent = { id: string; recordId: string; actorUserId: string; action: string; reason: string; metadataJson: string; idempotencyKey?: string | null; createdAt: string };
+export type PropertyManagerProfessionalReport = { from: string; to: string; totalsByCurrency: Record<string, number>; countsByArea: Record<string, number>; countsByStatus: Record<string, number>; records: PropertyManagerProfessionalRecord[] };
 export type PropertyManagerWorkOrder = { id: string; propertyId: string; ownerUserId: string; vendorId?: string | null; workOrderNumber: string; scope: string; status: string; quoteAmount?: number | null; approvedAmount?: number | null; laborAmount: number; partsAmount: number; slaDueAt?: string | null; scheduledAt?: string | null };
 export type PropertyManagerCalendarEvent = { id: string; propertyId?: string | null; ownerUserId?: string | null; eventType: string; title: string; startsAt: string; endsAt: string; status: string; sourceType: string };
 
@@ -1524,11 +1524,56 @@ function parseRetryAfterHeader(value: string | null): number | undefined {
   return undefined;
 }
 
-function withQuery(path: string, params: Record<string, string | undefined>) {
+export type P0OwnerProfile = { id: string; managerUserId: string; ownerUserId: string; status: string; legalName: string; contactEmail: string; contactPhone: string; billingAddress: string; preferredCurrency: "JMD" | "USD" | string; timeZone: string; billingMetadataJson: string; paymentProviderCustomerReference?: string | null; operationalMetadataJson: string; notes: string; version: number; activatedAt?: string | null; suspendedAt?: string | null; archivedAt?: string | null };
+export type P0OwnerLifecycleEvent = { id: string; ownerUserId: string; eventType: string; fromStatus: string; toStatus: string; reason: string; actorUserId: string; createdAt: string };
+export type P0Portfolio = { items: P0PortfolioRow[]; total: number; page: number; pageSize: number };
+export type P0PortfolioRow = { propertyId: string; ownerUserId: string; ownerName: string; ownerEmail: string; ownerStatus: string; propertyTitle: string; unitNumber: string; address: string; propertyStatus: string; ownershipChangedAt?: string | null };
+export type PropertyAssignmentHistoryDto = { id: string; propertyId: string; previousOwnerUserId?: string | null; newOwnerUserId: string; actorUserId: string; reason: string; batchId: string; changedAt: string };
+export type P0Agreement = { id: string; managerUserId: string; ownerUserId: string; propertyId?: string | null; version: number; supersedesAgreementId?: string | null; status: string; effectiveFrom: string; effectiveTo?: string | null; currency: string; termsJson: string; feeRuleJson: string; maintenanceApprovalLimit: number; expenseApprovalLimit: number; documentId?: string | null; documentKey?: string | null; activatedAt?: string | null; terminatedAt?: string | null; terminationReason?: string | null; rowVersion: number };
+export type P0FeeRule = { id: string; managerUserId: string; ownerUserId: string; propertyId?: string | null; category: string; ruleType: string; calculationBasis: string; currency: string; percentage: number; fixedAmount: number; minimumAmount: number; cleaningMarkup: number; maintenanceMarkup: number; effectiveFrom: string; effectiveTo?: string | null; isActive: boolean; rowVersion: number };
+export type P0FeeCalculation = { ruleId?: string | null; category: string; currency: string; baseAmount: number; calculatedAmount: number; percentageAmount: number; fixedAmount: number; minimumTopUp: number; markupAmount: number; on: string; sourceId?: string | null; posted: boolean; journalId?: string | null };
+export type P0Account = { id: string; code: string; name: string; accountType: string; currency: string; ownerUserId?: string | null; propertyId?: string | null; isClientMoney: boolean; isPmMoney: boolean; isThirdParty: boolean; status: string };
+export type P0JournalLine = { id: string; accountId: string; accountCode: string; ownerUserId?: string | null; propertyId?: string | null; debit: number; credit: number; description: string; sourceReference: string };
+export type P0Journal = { id: string; managerUserId: string; journalNumber: string; sourceType: string; sourceId?: string | null; idempotencyKey?: string | null; currency: string; accountingDate: string; memo: string; status: string; reconciliationStatus: string; totalDebit: number; totalCredit: number; reversalOfJournalId?: string | null; postedAt?: string | null; lines: P0JournalLine[] };
+export type P0Reconciliation = { id: string; journalId: string; externalReference: string; status: string; amount: number; currency: string; reason: string; actorUserId: string; reconciledAt: string };
+export type P0StatementEntry = { date: string; sourceType: string; sourceId?: string | null; description: string; currency: string; income: number; expenses: number; managementFees: number; payouts: number; net: number; journalId: string };
+export type P0Statement = { snapshotId?: string | null; managerUserId: string; ownerUserId: string; propertyId?: string | null; currency: string; from: string; to: string; status: string; openingBalance: number; income: number; expenses: number; managementFees: number; payouts: number; closingBalance: number; hasUnresolvedSuspense: boolean; entries: P0StatementEntry[]; contentHash?: string | null };
+export type P0Profitability = { currency: string; from: string; to: string; income: number; expenses: number; managementFees: number; payouts: number; ownerNet: number; pmMargin: number; cashCollected: number; unreconciledCash: number; rows: { ownerUserId: string; propertyId?: string | null; income: number; expenses: number; managementFees: number; ownerNet: number; pmMargin: number }[] };
+export type P0Approval = { id: string; managerUserId: string; ownerUserId: string; propertyId?: string | null; agreementId?: string | null; feeRuleId?: string | null; approvalType: string; description: string; amount: number; threshold: number; currency: string; status: string; evidenceJson: string; decisionReason?: string | null; decidedByUserId?: string | null; decidedAt?: string | null; rowVersion: number; history: { id: string; actorUserId: string; eventType: string; fromStatus: string; toStatus: string; reason: string; createdAt: string; idempotencyKey?: string | null }[]; evidence?: { id: string; title: string; fileName: string; contentType: string; sizeBytes: number; status: string }[]; sourceType?: string | null; sourceId?: string | null; expiresAt?: string | null; requestIdempotencyKey?: string | null };
+export type P0StaffMembership = { id: string; managerUserId: string; staffUserId: string; role: string; propertyIds: string[]; ownerIds: string[]; canManageFinance: boolean; canApprovePayouts: boolean; approvalLimit: number; status: string; acceptedAt?: string | null; suspendedAt?: string | null; revokedAt?: string | null; rowVersion: number };
+export type P0StaffEvent = { id: string; membershipId: string; actorUserId: string; eventType: string; fromStatus: string; toStatus: string; reason: string; createdAt: string };
+export type P0PayoutAvailability = { managerUserId: string; ownerUserId: string; currency: string; from: string; to: string; income: number; expenses: number; managementFees: number; existingPayouts: number; availableReconciledCash: number; reservedInDraftOrProcessing: number; payableAmount: number; hasUnresolvedSuspense: boolean };
+export type P0PayoutBatch = { id: string; managerUserId: string; ownerUserId: string; currency: string; periodFrom: string; periodTo: string; amount: number; reservedAmount: number; status: string; idempotencyKey?: string | null; providerReference?: string | null; failureReason?: string | null; approvedByUserId?: string | null; approvedAt?: string | null; processedAt?: string | null; cancelledAt?: string | null; statementSnapshotId?: string | null; rowVersion: number; items: { id: string; ownerUserId: string; propertyId?: string | null; amount: number; statementSnapshotId?: string | null; sourceJson: string }[]; history: { id: string; actorUserId: string; eventType: string; fromStatus: string; toStatus: string; reason: string; providerReference?: string | null; createdAt: string }[] };
+export type P0OwnerPortal = { managerUserId: string; profile?: P0OwnerProfile | null; properties: PropertyManagerProperty[]; agreements: P0Agreement[]; approvals: P0Approval[]; statement: P0Statement; transactions: P0Journal[]; payouts: P0PayoutBatch[]; propertyFinancials: { ownerUserId: string; propertyId?: string | null; income: number; expenses: number; managementFees: number; ownerNet: number; pmMargin: number }[] };
+export type PmOwnerBlock = { id: string; ownerUserId: string; propertyId: string; startsAt: string; endsAt: string; timeZone: string; category: string; reason: string; notes: string; status: string; bookingId?: string | null; rowVersion: number };
+export type PmOwnerBlockHistory = { id: string; blockId: string; actorUserId: string; action: string; reason: string; createdAt: string };
+export type PmReservation = { bookingId: string; propertyId: string; guestUserId: string; hostUserId: string; checkIn: string; checkOut: string; status: string; paymentStatus: string; totalAmount: number; currency: string; notes: PmReservationNote[]; guestName?: string; guestEmail?: string; propertyTitle?: string | null; updatedAt?: string | null };
+export type PmReservationNote = { id: string; bookingId: string; authorUserId: string; body: string; visibility: string; createdAt: string };
+export type PmReservationEvent = { id: string; bookingId: string; actorUserId: string; eventType: string; fromStatus: string; toStatus: string; reason: string; createdAt: string; relatedBookingId?: string | null; payloadJson?: string };
+export type PmReservationDateChangePreview = { bookingId: string; currentCheckIn: string; currentCheckOut: string; proposedCheckIn: string; proposedCheckOut: string; currentNights: number; proposedNights: number; currentTotal: number; proposedTotal: number; currency: string; allowed: boolean; blockingReason?: string | null; requiresRebooking?: boolean };
+export type PmReservationRebook = { originalBookingId: string; replacement: PmReservation; replayed: boolean };
+export type PmCalendarConflict = { type: string; sourceId: string; title: string; level: "BLOCKING" | "WARNING"; explanation: string };
+export type PmCalendarItem = { type: string; sourceId: string; propertyId: string; startsAt: string; endsAt: string; title: string; status: string; ownerUserId?: string | null; conflictLevel: "NONE" | "WARNING" | "BLOCKING"; conflicts: PmCalendarConflict[]; relatedPath?: string | null };
+export type PmOperationalDashboard = { reservations: number; occupiedNights: number; portfolioNights: number; occupancyPercent: number; openMaintenance: number; openWorkOrders: number; notReady: number; upcomingInspections: number; openIncidents: number; anomalousUtilities: number; pendingApprovals: number; activeVendors: number; overdueActions: number };
+export type PmMaintenanceCase = { id: string; ownerUserId: string; propertyId: string; vendorId?: string | null; number: string; title: string; description: string; status: string; priority: string; selectedQuoteAmount?: number | null; expenseAmount: number; ownerCharge: number; managerFee: number; scheduledAt?: string | null; currency: string; rowVersion: number; selectedQuoteId?: string | null; financiallyPosted?: boolean; financialJournalId?: string | null; financialReversalJournalId?: string | null; replacementFinancialJournalId?: string | null; financialStatus?: string; correctionCount?: number };
+export type PmMaintenanceQuote = { id: string; maintenanceId: string; vendorId: string; amount: number; currency: string; scope: string; status: string; expiresAt?: string | null };
+export type PmMaintenanceEvent = { id: string; maintenanceId: string; actorUserId: string; eventType: string; fromStatus: string; toStatus: string; details: string; createdAt: string };
+export type PmMaintenanceAttachment = { id: string; maintenanceId: string; fileName: string; contentType: string; status: string; createdAt: string };
+export type PmCostLine = { id: string; maintenanceId?: string | null; workOrderId?: string | null; lineType: string; responsibility: string; description: string; amount: number; currency: string; receiptAttachmentId?: string | null; receiptFileName?: string | null; idempotencyKey: string; createdAt: string };
+export type PmProfessionalWorkOrder = { id: string; propertyId: string; ownerUserId: string; vendorId?: string | null; workOrderNumber: string; scope: string; status: string; quoteAmount?: number | null; approvedAmount?: number | null; laborAmount: number; partsAmount: number; otherAmount: number; taxAmount: number; finalAmount: number; ownerResponsibility: number; managerResponsibility: number; vendorResponsibility: number; currency: string; slaDueAt?: string | null; scheduledAt?: string | null; ownerApprovalId?: string | null; selectedQuoteId?: string | null; postingStatus: string; financialJournalId?: string | null; financialReversalJournalId?: string | null; replacementFinancialJournalId?: string | null; correctionCount: number; rowVersion: number; sourceInspectionId?: string | null };
+export type PmWorkOrderQuote = { id: string; workOrderId: string; vendorId: string; amount: number; currency: string; scope: string; status: string; expiresAt?: string | null; evidenceAttachmentId?: string | null; createdAt: string };
+export type PmCleaning = { id: string; propertyId: string; bookingId?: string | null; assignedUserId?: string | null; vendorId?: string | null; dueAt: string; status: string; checklistJson: string; photosJson: string; issues: string; completedAt?: string | null; rowVersion: number; templateName?: string; templateVersion?: number };
+export type PmAsset = { id: string; propertyId: string; assetTag: string; name: string; description: string; serialReference: string; purchaseDate?: string | null; purchaseCost?: number | null; warrantyExpiry?: string | null; condition: string; category: string; status: string; quantity: number; location: string; metadataJson: string; photosJson: string; retiredAt?: string | null; rowVersion: number };
+export type PmIncident = { id: string; propertyId: string; bookingId?: string | null; incidentType: string; severity: string; occurredAt: string; description: string; involvedPartiesJson: string; evidenceJson: string; actionTaken: string; followUp: string; financialImpact: number; insuranceReference?: string | null; status: string; resolvedAt?: string | null; rowVersion: number };
+export type PmInspection = { id: string; propertyId: string; assignedUserId?: string | null; inspectionType: string; scheduledAt: string; checklistJson: string; evidenceJson: string; findingsJson: string; status: string; signedOffAt?: string | null; rowVersion: number; correctiveWorkOrderId?: string | null; templateId?: string | null; templateName?: string; templateVersion?: number; reinspectionOfActionId?: string | null };
+export type PmChecklistTemplate = { id: string; name: string; workflowType: string; version: number; itemsJson: string; status: string; supersedesTemplateId?: string | null; createdAt: string };
+export type PmCorrectiveAction = { id: string; inspectionId: string; propertyId: string; checklistItemId: string; description: string; severity: string; blocksReadiness: boolean; status: string; workOrderId?: string | null; retestInspectionId?: string | null; resolutionNotes: string; rowVersion: number; createdAt: string; resolvedAt?: string | null };
+
+function withQuery(path: string, params: Record<string, string | number | boolean | undefined>) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value) {
-      search.set(key, value);
+    if (value !== undefined && value !== null && value !== "") {
+      search.set(key, String(value));
     }
   });
   const query = search.toString();
@@ -1607,8 +1652,8 @@ export const api = {
       search: params.search,
       checkIn: params.checkIn,
       checkOut: params.checkOut,
-      adults: params.adults && params.adults > 1 ? String(params.adults) : undefined,
-      children: params.children && params.children > 0 ? String(params.children) : undefined,
+      adults: params.adults,
+      children: params.children,
     })),
   getOwnedProperties: (token: string) => request<PropertyListing[]>("/properties/owned", { token }),
   getProperty: (id: string) => request<PropertyListing>(`/properties/${id}`),
@@ -1709,6 +1754,8 @@ export const api = {
     }),
   getBadgePayment: (paymentId: string, token: string) =>
     request<BadgePaymentIntent>(`/badges-pricing/payments/${paymentId}`, { token }),
+  purchaseBadge: (body: PurchaseBadgeRequest, token: string) =>
+    request<BadgeAssignment>("/badges-pricing/badges/purchase", { method: "POST", body, token }),
   getBadgeAssignments: (token: string, subjectType?: string, subjectId?: string) =>
     request<BadgeAssignment[]>(
       withQuery("/badges-pricing/badges/assignments", { subjectType, subjectId }),
@@ -2043,6 +2090,7 @@ export const api = {
   createPropertyManagerMaintenance: (token: string, body: { ownerUserId: string; propertyId: string; title: string; description: string; category: string; urgency: string }) => request<PropertyManagerMaintenance>("/property-manager/maintenance", { method: "POST", token, body }),
   updatePropertyManagerMaintenance: (token: string, id: string, body: { status: string; vendorId?: string; scheduledAt?: string; cost: number; notes: string }) => request<PropertyManagerMaintenance>(`/property-manager/maintenance/${id}`, { method: "PATCH", token, body }),
   createPropertyManagerVendor: (token: string, body: { name: string; category: string; contact: string; notes: string }) => request<PropertyManagerVendor>("/property-manager/vendors", { method: "POST", token, body }),
+  linkPropertyManagerRentalListing: (token: string, propertyId: string, rentalListingId?: string) => request<PropertyManagerProperty>(`/property-manager/properties/${propertyId}/rental-listing`, { method: "PATCH", token, body: { rentalListingId: rentalListingId ?? null } }),
   updatePropertyManagerVendor: (token: string, id: string, body: { contact?: string; notes?: string; serviceAreas?: string[]; availabilityJson?: string; rate?: number; rating?: number; isPreferred?: boolean; isSuspended?: boolean; isActive?: boolean }) => request<PropertyManagerVendor>(`/property-manager/vendors/${id}`, { method: "PATCH", token, body }),
   createPropertyManagerNotice: (token: string, body: { communityId?: string; targetOwnerUserId?: string; title: string; body: string; expiresAt?: string; isPinned: boolean; publishAt?: string; category?: string; audienceRoles?: string[]; audienceOwnerIds?: string[]; acknowledgementDueAt?: string }) => request<PropertyManagerNotice>("/property-manager/notices", { method: "POST", token, body }),
   getPropertyManagerNotices: (token: string) => request<PropertyManagerNotice[]>("/property-manager/notices", { token }),
@@ -2074,6 +2122,11 @@ export const api = {
   recordPropertyManagerMeterReading: (token: string, body: { ownerUserId: string; propertyId: string; utilityType: string; billingPeriod: string; previousReading: number; currentReading: number; rate?: number }) => request<PropertyManagerMeterReading>("/property-manager/utilities/readings", { method: "POST", token, body }),
   getPropertyManagerMeterReadings: (token: string, propertyId: string, utilityType?: string) => request<PropertyManagerMeterReading[]>(withQuery(`/property-manager/utilities/${propertyId}/readings`, { utilityType }), { token }),
   getPropertyManagerReport: (token: string, from?: string, to?: string) => request<PropertyManagerReport>(withQuery("/property-manager/reports", { from, to }), { token }),
+  listPropertyManagerProfessionalRecords: (token: string, area: string, query?: { propertyId?: string; ownerUserId?: string; status?: string; search?: string }) => request<PropertyManagerProfessionalRecord[]>(withQuery(`/property-manager/professional-completion/${area}`, query ?? {}), { token }),
+  createPropertyManagerProfessionalRecord: (token: string, area: string, body: { resourceType: string; status: string; payloadJson: string; ownerUserId?: string; propertyId?: string; currency?: string; idempotencyKey?: string; expiresAt?: string; reason?: string }) => request<PropertyManagerProfessionalRecord>(`/property-manager/professional-completion/${area}`, { method: "POST", token, body }),
+  updatePropertyManagerProfessionalRecord: (token: string, area: string, id: string, body: { resourceType: string; status: string; payloadJson: string; ownerUserId?: string; propertyId?: string; currency?: string; expiresAt?: string; expectedVersion?: number; reason?: string; idempotencyKey?: string }) => request<PropertyManagerProfessionalRecord>(`/property-manager/professional-completion/${area}/${id}`, { method: "PUT", token, body }),
+  getPropertyManagerProfessionalHistory: (token: string, id: string) => request<PropertyManagerProfessionalEvent[]>(`/property-manager/professional-completion/records/${id}/history`, { token }),
+  getPropertyManagerProfessionalReport: (token: string, from?: string, to?: string, query?: { propertyId?: string; ownerUserId?: string }) => request<PropertyManagerProfessionalReport>(withQuery("/property-manager/professional-completion/reports", { from, to, ...(query ?? {}) }), { token }),
   createPropertyManagerWorkOrder: (token: string, body: { propertyId: string; ownerUserId: string; scope: string; vendorId?: string; quoteAmount?: number; slaDueAt?: string }) => request<PropertyManagerWorkOrder>("/property-manager/work-orders", { method: "POST", token, body }),
   updatePropertyManagerWorkOrder: (token: string, id: string, body: { status: string; vendorId?: string; approvedAmount?: number; laborAmount?: number; partsAmount?: number; scheduledAt?: string }) => request<PropertyManagerWorkOrder>(`/property-manager/work-orders/${id}`, { method: "PATCH", token, body }),
   getPropertyManagerCalendar: (token: string, query?: { from?: string; to?: string; propertyId?: string }) => request<PropertyManagerCalendarEvent[]>(withQuery("/property-manager/calendar/events", query ?? {}), { token }),
@@ -2088,6 +2141,105 @@ export const api = {
   closePropertyManagerProposal: (token: string, proposalId: string) => request<PropertyManagerProposal>(`/property-manager/governance/proposals/${proposalId}/close`, { method: "POST", token }),
   addPropertyManagerNoticeComment: (token: string, noticeId: string, body: string) => request<{ id: string; subjectId: string; actorUserId: string; type: string; body: string; createdAt: string }>(`/property-manager/notices/${noticeId}/comments`, { method: "POST", token, body: { noticeId, body } }),
   decidePropertyManagerVerification: (token: string, body: { ownerUserId: string; requirement: string; status: string; reason?: string }) => request<{ id: string; ownerUserId: string; requirement: string; status: string; reason?: string | null; documentKey?: string | null; createdAt: string }>("/property-manager/owners/verification-requirements", { method: "POST", token, body }),
+  getP0OwnerProfile: (token: string, ownerUserId: string) => request<P0OwnerProfile>(`/property-manager/p0/owners/${ownerUserId}/profile`, { token }),
+  saveP0OwnerProfile: (token: string, ownerUserId: string, body: { legalName: string; contactEmail: string; contactPhone: string; billingAddress: string; preferredCurrency: string; timeZone: string; billingMetadataJson: string; paymentProviderCustomerReference?: string; operationalMetadataJson: string; notes: string }) => request<P0OwnerProfile>(`/property-manager/p0/owners/${ownerUserId}/profile`, { method: "PUT", token, body }),
+  changeP0OwnerStatus: (token: string, ownerUserId: string, body: { status: string; reason: string }) => request<P0OwnerProfile>(`/property-manager/p0/owners/${ownerUserId}/status`, { method: "POST", token, body }),
+  getP0OwnerLifecycle: (token: string, ownerUserId: string) => request<P0OwnerLifecycleEvent[]>(`/property-manager/p0/owners/${ownerUserId}/lifecycle`, { token }),
+  getP0Portfolio: (token: string, query?: { ownerUserId?: string; propertyId?: string; search?: string; status?: string; page?: number; pageSize?: number }) => request<P0Portfolio>(withQuery("/property-manager/p0/portfolio", Object.fromEntries(Object.entries(query ?? {}).map(([key, value]) => [key, value == null ? undefined : String(value)]))), { token }),
+  getP0AssignmentHistory: (token: string, propertyId?: string) => request<PropertyAssignmentHistoryDto[]>(withQuery("/property-manager/p0/assignments/history", { propertyId }), { token }),
+  assignP0Properties: (token: string, body: { propertyIds: string[]; ownerUserId: string; reason: string; expectedBatchId?: string }) => request<PropertyManagerProperty[]>("/property-manager/p0/assignments", { method: "POST", token, body }),
+  getP0Agreements: (token: string, query?: { ownerUserId?: string; propertyId?: string; status?: string; page?: number; pageSize?: number }) => request<P0Agreement[]>(withQuery("/property-manager/p0/agreements", query ?? {}), { token }),
+  createP0Agreement: (token: string, body: { ownerUserId: string; propertyId?: string; effectiveFrom: string; effectiveTo?: string; currency: string; termsJson: string; feeRuleJson: string; maintenanceApprovalLimit: number; expenseApprovalLimit: number; documentId?: string; documentKey?: string }) => request<P0Agreement>("/property-manager/p0/agreements", { method: "POST", token, body }),
+  updateP0AgreementDraft: (token: string, id: string, body: { effectiveFrom: string; effectiveTo?: string; currency: string; termsJson: string; feeRuleJson: string; maintenanceApprovalLimit: number; expenseApprovalLimit: number; documentId?: string; documentKey?: string; rowVersion: number }) => request<P0Agreement>(`/property-manager/p0/agreements/${id}/draft`, { method: "PUT", token, body }),
+  activateP0Agreement: (token: string, id: string) => request<P0Agreement>(`/property-manager/p0/agreements/${id}/activate`, { method: "POST", token }),
+  renewP0Agreement: (token: string, id: string, body: { effectiveFrom: string; effectiveTo?: string; reason?: string }) => request<P0Agreement>(`/property-manager/p0/agreements/${id}/renew`, { method: "POST", token, body }),
+  terminateP0Agreement: (token: string, id: string, reason: string) => request<P0Agreement>(`/property-manager/p0/agreements/${id}/terminate`, { method: "POST", token, body: { reason } }),
+  getP0FeeRules: (token: string, query?: { ownerUserId?: string; propertyId?: string; currency?: string; category?: string; on?: string }) => request<P0FeeRule[]>(withQuery("/property-manager/p0/fees", query ?? {}), { token }),
+  createP0FeeRule: (token: string, body: { ownerUserId: string; propertyId?: string; category: string; ruleType: string; calculationBasis: string; currency: string; percentage: number; fixedAmount: number; minimumAmount: number; cleaningMarkup: number; maintenanceMarkup: number; effectiveFrom: string; effectiveTo?: string }) => request<P0FeeRule>("/property-manager/p0/fees", { method: "POST", token, body }),
+  calculateP0Fee: (token: string, body: { ownerUserId: string; propertyId?: string; category: string; currency: string; baseAmount: number; on: string; sourceId?: string }) => request<P0FeeCalculation>("/property-manager/p0/fees/calculate", { method: "POST", token, body }),
+  postP0Fee: (token: string, body: { ownerUserId: string; propertyId?: string; category: string; currency: string; baseAmount: number; on: string; sourceId?: string; idempotencyKey: string }) => request<P0FeeCalculation>("/property-manager/p0/fees/post", { method: "POST", token, body }),
+  getP0Accounts: (token: string, currency?: string) => request<P0Account[]>(withQuery("/property-manager/p0/accounting/accounts", { currency }), { token }),
+  postP0Journal: (token: string, body: { sourceType: string; sourceId?: string; idempotencyKey?: string; currency: string; accountingDate: string; memo: string; lines: { accountCode: string; debit: number; credit: number; ownerUserId?: string; propertyId?: string; description?: string }[]; reconcile?: boolean; reconciliationReference?: string; approvalId?: string }) => request<P0Journal>("/property-manager/p0/accounting/journals", { method: "POST", token, body }),
+  getP0Journals: (token: string, query?: { ownerUserId?: string; propertyId?: string; currency?: string; from?: string; to?: string; status?: string; page?: number; pageSize?: number }) => request<P0Journal[]>(withQuery("/property-manager/p0/accounting/journals", query ?? {}), { token }),
+  reverseP0Journal: (token: string, id: string, body: { reason: string; idempotencyKey: string }) => request<P0Journal>(`/property-manager/p0/accounting/journals/${id}/reverse`, { method: "POST", token, body }),
+  reconcileP0Journal: (token: string, body: { journalId: string; externalReference: string; amount: number; currency: string; reason: string }) => request<P0Reconciliation>("/property-manager/p0/accounting/reconcile", { method: "POST", token, body }),
+  getP0Statement: (token: string, query: { ownerUserId: string; propertyId?: string; currency: string; from: string; to: string }) => request<P0Statement>(withQuery("/property-manager/p0/statements", query), { token }),
+  finalizeP0Statement: (token: string, body: { ownerUserId: string; propertyId?: string; currency: string; from: string; to: string; idempotencyKey: string }) => request<P0Statement>("/property-manager/p0/statements/finalize", { method: "POST", token, body }),
+  exportP0Statement: (token: string, snapshotId: string, format = "csv") => request<{ format: string; fileName: string; contentType: string; contentBase64: string; snapshotId: string }>(withQuery(`/property-manager/p0/statements/${snapshotId}/export`, { format }), { token }),
+  getP0Profitability: (token: string, query: { currency: string; from: string; to: string; ownerUserId?: string; propertyId?: string }) => request<P0Profitability>(withQuery("/property-manager/p0/profitability", query), { token }),
+  createP0Approval: (token: string, body: { ownerUserId: string; propertyId?: string; agreementId?: string; feeRuleId?: string; approvalType: string; description: string; amount: number; currency: string; evidenceDocumentIds?: string[]; sourceType?: string; sourceId?: string; expiresAt?: string; idempotencyKey?: string }) => request<P0Approval>("/property-manager/p0/approvals", { method: "POST", token, body }),
+  getP0Approvals: (token: string, query?: { ownerUserId?: string; propertyId?: string; status?: string; page?: number; pageSize?: number }) => request<P0Approval[]>(withQuery("/property-manager/p0/approvals", query ?? {}), { token }),
+  decideP0Approval: (token: string, id: string, body: { status: string; reason: string; rowVersion: number; idempotencyKey?: string }) => request<P0Approval>(`/property-manager/p0/approvals/${id}/decision`, { method: "POST", token, body }),
+  inviteP0Staff: (token: string, body: { staffUserId: string; role: string; propertyIds?: string[]; ownerIds?: string[]; canManageFinance?: boolean; canApprovePayouts?: boolean; approvalLimit?: number }) => request<P0StaffMembership>("/property-manager/p0/members", { method: "POST", token, body }),
+  getP0Staff: (token: string) => request<P0StaffMembership[]>("/property-manager/p0/members", { token }),
+  getP0StaffHistory: (token: string, id: string) => request<P0StaffEvent[]>(`/property-manager/p0/members/${id}/history`, { token }),
+  acceptP0Staff: (token: string, id: string) => request<P0StaffMembership>(`/property-manager/p0/members/${id}/accept`, { method: "POST", token }),
+  updateP0Staff: (token: string, id: string, body: { role: string; propertyIds?: string[]; ownerIds?: string[]; canManageFinance: boolean; canApprovePayouts: boolean; approvalLimit: number; status: string; rowVersion: number }) => request<P0StaffMembership>(`/property-manager/p0/members/${id}`, { method: "PATCH", token, body }),
+  revokeP0Staff: (token: string, id: string, body: { status: string; reason: string }) => request<P0StaffMembership>(`/property-manager/p0/members/${id}/revoke`, { method: "POST", token, body }),
+  getP0PayoutAvailability: (token: string, query: { ownerUserId: string; currency: string; from: string; to: string }) => request<P0PayoutAvailability>(withQuery("/property-manager/p0/payouts/availability", query), { token }),
+  createP0Payout: (token: string, body: { ownerUserId: string; currency: string; periodFrom: string; periodTo: string; idempotencyKey: string; statementSnapshotId?: string }) => request<P0PayoutBatch>("/property-manager/p0/payouts/batches", { method: "POST", token, body }),
+  getP0Payouts: (token: string, query?: { ownerUserId?: string; currency?: string; status?: string; page?: number; pageSize?: number }) => request<P0PayoutBatch[]>(withQuery("/property-manager/p0/payouts/batches", query ?? {}), { token }),
+  approveP0Payout: (token: string, id: string, body: { reason: string; rowVersion: number }) => request<P0PayoutBatch>(`/property-manager/p0/payouts/batches/${id}/approve`, { method: "POST", token, body }),
+  processP0Payout: (token: string, id: string, body?: { providerReference?: string; simulateFailure?: boolean; failureReason?: string }) => request<P0PayoutBatch>(`/property-manager/p0/payouts/batches/${id}/process`, { method: "POST", token, body: body ?? {} }),
+  cancelP0Payout: (token: string, id: string, body: { reason: string; rowVersion: number }) => request<P0PayoutBatch>(`/property-manager/p0/payouts/batches/${id}/cancel`, { method: "POST", token, body }),
+  retryP0Payout: (token: string, id: string) => request<P0PayoutBatch>(`/property-manager/p0/payouts/batches/${id}/retry`, { method: "POST", token }),
+  getP0OwnerPortal: (token: string, managerUserId?: string) => request<P0OwnerPortal>(withQuery("/property-manager/p0/owner/portal", { managerUserId }), { token }),
+  listProfessionalOwnerBlocks: (token: string, query?: { from?: string; to?: string; propertyId?: string }) => request<PmOwnerBlock[]>(withQuery("/property-manager/professional/owner-blocks", query ?? {}), { token }),
+  createProfessionalOwnerBlock: (token: string, body: { ownerUserId: string; propertyId: string; startsAt: string; endsAt: string; timeZone?: string; reason: string; bookingId?: string; category?: string; notes?: string }) => request<PmOwnerBlock>("/property-manager/professional/owner-blocks", { method: "POST", token, body }),
+  cancelProfessionalOwnerBlock: (token: string, id: string, body: { reason: string; rowVersion: number }) => request<PmOwnerBlock>(`/property-manager/professional/owner-blocks/${id}/cancel`, { method: "POST", token, body }),
+  getProfessionalOwnerBlockHistory: (token: string, id: string) => request<PmOwnerBlockHistory[]>(`/property-manager/professional/owner-blocks/${id}/history`, { token }),
+  listOwnerOperationalBlocks: (token: string, query?: { from?: string; to?: string }) => request<PmOwnerBlock[]>(withQuery("/property-manager/owner/owner-blocks", query ?? {}), { token }),
+  createOwnerOperationalBlock: (token: string, body: { propertyId: string; startsAt: string; endsAt: string; timeZone?: string; reason: string; bookingId?: string; category?: string; notes?: string }) => request<PmOwnerBlock>("/property-manager/owner/owner-blocks", { method: "POST", token, body }),
+  cancelOwnerOperationalBlock: (token: string, id: string, body: { reason: string; rowVersion: number }) => request<PmOwnerBlock>(`/property-manager/owner/owner-blocks/${id}/cancel`, { method: "POST", token, body }),
+  listProfessionalReservations: (token: string, query?: { search?: string; status?: string; propertyId?: string; ownerUserId?: string }) => request<PmReservation[]>(withQuery("/property-manager/professional/reservations", query ?? {}), { token }),
+  updateProfessionalReservation: (token: string, bookingId: string, body: { status: string; checkIn?: string; checkOut?: string; expectedUpdatedTicks?: number; expectedUpdatedAt?: string }) => request<PmReservation>(`/property-manager/professional/reservations/${bookingId}`, { method: "PATCH", token, body }),
+  previewProfessionalReservationDateChange: (token: string, bookingId: string, body: { checkIn: string; checkOut: string }) => request<PmReservationDateChangePreview>(`/property-manager/professional/reservations/${bookingId}/date-change-preview`, { method: "POST", token, body }),
+  amendProfessionalReservation: (token: string, bookingId: string, body: { checkIn: string; checkOut: string; reason: string; idempotencyKey: string; expectedUpdatedTicks?: number; expectedUpdatedAt?: string }) => request<PmReservation>(`/property-manager/professional/reservations/${bookingId}/amend`, { method: "POST", token, body }),
+  cancelProfessionalReservation: (token: string, bookingId: string, body: { reason: string; idempotencyKey?: string; expectedUpdatedTicks?: number; expectedUpdatedAt?: string }) => request<PmReservation>(`/property-manager/professional/reservations/${bookingId}/cancel`, { method: "POST", token, body }),
+  rebookProfessionalReservation: (token: string, bookingId: string, body: { checkIn: string; checkOut: string; reason: string; idempotencyKey: string }) => request<PmReservationRebook>(`/property-manager/professional/reservations/${bookingId}/rebook`, { method: "POST", token, body }),
+  getProfessionalReservationHistory: (token: string, bookingId: string) => request<PmReservationEvent[]>(`/property-manager/professional/reservations/${bookingId}/history`, { token }),
+  addProfessionalReservationNote: (token: string, bookingId: string, body: { body: string; visibility?: string }) => request<PmReservationNote>(`/property-manager/professional/reservations/${bookingId}/notes`, { method: "POST", token, body }),
+  listProfessionalCalendar: (token: string, from: string, to: string, query?: { propertyId?: string; ownerUserId?: string; eventType?: string }) => request<PmCalendarItem[]>(withQuery("/property-manager/professional/calendar", { from, to, ...(query ?? {}) }), { token }),
+  getProfessionalOperationalDashboard: (token: string) => request<PmOperationalDashboard>("/property-manager/professional/dashboard", { token }),
+  listProfessionalTimeline: (token: string, query?: { propertyId?: string; from?: string; to?: string }) => request<{ id: string; actorUserId?: string | null; actorRole: string; action: string; subjectType: string; subjectId?: string | null; reason: string; metadataJson: string; createdAt: string }[]>(withQuery("/property-manager/professional/timeline", query ?? {}), { token }),
+  listProfessionalMaintenance: (token: string, query?: { status?: string; propertyId?: string }) => request<PmMaintenanceCase[]>(withQuery("/property-manager/professional/maintenance", query ?? {}), { token }),
+  createProfessionalMaintenance: (token: string, body: { ownerUserId: string; propertyId: string; title: string; description: string; priority?: string; vendorId?: string; quoteAmount?: number; currency?: string }) => request<PmMaintenanceCase>("/property-manager/professional/maintenance", { method: "POST", token, body }),
+  transitionProfessionalMaintenance: (token: string, id: string, body: { status: string; vendorId?: string; approvedAmount?: number; expenseAmount?: number; ownerCharge?: number; scheduledAt?: string; details?: string; rowVersion: number; ownerApprovalId?: string }) => request<PmMaintenanceCase>(`/property-manager/professional/maintenance/${id}`, { method: "PATCH", token, body }),
+  addProfessionalMaintenanceQuote: (token: string, id: string, body: { vendorId: string; amount: number; scope: string; currency?: string; expiresAt?: string }) => request<PmMaintenanceQuote>(`/property-manager/professional/maintenance/${id}/quotes`, { method: "POST", token, body }),
+  listProfessionalMaintenanceQuotes: (token: string, id: string) => request<PmMaintenanceQuote[]>(`/property-manager/professional/maintenance/${id}/quotes`, { token }),
+  getProfessionalMaintenanceHistory: (token: string, id: string) => request<PmMaintenanceEvent[]>(`/property-manager/professional/maintenance/${id}/history`, { token }),
+  addProfessionalMaintenanceCostLine: (token: string, id: string, body: { lineType: string; responsibility: string; description: string; amount: number; currency?: string; receiptAttachmentId?: string; idempotencyKey?: string }) => request<PmCostLine>(`/property-manager/professional/maintenance/${id}/cost-lines`, { method: "POST", token, body }),
+  listProfessionalMaintenanceCostLines: (token: string, id: string) => request<PmCostLine[]>(`/property-manager/professional/maintenance/${id}/cost-lines`, { token }),
+  correctProfessionalMaintenanceFinancial: (token: string, id: string, body: { expenseAmount: number; ownerCharge: number; managerFee: number; reason: string; idempotencyKey: string; rowVersion: number; ownerApprovalId?: string }) => request<{ maintenance: PmMaintenanceCase; reversalJournalId: string; replacementJournalId: string; replayed: boolean }>(`/property-manager/professional/maintenance/${id}/financial-correction`, { method: "POST", token, body }),
+  listProfessionalWorkOrders: (token: string, query?: { propertyId?: string; status?: string }) => request<PmProfessionalWorkOrder[]>(withQuery("/property-manager/professional/work-orders", query ?? {}), { token }),
+  updateProfessionalWorkOrder: (token: string, id: string, body: { status: string; approvedAmount?: number; vendorId?: string; ownerApprovalId?: string; selectedQuoteId?: string; scheduledAt?: string; reason: string; idempotencyKey: string; rowVersion: number }) => request<PmProfessionalWorkOrder>(`/property-manager/professional/work-orders/${id}`, { method: "PATCH", token, body }),
+  correctProfessionalWorkOrderFinancial: (token: string, id: string, body: { laborAmount: number; materialAmount: number; taxAmount: number; otherAmount: number; ownerResponsibility: number; managerResponsibility: number; vendorResponsibility: number; reason: string; idempotencyKey: string; rowVersion: number; ownerApprovalId?: string }) => request<{ workOrder: PmProfessionalWorkOrder; reversalJournalId: string; replacementJournalId: string; replayed: boolean }>(`/property-manager/professional/work-orders/${id}/financial-correction`, { method: "POST", token, body }),
+  addProfessionalWorkOrderCostLine: (token: string, id: string, body: { lineType: string; responsibility: string; description: string; amount: number; currency?: string; receiptAttachmentId?: string; idempotencyKey?: string }) => request<PmCostLine>(`/property-manager/professional/work-orders/${id}/cost-lines`, { method: "POST", token, body }),
+  listProfessionalWorkOrderCostLines: (token: string, id: string) => request<PmCostLine[]>(`/property-manager/professional/work-orders/${id}/cost-lines`, { token }),
+  addProfessionalWorkOrderQuote: (token: string, id: string, body: { vendorId: string; amount: number; scope: string; currency?: string; expiresAt?: string; evidenceAttachmentId?: string; idempotencyKey?: string }) => request<PmWorkOrderQuote>(`/property-manager/professional/work-orders/${id}/quotes`, { method: "POST", token, body }),
+  listProfessionalWorkOrderQuotes: (token: string, id: string) => request<PmWorkOrderQuote[]>(`/property-manager/professional/work-orders/${id}/quotes`, { token }),
+  addMaintenanceAttachment: (token: string, body: { maintenanceId: string; fileName: string; contentType: string; contentBase64: string }) => request<PmMaintenanceAttachment>("/property-manager/maintenance/attachments", { method: "POST", token, body }),
+  listMaintenanceAttachments: (token: string, maintenanceId: string) => request<PmMaintenanceAttachment[]>(`/property-manager/maintenance/${maintenanceId}/attachments`, { token }),
+  getMaintenanceAttachmentDownload: (token: string, maintenanceId: string, attachmentId: string) => request<{ id: string; fileName: string; contentType: string; url: string; expiresAt: string }>(`/property-manager/maintenance/${maintenanceId}/attachments/${attachmentId}/download`, { token }),
+  listProfessionalCleaning: (token: string, query?: { propertyId?: string; from?: string; to?: string }) => request<PmCleaning[]>(withQuery("/property-manager/professional/cleaning", query ?? {}), { token }),
+  createProfessionalCleaning: (token: string, body: { propertyId: string; bookingId?: string; dueAt: string; assignedUserId?: string; vendorId?: string; checklistJson?: string; templateId?: string }) => request<PmCleaning>("/property-manager/professional/cleaning", { method: "POST", token, body }),
+  updateProfessionalCleaning: (token: string, id: string, body: { status: string; checklistJson: string; issues: string; photosJson: string; rowVersion: number }) => request<PmCleaning>(`/property-manager/professional/cleaning/${id}`, { method: "PATCH", token, body }),
+  listProfessionalAssets: (token: string, query?: { propertyId?: string; status?: string }) => request<PmAsset[]>(withQuery("/property-manager/professional/assets", query ?? {}), { token }),
+  createProfessionalAsset: (token: string, body: { propertyId: string; assetTag: string; name: string; category: string; quantity?: number; location?: string; metadataJson?: string; photosJson?: string; description?: string; serialReference?: string; purchaseDate?: string; purchaseCost?: number; warrantyExpiry?: string; condition?: string }) => request<PmAsset>("/property-manager/professional/assets", { method: "POST", token, body }),
+  updateProfessionalAsset: (token: string, id: string, body: { status: string; quantity: number; location: string; metadataJson: string; photosJson: string; rowVersion: number; description?: string; serialReference?: string; purchaseDate?: string; purchaseCost?: number; warrantyExpiry?: string; condition?: string }) => request<PmAsset>(`/property-manager/professional/assets/${id}`, { method: "PATCH", token, body }),
+  listProfessionalIncidents: (token: string, query?: { propertyId?: string; status?: string }) => request<PmIncident[]>(withQuery("/property-manager/professional/incidents", query ?? {}), { token }),
+  createProfessionalIncident: (token: string, body: { propertyId: string; bookingId?: string; incidentType: string; severity: string; occurredAt: string; description: string; involvedPartiesJson?: string; evidenceJson?: string; actionTaken?: string; followUp?: string; financialImpact?: number; insuranceReference?: string }) => request<PmIncident>("/property-manager/professional/incidents", { method: "POST", token, body }),
+  updateProfessionalIncident: (token: string, id: string, body: { status: string; actionTaken: string; followUp: string; insuranceReference?: string; rowVersion: number }) => request<PmIncident>(`/property-manager/professional/incidents/${id}`, { method: "PATCH", token, body }),
+  listProfessionalInspections: (token: string, propertyId?: string) => request<PmInspection[]>(withQuery("/property-manager/professional/inspections", { propertyId }), { token }),
+  createProfessionalInspection: (token: string, body: { propertyId: string; assignedUserId?: string; inspectionType: string; scheduledAt: string; checklistJson?: string; templateId?: string; reinspectionOfActionId?: string }) => request<PmInspection>("/property-manager/professional/inspections", { method: "POST", token, body }),
+  updateProfessionalInspection: (token: string, id: string, body: { status: string; evidenceJson: string; findingsJson: string; rowVersion: number; checklistJson?: string }) => request<PmInspection>(`/property-manager/professional/inspections/${id}`, { method: "PATCH", token, body }),
+  createProfessionalInspectionWorkOrder: (token: string, id: string, body: { scope: string; vendorId?: string; quoteAmount?: number; slaDueAt?: string }) => request<PropertyManagerWorkOrder>(`/property-manager/professional/inspections/${id}/work-order`, { method: "POST", token, body }),
+  createProfessionalChecklistTemplate: (token: string, body: { name: string; workflowType: string; itemsJson: string; supersedesTemplateId?: string }) => request<PmChecklistTemplate>("/property-manager/professional/checklist-templates", { method: "POST", token, body }),
+  listProfessionalChecklistTemplates: (token: string, workflowType?: string) => request<PmChecklistTemplate[]>(withQuery("/property-manager/professional/checklist-templates", { workflowType }), { token }),
+  assignProfessionalChecklistTemplate: (token: string, propertyId: string, templateId: string) => request<{ id: string; propertyId: string; templateId: string; workflowType: string; effectiveAt: string }>(`/property-manager/professional/properties/${propertyId}/checklist-template`, { method: "PUT", token, body: { templateId } }),
+  listProfessionalCorrectiveActions: (token: string, query?: { inspectionId?: string; propertyId?: string }) => request<PmCorrectiveAction[]>(withQuery("/property-manager/professional/corrective-actions", query ?? {}), { token }),
+  updateProfessionalCorrectiveAction: (token: string, id: string, body: { status: string; resolutionNotes: string; rowVersion: number; idempotencyKey: string }) => request<PmCorrectiveAction>(`/property-manager/professional/corrective-actions/${id}`, { method: "PATCH", token, body }),
+  createProfessionalReinspection: (token: string, id: string, body: { scheduledAt: string; assignedUserId?: string; idempotencyKey: string }) => request<PmInspection>(`/property-manager/professional/corrective-actions/${id}/reinspection`, { method: "POST", token, body }),
 };
 
 export function formatMoney(amount: number, currency = "USD") {

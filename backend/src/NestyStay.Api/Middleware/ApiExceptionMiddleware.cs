@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using NestyStay.Api.Auth;
 using NestyStay.Application.PhaseOne;
 
@@ -44,6 +45,35 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 operation = exception.Operation,
                 currentBookingStatus = exception.CurrentBookingStatus?.ToString(),
                 currentPaymentStatus = exception.CurrentPaymentStatus?.ToString(),
+                traceId = context.TraceIdentifier
+            }));
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            logger.LogWarning(exception, "API concurrency conflict");
+            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = "The record changed while you were working. Reload and try again.",
+                status = context.Response.StatusCode,
+                code = "CONCURRENCY_CONFLICT",
+                traceId = context.TraceIdentifier
+            }));
+        }
+        catch (DbUpdateException exception)
+        {
+            // Unique indexes intentionally enforce idempotency and one-time
+            // state transitions.  Do not leak provider SQL or constraint
+            // names; clients receive a retryable conflict instead.
+            logger.LogWarning(exception, "API persistence conflict");
+            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                title = "The operation conflicts with an existing record. Retry with the original request or reload.",
+                status = context.Response.StatusCode,
+                code = "PERSISTENCE_CONFLICT",
                 traceId = context.TraceIdentifier
             }));
         }

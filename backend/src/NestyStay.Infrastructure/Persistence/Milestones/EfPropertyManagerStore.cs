@@ -61,7 +61,13 @@ public sealed class EfPropertyManagerStore(
         await AuditAsync(managerUserId, "OwnerInvited", "ManagerOwner", owner.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await specCompletionStore.StartAuthFlowAsync(
-            new StartAuthFlowRequest(user.Id, "OwnerInvitation", user.Email, RequestIp: "manager"),
+            // Use a stable manager-scoped bucket rather than the literal
+            // string "manager".  Otherwise every local/test manager shares
+            // one IP bucket and an unrelated test run can throttle all owner
+            // invitations.  The auth-flow store still applies account and
+            // destination limits, while this keeps network throttling scoped
+            // to the authenticated manager.
+            new StartAuthFlowRequest(user.Id, "OwnerInvitation", user.Email, RequestIp: $"manager:{managerUserId:N}"),
             cancellationToken);
         return ToDto(owner);
     }
@@ -108,9 +114,35 @@ public sealed class EfPropertyManagerStore(
             throw new InvalidOperationException($"The {manager.SubscriptionTier} plan allows {limit} units. Upgrade the subscription to add another property.");
         await RequireOwnerScopeAsync(managerUserId, request.OwnerUserId, cancellationToken);
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.UnitNumber)) throw new InvalidOperationException("Property title and unit number are required.");
-        var property = new MilestoneManagerProperty { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, CommunityId = request.CommunityId, Title = request.Title.Trim(), UnitNumber = request.UnitNumber.Trim(), Address = request.Address.Trim(), Status = "ACTIVE", OccupancyStatus = "VACANT" };
+        if (request.RentalListingId is { } listingId)
+        {
+            var listing = await db.MilestoneProperties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == listingId && !x.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Rental listing is not available.");
+            if (listing.HostUserId != request.OwnerUserId) throw new UnauthorizedAccessException("Rental listing is not owned by this owner.");
+            if (await db.MilestoneManagerProperties.AnyAsync(x => x.RentalListingId == listingId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Rental listing is already linked to a managed property.");
+        }
+        var property = new MilestoneManagerProperty { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, CommunityId = request.CommunityId, Title = request.Title.Trim(), UnitNumber = request.UnitNumber.Trim(), Address = request.Address.Trim(), Status = "ACTIVE", OccupancyStatus = "VACANT", RentalListingId = request.RentalListingId, RentalListingLinkedAt = request.RentalListingId.HasValue ? timeProvider.GetUtcNow() : null };
         db.MilestoneManagerProperties.Add(property);
         await AuditAsync(managerUserId, "PropertyAssigned", "ManagerProperty", property.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(property);
+    }
+
+    public async Task<PropertyDto?> LinkRentalListingAsync(Guid managerUserId, Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var property = await db.MilestoneManagerProperties.SingleOrDefaultAsync(x => x.Id == propertyId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (property is null) return null;
+        if (request.RentalListingId is { } listingId)
+        {
+            var listing = await db.MilestoneProperties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == listingId && !x.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Rental listing is not available.");
+            if (listing.HostUserId != property.OwnerUserId) throw new UnauthorizedAccessException("Rental listing is not owned by this owner.");
+            if (await db.MilestoneManagerProperties.AnyAsync(x => x.Id != propertyId && x.RentalListingId == listingId && !x.IsDeleted, cancellationToken)) throw new InvalidOperationException("Rental listing is already linked to another managed property.");
+        }
+        property.RentalListingId = request.RentalListingId;
+        property.RentalListingLinkedAt = request.RentalListingId.HasValue ? timeProvider.GetUtcNow() : null;
+        await AuditAsync(managerUserId, request.RentalListingId.HasValue ? "PropertyListingLinked" : "PropertyListingUnlinked", "ManagerProperty", property.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(property);
     }
@@ -281,7 +313,8 @@ public sealed class EfPropertyManagerStore(
         var property = await db.MilestoneManagerProperties.SingleOrDefaultAsync(x => x.Id == request.PropertyId && x.ManagerUserId == managerUserId && x.OwnerUserId == request.OwnerUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Property is not in the manager portfolio.");
         if (request.Usage < 0 || request.Rate < 0) throw new InvalidOperationException("Utility usage and rate cannot be negative.");
         var amount = decimal.Round(request.Usage * request.Rate, 2, MidpointRounding.AwayFromZero);
-        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = request.UtilityType.Trim(), BillingPeriod = request.BillingPeriod.Trim(), Usage = request.Usage, Rate = request.Rate, Amount = amount };
+        var currency = NormalizeCurrency(request.Currency);
+        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = request.UtilityType.Trim(), BillingPeriod = request.BillingPeriod.Trim(), Usage = request.Usage, Rate = request.Rate, Amount = amount, Currency = currency };
         // Utility allocations are billable charges, so create the invoice association
         // in the same transaction as the utility and ledger rows. This keeps the
         // owner portal, statement, and payment flow consistent for every charge.
@@ -297,7 +330,7 @@ public sealed class EfPropertyManagerStore(
             Tax = 0m,
             Total = amount,
             Balance = amount,
-            Currency = "USD",
+            Currency = currency,
             Status = "ISSUED"
         };
         var invoiceLine = new MilestoneManagerInvoiceLine
@@ -695,16 +728,16 @@ public sealed class EfPropertyManagerStore(
         var schedule = await db.MilestoneManagerUtilitySchedules.Where(x => x.ManagerUserId == managerUserId && x.PropertyId == property.Id && x.UtilityType == reading.UtilityType && x.IsActive && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
         if (request.Rate is > 0) { if (schedule is null) { schedule = new MilestoneManagerUtilitySchedule { ManagerUserId = managerUserId, OwnerUserId = request.OwnerUserId, PropertyId = property.Id, UtilityType = reading.UtilityType, Rate = request.Rate.Value }; db.MilestoneManagerUtilitySchedules.Add(schedule); } else schedule.Rate = request.Rate.Value; }
         var rate = request.Rate ?? schedule?.Rate ?? 0m;
-        if (rate > 0) await CreateUtilityChargeFromReadingAsync(managerUserId, request.OwnerUserId, property.Id, reading.UtilityType, reading.BillingPeriod, usage, rate, cancellationToken);
+        if (rate > 0) await CreateUtilityChargeFromReadingAsync(managerUserId, request.OwnerUserId, property.Id, reading.UtilityType, reading.BillingPeriod, usage, rate, NormalizeCurrency(request.Currency), cancellationToken);
         await AuditAsync(managerUserId, anomaly ? "UtilityAnomalyDetected" : "MeterReadingRecorded", "MeterReading", reading.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken);
         return ToDto(reading);
     }
 
-    private async Task CreateUtilityChargeFromReadingAsync(Guid managerUserId, Guid ownerUserId, Guid propertyId, string utilityType, string period, decimal usage, decimal rate, CancellationToken cancellationToken)
+    private async Task CreateUtilityChargeFromReadingAsync(Guid managerUserId, Guid ownerUserId, Guid propertyId, string utilityType, string period, decimal usage, decimal rate, string currency, CancellationToken cancellationToken)
     {
         var amount = decimal.Round(usage * rate, 2, MidpointRounding.AwayFromZero);
-        var invoice = new MilestoneManagerInvoice { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceNumber = $"UTIL-{timeProvider.GetUtcNow():yyyyMMdd}-{RandomNumberGenerator.GetInt32(1000, 9999)}", IssueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime), DueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.AddDays(30)), Subtotal = amount, Total = amount, Balance = amount, Currency = "USD", Status = "ISSUED" };
-        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, UtilityType = utilityType, BillingPeriod = period, Usage = usage, Rate = rate, Amount = amount, InvoiceId = invoice.Id };
+        var invoice = new MilestoneManagerInvoice { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceNumber = $"UTIL-{timeProvider.GetUtcNow():yyyyMMdd}-{RandomNumberGenerator.GetInt32(1000, 9999)}", IssueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime), DueDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.AddDays(30)), Subtotal = amount, Total = amount, Balance = amount, Currency = currency, Status = "ISSUED" };
+        var charge = new MilestoneManagerUtilityCharge { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, UtilityType = utilityType, BillingPeriod = period, Usage = usage, Rate = rate, Amount = amount, Currency = currency, InvoiceId = invoice.Id };
         db.MilestoneManagerInvoices.Add(invoice); db.MilestoneManagerUtilityCharges.Add(charge); db.MilestoneManagerInvoiceLines.Add(new MilestoneManagerInvoiceLine { InvoiceId = invoice.Id, Description = $"{utilityType} utility {period}", Quantity = usage, UnitAmount = rate, Amount = amount }); db.MilestoneManagerLedgerEntries.Add(new MilestoneManagerLedgerEntry { ManagerUserId = managerUserId, OwnerUserId = ownerUserId, PropertyId = propertyId, InvoiceId = invoice.Id, EntryType = "UTILITY", Description = $"{utilityType} utility {period}", Amount = amount, OccurredOn = invoice.IssueDate });
         await Task.CompletedTask;
     }
@@ -744,7 +777,26 @@ public sealed class EfPropertyManagerStore(
     { var item = await db.MilestoneManagerMaintenances.AsNoTracking().SingleOrDefaultAsync(x => x.Id == maintenanceId && !x.IsDeleted, cancellationToken); if (item is null || (!isAdmin && item.ManagerUserId != actorUserId && item.OwnerUserId != actorUserId)) return []; return await db.MilestoneManagerMaintenanceActivities.AsNoTracking().Where(x => x.MaintenanceId == maintenanceId && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).Select(x => new MaintenanceActivityDto(x.Id, x.MaintenanceId, x.ActorUserId, x.Action, x.Details, x.CreatedAt)).ToListAsync(cancellationToken); }
 
     public async Task<MaintenanceAttachmentDto> AddMaintenanceAttachmentAsync(Guid managerUserId, AddMaintenanceAttachmentRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); var item = await db.MilestoneManagerMaintenances.SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Maintenance request not found."); var safe = Path.GetFileName(request.FileName); if (safe != request.FileName || string.IsNullOrWhiteSpace(request.ContentBase64)) throw new InvalidOperationException("Attachment is invalid."); byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Attachment content is not valid base64."); } var key = $"property-manager/{managerUserId:N}/maintenance/{item.Id:N}/{Guid.NewGuid():N}-{safe}"; await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, request.ContentType, 25 * 1024 * 1024), stream, cancellationToken); var attachment = new MilestoneManagerMaintenanceAttachment { ManagerUserId = managerUserId, MaintenanceId = item.Id, FileName = safe, ContentType = request.ContentType, StorageKey = key }; db.MilestoneManagerMaintenanceAttachments.Add(attachment); await AuditAsync(managerUserId, "MaintenanceAttachmentAdded", "Maintenance", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return new MaintenanceAttachmentDto(attachment.Id, attachment.MaintenanceId, attachment.FileName, attachment.ContentType, attachment.Status, attachment.CreatedAt); }
+    { await EnsureManagerAsync(managerUserId, cancellationToken); var legacy = await db.MilestoneManagerMaintenances.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); var professional = await db.MilestonePmMaintenanceCases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); var workOrder = await db.MilestoneWorkOrders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MaintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (legacy is null && professional is null && workOrder is null) throw new InvalidOperationException("Maintenance request or work order not found."); var safe = Path.GetFileName(request.FileName); var contentType = request.ContentType.Trim().ToLowerInvariant(); if (safe != request.FileName || string.IsNullOrWhiteSpace(request.ContentBase64) || contentType is not ("application/pdf" or "image/jpeg" or "image/png")) throw new InvalidOperationException("Attachment is invalid."); byte[] bytes; try { bytes = Convert.FromBase64String(request.ContentBase64); } catch { throw new InvalidOperationException("Attachment content is not valid base64."); } if (bytes.Length == 0 || bytes.Length > 25 * 1024 * 1024) throw new InvalidOperationException("Attachment must be between 1 byte and 25 MB."); var recordType = workOrder is null ? "maintenance" : "work-orders"; var key = $"property-manager/{managerUserId:N}/{recordType}/{request.MaintenanceId:N}/{Guid.NewGuid():N}-{safe}"; await using var stream = new MemoryStream(bytes); await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(key, contentType, 25 * 1024 * 1024), stream, cancellationToken); var attachment = new MilestoneManagerMaintenanceAttachment { ManagerUserId = managerUserId, MaintenanceId = request.MaintenanceId, FileName = safe, ContentType = contentType, StorageKey = key }; db.MilestoneManagerMaintenanceAttachments.Add(attachment); await AuditAsync(managerUserId, workOrder is null ? "MaintenanceAttachmentAdded" : "WorkOrderAttachmentAdded", workOrder is null ? "Maintenance" : "WorkOrder", request.MaintenanceId, cancellationToken); await db.SaveChangesAsync(cancellationToken); return new MaintenanceAttachmentDto(attachment.Id, attachment.MaintenanceId, attachment.FileName, attachment.ContentType, attachment.Status, attachment.CreatedAt); }
+    public async Task<IReadOnlyList<MaintenanceAttachmentDto>> ListMaintenanceAttachmentsAsync(Guid managerUserId, Guid maintenanceId, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        if (!await db.MilestoneManagerMaintenances.AnyAsync(x => x.Id == maintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken) && !await db.MilestonePmMaintenanceCases.AnyAsync(x => x.Id == maintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken) && !await db.MilestoneWorkOrders.AnyAsync(x => x.Id == maintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken))
+            throw new InvalidOperationException("Maintenance request or work order not found.");
+        return (await db.MilestoneManagerMaintenanceAttachments.AsNoTracking().Where(x => x.MaintenanceId == maintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted).OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken))
+            .Select(x => new MaintenanceAttachmentDto(x.Id, x.MaintenanceId, x.FileName, x.ContentType, x.Status, x.CreatedAt)).ToList();
+    }
+
+    public async Task<DocumentDownloadDto?> GetMaintenanceAttachmentDownloadAsync(Guid managerUserId, Guid maintenanceId, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        var attachment = await db.MilestoneManagerMaintenanceAttachments.SingleOrDefaultAsync(x => x.Id == attachmentId && x.MaintenanceId == maintenanceId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken);
+        if (attachment is null) return null;
+        var expiresAt = timeProvider.GetUtcNow().AddHours(1);
+        var url = await storageProvider.CreateDownloadUrlAsync(attachment.StorageKey, expiresAt, cancellationToken);
+        await AuditAsync(managerUserId, "MaintenanceAttachmentDownloaded", "Maintenance", maintenanceId, cancellationToken);
+        return new DocumentDownloadDto(attachment.Id, attachment.FileName, attachment.ContentType, 0, url, expiresAt);
+    }
 
     public async Task<VendorDto?> UpdateVendorAsync(Guid managerUserId, Guid vendorId, UpdateVendorRequest request, CancellationToken cancellationToken)
     { await EnsureManagerAsync(managerUserId, cancellationToken); var item = await db.MilestoneManagerVendors.SingleOrDefaultAsync(x => x.Id == vendorId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (item is null) return null; if (request.Contact is not null) item.Contact = request.Contact.Trim(); if (request.Notes is not null) item.Notes = request.Notes.Trim(); if (request.ServiceAreas is not null) item.ServiceAreasJson = JsonSerializer.Serialize(request.ServiceAreas); if (request.AvailabilityJson is not null) item.AvailabilityJson = request.AvailabilityJson; if (request.Rate is not null) item.Rate = request.Rate; if (request.Rating is not null) item.Rating = Math.Clamp(request.Rating.Value, 0, 5); if (request.IsPreferred is not null) item.IsPreferred = request.IsPreferred.Value; if (request.IsSuspended is not null) item.IsSuspended = request.IsSuspended.Value; if (request.IsActive is not null) item.IsActive = request.IsActive.Value; item.UpdatedAt = timeProvider.GetUtcNow(); await AuditAsync(managerUserId, "VendorUpdated", "Vendor", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
@@ -1241,9 +1293,16 @@ public sealed class EfPropertyManagerStore(
         return true;
     }
     private static OwnerDto ToDto(MilestoneManagerOwner x) => new(x.Id, x.OwnerUserId, x.DisplayName, x.Email, x.VerificationStatus, x.InvitationStatus, x.CommunityId);
-    private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus);
+    private static PropertyDto ToDto(MilestoneManagerProperty x) => new(x.Id, x.OwnerUserId, x.CommunityId, x.Title, x.UnitNumber, x.Address, x.Status, x.OccupancyStatus, x.RentalListingId);
     private static InvoiceDto ToDto(MilestoneManagerInvoice x, IEnumerable<MilestoneManagerInvoiceLine> lines) => new(x.Id, x.OwnerUserId, x.PropertyId, x.InvoiceNumber, x.IssueDate, x.DueDate, x.Subtotal, x.Tax, x.Total, x.AmountPaid, x.Balance, x.Currency, x.Status, lines.Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitAmount, l.Amount)).ToList());
-    private static UtilityChargeDto ToDto(MilestoneManagerUtilityCharge x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.UtilityType, x.BillingPeriod, x.Usage, x.Rate, x.Amount, x.InvoiceId, x.Status);
+    private static string NormalizeCurrency(string currency)
+    {
+        var value = string.IsNullOrWhiteSpace(currency) ? "JMD" : currency.Trim().ToUpperInvariant();
+        if (value.Length != 3 || value.Any(ch => ch is < 'A' or > 'Z')) throw new InvalidOperationException("Currency must be a three-letter ISO code.");
+        return value;
+    }
+
+    private static UtilityChargeDto ToDto(MilestoneManagerUtilityCharge x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.UtilityType, x.BillingPeriod, x.Usage, x.Rate, x.Amount, x.Currency, x.InvoiceId, x.Status);
     private static MaintenanceDto ToDto(MilestoneManagerMaintenance x) => new(x.Id, x.OwnerUserId, x.PropertyId, x.VendorId, x.Title, x.Description, x.Category, x.Urgency, x.Status, x.ScheduledAt, x.Cost, x.Notes);
     private static VendorDto ToDto(MilestoneManagerVendor x) => new(x.Id, x.Name, x.Category, x.Contact, x.VerificationStatus, x.IsActive, x.Notes, ParseStringList(x.ServiceAreasJson), x.Rate, x.Rating, x.IsPreferred, x.IsSuspended, x.CompletedJobCount, x.SpendTotal);
     private static NoticeDto ToDto(MilestoneManagerNotice x)

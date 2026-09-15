@@ -7,6 +7,7 @@ public interface IPropertyManagerStore
     Task<OwnerDto?> ReviewOwnerAsync(Guid managerUserId, Guid ownerUserId, string status, CancellationToken cancellationToken);
     Task<ManagerProfileDto> RenewSubscriptionAsync(Guid managerUserId, CancellationToken cancellationToken);
     Task<PropertyDto> AddPropertyAsync(Guid managerUserId, AddPropertyRequest request, CancellationToken cancellationToken);
+    Task<PropertyDto?> LinkRentalListingAsync(Guid managerUserId, Guid propertyId, LinkRentalListingRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<PropertyDto>> BulkAssignPropertiesAsync(Guid managerUserId, BulkAssignPropertiesRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<PropertyAssignmentHistoryDto>> GetPropertyAssignmentHistoryAsync(Guid managerUserId, Guid? propertyId, CancellationToken cancellationToken);
     Task<InvoiceDto> CreateInvoiceAsync(Guid managerUserId, CreateInvoiceRequest request, CancellationToken cancellationToken);
@@ -32,6 +33,8 @@ public interface IPropertyManagerStore
     Task<MaintenanceDto?> UpdateMaintenanceAsync(Guid managerUserId, Guid maintenanceId, UpdateMaintenanceRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<MaintenanceActivityDto>> ListMaintenanceActivityAsync(Guid actorUserId, bool isAdmin, Guid maintenanceId, CancellationToken cancellationToken);
     Task<MaintenanceAttachmentDto> AddMaintenanceAttachmentAsync(Guid managerUserId, AddMaintenanceAttachmentRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<MaintenanceAttachmentDto>> ListMaintenanceAttachmentsAsync(Guid managerUserId, Guid maintenanceId, CancellationToken cancellationToken);
+    Task<DocumentDownloadDto?> GetMaintenanceAttachmentDownloadAsync(Guid managerUserId, Guid maintenanceId, Guid attachmentId, CancellationToken cancellationToken);
     Task<VendorDto> CreateVendorAsync(Guid managerUserId, CreateVendorRequest request, CancellationToken cancellationToken);
     Task<VendorDto?> UpdateVendorAsync(Guid managerUserId, Guid vendorId, UpdateVendorRequest request, CancellationToken cancellationToken);
     Task<VendorDocumentDto> AddVendorDocumentAsync(Guid managerUserId, AddVendorDocumentRequest request, CancellationToken cancellationToken);
@@ -93,7 +96,8 @@ public interface IPropertyManagerStore
 }
 
 public sealed record InviteOwnerRequest(string Email, string DisplayName, Guid? OwnerUserId = null, Guid? CommunityId = null);
-public sealed record AddPropertyRequest(Guid OwnerUserId, string Title, string UnitNumber, string Address, Guid? CommunityId = null);
+public sealed record AddPropertyRequest(Guid OwnerUserId, string Title, string UnitNumber, string Address, Guid? CommunityId = null, Guid? RentalListingId = null);
+public sealed record LinkRentalListingRequest(Guid? RentalListingId);
 public sealed record BulkAssignPropertiesRequest(IReadOnlyList<Guid> PropertyIds, Guid OwnerUserId, string Reason, Guid? BatchId = null);
 public sealed record CreateInvoiceLineRequest(string Description, decimal Quantity, decimal UnitAmount);
 public sealed record CreateInvoiceRequest(Guid OwnerUserId, Guid? PropertyId, DateOnly DueDate, decimal Tax, IReadOnlyList<CreateInvoiceLineRequest> Lines);
@@ -103,8 +107,8 @@ public sealed record PayInvoiceRequest(decimal Amount, string IdempotencyKey);
 public sealed record PaymentQuery(Guid? OwnerUserId = null, string? Status = null, DateOnly? From = null, DateOnly? To = null);
 public sealed record SavePaymentMethodRequest(Guid OwnerUserId, string Provider, string ProviderReference, string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault = false);
 public sealed record RefundPaymentRequest(decimal? Amount, string Reason, string IdempotencyKey);
-public sealed record CreateUtilityRequest(Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal Usage, decimal Rate);
-public sealed record RecordMeterReadingRequest(Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal PreviousReading, decimal CurrentReading, decimal? Rate = null, string? PhotoBase64 = null, string? BillBase64 = null);
+public sealed record CreateUtilityRequest(Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal Usage, decimal Rate, string Currency = "JMD");
+public sealed record RecordMeterReadingRequest(Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal PreviousReading, decimal CurrentReading, decimal? Rate = null, string? PhotoBase64 = null, string? BillBase64 = null, string Currency = "JMD");
 public sealed record SaveUtilityScheduleRequest(Guid OwnerUserId, Guid PropertyId, string UtilityType, decimal Rate, int DayOfMonth);
 public sealed record CreateUtilityDisputeRequest(Guid UtilityChargeId, string Reason, string? EvidenceBase64 = null);
 public sealed record DecideUtilityDisputeRequest(string Status, string Decision, decimal AdjustmentAmount);
@@ -188,7 +192,7 @@ public sealed record ManagerProfileDto(
     int UnitsUsed = 0,
     string? CancellationReason = null);
 public sealed record OwnerDto(Guid Id, Guid OwnerUserId, string DisplayName, string Email, string VerificationStatus, string InvitationStatus, Guid? CommunityId);
-public sealed record PropertyDto(Guid Id, Guid OwnerUserId, Guid? CommunityId, string Title, string UnitNumber, string Address, string Status, string OccupancyStatus);
+public sealed record PropertyDto(Guid Id, Guid OwnerUserId, Guid? CommunityId, string Title, string UnitNumber, string Address, string Status, string OccupancyStatus, Guid? RentalListingId = null);
 public sealed record PropertyAssignmentHistoryDto(Guid Id, Guid PropertyId, Guid? PreviousOwnerUserId, Guid NewOwnerUserId, Guid ActorUserId, string Reason, Guid BatchId, DateTimeOffset ChangedAt);
 public sealed record InvoiceLineDto(Guid Id, string Description, decimal Quantity, decimal UnitAmount, decimal Amount);
 public sealed record InvoiceDto(Guid Id, Guid OwnerUserId, Guid? PropertyId, string InvoiceNumber, DateOnly IssueDate, DateOnly DueDate, decimal Subtotal, decimal Tax, decimal Total, decimal AmountPaid, decimal Balance, string Currency, string Status, IReadOnlyList<InvoiceLineDto> Lines);
@@ -197,13 +201,14 @@ public sealed record PaymentOperationDto(Guid Id, Guid InvoiceId, Guid OwnerUser
 public sealed record PaymentMethodDto(Guid Id, Guid OwnerUserId, string Provider, string Brand, string Last4, int ExpMonth, int ExpYear, bool IsDefault);
 public sealed record StatementEntryDto(DateOnly Date, string Type, string Description, decimal Amount, Guid? InvoiceId);
 public sealed record StatementDto(Guid OwnerUserId, DateOnly From, DateOnly To, decimal OpeningBalance, IReadOnlyList<StatementEntryDto> Entries, decimal ClosingBalance, IReadOnlyList<InvoiceDto> Invoices, IReadOnlyList<PaymentDto> Payments);
-public sealed record UtilityChargeDto(Guid Id, Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal Usage, decimal Rate, decimal Amount, Guid? InvoiceId, string Status);
+public sealed record UtilityChargeDto(Guid Id, Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal Usage, decimal Rate, decimal Amount, string Currency, Guid? InvoiceId, string Status);
 public sealed record MeterReadingDto(Guid Id, Guid OwnerUserId, Guid PropertyId, string UtilityType, string BillingPeriod, decimal PreviousReading, decimal CurrentReading, decimal Usage, bool IsAnomaly, string Status, DateTimeOffset CreatedAt);
 public sealed record UtilityScheduleDto(Guid Id, Guid OwnerUserId, Guid PropertyId, string UtilityType, decimal Rate, int DayOfMonth, bool IsActive, DateTimeOffset? LastRunAt);
 public sealed record UtilityDisputeDto(Guid Id, Guid UtilityChargeId, Guid OwnerUserId, string Reason, string Status, string? Decision, decimal AdjustmentAmount, DateTimeOffset CreatedAt);
 public sealed record MaintenanceDto(Guid Id, Guid OwnerUserId, Guid PropertyId, Guid? VendorId, string Title, string Description, string Category, string Urgency, string Status, DateTimeOffset? ScheduledAt, decimal Cost, string Notes);
 public sealed record MaintenanceActivityDto(Guid Id, Guid MaintenanceId, Guid ActorUserId, string Action, string Details, DateTimeOffset CreatedAt);
 public sealed record MaintenanceAttachmentDto(Guid Id, Guid MaintenanceId, string FileName, string ContentType, string Status, DateTimeOffset CreatedAt);
+public sealed record MaintenanceAttachmentDownloadDto(Guid Id, string FileName, string ContentType, string Url, DateTimeOffset ExpiresAt);
 public sealed record VendorDto(Guid Id, string Name, string Category, string Contact, string VerificationStatus, bool IsActive, string Notes, IReadOnlyList<string>? ServiceAreas = null, decimal? Rate = null, decimal Rating = 0, bool IsPreferred = false, bool IsSuspended = false, int CompletedJobCount = 0, decimal SpendTotal = 0);
 public sealed record VendorDocumentDto(Guid Id, Guid VendorId, string DocumentType, string FileName, DateOnly? ExpiresOn, string Status, DateTimeOffset CreatedAt);
 public sealed record NoticeDto(

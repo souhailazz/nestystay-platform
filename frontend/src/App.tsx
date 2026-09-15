@@ -37,9 +37,13 @@ const PropertyDetailsPage = lazy(() => import("./pages/ProductPages").then(({ Pr
 const PropertyManagementPage = lazy(() => import("./pages/ProductPages").then(({ PropertyManagementPage }) => ({ default: PropertyManagementPage })));
 
 const OwnerPortalPage = lazy(() => import("./pages/PropertyManagerPages").then(({ OwnerPortalPage }) => ({ default: OwnerPortalPage })));
+const OwnerP0PortalPage = lazy(() => import("./pages/OwnerP0PortalPage").then(({ default: page }) => ({ default: page })));
 const PropertyManagerDashboardPage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerDashboardPage }) => ({ default: PropertyManagerDashboardPage })));
 const PropertyManagerGatePage = lazy(() => import("./pages/PropertyManagerPages").then(({ PropertyManagerGatePage }) => ({ default: PropertyManagerGatePage })));
 const PropertyManagerPmsPage = lazy(() => import("./pages/PropertyManagerPmsPage").then(({ PropertyManagerPmsPage }) => ({ default: PropertyManagerPmsPage })));
+const PropertyManagerP0Page = lazy(() => import("./pages/PropertyManagerP0Page").then(({ default: page }) => ({ default: page })));
+const PropertyManagerProfessionalPage = lazy(() => import("./pages/PropertyManagerProfessionalPage").then(({ default: page }) => ({ default: page })));
+const PropertyManagerProfessionalCompletionPage = lazy(() => import("./pages/PropertyManagerProfessionalCompletionPage").then(({ PropertyManagerProfessionalCompletionPage }) => ({ default: PropertyManagerProfessionalCompletionPage })));
 
 const AdminOpsSpecPage = lazy(() => import("./pages/CompletionPages").then(({ AdminOpsSpecPage }) => ({ default: AdminOpsSpecPage })));
 const AuthSpecFlowPage = lazy(() => import("./pages/CompletionPages").then(({ AuthSpecFlowPage }) => ({ default: AuthSpecFlowPage })));
@@ -497,6 +501,12 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PropertyManagerPmsPage auth={auth} module="gates" />;
     case "pm-dashboard":
       return <PropertyManagerDashboardPage auth={auth} />;
+    case "pm-p0":
+      return <PropertyManagerP0Page auth={auth} />;
+    case "pm-professional":
+      return <PropertyManagerProfessionalPage auth={auth} />;
+    case "pm-professional-completion":
+      return <PropertyManagerProfessionalCompletionPage auth={auth} />;
     case "pm-invoices":
       return <PropertyManagerPmsPage auth={auth} module="invoices" />;
     case "pm-maintenance":
@@ -507,6 +517,8 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
       return <PropertyManagerPmsPage auth={auth} module="documents" />;
     case "owner-dashboard":
       return <OwnerPortalPage auth={auth} />;
+    case "owner-p0":
+      return <OwnerP0PortalPage auth={auth} />;
     case "pm-gate":
       return <PropertyManagerGatePage auth={auth} />;
     case "pm-utilities":
