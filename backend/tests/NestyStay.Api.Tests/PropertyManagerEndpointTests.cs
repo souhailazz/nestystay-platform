@@ -180,6 +180,13 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         Assert.Equal(documentId, body.GetProperty("id").GetGuid());
         Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("url").GetString()));
 
+        var spoofedDocument = await client.PostAsJsonAsync("/api/property-manager/documents", new
+        {
+            title = "Spoofed statement", category = "Finance", fileName = "spoofed.pdf", contentType = "application/pdf",
+            sizeBytes = 11, contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("not a pdf!!"))
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, spoofedDocument.StatusCode);
+
         var exportResponse = await client.PostAsJsonAsync("/api/property-manager/documents/exports", new { documentIds = new[] { documentId } });
         Assert.Equal(HttpStatusCode.OK, exportResponse.StatusCode);
         var export = await exportResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -452,6 +459,8 @@ public sealed class PropertyManagerEndpointTests : IClassFixture<NestyStayApiFac
         var version = await client.PostAsJsonAsync("/api/property-manager/documents/versions", new { documentId, fileName = "lifecycle-v2.pdf", contentType = "application/pdf", sizeBytes = versionBytes.Length, contentBase64 = Convert.ToBase64String(versionBytes) });
         Assert.Equal(HttpStatusCode.OK, version.StatusCode);
         Assert.Equal(2, (await version.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("version").GetInt32());
+        var spoofedVersion = await client.PostAsJsonAsync("/api/property-manager/documents/versions", new { documentId, fileName = "lifecycle-v3.pdf", contentType = "application/pdf", sizeBytes = 7, contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("not pdf")) });
+        Assert.Equal(HttpStatusCode.BadRequest, spoofedVersion.StatusCode);
 
         var gate = await client.PostAsJsonAsync("/api/property-manager/gate/messages", new { propertyId, recipient = "gate@example.invalid", message = "Visitor expected", visitorType = "VISITOR", validFrom = DateTimeOffset.UtcNow, validUntil = DateTimeOffset.UtcNow.AddHours(2) });
         var gateId = (await gate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();

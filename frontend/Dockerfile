@@ -15,4 +15,8 @@ RUN npm run build
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+RUN sed -i 's@pid /var/run/nginx.pid;@pid /tmp/nginx.pid;@' /etc/nginx/nginx.conf \
+    && mkdir -p /var/cache/nginx /var/run /var/log/nginx \
+    && chown -R nginx:nginx /usr/share/nginx/html /etc/nginx/conf.d /var/cache/nginx /var/run /var/log/nginx
+USER nginx
+EXPOSE 8080

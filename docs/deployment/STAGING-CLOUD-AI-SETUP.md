@@ -16,7 +16,7 @@ The release must use the root `docker-compose.production.yml` and
 /api/*      -> api:8080
 /openapi/*  -> api:8080
 /swagger/*  -> api:8080
-everything else -> frontend:80
+everything else -> frontend:8080
 ```
 
 Do not use the standalone `frontend/deploy/docker-compose.yml` for staging;
