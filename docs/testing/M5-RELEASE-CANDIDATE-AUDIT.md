@@ -1,6 +1,6 @@
 # M5 professional PMS release-candidate audit
 
-This is the release-candidate assessment after the operational hardening slice. `FULL` is reserved for a persisted, authorized, API-connected and tested workflow in the local/test environment. Live Stripe, Alibaba, SMS/push, geocoding, bank and production deployment certification are separate.
+This is the release-candidate assessment after the operational hardening slice. `FULL` is reserved for a persisted, authorized, API-connected and tested workflow in the local/test environment. Live Stripe/Stripe Identity, SMS/push, geocoding, bank and production deployment certification are separate. Alibaba is not an active runtime provider; historical migration snapshots are retained for schema history only.
 
 | # | Area | Status | Release assessment |
 |---:|---|:---:|---|
@@ -68,14 +68,14 @@ This is the release-candidate assessment after the operational hardening slice. 
 
 ## Decision
 
-M5 is **locally complete for the 34-area application matrix**: each row has a persisted, scope-authorized API path, responsive manager UI, validation/retry/history states and automated API/browser coverage. The remaining limitations are deployment/provider certification only: live Stripe/Connect and wallets, Alibaba callbacks, production email/SMS/push, production object storage, geocoding/calendar providers and bank-account verification. The extensible completion workspace intentionally stores area-specific operational details as bounded JSON while manager/owner/property boundaries, idempotency, row versions and append-only events remain relational and server-enforced. This is not a claim of Jamaican statutory trust-accounting compliance. Do not merge to `main` or deploy from this audit branch.
+M5 is **locally complete for the 34-area application matrix**: each row has a persisted, scope-authorized API path, responsive manager UI, validation/retry/history states and automated API/browser coverage. The remaining limitations are deployment/provider certification only: live Stripe/Connect and wallets, Stripe Identity live sessions and signed callbacks, production email/SMS/push, production object storage, geocoding/calendar providers and bank-account verification. The extensible completion workspace intentionally stores area-specific operational details as bounded JSON while manager/owner/property boundaries, idempotency, row versions and append-only events remain relational and server-enforced. This is not a claim of Jamaican statutory trust-accounting compliance. Do not merge to `main` or deploy from this audit branch.
 
 ## Local application versus provider certification
 
 | Integration | Local application | Live/deployment gate |
 |---|---|---|
 | Stripe checkout, wallets, refunds and Connect references | FULL with local/test adapter and explicit pending/error states | Live keys, merchant domains, webhooks and Connect onboarding required |
-| Alibaba eKYC | FULL application flow with secure upload/camera fallback and retry state | Client Alibaba credentials, callback URL and production verification required |
+| Stripe Identity | FULL local/test application flow with secure upload/camera fallback and retry state | Client Stripe Identity credentials, return URL and signed webhook configuration required for live verification |
 | Email | FULL queued templates, outbox status, retry/dead-letter and history | SMTP/Brevo credentials and sender-domain validation required |
 | SMS and Web Push | FULL queued notification/preferences/fallback state with safe local adapter | SMS provider credentials and VAPID keys required |
 | Object storage | FULL private-storage abstraction, scoped download and recovery flow | Production S3/MinIO bucket, keys and lifecycle policy required |

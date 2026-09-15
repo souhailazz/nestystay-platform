@@ -15,7 +15,7 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 | Area | Local application | Real provider / production |
 |---|---|---|
 | Stripe | PASS (adapter, local capture, idempotency) | BLOCKED pending live credentials/webhook/Connect validation |
-| eKYC | PASS (application boundary) | BLOCKED pending Alibaba credentials and signed callback validation |
+| eKYC | PASS (Stripe Identity application boundary) | BLOCKED pending Stripe Identity live credentials, return URL and signed webhook validation |
 | Security | PASS for local scope and authorization tests | Production review, WAF, secret manager and monitoring required |
 | Launch | Not claimed | NO until deployment checklist is complete |
 
@@ -45,7 +45,7 @@ Primary contractual source: `docs/contracts/NestyStay-Signed-Agreement-April-202
 
 - The current API stores wellness coverage coordinates and service radius; map tiles/geocoding remain configurable provider integrations with manual fallback.
 - Saved-search/favorite persistence and plan selection remain configurable/client-side enhancements where no signed-contract persistence rule exists; provider analytics, quote responses, review responses, scheduled/audience-targeted notices and recurring workflow records now use real API calls. Local asynchronous ZIP export and expiry-reminder workers are implemented; production object-storage read/retention certification remains a deployment follow-up.
-- Real Stripe/Alibaba credentials, live payment rails, SMS/push delivery, geocoding network, bank reconciliation and production deployment controls remain separate production validation gates. QR image decoding is implemented with the browser `BarcodeDetector` API and keeps a manual fallback.
+- Real Stripe/Stripe Identity credentials, live payment rails, SMS/push delivery, geocoding network, bank reconciliation and production deployment controls remain separate production validation gates. QR image decoding is implemented with the browser `BarcodeDetector` API and keeps a manual fallback.
 - Browser session storage is an HttpOnly `nestyStay.session` cookie with a strict double-submit CSRF token; legacy bearer values are cleared from localStorage. PostgreSQL relationship hardening added 45 reviewed FKs with 0 enforced M5 orphan rows; the contextual QR mismatch value is intentionally retained without an FK.
 
 ### Property listing lifecycle enhancement (2026-09-05)
