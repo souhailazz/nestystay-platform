@@ -1,28 +1,89 @@
-# NestyStay M1–M5 client visual evidence
+# NestyStay client-demo videos
 
-This is a non-technical viewing guide for the current local NestyStay implementation. Open the MP4 files in each milestone folder for slow, readable browser demonstrations. PNGs are the before/result stills and responsive references.
+These are client-safe walkthroughs of the real NestyStay frontend running in Chromium against the real ASP.NET API and an isolated PostgreSQL demo database. The recordings use genuine browser navigation, typing, clicking, scrolling, modal/form interaction, and backend-driven status changes.
 
-## How to review
+## Deliverables
 
-1. Start with [the full-system demo](Full-System/videos/NestyStay-M1-M5-Full-System-Demo.mp4).
-2. Review the milestone folders in order: M1 Core, M2 Badges, M3 Wellness, M4 Directories + QR, and M5 Property Manager.
-3. Use [EVIDENCE-MANIFEST.md](EVIDENCE-MANIFEST.md) to jump to any specific functionality.
+### 01 — Milestone 1: Core Booking System
 
-## What the videos prove
+- [MP4 — `01_Milestone_1_Core_Booking_System.mp4`](01_Milestone_1_Core_Booking_System.mp4)
+- [Original WebM — `01_Milestone_1_Core_Booking_System.webm`](01_Milestone_1_Core_Booking_System.webm)
+- Duration: `03:02.00`
+- Resolution: `1920×1080`
+- Final MP4 size: `19,187,228` bytes
+- WebM size: `13,319,564` bytes
 
-Each capture is a clean Chromium browser view at 1920×1080. The browser pauses after navigation and visible state changes so a client can read the screen. The recorded journeys use real frontend routes and the running local API/database fixture.
+Demonstrates:
 
-The recordings prove application behavior, not external-provider certification. Stripe checkout is shown at the application/test boundary; real Stripe provider validation remains pending. eKYC is shown at the application checkpoint; real Alibaba provider validation remains pending.
+- public NestyStay landing page and real sign-in
+- real 2FA challenge and code entry
+- Explore discovery, host-badge filtering, property detail, gallery/content, and booking action
+- booking popup with dates, guest count, quote, fees, and total
+- booking creation into `PENDING`
+- NestyStay identity-verification flow with the deterministic eKYC test result driving `APPROVED`
+- checkout/payment summary, local payment-test authorization, and captured/confirmed success
+- a second real booking resolved through the deterministic rejection path, showing `REJECTED` and the cancelled-booking view
+- final return to the confirmed booking receipt/trip state
 
-## Evidence boundary
+### 02 — Milestone 2: Badge System
 
-Client visuals contain no terminal, test runner, API JSON, source code, or secrets. Technical reports, Playwright traces, API results, PostgreSQL evidence, and security evidence remain separate in testing-evidence/milestones-1-5/ and the repository testing documentation.
+- [MP4 — `02_Milestone_2_Badge_System.mp4`](02_Milestone_2_Badge_System.mp4)
+- [Original WebM — `02_Milestone_2_Badge_System.webm`](02_Milestone_2_Badge_System.webm)
+- Duration: `02:01.48`
+- Resolution: `1920×1080`
+- Final MP4 size: `14,766,517` bytes
+- WebM size: `12,524,106` bytes
 
-## Package contents
+Demonstrates:
 
-- [Demo data](DEMO-DATA.md) — synthetic names and records used.
-- [Evidence manifest](EVIDENCE-MANIFEST.md) — every required M1–M5 functionality folder.
-- [Video validation report](VIDEO-VALIDATION-REPORT.md) — codec, resolution, duration, and playback checks.
-- [Secret review](SECRET-REVIEW.md) — client-media and documentation review.
+- real public host profiles for `FREE`, `VERIFIED`, `TRUSTED`, and `WELLNESS`
+- badge visibility and badge-linked profile/listing features
+- Explore filters for all four badge levels and the corresponding real listings
+- admin sign-in and the real Badge management surface
+- searching/filtering badge assignments, viewing the catalog/history area, and reviewing lifecycle information without changing non-demo data
+- final navigation through the four real seeded profiles so the progression is clear without a fabricated comparison graphic
 
-Functional counts: M1 8, M2 8, M3 11, M4 14, M5 20.
+## Demo data and accounts
+
+The run used dedicated synthetic records in the isolated database `nestystay_demo_videos_20260912`.
+
+- Guest used in the final Milestone 1 recording: `client-demo-guest-final5-20260912@nestystay.local` (2FA enabled)
+- Admin: `client-demo-admin@nestystay.local`
+- FREE host: `demo.free.host@nestystay.local` — Maya Free
+- VERIFIED host: `demo.verified.host@nestystay.local` — Naomi Verified
+- TRUSTED host: `demo.trusted.host@nestystay.local` — Andre Trusted
+- WELLNESS host: `demo.wellness.host@nestystay.local` — Priya Wellness
+
+Passwords, OTP values, tokens, and connection details are intentionally not recorded in this document. The hosts and admin are dedicated local demo accounts. The seed preparation is implemented by `frontend/e2e/client-demo/demo-video-helpers.mjs` and calls the development seed endpoint before creating or updating only these demo records.
+
+## Provider modes and honesty boundary
+
+- Stripe: deterministic local payment adapter/test mode. The application visibly labels the checkout as `Local payment test mode`; no live Stripe account or production card data was used.
+- Alibaba/eKYC: deterministic local development adapter for the configured Alibaba Cloud eKYC integration. The real NestyStay identity page opens its configured provider flow, and the recording remains on NestyStay; no Alibaba webpage is fabricated or presented as live. The approval and rejection states come from real booking API state transitions using the returned deterministic transaction reference.
+- Email: local/file outbox mode. No external email delivery is claimed.
+- Storage: local persistent object storage.
+- SMS: local development sender.
+- Backend/database: real ASP.NET Core backend with real PostgreSQL persistence in the isolated demo database above.
+
+## Recording setup
+
+- Chromium desktop, clean recording context, `1920×1080`, 100% zoom, device scale factor 1, 25 fps
+- Final MP4: H.264, `yuv420p`, video-only; original VP8 WebM retained
+- No audio track; silence is intentional
+- A temporary Playwright-injected cursor (`window.__NESTYSTAY_DEMO_CURSOR__`) follows real Playwright mouse events, includes a subtle shadow/outline and click pulse, and is not part of the production application bundle
+- Dedicated scripts: `frontend/e2e/client-demo/milestone1-video.spec.mjs`, `milestone2-video.spec.mjs`, and `demo-video-helpers.mjs`
+
+## Exact source revisions
+
+- Root/frontend application SHA used for the recording: `687cf1986c8dc9a791141a02b85507daf040ad9c`
+- Backend application SHA: `8381b2eeec5fc6b04dafffcf2eb99bd71c8ecb55` (backend source was unchanged during the frontend hardening commits)
+- The dedicated recording scripts and media are evidence-run working-tree additions; they do not alter the production bundle.
+
+## Validation
+
+- Both MP4 files opened and fully decoded successfully with ffmpeg.
+- Representative opening, mid-flow, status, admin, and ending frames were inspected at native `1920×1080`; the injected cursor was visible.
+- The recordings contain real Chromium interaction and application transitions, not screenshots, slideshows, fake HTML states, or DOM result replacement.
+- No terminals, devtools, test runner, secrets, tokens, private identity documents, or unrelated browser tabs are visible.
+- Aspect ratio, codec, pixel format, frame rate, and durations were verified with ffprobe.
+- No deployment or merge to `main` was performed.

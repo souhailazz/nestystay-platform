@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-12T17:58:33.595Z",
+  "generatedAt": "2026-09-15T02:36:14.215Z",
   "canonicalScreens": 95,
   "routePatterns": 146,
-  "aliases": 51,
+  "aliases": 52,
   "project": "desktop-chromium",
   "results": [
     {
@@ -2010,6 +2010,20 @@
     {
       "screen": "HOST-OPS",
       "route": "/host/settings",
+      "role": "Host",
+      "desktop": true,
+      "tablet": false,
+      "mobile": false,
+      "status": "passed",
+      "documentStatus": 200,
+      "shellRendered": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "screen": "HOST-OPS",
+      "route": "/host/verification",
       "role": "Host",
       "desktop": true,
       "tablet": false,

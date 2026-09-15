@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T17:59:35.100Z",
+  "generatedAt": "2026-09-15T02:37:44.079Z",
   "project": "desktop-chromium",
   "viewport": {
     "width": 1440,
@@ -13,7 +13,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 21,
+      "controlCount": 19,
       "undersized": []
     },
     {
@@ -21,7 +21,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 39,
+      "controlCount": 35,
       "undersized": []
     },
     {

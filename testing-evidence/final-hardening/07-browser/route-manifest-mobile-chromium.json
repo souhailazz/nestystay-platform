@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-12T18:09:13.990Z",
+  "generatedAt": "2026-09-15T02:41:57.998Z",
   "canonicalScreens": 95,
   "routePatterns": 146,
-  "aliases": 51,
+  "aliases": 52,
   "project": "mobile-chromium",
   "results": [
     {
@@ -2010,6 +2010,20 @@
     {
       "screen": "HOST-OPS",
       "route": "/host/settings",
+      "role": "Host",
+      "desktop": false,
+      "tablet": false,
+      "mobile": true,
+      "status": "passed",
+      "documentStatus": 200,
+      "shellRendered": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "screen": "HOST-OPS",
+      "route": "/host/verification",
       "role": "Host",
       "desktop": false,
       "tablet": false,
