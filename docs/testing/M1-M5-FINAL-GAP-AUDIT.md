@@ -15,7 +15,7 @@ The forensic classifications below are intentionally exact:
 - **MANUAL HUMAN VERIFICATION REQUIRED** — automation is insufficient for the remaining acceptance claim.
 - **OUTSIDE SIGNED SCOPE** — explicitly excluded optional work is not a release defect.
 
-Evidence used: clean local PostgreSQL database with current migrations and deterministic seed, local backend health (`/api/health/live` and `/api/health/ready` returned 200), backend 167/167 tests, frontend 48/48 unit tests, passing typecheck/build, lint with 0 errors, configured Playwright matrix 180 passed / 2 isolated reruns passed / 9 intentional skips, targeted M3 lifecycle 3/3, and targeted M5/M4 journeys. The two full-matrix failures were not product assertion failures: the tablet admin page timed out once at `networkidle` and passed in isolation; the mobile login visual capture drifted once and passed on isolated rerun without a tracked snapshot change.
+Evidence used: clean local PostgreSQL database with current migrations and deterministic seed, local backend health (`/api/health/live` and `/api/health/ready` returned 200), backend 167/167 tests, frontend 48/48 unit tests, passing typecheck/build, lint with 0 errors, and the final configured Playwright matrix with 182 passed, 0 failed and 9 intentional skips. The earlier tablet timeout and mobile visual drift were isolated and the complete rerun passed.
 
 ## M1 — Core booking system
 
@@ -30,7 +30,7 @@ Evidence used: clean local PostgreSQL database with current migrations and deter
 | Payment authorization/capture/refund, webhooks, duplicate/replay protection, invalid signature, receipts/invoices | FULLY IMPLEMENTED | Stripe adapter plus local deterministic fallback, webhook/idempotency paths and refund handling are tested | PaymentElement/status/success/failure/refund states are connected | Payment attempts, references and ledger state persist | Local/test payment flows and API tests passed | Client reported Stripe test webhook 202; live mode remains unverified | Live Stripe keys, Connect onboarding, webhook signature and real provider events remain external. |
 | Stripe Identity session, return flow, processing/verified/failure states, webhook correlation and secure handling | FULLY IMPLEMENTED | `StripeIdentityProvider` is the only active provider; unsupported providers throw | Booking identity flow and status handling are connected | Verification transaction/provider/status metadata persist | Deterministic local Stripe Identity path passed where covered | Live Stripe Identity session not verified | Add client live credentials/return URL/webhook events, then execute real staging session. Alibaba is not active code. |
 | Notifications, unread count, mark read/all, booking/payment/rejection/identity deep links | FULLY IMPLEMENTED | Persisted notification APIs and role scoping exist | Inbox/deep-link behavior is connected | Notification/read state persists | Notification checks passed in the configured matrix | Provider delivery not independently verified | Brevo/SMS/push delivery and production worker operations remain external. |
-| Desktop/tablet/mobile and automated accessibility | IMPLEMENTED BUT NOT VERIFIED | Responsive backend-independent | Responsive layouts, focus/live-region/reduced-motion/forced-color paths exist | N/A | Automated axe and representative responsive checks passed; full matrix had 2 isolated transient reruns | Staging device certification not done | Full one-run matrix was 180/191, not 191/191; rerun the complete matrix once green. Human screen-reader and manual keyboard certification remain required. |
+| Desktop/tablet/mobile and automated accessibility | FULLY IMPLEMENTED LOCALLY | Responsive backend-independent | Responsive layouts, focus/live-region/reduced-motion/forced-color paths exist | N/A | Final matrix 182/191 passed with 0 failures; nine documented intentional skips | Staging device certification not done | Human screen-reader, manual keyboard, forced-color and reduced-motion certification remain required. |
 
 ### M1 exact remaining items
 
@@ -160,7 +160,7 @@ Smart-meter hardware integration, bank reconciliation, native mobile application
 - Clean local PostgreSQL database was recreated safely for development, all current migrations applied, deterministic seed loaded, and backend health/readiness returned 200.
 - Backend full unfiltered suite: 167 passed, 0 failed, 0 skipped (Domain 5, Application 23, Infrastructure 21, API 118).
 - Frontend: 48 unit tests passed; typecheck passed; production build passed; lint 0 errors / 92 warnings; npm audit reported 0 vulnerabilities.
-- Browser: 191 scheduled; 180 passed, 2 transient failures, 9 intentional skips. Both failed cases passed when rerun in isolation; a final all-green matrix rerun is still recommended before calling the browser suite fully green.
+- Browser: 191 scheduled; 182 passed, 0 failed, 9 intentional skips. The nine skips are documented in `LOCAL-M1-M5-COMPLETION.md` and are either external-fixture, deployed-credential or viewport-scoped checks.
 - Automated axe representative/full reachable-screen assertion passed. Human screen-reader, keyboard, reduced-motion and forced-color certification is not claimed.
 - Security: active Alibaba scan clean, frontend `PaymentSucceeded` scan clean, backend/frontend dependency audits clean, no real secrets committed. Negative auth traces in logs are expected test evidence.
 
@@ -193,4 +193,4 @@ All four active worktrees are clean. Root’s protected remote `main` is an empt
 6. Complete human accessibility, device/camera and operational usability sign-off.
 7. If required by the signed scope, complete external iCal/channel synchronization certification and logs.
 
-There is no currently identified true local code blocker for the covered M1–M4 workflows or the accepted local M5 matrix. The release is not 100% complete because protected-main consolidation, full one-run browser green status, live provider/staging verification, and human certification remain outstanding.
+There is no currently identified true local code blocker for the covered M1–M5 workflows. The release is not 100% complete because protected-main consolidation, live provider/staging verification, external fixture delivery, and human certification remain outstanding.

@@ -8,6 +8,7 @@ using NestyStay.Application.Abstractions;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
 using NestyStay.Domain.Documents;
+using NestyStay.Domain.Payments;
 using NestyStay.Domain.Verification;
 
 namespace NestyStay.Infrastructure.Persistence.Milestones;
@@ -22,6 +23,7 @@ public sealed class EfSpecCompletionStore(
     IStorageProvider storageProvider,
     IFileSafetyScanner fileSafetyScanner,
     IPaymentGateway paymentGateway,
+    IConnectPayoutProvider connectPayoutProvider,
     IConfiguration configuration) : ISpecCompletionStore, IPrivilegedAuditStore
 {
     private const int MaximumAuthFlowAttempts = 5;
@@ -1305,14 +1307,61 @@ public sealed class EfSpecCompletionStore(
         if (payout.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)) return ToDto(payout);
         if (!payout.Status.Equals("Available", StringComparison.OrdinalIgnoreCase) && !payout.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("This payout cannot be settled in its current state.");
+        var account = await db.PaymentAccounts.SingleOrDefaultAsync(
+            item => item.UserId == payout.HostUserId && item.Provider == connectPayoutProvider.ProviderName,
+            cancellationToken);
+        if (account is null || !account.IsPayoutEnabled)
+        {
+            var connected = await connectPayoutProvider.EnsureConnectedAccountAsync(
+                new ConnectAccountRequest(payout.HostUserId), cancellationToken);
+            if (account is null)
+            {
+                account = new PaymentAccount
+                {
+                    UserId = payout.HostUserId,
+                    Provider = connectPayoutProvider.ProviderName,
+                    ExternalAccountId = connected.AccountReference,
+                    IsPayoutEnabled = connected.PayoutsEnabled
+                };
+                db.PaymentAccounts.Add(account);
+            }
+            else
+            {
+                account.ExternalAccountId = connected.AccountReference;
+                account.IsPayoutEnabled = connected.PayoutsEnabled;
+                account.UpdatedAt = timeProvider.GetUtcNow();
+            }
+
+            if (!connected.PayoutsEnabled)
+            {
+                payout.Status = connected.Status;
+                payout.SettlementReference = connected.AccountReference;
+                payout.Notes = connected.FailureReason ?? "Connected-account onboarding is still required.";
+                payout.UpdatedAt = timeProvider.GetUtcNow();
+                payout.UpdatedByUserId = actorUserId;
+                await db.SaveChangesAsync(cancellationToken);
+                return ToDto(payout);
+            }
+        }
+
+        var transfer = await connectPayoutProvider.CreateTransferAsync(
+            new ConnectTransferRequest(
+                payout.Id,
+                payout.HostUserId,
+                payout.NetAmount,
+                payout.Currency,
+                $"host-payout-{payout.Id:N}",
+                account?.ExternalAccountId),
+            cancellationToken);
         var now = timeProvider.GetUtcNow();
-        payout.Status = "Paid";
-        payout.PaidAt = now;
-        payout.SettlementReference = string.IsNullOrWhiteSpace(payout.SettlementReference) ? $"manual-{payout.Id:N}" : payout.SettlementReference;
+        payout.Status = transfer.Status;
+        payout.PaidAt = transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? now : null;
+        payout.SettlementReference = transfer.TransferReference;
         payout.Notes = string.IsNullOrWhiteSpace(notes) ? "Settled manually by NestyStay finance." : notes.Trim()[..Math.Min(500, notes.Trim().Length)];
+        if (!string.IsNullOrWhiteSpace(transfer.FailureReason)) payout.Notes = $"{payout.Notes} {transfer.FailureReason}".Trim();
         payout.UpdatedAt = now;
         payout.UpdatedByUserId = actorUserId;
-        await AddAuditAsync("HostPayoutSettled", "HostPayout", payout.Id, payout.Notes, actorUserId, cancellationToken);
+        await AddAuditAsync(transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? "HostPayoutSettled" : $"HostPayout{transfer.Status}", "HostPayout", payout.Id, payout.Notes, actorUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(payout);
     }
