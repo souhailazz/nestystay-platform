@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NestyStay.Api.Auth;
+using NestyStay.Api.Services;
 using NestyStay.Application.PhaseOne;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
@@ -94,10 +95,13 @@ public sealed class CalendarController(
             }
             else
             {
+                await CalendarFeedSafety.EnsurePublicDestinationAsync(feed.FeedUrl, cancellationToken);
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Get, feed.FeedUrl);
                 if (!string.IsNullOrWhiteSpace(feed.ETag)) httpRequest.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
                 if (feed.LastModifiedAt is not null) httpRequest.Headers.IfModifiedSince = feed.LastModifiedAt;
-                using var response = await httpClientFactory.CreateClient().SendAsync(httpRequest, cancellationToken);
+                using var response = await httpClientFactory.CreateClient("calendar-feed").SendAsync(httpRequest, cancellationToken);
+                if ((int)response.StatusCode is >= 300 and <= 399)
+                    throw new InvalidOperationException("Calendar feed redirects are not allowed.");
                 if (response.StatusCode == HttpStatusCode.NotModified)
                 {
                     feed.Status = "Healthy";
@@ -201,16 +205,7 @@ public sealed class CalendarController(
         return host;
     }
 
-    internal static string ValidateFeedUrl(string value)
-    {
-        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || string.IsNullOrWhiteSpace(uri.Host))
-            throw new InvalidOperationException("Calendar feed must be an HTTP(S) URL.");
-        if (IPAddress.TryParse(uri.Host, out var address) && (IPAddress.IsLoopback(address) || address.IsPrivateNetwork()))
-            throw new InvalidOperationException("Private calendar feed addresses are not allowed.");
-        if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Private calendar feed addresses are not allowed.");
-        return uri.ToString();
-    }
+    public static string ValidateFeedUrl(string value) => CalendarFeedSafety.ValidateUrl(value);
 
     internal static List<MilestoneCalendarBlock> ParseEvents(string ics, Guid feedId, Guid propertyId, DateTimeOffset now)
     {
@@ -279,13 +274,3 @@ public sealed record ConnectCalendarFeedRequest(string FeedUrl);
 public sealed record SyncCalendarFeedRequest(string? IcsContent = null);
 public sealed record CalendarFeedDto(Guid Id, Guid PropertyId, string FeedUrl, string Status, DateTimeOffset? LastSyncAttemptAt, DateTimeOffset? LastSyncAt, string? LastError, int BlockCount, DateTimeOffset? NextSyncAt = null, string? ETag = null);
 public sealed record CalendarSyncEventDto(Guid Id, string Status, int BlockCount, string? Error, DateTimeOffset StartedAt, DateTimeOffset? CompletedAt);
-
-internal static class IpAddressExtensions
-{
-    public static bool IsPrivateNetwork(this IPAddress address)
-    {
-        var bytes = address.GetAddressBytes();
-        return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-               (bytes[0] == 10 || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) || (bytes[0] == 192 && bytes[1] == 168) || (bytes[0] == 169 && bytes[1] == 254));
-    }
-}

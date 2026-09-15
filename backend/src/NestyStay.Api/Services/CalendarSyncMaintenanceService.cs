@@ -22,7 +22,7 @@ public sealed class CalendarSyncMaintenanceService(
     private static readonly TimeSpan SuccessInterval = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan ErrorInterval = TimeSpan.FromMinutes(5);
     private const int BatchSize = 25;
-    private const int MaximumCalendarBytes = 5 * 1024 * 1024;
+    private const int MaximumCalendarBytes = CalendarFeedSafety.MaximumCalendarBytes;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -93,11 +93,14 @@ public sealed class CalendarSyncMaintenanceService(
 
         try
         {
-            CalendarController.ValidateFeedUrl(feed.FeedUrl);
+            await CalendarFeedSafety.EnsurePublicDestinationAsync(feed.FeedUrl, cancellationToken);
             using var request = new HttpRequestMessage(HttpMethod.Get, feed.FeedUrl);
             if (!string.IsNullOrWhiteSpace(feed.ETag)) request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
             if (feed.LastModifiedAt is not null) request.Headers.IfModifiedSince = feed.LastModifiedAt;
-            using var response = await clientFactory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await clientFactory.CreateClient("calendar-feed").SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if ((int)response.StatusCode is >= 300 and <= 399)
+                throw new InvalidOperationException("Calendar feed redirects are not allowed.");
 
             if (response.StatusCode == HttpStatusCode.NotModified)
             {
@@ -117,8 +120,7 @@ public sealed class CalendarSyncMaintenanceService(
                 throw new InvalidOperationException("Calendar feed is larger than the 5 MB safety limit.");
             if (response.Headers.ETag is not null) feed.ETag = response.Headers.ETag.Tag;
             if (response.Content.Headers.LastModified is not null) feed.LastModifiedAt = response.Content.Headers.LastModified;
-            var ics = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (ics.Length > MaximumCalendarBytes) throw new InvalidOperationException("Calendar feed is larger than the 5 MB safety limit.");
+            var ics = await CalendarFeedSafety.ReadTextWithLimitAsync(response.Content, cancellationToken);
 
             var blocks = CalendarController.ParseEvents(ics, feed.Id, feed.PropertyId, now);
             if (blocks.Count > 5000) throw new InvalidOperationException("Calendar feed contains too many events.");

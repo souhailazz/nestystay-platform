@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using NestyStay.Api.Controllers;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -10,6 +11,25 @@ public sealed class CalendarEndpointTests : IClassFixture<NestyStayApiFactory>
     private readonly NestyStayApiFactory factory;
 
     public CalendarEndpointTests(NestyStayApiFactory factory) => this.factory = factory;
+
+    [Theory]
+    [InlineData("http://127.0.0.1/feed.ics")]
+    [InlineData("http://[::1]/feed.ics")]
+    [InlineData("http://169.254.169.254/latest/meta-data")]
+    [InlineData("http://10.0.0.5/feed.ics")]
+    [InlineData("http://example.test:8080/feed.ics")]
+    [InlineData("http://user:password@example.test/feed.ics")]
+    public void CalendarFeedValidationRejectsRestrictedDestinations(string url)
+    {
+        Assert.Throws<InvalidOperationException>(() => CalendarController.ValidateFeedUrl(url));
+    }
+
+    [Fact]
+    public void CalendarFeedValidationAllowsPublicWebPorts()
+    {
+        Assert.Equal("https://calendar.example.test/feed.ics", CalendarController.ValidateFeedUrl("https://calendar.example.test/feed.ics"));
+        Assert.Equal("http://calendar.example.test/feed.ics", CalendarController.ValidateFeedUrl("http://calendar.example.test/feed.ics"));
+    }
 
     [Fact]
     public async Task HostCanConnectSyncAndExportIcsCalendar()

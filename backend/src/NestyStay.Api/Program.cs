@@ -80,6 +80,12 @@ builder.Services.AddAuthorization(options =>
     AdminAuthorizationPolicies.AddPolicies(options);
 });
 builder.Services.AddNestyStayRateLimiting(builder.Configuration);
+builder.Services.AddHttpClient("calendar-feed", client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.MaxResponseContentBufferSize = CalendarFeedSafety.MaximumCalendarBytes;
+    })
+    .ConfigurePrimaryHttpMessageHandler(CalendarFeedSafety.CreateHttpHandler);
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(
