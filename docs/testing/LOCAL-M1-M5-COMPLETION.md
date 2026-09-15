@@ -12,7 +12,7 @@ The complete locally executable platform matrix is green on the current release-
 | PostgreSQL | PASS — repository-owned PostgreSQL 18 cluster on `127.0.0.1:55432` |
 | API liveness/readiness | PASS — both endpoints HTTP 200 |
 | Deterministic seed | PASS — 4 properties, 5 host profiles, 14 directory-provider seed records, 10 public pages, 3 experiences and 3 journal articles |
-| Backend | PASS — 173/173 tests, 0 failed, 0 skipped |
+| Backend | PASS — 180/180 tests, 0 failed, 0 skipped |
 | Frontend unit | PASS — 48/48 tests |
 | Frontend typecheck/build | PASS |
 | Frontend lint | PASS — 0 errors, 92 existing warnings |
