@@ -100,9 +100,10 @@ Latest local gate results:
   endpoints are supplied.
 - SMS local/test adapter: PASS when the feature flag is enabled. Real SMS
   delivery remains BLOCKED until the client supplies provider credentials.
-- Alibaba eKYC local/file/camera application path: PASS locally. Real Alibaba
-  callbacks and production validation remain BLOCKED until client credentials
-  and provider configuration are supplied.
+- Stripe Identity local/test application path: PASS locally. Real Stripe
+  Identity sessions, callbacks and production validation remain BLOCKED until
+  client-owned Stripe credentials, return URLs and provider configuration are
+  supplied.
 - No claim of Jamaican legal trust-accounting compliance is made by this
   application ledger.
 
