@@ -15,7 +15,7 @@ There are **0 known Critical findings and 0 known High findings remaining** in t
 
 - Backend: `codex/m1-m2-runtime-hardening`, security fix `c88e85a`.
 - Frontend: `codex/m1-m2-runtime-hardening`, release-candidate commit `e389373`.
-- Root/orchestration: `codex/frontend-hardening-release-candidate`, release-candidate commit `3b4f247` before this audit record was added.
+- Root/orchestration: `codex/frontend-hardening-release-candidate`, final audited candidate commit `6c1f23c`.
 - The protected remote `main` branches were not bypassed. The existing pull requests remain subject to client approval.
 
 ## Tool and evidence inventory
