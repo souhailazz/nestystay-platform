@@ -18,6 +18,26 @@ test("M3 wellness lifecycle: host request, officer report, completion and payout
   const officerSession = await createSession(api, "Officer", "Lifecycle Officer");
   const headers = (token: string) => ({ Authorization: `Bearer ${token}` });
 
+  const hostVerification = await api.post("/api/host-verification", {
+    headers: headers(host.accessToken),
+    data: { documentType: "Passport", notes: "Live lifecycle host verification fixture" },
+  });
+  expect(hostVerification.ok(), await hostVerification.text()).toBeTruthy();
+  const hostVerificationDecision = await api.post(`/api/host-verification/${host.userId}/decision`, {
+    headers: headers(adminToken),
+    data: { status: "Approved", reason: "Live lifecycle host verification approved" },
+  });
+  expect(hostVerificationDecision.ok(), await hostVerificationDecision.text()).toBeTruthy();
+
+  const propertyResponse = await api.post("/api/properties", {
+    headers: headers(host.accessToken),
+    data: { hostUserId: host.userId, hostName: host.displayName, hostEmail: host.email, title: `Lifecycle Villa ${Date.now()}`, location: "Ocho Rios", parish: "St. Ann", country: "Jamaica", nightlyRate: 180, currency: "USD", badgeLevel: "Free", guestVerificationEnabled: false, insuraGuestEnabled: false, cancellationPolicy: "Flexible" },
+  });
+  expect(propertyResponse.ok(), await propertyResponse.text()).toBeTruthy();
+
+  const subscription = await api.post("/api/wellness/subscriptions", { headers: headers(host.accessToken) });
+  expect(subscription.ok(), await subscription.text()).toBeTruthy();
+
   for (const level of ["Verified", "Wellness"]) {
     const badge = await api.post("/api/badges-pricing/badges/purchase-intent", {
       headers: { ...headers(adminToken), "Idempotency-Key": `m3-${level.toLowerCase()}-${host.userId}` },
@@ -26,12 +46,27 @@ test("M3 wellness lifecycle: host request, officer report, completion and payout
     expect(badge.ok(), await badge.text()).toBeTruthy();
   }
 
-  const propertyResponse = await api.post("/api/properties", {
+  const initialProperty = await propertyResponse.json() as { id: string };
+  const promotedPropertyResponse = await api.put(`/api/properties/${initialProperty.id}`, {
     headers: headers(host.accessToken),
-    data: { hostUserId: host.userId, hostName: host.displayName, hostEmail: host.email, title: `Lifecycle Villa ${Date.now()}`, location: "Ocho Rios", country: "Jamaica", nightlyRate: 180, currency: "USD", badgeLevel: "Wellness", guestVerificationEnabled: false, insuraGuestEnabled: false, cancellationPolicy: "Flexible" },
+    data: {
+      hostName: host.displayName,
+      hostEmail: host.email,
+      title: `Lifecycle Villa ${Date.now()}`,
+      location: "Ocho Rios",
+      parish: "St. Ann",
+      country: "Jamaica",
+      nightlyRate: 180,
+      currency: "USD",
+      badgeLevel: "Wellness",
+      guestVerificationEnabled: false,
+      insuraGuestEnabled: false,
+      cancellationPolicy: "Flexible",
+    },
   });
-  expect(propertyResponse.ok(), await propertyResponse.text()).toBeTruthy();
-  const property = await propertyResponse.json() as { id: string };
+  expect(promotedPropertyResponse.ok(), await promotedPropertyResponse.text()).toBeTruthy();
+  const property = await promotedPropertyResponse.json() as { id: string; badgeLevel: string };
+  expect(property.badgeLevel).toBe("Wellness");
 
   const badgeNumber = `LIFE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const application = await api.post("/api/wellness/officers", {

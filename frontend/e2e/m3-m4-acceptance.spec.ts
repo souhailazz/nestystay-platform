@@ -1,6 +1,7 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { installCookieSession } from "./helpers/session";
 
 const evidenceRoot = path.resolve(process.cwd(), "..", "testing-evidence", "milestones-1-4", "screenshots");
 const password = "NestyStay1";
@@ -12,6 +13,7 @@ test("M3/M4 live browser acceptance: officer, wellness, directories, privacy, QR
   const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
   test.skip(!adminToken, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the privileged M3/M4 browser acceptance.");
   const host = await createSession(api, "Host", "M3 M4 Host");
+  const providerSession = await createSession(api, "ServiceProvider", "M3 M4 Provider");
   const officerSession = await createSession(api, "Officer", "M3 M4 Officer");
 
   const officerResponse = await api.post("/api/wellness/officers", { headers: { Authorization: `Bearer ${officerSession.accessToken}` }, data: {
@@ -40,8 +42,7 @@ test("M3/M4 live browser acceptance: officer, wellness, directories, privacy, QR
   expect(forgedQr.ok()).toBeTruthy();
   expect((await forgedQr.json()).valid).toBe(false);
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((session) => localStorage.setItem("nestyStay.session", JSON.stringify(session)), host);
+  await installCookieSession(page, host);
   await page.goto("/directory/businesses", { waitUntil: "networkidle" });
   await expect(page.getByText(/Local businesses/i).first()).toBeVisible();
   mkdirSync(evidenceRoot, { recursive: true });
@@ -52,18 +53,19 @@ test("M3/M4 live browser acceptance: officer, wellness, directories, privacy, QR
   await expect(page.getByText("Jamaica Emergency: 119", { exact: true })).toBeVisible();
   await captureEvidence(page, path.join(evidenceRoot, `m3-m4-wellness-${testInfo.project.name}.png`), testInfo);
 
+  await installCookieSession(page, providerSession);
   await page.goto("/directory/provider", { waitUntil: "networkidle" });
   await expect(page.getByText(/Provider onboarding|Your provider profile/i).first()).toBeVisible();
   await captureEvidence(page, path.join(evidenceRoot, `m3-m4-provider-${testInfo.project.name}.png`), testInfo);
 
-  await page.evaluate((session) => localStorage.setItem("nestyStay.session", JSON.stringify(session)), officerSession);
+  await installCookieSession(page, officerSession);
   await page.goto("/officer/wellness", { waitUntil: "networkidle" });
   await expect(page.getByText(/Officer wellness|Officer onboarding/i).first()).toBeVisible();
   await captureEvidence(page, path.join(evidenceRoot, `m3-m4-officer-${testInfo.project.name}.png`), testInfo);
   await api.dispose();
 });
 
-async function createSession(api: APIRequestContext, role: "Host" | "Officer", displayName: string) {
+async function createSession(api: APIRequestContext, role: "Host" | "Officer" | "ServiceProvider", displayName: string) {
   const email = `m3-m4-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@nestystay.local`;
   const registration = await api.post("/api/auth/register", { data: { email, password, confirmPassword: password, displayName, phone: "+15550102030", acceptedTerms: true, acceptedPrivacy: true, role } });
   expect(registration.ok(), await registration.text()).toBeTruthy();

@@ -34,8 +34,7 @@ test("M4 provider onboarding saves a recoverable draft and requires terms", asyn
 test("M4 admin moderation queue is API-backed and supports request changes", async ({ page, baseURL }) => {
   const adminToken = process.env.NESTYSTAY_E2E_ADMIN_TOKEN;
   test.skip(!adminToken, "NESTYSTAY_E2E_ADMIN_TOKEN is required for the privileged moderation journey.");
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.evaluate((accessToken) => localStorage.setItem("nestyStay.session", JSON.stringify({ userId: "00000000-0000-0000-0000-000000000001", email: "admin@nestystay.local", displayName: "Admin", accessToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), roles: ["Admin"], permissions: ["property_moderation"] })), adminToken);
+  await installCookieSession(page, { userId: "00000000-0000-0000-0000-000000000001", email: "admin@nestystay.local", displayName: "Admin", accessToken: adminToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), roles: ["Admin"], permissions: ["property_moderation"] });
   await page.goto("/admin/ops/directory", { waitUntil: "networkidle" });
   await expect(page.getByText("Directory moderation queue")).toBeVisible();
   await expect(page.getByLabel("Search providers")).toBeVisible();
