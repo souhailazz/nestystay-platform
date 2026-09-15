@@ -24,7 +24,7 @@ There are **0 confirmed application Critical, High or Medium findings** remainin
 
 - `dotnet test NestyStay.sln --no-restore`: **180 passed, 0 failed, 0 skipped** across Domain 5, Application 23, Infrastructure 27 and API 125. The only output was existing obsolete-test warnings for the legacy application badge test helper.
 - `dotnet list NestyStay.sln package --vulnerable --include-transitive`: no vulnerable packages reported for any project.
-- `npm audit --omit=dev`: **0 vulnerabilities**.
+- `npm audit --audit-level=high`: **0 vulnerabilities** (including development dependencies).
 - Gitleaks 8.30.1 ran against root/backend/frontend working trees and Git history with full redaction. Root current-tree findings (493) were dominated by ignored PostgreSQL WAL, local email-outbox/build artifacts and ignored local environment files; backend current-tree findings (2) were in the ignored local `.env`; frontend current-tree findings were 0. History findings were root 18, backend 7 and frontend 0, limited to example/development/test configuration and historical workflow/template matches. No live credential value was printed or committed by this audit; local ignored Stripe values must still be rotated if they are not disposable test credentials.
 - Semgrep 1.177.0 ran successfully on tracked C# sources (274 targets) and tracked frontend JS/TS sources (158 targets): **0 findings**. The initial directory invocation hit a Windows parser error on empty `.gitignore` comment lines; the final tracked-file/source-only scans completed successfully.
 - Trivy 0.74.0 ran with `vuln,misconfig,secret` against filtered source/deployment trees. After the non-root frontend fix: **0 dependency CVEs, 0 secrets**, and four LOW `DS-0026` “no HEALTHCHECK” notices across the backend/API/frontend Dockerfiles. The prior HIGH `DS-0002` root-user frontend findings are gone.
@@ -32,7 +32,7 @@ There are **0 confirmed application Critical, High or Medium findings** remainin
 - CodeQL: no local CLI and no CodeQL workflow exists in the inspected GitHub Actions workflows. This remains an external CI/GitHub security-scanning item; it was not fabricated as a passing result.
 - Existing dynamic security checks: **7/7 passed** for CORS allow/deny behavior, malformed JSON handling, SQL-like input as data and stored-XSS output encoding.
 - Existing authorization matrix: **54/54 passed** for unauthenticated access, role boundaries, ownership/tenant boundaries and safe error responses.
-- Existing browser regression evidence: **182 passed, 0 failed, 9 intentional skips** across desktop, tablet and mobile projects. The skips are documented in `docs/testing/LOCAL-M1-M5-COMPLETION.md` and are external-fixture, deployed-credential or viewport-scoped checks.
+- Fresh browser regression rerun after the hardening changes: **182 passed, 0 failed, 9 intentional skips** across desktop, tablet and mobile projects. The skips are documented in `docs/testing/LOCAL-M1-M5-COMPLETION.md` and are external-fixture, deployed-credential or viewport-scoped checks.
 
 ### Tool limitations and classification
 
