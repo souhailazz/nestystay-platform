@@ -16,6 +16,10 @@ if (!process.env.ConnectionStrings__Postgres && !process.env.PLAYWRIGHT_API_URL)
 
 export default defineConfig({
   testDir: "./e2e",
+  // Client-demo recordings are standalone Node scripts, not regression tests.
+  // Keep them runnable directly while preventing Playwright from executing
+  // them as part of the platform test matrix.
+  testIgnore: ["**/client-demo/**"],
   globalSetup: "./e2e/global-setup.ts",
   timeout: 120_000,
   expect: {
