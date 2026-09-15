@@ -9,7 +9,7 @@ Acceptance evidence:
 - Repository-owned PostgreSQL 18 on port 55432: healthy.
 - Migrations current and deterministic seed successful.
 - API liveness/readiness, properties, public content, experiences, directories, frontend root and Explore: HTTP 200.
-- Backend: 167 passed, 0 failed, 0 skipped.
+- Backend: 173 passed, 0 failed, 0 skipped.
 - Frontend: 48 unit tests passed; typecheck and production build passed; lint 0 errors / 92 warnings.
 - Playwright: 182 passed, 0 failed, 9 intentional skips across desktop/tablet/mobile Chromium plus Firefox/WebKit smoke.
 

@@ -15,7 +15,7 @@ The forensic classifications below are intentionally exact:
 - **MANUAL HUMAN VERIFICATION REQUIRED** — automation is insufficient for the remaining acceptance claim.
 - **OUTSIDE SIGNED SCOPE** — explicitly excluded optional work is not a release defect.
 
-Evidence used: clean local PostgreSQL database with current migrations and deterministic seed, local backend health (`/api/health/live` and `/api/health/ready` returned 200), backend 167/167 tests, frontend 48/48 unit tests, passing typecheck/build, lint with 0 errors, and the final configured Playwright matrix with 182 passed, 0 failed and 9 intentional skips. The earlier tablet timeout and mobile visual drift were isolated and the complete rerun passed.
+Evidence used: clean local PostgreSQL database with current migrations and deterministic seed, local backend health (`/api/health/live` and `/api/health/ready` returned 200), backend 173/173 tests, frontend 48/48 unit tests, passing typecheck/build, lint with 0 errors, and the final configured Playwright matrix with 182 passed, 0 failed and 9 intentional skips. The earlier tablet timeout and mobile visual drift were isolated and the complete rerun passed.
 
 ## M1 — Core booking system
 
@@ -158,7 +158,7 @@ Smart-meter hardware integration, bank reconciliation, native mobile application
 ## Local verification summary
 
 - Clean local PostgreSQL database was recreated safely for development, all current migrations applied, deterministic seed loaded, and backend health/readiness returned 200.
-- Backend full unfiltered suite: 167 passed, 0 failed, 0 skipped (Domain 5, Application 23, Infrastructure 21, API 118).
+- Backend full unfiltered suite: 173 passed, 0 failed, 0 skipped (Domain 5, Application 23, Infrastructure 27, API 118).
 - Frontend: 48 unit tests passed; typecheck passed; production build passed; lint 0 errors / 92 warnings; npm audit reported 0 vulnerabilities.
 - Browser: 191 scheduled; 182 passed, 0 failed, 9 intentional skips. The nine skips are documented in `LOCAL-M1-M5-COMPLETION.md` and are either external-fixture, deployed-credential or viewport-scoped checks.
 - Automated axe representative/full reachable-screen assertion passed. Human screen-reader, keyboard, reduced-motion and forced-color certification is not claimed.
