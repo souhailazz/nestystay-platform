@@ -38,12 +38,11 @@ desktop, tablet, and mobile calendar operations also completed with 3 passing
 tests and zero failures.
 
 The complete backend suite completed with 183 passing tests and zero failures.
-The full browser matrix reached all 191 scheduled tests; 99 passed before the
-local frontend dev server stopped responding, 41 failed with connection
-refused, 30 were intentional skips, and 21 did not run. Those 41 failures are
-test-environment availability failures rather than application assertions and
-must be rerun with supervised services before calling the browser matrix
-green.
+The final full browser matrix completed with 194 scheduled tests: 158 passed,
+zero failed, and 36 were intentional skips. The skips are limited to
+Chromium-only certification variants, opt-in privileged/admin or MinIO
+fixtures, the explicitly credentialed smoke account, and the mobile-only
+navigation case. No browser test was skipped because of a product assertion.
 
 ## External/staging acceptance still required
 
