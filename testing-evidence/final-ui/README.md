@@ -32,6 +32,6 @@ The local capture uses the repository's deterministic development/test adapters 
 
 ## Final source revisions
 
-- Frontend: `939db33a0f1c6b795463396b4771c9f705af95d2`
+- Frontend: `4173b54475184bf8ad28f1c0f144b7a81b197cad`
 - Backend: `d581f3452135760d4755fb60c3bae6e2448b4479`
-- Root documentation/evidence revision: recorded in the final root commit and the protected root consolidation PR
+- Root documentation/evidence: `11c87c12e873fff2c9bb142910ae39e2675e98b4` (candidate branch; protected PR carries the same tree)
