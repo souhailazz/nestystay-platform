@@ -43,7 +43,7 @@ export function HostStateContainer({ view, auth, propertyId }: HostStateContaine
   }
 
   if (view === "pricing" || view === "promotions" || view === "discounts") {
-    return <HostPricingPromotions view={view} token={token} />;
+    return <HostPricingPromotions view={view} token={token} hostUserId={auth.session?.userId || ""} />;
   }
 
   if (view.includes("reservation") || view === "bookings") {

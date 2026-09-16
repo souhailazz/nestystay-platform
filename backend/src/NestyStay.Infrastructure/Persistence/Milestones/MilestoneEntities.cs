@@ -186,6 +186,24 @@ public sealed class MilestoneCalendarBlock : BaseEntity
     public string Summary { get; set; } = "Unavailable";
 }
 
+public sealed class MilestoneCalendarManualBlock : BaseEntity
+{
+    public Guid PropertyId { get; set; }
+    public Guid HostUserId { get; set; }
+    public DateOnly StartsOn { get; set; }
+    public DateOnly EndsOn { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Status { get; set; } = "ACTIVE";
+}
+
+public sealed class MilestoneCalendarExportToken : BaseEntity
+{
+    public Guid PropertyId { get; set; }
+    public Guid HostUserId { get; set; }
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTimeOffset? RevokedAt { get; set; }
+}
+
 public sealed class MilestonePropertyPhoto : BaseEntity
 {
     public Guid PropertyId { get; set; }

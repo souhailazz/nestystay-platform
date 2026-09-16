@@ -76,6 +76,8 @@ import {
   type BadgeRenewal,
   type Booking,
   type BookingQuote,
+  type CalendarExportToken,
+  type CalendarManualBlock,
   type Campaign,
   type CommissionQuote,
   type CreatePropertyRequest,
@@ -1675,6 +1677,10 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
   const [feedUrl, setFeedUrl] = useState("");
   const [feedBusy, setFeedBusy] = useState(false);
   const [history, setHistory] = useState<Record<string, import("../lib/api").CalendarSyncEvent[]>>({});
+  const [manualBlocks, setManualBlocks] = useState<CalendarManualBlock[]>([]);
+  const [blockForm, setBlockForm] = useState({ startsOn: todayPlus(15), endsOn: todayPlus(16), reason: "Owner hold" });
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [exportToken, setExportToken] = useState<CalendarExportToken | null>(null);
   const [availability, setAvailability] = useState<PropertyAvailability | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
@@ -1704,7 +1710,14 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
 
   useEffect(() => {
     if (!propertyId || !auth.session) return;
-    void api.getCalendarFeeds(propertyId, auth.session.accessToken).then(setFeeds).catch(() => setFeeds([]));
+    void Promise.all([
+      api.getCalendarFeeds(propertyId, auth.session.accessToken),
+      api.getCalendarManualBlocks(propertyId, auth.session.accessToken),
+    ]).then(([nextFeeds, nextBlocks]) => {
+      setFeeds(nextFeeds);
+      setManualBlocks(nextBlocks);
+    }).catch(() => { setFeeds([]); setManualBlocks([]); });
+    setExportToken(null);
   }, [auth.session?.accessToken, propertyId]);
 
   async function checkAvailability() {
@@ -1772,6 +1785,67 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
     }
   }
 
+  async function saveManualBlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!propertyId || !auth.session) return;
+    setFeedBusy(true);
+    setError(null);
+    try {
+      const next = editingBlockId
+        ? await api.updateCalendarManualBlock(propertyId, editingBlockId, auth.session.accessToken, blockForm)
+        : await api.createCalendarManualBlock(propertyId, auth.session.accessToken, blockForm);
+      setManualBlocks((current) => editingBlockId ? current.map((item) => item.id === next.id ? next : item) : [...current, next].sort((a, b) => a.startsOn.localeCompare(b.startsOn)));
+      setEditingBlockId(null);
+      setBlockForm({ startsOn: todayPlus(15), endsOn: todayPlus(16), reason: "Owner hold" });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Manual calendar block could not be saved.");
+    } finally {
+      setFeedBusy(false);
+    }
+  }
+
+  async function removeManualBlock(block: CalendarManualBlock) {
+    if (!propertyId || !auth.session) return;
+    setFeedBusy(true);
+    setError(null);
+    try {
+      await api.deleteCalendarManualBlock(propertyId, block.id, auth.session.accessToken);
+      setManualBlocks((current) => current.filter((item) => item.id !== block.id));
+      if (editingBlockId === block.id) setEditingBlockId(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Manual calendar block could not be removed.");
+    } finally {
+      setFeedBusy(false);
+    }
+  }
+
+  async function rotateExportToken() {
+    if (!propertyId || !auth.session) return;
+    setFeedBusy(true);
+    setError(null);
+    try {
+      setExportToken(await api.rotateCalendarExportToken(propertyId, auth.session.accessToken));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Private calendar link could not be rotated.");
+    } finally {
+      setFeedBusy(false);
+    }
+  }
+
+  async function revokeExportToken() {
+    if (!propertyId || !auth.session) return;
+    setFeedBusy(true);
+    setError(null);
+    try {
+      await api.revokeCalendarExportToken(propertyId, auth.session.accessToken);
+      setExportToken(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Private calendar link could not be revoked.");
+    } finally {
+      setFeedBusy(false);
+    }
+  }
+
   return (
     <div className="product-page">
       <PageHeader
@@ -1822,9 +1896,20 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
           </div>}
         </Card>
         {auth.session && propertyId && <Card className="settings-card mt-5">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="m-0 font-display text-xl">External calendar sync</h2><p className="m-0 mt-1 text-sm text-sand-600">Import an ICS feed to block dates and export this property calendar to another service.</p></div><a className="btn btn-outline" href={api.exportCalendarUrl(propertyId)} download={`nesty-${propertyId}.ics`}>Export ICS</a></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="m-0 font-display text-xl">External calendar sync</h2><p className="m-0 mt-1 text-sm text-sand-600">Import Airbnb, Booking.com, VRBO, or custom ICS feeds and publish a private outbound calendar.</p></div><a className="btn btn-outline" href={api.exportCalendarUrl(propertyId)} download={`nesty-${propertyId}.ics`}>Download ICS</a></div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input aria-label="External ICS feed URL" onChange={(event) => setFeedUrl(event.target.value)} placeholder="https://calendar.example.com/property.ics" value={feedUrl} /><Button disabled={feedBusy || !feedUrl.trim()} onClick={() => void connectFeed()}>Connect feed</Button></div>
-          {feeds.length > 0 && <div className="mt-4 space-y-2">{feeds.map((feed) => <div className="rounded-field border border-sand-border p-3 text-sm" key={feed.id}><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><strong className="break-all">{feed.feedUrl}</strong><div className="text-xs text-sand-600">{feed.status} · {feed.blockCount} blocked dates{feed.lastSyncAt ? ` · synced ${new Date(feed.lastSyncAt).toLocaleString()}` : ""}{feed.nextSyncAt ? ` · next ${new Date(feed.nextSyncAt).toLocaleString()}` : ""}{feed.lastError ? ` · ${feed.lastError}` : ""}</div></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void syncFeed(feed)} variant="outline">Sync now</Button><Button disabled={feedBusy} onClick={() => void loadHistory(feed)} variant="ghost">History</Button><Button disabled={feedBusy} onClick={() => void disconnectFeed(feed)} variant="ghost">Disconnect</Button></div></div>{history[feed.id] && <div className="mt-3 border-t border-shell pt-2 text-xs text-sand-600">{history[feed.id].length === 0 ? "No sync attempts recorded yet." : history[feed.id].slice(0, 5).map((event) => <div className="flex flex-wrap justify-between gap-2 py-1" key={event.id}><span>{new Date(event.startedAt).toLocaleString()}</span><span>{event.status} · {event.blockCount} blocks{event.error ? ` · ${event.error}` : ""}</span></div>)}</div>}</div>)}</div>}
+          {feeds.length === 0 ? <p className="mt-3 text-sm text-sand-600">No inbound feeds connected yet.</p> : <div className="mt-4 space-y-2">{feeds.map((feed) => <div className="rounded-field border border-sand-border p-3 text-sm" key={feed.id}><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><strong className="break-all">{feed.channel ?? "Custom"} · {feed.feedUrl}</strong><div className="text-xs text-sand-600">{feed.status} · {feed.blockCount} blocked dates{feed.lastSyncAt ? ` · synced ${new Date(feed.lastSyncAt).toLocaleString()}` : ""}{feed.nextSyncAt ? ` · next ${new Date(feed.nextSyncAt).toLocaleString()}` : ""}{feed.lastError ? ` · ${feed.lastError}` : ""}</div></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void syncFeed(feed)} variant="outline">Sync now</Button><Button disabled={feedBusy} onClick={() => void loadHistory(feed)} variant="ghost">History</Button><Button disabled={feedBusy} onClick={() => void disconnectFeed(feed)} variant="ghost">Disconnect</Button></div></div>{history[feed.id] && <div className="mt-3 border-t border-shell pt-2 text-xs text-sand-600">{history[feed.id].length === 0 ? "No sync attempts recorded yet." : history[feed.id].slice(0, 5).map((event) => <div className="flex flex-wrap justify-between gap-2 py-1" key={event.id}><span>{new Date(event.startedAt).toLocaleString()}</span><span>{event.status} · {event.blockCount} blocks{event.error ? ` · ${event.error}` : ""}</span></div>)}</div>}</div>)}</div>}
+          <div className="mt-5 rounded-field border border-sand-border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="m-0 text-lg">Manual holds</h3><p className="m-0 mt-1 text-sm text-sand-600">Block owner stays, maintenance, or any offline reservation. Conflicts are rejected by the API.</p></div><span className="text-xs text-sand-600">{manualBlocks.length} active</span></div>
+            <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_1.5fr_auto] sm:items-end" onSubmit={(event) => void saveManualBlock(event)}>
+              <Field label="From"><Input type="date" value={blockForm.startsOn} onChange={(event) => setBlockForm({ ...blockForm, startsOn: event.target.value })} /></Field>
+              <Field label="To"><Input type="date" value={blockForm.endsOn} onChange={(event) => setBlockForm({ ...blockForm, endsOn: event.target.value })} /></Field>
+              <Field label="Reason"><Input value={blockForm.reason} onChange={(event) => setBlockForm({ ...blockForm, reason: event.target.value })} maxLength={200} placeholder="Maintenance or owner hold" /></Field>
+              <Button disabled={feedBusy} type="submit">{editingBlockId ? "Save hold" : "Add hold"}</Button>
+            </form>
+            {manualBlocks.length > 0 && <div className="mt-4 grid gap-2">{manualBlocks.map((block) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field bg-shell px-3 py-2 text-sm" key={block.id}><span><strong>{block.startsOn} to {block.endsOn}</strong> · {block.reason}</span><span className="flex gap-2"><button className="btn btn-ghost btn-sm" type="button" onClick={() => { setEditingBlockId(block.id); setBlockForm({ startsOn: block.startsOn, endsOn: block.endsOn, reason: block.reason }); }}>Edit</button><button className="btn btn-ghost btn-sm text-coral" disabled={feedBusy} type="button" onClick={() => void removeManualBlock(block)}>Release</button></span></div>)}</div>}
+          </div>
+          <div className="mt-5 rounded-field border border-sand-border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="m-0 text-lg">Private outbound subscription</h3><p className="m-0 mt-1 text-sm text-sand-600">The link contains no guest details and can be revoked or rotated at any time.</p></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void rotateExportToken()} variant="outline">{exportToken ? "Rotate link" : "Create private link"}</Button>{exportToken && <Button disabled={feedBusy} onClick={() => void revokeExportToken()} variant="ghost">Revoke</Button>}</div></div>{exportToken && <div className="mt-3 break-all rounded-field bg-shell p-3 text-xs" role="status">{exportToken.url}</div>}</div>
         </Card>}
         <div className="calendar-board">
           {selectedBookings.length === 0 ? (

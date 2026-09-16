@@ -165,6 +165,7 @@ public sealed class PropertiesController(
         if (end <= start || end.DayNumber - start.DayNumber > 366) return BadRequest("Availability range must be between 1 and 366 days.");
         var bookings = phaseOneStore.GetBookings().Where(item => item.PropertyId == id && !item.Status.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) && !item.Status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase)).ToList();
         var blocks = await db.MilestoneCalendarBlocks.AsNoTracking().Where(item => item.PropertyId == id && !item.IsDeleted && item.EndsOn > start && item.StartsOn < end).ToListAsync(cancellationToken);
+        var manualBlocks = await db.MilestoneCalendarManualBlocks.AsNoTracking().Where(item => item.PropertyId == id && item.Status == "ACTIVE" && !item.IsDeleted && item.EndsOn > start && item.StartsOn < end).ToListAsync(cancellationToken);
         var days = Enumerable.Range(0, end.DayNumber - start.DayNumber).Select(offset =>
         {
             var date = start.AddDays(offset);
@@ -175,9 +176,11 @@ public sealed class PropertiesController(
                 return new PropertyAvailabilityDayDto(date, held ? "HELD" : "BOOKED", "Booking", held ? "Held while verification completes" : "Confirmed booking");
             }
             var block = blocks.FirstOrDefault(item => item.StartsOn <= date && item.EndsOn > date);
-            return block is null
+            if (block is not null) return new PropertyAvailabilityDayDto(date, "BLOCKED", "ExternalCalendar", block.Summary);
+            var manual = manualBlocks.FirstOrDefault(item => item.StartsOn <= date && item.EndsOn > date);
+            return manual is null
                 ? new PropertyAvailabilityDayDto(date, "AVAILABLE", "Available")
-                : new PropertyAvailabilityDayDto(date, "BLOCKED", "ExternalCalendar", block.Summary);
+                : new PropertyAvailabilityDayDto(date, "BLOCKED", "Manual", manual.Reason);
         }).ToList();
         return Ok(new PropertyAvailabilityDto(id, start, end, days));
     }

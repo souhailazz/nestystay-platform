@@ -240,6 +240,23 @@ export type CalendarFeed = {
   blockCount: number;
   nextSyncAt?: string | null;
   etag?: string | null;
+  channel?: string | null;
+};
+
+export type CalendarManualBlock = {
+  id: string;
+  propertyId: string;
+  startsOn: string;
+  endsOn: string;
+  reason: string;
+  status: string;
+  sourceType: string;
+};
+
+export type CalendarExportToken = {
+  propertyId?: string;
+  url: string;
+  createdAt: string;
 };
 
 export type CalendarSyncEvent = {
@@ -1695,6 +1712,12 @@ export const api = {
   disconnectCalendarFeed: (propertyId: string, feedId: string, token: string) => request<void>(`/properties/${propertyId}/calendar/feeds/${feedId}`, { method: "DELETE", token }),
   getCalendarFeedHistory: (propertyId: string, feedId: string, token: string) => request<CalendarSyncEvent[]>(`/properties/${propertyId}/calendar/feeds/${feedId}/history`, { token }),
   exportCalendarUrl: (propertyId: string) => `${API_BASE_URL}/properties/${propertyId}/calendar/export.ics`,
+  getCalendarManualBlocks: (propertyId: string, token: string) => request<CalendarManualBlock[]>(`/properties/${propertyId}/calendar/blocks`, { token }),
+  createCalendarManualBlock: (propertyId: string, token: string, body: { startsOn: string; endsOn: string; reason: string }) => request<CalendarManualBlock>(`/properties/${propertyId}/calendar/blocks`, { method: "POST", token, body }),
+  updateCalendarManualBlock: (propertyId: string, blockId: string, token: string, body: { startsOn: string; endsOn: string; reason: string; status?: string }) => request<CalendarManualBlock>(`/properties/${propertyId}/calendar/blocks/${blockId}`, { method: "PATCH", token, body }),
+  deleteCalendarManualBlock: (propertyId: string, blockId: string, token: string) => request<void>(`/properties/${propertyId}/calendar/blocks/${blockId}`, { method: "DELETE", token }),
+  rotateCalendarExportToken: (propertyId: string, token: string) => request<CalendarExportToken>(`/properties/${propertyId}/calendar/export-token`, { method: "POST", token }),
+  revokeCalendarExportToken: (propertyId: string, token: string) => request<void>(`/properties/${propertyId}/calendar/export-token`, { method: "DELETE", token }),
   deleteProperty: (id: string, token: string) =>
     request<void>(`/properties/${id}`, { method: "DELETE", token }),
   getBookings: (token?: string) =>
@@ -2049,8 +2072,16 @@ export const api = {
   saveTravelerPreferences: (userId: string, token: string, body: { preferredParish?: string | null; maximumNightlyRate?: number | null; preferredBadgeLevel?: string | null; preferredHighlights?: string[] }) => request<TravelerPreference>(`/spec/traveler/${userId}/preferences`, { method: "PUT", token, body }),
   saveHostPricingRule: (hostUserId: string, token: string, body: Omit<HostPricingRule, "id" | "hostUserId">) =>
     request<HostPricingRule>(`/spec/host/${hostUserId}/pricing-rules`, { method: "POST", token, body }),
+  updateHostPricingRule: (hostUserId: string, ruleId: string, token: string, body: Omit<HostPricingRule, "id" | "hostUserId">) =>
+    request<HostPricingRule>(`/spec/host/${hostUserId}/pricing-rules/${ruleId}`, { method: "PUT", token, body }),
+  deleteHostPricingRule: (hostUserId: string, ruleId: string, token: string) =>
+    request<void>(`/spec/host/${hostUserId}/pricing-rules/${ruleId}`, { method: "DELETE", token }),
   saveHostPromotion: (hostUserId: string, token: string, body: Omit<HostPromotion, "id" | "hostUserId">) =>
     request<HostPromotion>(`/spec/host/${hostUserId}/promotions`, { method: "POST", token, body }),
+  updateHostPromotion: (hostUserId: string, promotionId: string, token: string, body: Omit<HostPromotion, "id" | "hostUserId">) =>
+    request<HostPromotion>(`/spec/host/${hostUserId}/promotions/${promotionId}`, { method: "PUT", token, body }),
+  deleteHostPromotion: (hostUserId: string, promotionId: string, token: string) =>
+    request<void>(`/spec/host/${hostUserId}/promotions/${promotionId}`, { method: "DELETE", token }),
   getAdminOperations: (token: string) => request<AdminOperations>("/spec/admin/operations", { token }),
   createAdminCase: (token: string, body: { caseType: string; subjectType: string; subjectId?: string | null; priority: string; reason: string; assignedTo?: string }) =>
     request<AdminCase>("/spec/admin/cases", { method: "POST", token, body }),

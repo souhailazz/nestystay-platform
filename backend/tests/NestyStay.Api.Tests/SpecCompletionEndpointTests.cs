@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using NestyStay.Domain;
 
 namespace NestyStay.Api.Tests;
@@ -685,6 +686,56 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
             isActive = true
         });
         Assert.Equal(HttpStatusCode.OK, promotion.StatusCode);
+
+        var quoteWithPricing = await client.PostAsJsonAsync("/api/bookings/quote", new
+        {
+            propertyId,
+            checkIn = "2026-08-10",
+            checkOut = "2026-08-12"
+        });
+        Assert.Equal(HttpStatusCode.OK, quoteWithPricing.StatusCode);
+        var quoteWithPricingJson = await quoteWithPricing.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(450m, quoteWithPricingJson.GetProperty("staySubtotal").GetDecimal());
+
+        var quotePromotion = await client.PostAsJsonAsync("/api/spec/host/{0}/promotions".Replace("{0}", hostId.ToString()), new
+        {
+            propertyId,
+            name = "Short stay promotion",
+            discountPercent = 10,
+            startsOn = "2026-08-01",
+            endsOn = "2026-08-31",
+            minimumNights = 2,
+            badgeLevel = "All",
+            isActive = true
+        });
+        Assert.Equal(HttpStatusCode.OK, quotePromotion.StatusCode);
+        var quoteWithPromotion = await client.PostAsJsonAsync("/api/bookings/quote", new { propertyId, checkIn = "2026-08-10", checkOut = "2026-08-12" });
+        var quoteWithPromotionJson = await quoteWithPromotion.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(405m, quoteWithPromotionJson.GetProperty("staySubtotal").GetDecimal());
+
+        var pricingRuleJson = await pricingRule.Content.ReadFromJsonAsync<JsonElement>();
+        var updatedRule = await client.PutAsJsonAsync($"/api/spec/host/{hostId}/pricing-rules/{pricingRuleJson.GetProperty("id").GetGuid()}", new
+        {
+            propertyId,
+            name = "Updated summer weekend",
+            startsOn = "2026-08-01",
+            endsOn = "2026-08-31",
+            nightlyRate = 200,
+            minimumStay = 2,
+            isActive = true
+        });
+        Assert.Equal(HttpStatusCode.OK, updatedRule.StatusCode);
+
+        var quoteAfterUpdate = await client.PostAsJsonAsync("/api/bookings/quote", new { propertyId, checkIn = "2026-08-10", checkOut = "2026-08-12" });
+        var quoteAfterUpdateJson = await quoteAfterUpdate.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(360m, quoteAfterUpdateJson.GetProperty("staySubtotal").GetDecimal());
+
+        var promotionJson = await quotePromotion.Content.ReadFromJsonAsync<JsonElement>();
+        var deletePromotion = await client.DeleteAsync($"/api/spec/host/{hostId}/promotions/{promotionJson.GetProperty("id").GetGuid()}");
+        Assert.Equal(HttpStatusCode.NoContent, deletePromotion.StatusCode);
+
+        var deleteRule = await client.DeleteAsync($"/api/spec/host/{hostId}/pricing-rules/{pricingRuleJson.GetProperty("id").GetGuid()}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteRule.StatusCode);
 
         client.DefaultRequestHeaders.Authorization = null;
         var adminNoToken = await client.GetAsync("/api/spec/admin/operations");

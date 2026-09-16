@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public sealed class CalendarSyncMaintenanceService(
     private static readonly TimeSpan ErrorInterval = TimeSpan.FromMinutes(5);
     private const int BatchSize = 25;
     private const int MaximumCalendarBytes = CalendarFeedSafety.MaximumCalendarBytes;
+    private static readonly ConcurrentDictionary<Guid, byte> RunningFeeds = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -58,7 +60,15 @@ public sealed class CalendarSyncMaintenanceService(
 
         foreach (var feed in feeds)
         {
-            await SynchronizeFeedAsync(db, clientFactory, feed, now, cancellationToken);
+            if (!RunningFeeds.TryAdd(feed.Id, 0)) continue;
+            try
+            {
+                await SynchronizeFeedAsync(db, clientFactory, feed, now, cancellationToken);
+            }
+            finally
+            {
+                RunningFeeds.TryRemove(feed.Id, out _);
+            }
         }
 
         if (feeds.Count > 0)
@@ -124,9 +134,7 @@ public sealed class CalendarSyncMaintenanceService(
 
             var blocks = CalendarController.ParseEvents(ics, feed.Id, feed.PropertyId, now);
             if (blocks.Count > 5000) throw new InvalidOperationException("Calendar feed contains too many events.");
-            var oldBlocks = await db.MilestoneCalendarBlocks.Where(block => block.FeedId == feed.Id && !block.IsDeleted).ToListAsync(cancellationToken);
-            db.MilestoneCalendarBlocks.RemoveRange(oldBlocks);
-            db.MilestoneCalendarBlocks.AddRange(blocks);
+            await CalendarController.ApplyImportedBlocksAsync(db, feed, blocks, now, cancellationToken);
             feed.Status = "Healthy";
             feed.LastSyncAt = now;
             feed.NextSyncAt = now.Add(SuccessInterval);
