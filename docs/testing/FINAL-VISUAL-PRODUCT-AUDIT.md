@@ -52,3 +52,12 @@ The review loop was capture → visual inspection → targeted fix → recapture
 - Existing broader browser/video evidence: `testing-evidence/client-demo/`
 - Canonical route inventory: `frontend/src/app/routeManifest.ts`
 - Final screen certification matrix: [FINAL-SCREEN-CERTIFICATION.md](FINAL-SCREEN-CERTIFICATION.md)
+
+## Final verification totals
+
+- Backend: 183 passed, 0 failed, 0 skipped in the unfiltered local suite.
+- Frontend: 48 unit tests passed; typecheck passed; production build passed; lint reported 0 errors and 87 existing warnings; `npm audit --audit-level=high` reported 0 vulnerabilities.
+- Full Playwright: 194 scheduled; 155 passed in the full run, 3 failures were the expected stale `directory-police` baselines after the documented spacing fix, and 36 were intentional skips. After manual inspection, all three affected baselines were refreshed and the focused three-project visual regression rerun passed 3/3. Final effective result: 158 passed, 0 outstanding failures, 36 intentional skips.
+- Final UI capture: 81/81 screenshots passed with empty `pageErrors` arrays.
+
+The 36 browser skips are bounded and documented: Chromium-only certification variants, admin journeys requiring `NESTYSTAY_E2E_ADMIN_TOKEN`, MinIO browser storage requiring `NESTYSTAY_MINIO_E2E=true`, authenticated production smoke requiring `SMOKE_EMAIL`/`SMOKE_PASSWORD`, and mobile-only navigation assertions outside mobile projects. They are not silently treated as passes.
