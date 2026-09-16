@@ -1485,13 +1485,17 @@ public sealed class EfPhaseOneStore(
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);
         var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
-        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
+        var quote = await BuildQuoteAsync(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children, cancellationToken);
         var now = timeProvider.GetUtcNow();
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
         if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
+        }
+        if (await FindBlockingCalendarAsync(property.Id, request.CheckIn, request.CheckOut, cancellationToken))
+        {
+            throw new InvalidOperationException("Requested dates are blocked by the property calendar.");
         }
 
         return quote;
@@ -1624,12 +1628,16 @@ public sealed class EfPhaseOneStore(
         var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
         var guest = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == request.GuestUserId, cancellationToken)
             ?? throw new InvalidOperationException("Guest user must register before booking.");
-        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
+        var quote = await BuildQuoteAsync(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children, cancellationToken);
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
         if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
+        }
+        if (await FindBlockingCalendarAsync(property.Id, request.CheckIn, request.CheckOut, cancellationToken))
+        {
+            throw new InvalidOperationException("Requested dates are blocked by the property calendar.");
         }
 
         await EnforceBookingCreationRateLimitAsync(guest.Id, now, cancellationToken);
@@ -2245,14 +2253,15 @@ public sealed class EfPhaseOneStore(
         }
     }
 
-    private BookingQuoteDto BuildQuote(
+    private async Task<BookingQuoteDto> BuildQuoteAsync(
         MilestoneProperty property,
         DateOnly checkIn,
         DateOnly checkOut,
         bool datesAvailable,
         DateTimeOffset? holdExpiresAt,
-        int adults = 1,
-        int children = 0)
+        int adults,
+        int children,
+        CancellationToken cancellationToken)
     {
         if (checkOut <= checkIn)
         {
@@ -2265,15 +2274,44 @@ public sealed class EfPhaseOneStore(
         }
 
         var nights = checkOut.DayNumber - checkIn.DayNumber;
-        var staySubtotal = decimal.Round(property.NightlyRate * nights, 2);
+        var pricingRules = await db.MilestoneHostPricingRules.AsNoTracking()
+            .Where(rule => rule.PropertyId == property.Id && rule.HostUserId == property.HostUserId && rule.IsActive && rule.StartsOn <= checkOut.AddDays(-1) && rule.EndsOn >= checkIn)
+            .ToListAsync(cancellationToken);
+        var promotions = await db.MilestoneHostPromotions.AsNoTracking()
+            .Where(promotion => promotion.PropertyId == property.Id && promotion.HostUserId == property.HostUserId && promotion.IsActive && promotion.StartsOn <= checkOut.AddDays(-1) && promotion.EndsOn >= checkIn)
+            .ToListAsync(cancellationToken);
+        var nightlyRates = Enumerable.Range(0, nights).Select(offset =>
+        {
+            var date = checkIn.AddDays(offset);
+            return pricingRules
+                .Where(rule => rule.StartsOn <= date && rule.EndsOn >= date)
+                .OrderByDescending(rule => rule.StartsOn)
+                .ThenByDescending(rule => rule.CreatedAt)
+                .Select(rule => rule.NightlyRate)
+                .FirstOrDefault(property.NightlyRate);
+        }).ToList();
+        var averageNightlyRate = decimal.Round(nightlyRates.Average(), 2);
+        var baseStaySubtotal = decimal.Round(nightlyRates.Sum(), 2);
+        var promotion = promotions
+            .Where(item => item.MinimumNights <= nights && item.StartsOn <= checkIn && item.EndsOn >= checkOut.AddDays(-1))
+            .OrderByDescending(item => item.DiscountPercent)
+            .ThenByDescending(item => item.CreatedAt)
+            .FirstOrDefault();
+        var discountAmount = promotion is null ? 0m : decimal.Round(baseStaySubtotal * promotion.DiscountPercent / 100m, 2);
+        var staySubtotal = decimal.Round(baseStaySubtotal - discountAmount, 2);
         var guestFeePercent = NestyStayBusinessRules.ResolveStandardGuestFeePercent(staySubtotal, nights);
         var guestPlatformFee = decimal.Round(staySubtotal * guestFeePercent / 100m, 2);
         var total = decimal.Round(staySubtotal + guestPlatformFee, 2);
         var lines = new List<BookingPriceLineDto>
         {
-            new("stay", $"{property.NightlyRate:0.00} x {nights} night stay", staySubtotal, property.Currency, true),
+            new("stay", $"{averageNightlyRate:0.00} average x {nights} night stay", baseStaySubtotal, property.Currency, true),
             new("guest-platform-fee", $"{guestFeePercent:0}% NestyStay guest platform fee", guestPlatformFee, property.Currency, false)
         };
+
+        if (pricingRules.Count > 0 && nightlyRates.Any(rate => rate != property.NightlyRate))
+            lines.Insert(1, new("pricing-override", "Server-applied date range pricing", 0m, property.Currency, true));
+        if (promotion is not null)
+            lines.Insert(2, new("promotion-discount", $"{promotion.DiscountPercent:0.##}% discount · {promotion.Name}", -discountAmount, property.Currency, true));
 
         if (property.CleaningFee > 0)
         {
@@ -2299,7 +2337,7 @@ public sealed class EfPhaseOneStore(
             checkIn,
             checkOut,
             nights,
-            property.NightlyRate,
+            averageNightlyRate,
             staySubtotal,
             guestPlatformFee,
             total,
@@ -2468,6 +2506,10 @@ public sealed class EfPhaseOneStore(
             booking.CheckIn < checkOut &&
             checkIn < booking.CheckOut,
             cancellationToken);
+
+    private async Task<bool> FindBlockingCalendarAsync(Guid propertyId, DateOnly checkIn, DateOnly checkOut, CancellationToken cancellationToken) =>
+        await db.MilestoneCalendarBlocks.AnyAsync(block => block.PropertyId == propertyId && !block.IsDeleted && block.StartsOn < checkOut && checkIn < block.EndsOn, cancellationToken) ||
+        await db.MilestoneCalendarManualBlocks.AnyAsync(block => block.PropertyId == propertyId && block.Status == "ACTIVE" && !block.IsDeleted && block.StartsOn < checkOut && checkIn < block.EndsOn, cancellationToken);
 
     private async Task ExpirePendingHoldsAsync(DateTimeOffset now, CancellationToken cancellationToken)
     {

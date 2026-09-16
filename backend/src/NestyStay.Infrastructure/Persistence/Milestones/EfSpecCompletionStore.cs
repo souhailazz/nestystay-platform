@@ -1368,11 +1368,8 @@ public sealed class EfSpecCompletionStore(
 
     public async Task<HostPricingRuleDto> SaveHostPricingRuleAsync(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
     {
-        ValidateDateRange(request.StartsOn, request.EndsOn);
-        if (request.NightlyRate <= 0 || request.MinimumStay <= 0)
-        {
-            throw new InvalidOperationException("Nightly rate and minimum stay must be positive.");
-        }
+        ValidatePricingRule(request);
+        await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
 
         var entity = new MilestoneHostPricingRule
         {
@@ -1388,17 +1385,48 @@ public sealed class EfSpecCompletionStore(
             UpdatedByUserId = hostUserId
         };
         db.MilestoneHostPricingRules.Add(entity);
+        await AddAuditAsync("HostPricingRuleCreated", "HostPricingRule", entity.Id, "Host pricing rule created.", hostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
     }
 
+    public async Task<HostPricingRuleDto?> UpdateHostPricingRuleAsync(Guid hostUserId, Guid id, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
+    {
+        ValidatePricingRule(request);
+        await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
+        var entity = await db.MilestoneHostPricingRules.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (entity is null) return null;
+        var previous = ToDto(entity);
+        entity.PropertyId = request.PropertyId;
+        entity.Name = RequireText(request.Name, "Rule name");
+        entity.StartsOn = request.StartsOn;
+        entity.EndsOn = request.EndsOn;
+        entity.NightlyRate = request.NightlyRate;
+        entity.MinimumStay = request.MinimumStay;
+        entity.IsActive = request.IsActive;
+        entity.UpdatedAt = timeProvider.GetUtcNow();
+        entity.UpdatedByUserId = hostUserId;
+        await AddAuditAsync("HostPricingRuleUpdated", "HostPricingRule", entity.Id, "Host pricing rule updated.", new AuditActorContext(hostUserId, "Host", null, string.Empty), previous, ToDto(entity), cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(entity);
+    }
+
+    public async Task<bool> DeleteHostPricingRuleAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await db.MilestoneHostPricingRules.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (entity is null) return false;
+        entity.IsDeleted = true;
+        entity.UpdatedAt = timeProvider.GetUtcNow();
+        entity.UpdatedByUserId = hostUserId;
+        await AddAuditAsync("HostPricingRuleDeleted", "HostPricingRule", entity.Id, "Host pricing rule removed.", new AuditActorContext(hostUserId, "Host", null, string.Empty), ToDto(entity), null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<HostPromotionDto> SaveHostPromotionAsync(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken)
     {
-        ValidateDateRange(request.StartsOn, request.EndsOn);
-        if (request.DiscountPercent <= 0 || request.DiscountPercent > 80 || request.MinimumNights <= 0)
-        {
-            throw new InvalidOperationException("Promotion discount and minimum nights must be valid.");
-        }
+        ValidatePromotion(request);
+        await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
 
         var entity = new MilestoneHostPromotion
         {
@@ -1415,8 +1443,43 @@ public sealed class EfSpecCompletionStore(
             UpdatedByUserId = hostUserId
         };
         db.MilestoneHostPromotions.Add(entity);
+        await AddAuditAsync("HostPromotionCreated", "HostPromotion", entity.Id, "Host promotion created.", hostUserId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(entity);
+    }
+
+    public async Task<HostPromotionDto?> UpdateHostPromotionAsync(Guid hostUserId, Guid id, SaveHostPromotionRequest request, CancellationToken cancellationToken)
+    {
+        ValidatePromotion(request);
+        await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
+        var entity = await db.MilestoneHostPromotions.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (entity is null) return null;
+        var previous = ToDto(entity);
+        entity.PropertyId = request.PropertyId;
+        entity.Name = RequireText(request.Name, "Promotion name");
+        entity.DiscountPercent = request.DiscountPercent;
+        entity.StartsOn = request.StartsOn;
+        entity.EndsOn = request.EndsOn;
+        entity.MinimumNights = request.MinimumNights;
+        entity.BadgeLevel = RequireText(request.BadgeLevel, "Badge level");
+        entity.IsActive = request.IsActive;
+        entity.UpdatedAt = timeProvider.GetUtcNow();
+        entity.UpdatedByUserId = hostUserId;
+        await AddAuditAsync("HostPromotionUpdated", "HostPromotion", entity.Id, "Host promotion updated.", new AuditActorContext(hostUserId, "Host", null, string.Empty), previous, ToDto(entity), cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(entity);
+    }
+
+    public async Task<bool> DeleteHostPromotionAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await db.MilestoneHostPromotions.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
+        if (entity is null) return false;
+        entity.IsDeleted = true;
+        entity.UpdatedAt = timeProvider.GetUtcNow();
+        entity.UpdatedByUserId = hostUserId;
+        await AddAuditAsync("HostPromotionDeleted", "HostPromotion", entity.Id, "Host promotion removed.", new AuditActorContext(hostUserId, "Host", null, string.Empty), ToDto(entity), null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken)
@@ -2340,6 +2403,32 @@ public sealed class EfSpecCompletionStore(
         if (ownedCount != distinctIds.Length)
         {
             throw new UnauthorizedAccessException("Host profile listings must belong to the signed-in host.");
+        }
+    }
+
+    private async Task EnsureHostPropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        if (!await db.MilestoneProperties.AnyAsync(item => item.Id == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("The selected property is not owned by this host.");
+        }
+    }
+
+    private static void ValidatePricingRule(SaveHostPricingRuleRequest request)
+    {
+        ValidateDateRange(request.StartsOn, request.EndsOn);
+        if (request.NightlyRate <= 0 || request.MinimumStay <= 0)
+        {
+            throw new InvalidOperationException("Nightly rate and minimum stay must be positive.");
+        }
+    }
+
+    private static void ValidatePromotion(SaveHostPromotionRequest request)
+    {
+        ValidateDateRange(request.StartsOn, request.EndsOn);
+        if (request.DiscountPercent <= 0 || request.DiscountPercent > 80 || request.MinimumNights <= 0)
+        {
+            throw new InvalidOperationException("Promotion discount and minimum nights must be valid.");
         }
     }
 

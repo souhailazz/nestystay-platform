@@ -55,7 +55,11 @@ public interface ISpecCompletionStore
     Task<HostOperationsDto> GetHostOperationsAsync(Guid hostUserId, CancellationToken cancellationToken);
     Task<HostPayoutDto?> SettleHostPayoutAsync(Guid payoutId, Guid actorUserId, string? notes, CancellationToken cancellationToken);
     Task<HostPricingRuleDto> SaveHostPricingRuleAsync(Guid hostUserId, SaveHostPricingRuleRequest request, CancellationToken cancellationToken);
+    Task<HostPricingRuleDto?> UpdateHostPricingRuleAsync(Guid hostUserId, Guid id, SaveHostPricingRuleRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteHostPricingRuleAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken);
     Task<HostPromotionDto> SaveHostPromotionAsync(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken);
+    Task<HostPromotionDto?> UpdateHostPromotionAsync(Guid hostUserId, Guid id, SaveHostPromotionRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteHostPromotionAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken);
     Task<AdminOperationsDto> GetAdminOperationsAsync(CancellationToken cancellationToken);
     Task<AdminCaseDto> CreateAdminCaseAsync(CreateAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken);
     Task<AdminCaseDto> ResolveAdminCaseAsync(Guid caseId, ResolveAdminCaseRequest request, AuditActorContext? actor, CancellationToken cancellationToken);

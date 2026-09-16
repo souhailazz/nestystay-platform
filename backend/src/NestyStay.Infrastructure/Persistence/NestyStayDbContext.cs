@@ -156,6 +156,8 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<MilestoneCalendarFeed> MilestoneCalendarFeeds => Set<MilestoneCalendarFeed>();
     public DbSet<MilestoneCalendarBlock> MilestoneCalendarBlocks => Set<MilestoneCalendarBlock>();
     public DbSet<MilestoneCalendarSyncEvent> MilestoneCalendarSyncEvents => Set<MilestoneCalendarSyncEvent>();
+    public DbSet<MilestoneCalendarManualBlock> MilestoneCalendarManualBlocks => Set<MilestoneCalendarManualBlock>();
+    public DbSet<MilestoneCalendarExportToken> MilestoneCalendarExportTokens => Set<MilestoneCalendarExportToken>();
     public DbSet<MilestonePropertyPhoto> MilestonePropertyPhotos => Set<MilestonePropertyPhoto>();
     public DbSet<MilestoneBooking> MilestoneBookings => Set<MilestoneBooking>();
     public DbSet<MilestonePaymentAttempt> MilestonePaymentAttempts => Set<MilestonePaymentAttempt>();
@@ -385,6 +387,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneCalendarFeed>().HasIndex(feed => new { feed.PropertyId, feed.HostUserId, feed.FeedUrl }).IsUnique();
         modelBuilder.Entity<MilestoneCalendarBlock>().HasIndex(block => new { block.FeedId, block.ExternalId }).IsUnique();
         modelBuilder.Entity<MilestoneCalendarSyncEvent>().HasIndex(item => new { item.FeedId, item.StartedAt });
+        modelBuilder.Entity<MilestoneCalendarManualBlock>().HasIndex(block => new { block.PropertyId, block.HostUserId, block.StartsOn, block.EndsOn });
+        modelBuilder.Entity<MilestoneCalendarExportToken>().HasIndex(token => token.PropertyId).IsUnique().HasFilter("revoked_at IS NULL");
+        modelBuilder.Entity<MilestoneCalendarExportToken>().HasIndex(token => token.TokenHash).IsUnique();
         modelBuilder.Entity<MilestoneUserSession>().HasIndex(session => new { session.UserId, session.TokenIdHash }).IsUnique();
         modelBuilder.Entity<MilestoneUserSession>().HasIndex(session => new { session.UserId, session.LastUsedAt });
         modelBuilder.Entity<MilestonePasskeyCredential>().HasIndex(credential => credential.CredentialIdHash).IsUnique();

@@ -26,6 +26,20 @@ public sealed class PropertyManagerFoundationRegressionTests(NestyStayApiFactory
     }
 
     [Fact]
+    public async Task PropertyManagerDashboardWorksForAPropertyWithoutARentalListingOrBooking()
+    {
+        using var client = factory.CreateClient();
+        var data = await Portfolio(client);
+        var dashboard = await client.GetAsync($"{Api}/dashboard");
+        Assert.Equal(HttpStatusCode.OK, dashboard.StatusCode);
+        var body = await dashboard.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, body.GetProperty("totalProperties").GetInt32());
+        Assert.Empty(body.GetProperty("invoices").EnumerateArray());
+        Assert.Empty(body.GetProperty("maintenance").EnumerateArray());
+        Assert.Equal(data.Manager, body.GetProperty("manager").GetProperty("managerUserId").GetGuid());
+    }
+
+    [Fact]
     public async Task UtilitySchedulePersistsAndRejectsForeignProperties()
     {
         using var client = factory.CreateClient();

@@ -491,6 +491,22 @@ public sealed class SpecCompletionController(
         return Ok(await store.SaveHostPricingRuleAsync(hostUserId, request, cancellationToken));
     }
 
+    [HttpPut("host/{hostUserId:guid}/pricing-rules/{id:guid}")]
+    public async Task<ActionResult<HostPricingRuleDto>> UpdatePricingRule(Guid hostUserId, Guid id, SaveHostPricingRuleRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId)) return NotFound();
+        var updated = await store.UpdateHostPricingRuleAsync(hostUserId, id, request, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
+    [HttpDelete("host/{hostUserId:guid}/pricing-rules/{id:guid}")]
+    public async Task<IActionResult> DeletePricingRule(Guid hostUserId, Guid id, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        return await store.DeleteHostPricingRuleAsync(hostUserId, id, cancellationToken) ? NoContent() : NotFound();
+    }
+
     [HttpPost("host/{hostUserId:guid}/promotions")]
     public async Task<ActionResult<HostPromotionDto>> SavePromotion(Guid hostUserId, SaveHostPromotionRequest request, CancellationToken cancellationToken)
     {
@@ -501,6 +517,22 @@ public sealed class SpecCompletionController(
         }
 
         return Ok(await store.SaveHostPromotionAsync(hostUserId, request, cancellationToken));
+    }
+
+    [HttpPut("host/{hostUserId:guid}/promotions/{id:guid}")]
+    public async Task<ActionResult<HostPromotionDto>> UpdatePromotion(Guid hostUserId, Guid id, SaveHostPromotionRequest request, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        if (!authorization.HostOwnsProperty(hostUserId, request.PropertyId)) return NotFound();
+        var updated = await store.UpdateHostPromotionAsync(hostUserId, id, request, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
+    [HttpDelete("host/{hostUserId:guid}/promotions/{id:guid}")]
+    public async Task<IActionResult> DeletePromotion(Guid hostUserId, Guid id, CancellationToken cancellationToken)
+    {
+        authorization.RequireHostOwner(hostUserId);
+        return await store.DeleteHostPromotionAsync(hostUserId, id, cancellationToken) ? NoContent() : NotFound();
     }
 
     [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
