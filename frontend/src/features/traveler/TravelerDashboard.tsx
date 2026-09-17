@@ -12,7 +12,7 @@ interface TravelerDashboardProps {
 }
 
 const outlinePill =
-  "inline-flex min-h-[46px] items-center self-start rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep";
+  "inline-flex min-h-10 items-center self-start rounded-pill border-[1.5px] border-sand-input px-3 font-sans text-[12px] font-semibold text-ink transition-colors hover:border-deep sm:min-h-[46px] sm:px-5 sm:text-[13.5px]";
 
 function isFinished(booking: Booking) {
   return new Date(booking.checkOut).getTime() < Date.now();
@@ -79,7 +79,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
       </h1>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(190px,1fr))] sm:gap-3.5">
         {(
           [
             ["UPCOMING", String(upcoming.length)],
@@ -87,14 +87,14 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
             ["TOTAL SPENT", formatMoney(totalSpent, currency)],
           ] as const
         ).map(([label, value]) => (
-          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={label}>
-            <div className="text-[11px] font-semibold tracking-[0.16em] text-sand-500">{label}</div>
-            <div className="font-display text-[34px] font-medium leading-none">{value}</div>
+          <div className="flex min-w-0 flex-col gap-1.5 rounded-card border border-sand-border bg-cream p-3 sm:gap-3 sm:p-[22px]" key={label}>
+            <div className="break-words text-[9px] font-semibold leading-tight tracking-[0.1em] text-sand-500 sm:text-[11px] sm:tracking-[0.16em]">{label}</div>
+            <div className="break-words font-display text-[26px] font-medium leading-none sm:text-[34px]">{value}</div>
           </div>
         ))}
       </div>
 
-      <section aria-labelledby="traveler-shortcuts-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">
+      <section aria-labelledby="traveler-shortcuts-heading" className="rounded-card border border-sand-border bg-cream p-3 sm:p-[22px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="m-0 font-display text-[19px] font-medium" id="traveler-shortcuts-heading">Your stay hub</h2>
@@ -111,10 +111,10 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
       </section>
 
       {nextTrip && (
-        <section aria-labelledby="traveler-next-trip-heading" className="grid gap-4 rounded-card border border-deep/20 bg-deep p-5 text-on-dark-heading md:grid-cols-[1fr_auto] md:items-center">
+        <section aria-labelledby="traveler-next-trip-heading" className="grid gap-3 rounded-card border border-deep/20 bg-deep p-4 text-on-dark-heading sm:gap-4 sm:p-5 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <div className="text-[11px] font-semibold tracking-[0.16em] text-on-dark-muted">UP NEXT</div>
-            <h2 className="m-0 mt-1 font-display text-[25px] font-medium" id="traveler-next-trip-heading">{nextTrip.propertyTitle ?? "Your Jamaican stay"}</h2>
+            <h2 className="m-0 mt-1 font-display text-[21px] font-medium sm:text-[25px]" id="traveler-next-trip-heading">{nextTrip.propertyTitle ?? "Your Jamaican stay"}</h2>
             <p className="m-0 mt-1 text-[13px] text-on-dark-muted">{nextTrip.checkIn} → {nextTrip.checkOut} · {nextTrip.nights} night{nextTrip.nights === 1 ? "" : "s"}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               <StatusChip label="Booking" value={nextTrip.status} />
@@ -122,7 +122,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
               <StatusChip label="Payment" value={nextTrip.paymentStatus} />
             </div>
           </div>
-          <AppLink className="inline-flex min-h-[46px] items-center justify-center rounded-pill bg-yellow px-5 font-sans text-[13.5px] font-semibold text-deep transition-colors hover:bg-yellow-press" href={`/booking/${nextTrip.id}/${needsVerification(nextTrip) ? "pending" : "success"}`}>
+          <AppLink className="inline-flex min-h-10 items-center justify-center rounded-pill bg-yellow px-4 font-sans text-[12px] font-semibold text-deep transition-colors hover:bg-yellow-press sm:min-h-[46px] sm:px-5 sm:text-[13.5px]" href={`/booking/${nextTrip.id}/${needsVerification(nextTrip) ? "pending" : "success"}`}>
             Open trip
           </AppLink>
         </section>
@@ -146,13 +146,13 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
           const resume = needsVerification(booking);
           const timeline = (booking as Booking & { timeline?: string[] }).timeline ?? [];
           return (
-            <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={booking.id}>
-              <div className="flex flex-wrap items-start gap-3.5">
-                <img alt="" className="block size-24 shrink-0 rounded-field object-cover" src={image.src} />
-                <div className="min-w-[220px] flex-1">
+            <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-3 sm:p-[22px]" key={booking.id}>
+              <div className="flex flex-wrap items-start gap-2.5 sm:gap-3.5">
+                <img alt="" className="block size-20 shrink-0 rounded-field object-cover sm:size-24" src={image.src} />
+                <div className="min-w-0 flex-1 sm:min-w-[220px]">
                   <div className="flex flex-wrap items-baseline justify-between gap-2.5">
                     <div className="font-display text-[19px] font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>
-                    <span className="font-mono text-[11.5px] text-sand-500">NSTY-BK-{booking.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="break-all font-mono text-[10px] text-sand-500 sm:text-[11.5px]">NSTY-BK-{booking.id.slice(0, 8).toUpperCase()}</span>
                   </div>
                   <div className="text-[12.5px] text-gray-600">
                     {booking.checkIn} → {booking.checkOut} · {booking.nights} night{booking.nights === 1 ? "" : "s"} ·{" "}
