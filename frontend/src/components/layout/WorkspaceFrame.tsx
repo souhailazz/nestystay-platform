@@ -56,7 +56,7 @@ function Breadcrumbs({ pathname, screenId }: { pathname: string; screenId: strin
   const active = getScreenDefinition(screenId)?.navigation;
   const current = active?.label ?? prettyRoute(pathname);
   return (
-    <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-sand-600">
+    <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-sand-600 sm:mb-4">
       <AppLink className="inline-flex min-h-8 items-center gap-1 rounded-pill px-2 font-semibold text-deep-hover hover:bg-shell" href="/">
         <Home aria-hidden="true" size={13} /> Home
       </AppLink>
