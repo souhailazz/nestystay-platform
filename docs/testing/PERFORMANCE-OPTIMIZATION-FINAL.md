@@ -80,6 +80,12 @@ route-specific work is now split into deferred chunks.
 
 ## Verification results
 
+Rendered Lighthouse report screenshots from the final local production preview:
+
+- [Homepage Lighthouse screenshot](C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/performance/lighthouse-homepage.png)
+- [Explore Lighthouse screenshot](C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/performance/lighthouse-explore.png)
+- [Experiences Lighthouse screenshot](C:/Users/Administrator/Desktop/nestystayPLATFORM/testing-evidence/performance/lighthouse-experiences.png)
+
 - Frontend typecheck: passed.
 - Frontend production build: passed.
 - Frontend unit tests: 9 files, 48 tests passed.
