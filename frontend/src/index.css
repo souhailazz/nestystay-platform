@@ -114,8 +114,8 @@ body {
    turn the entire heading into a heavy outlined box. Interactive descendants
    keep their normal focus treatment. */
 [data-route-heading]:focus,
-main > h1:focus,
-main > h2:focus,
+main h1:focus,
+main h2:focus,
 .workspace-main h1:focus,
 .workspace-main h2:focus {
   outline: none;
@@ -2366,7 +2366,7 @@ img, svg {
 .booking-flow__summary h3 {
   margin: 12px 0 6px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 29px;
+  font-size: clamp(24px, 4vw, 29px);
   font-weight: 500;
 }
 .booking-flow__summary p {

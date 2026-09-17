@@ -77,7 +77,7 @@ export function Modal({
 
   const overlayClass = variant === "sheet" ? "items-end p-0 sm:items-center sm:p-6" : "items-center overflow-y-auto p-6";
   const surfaceClass = variant === "sheet"
-    ? "max-h-[min(88dvh,760px)] w-full rounded-t-[22px] rounded-b-none pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-48px)] sm:w-[min(720px,100%)] sm:rounded-[22px] sm:pb-7"
+    ? "max-h-[min(88dvh,760px)] w-full rounded-t-[22px] rounded-b-none p-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-48px)] sm:w-[min(720px,100%)] sm:rounded-[22px] sm:p-7"
     : variant === "fullscreen"
       ? "min-h-[100dvh] w-full rounded-none p-5 sm:min-h-0 sm:w-[min(960px,100%)] sm:rounded-[22px] sm:p-7"
       : "max-h-[calc(100dvh-48px)] w-[min(720px,100%)] rounded-[22px] p-7";
