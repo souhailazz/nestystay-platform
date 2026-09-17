@@ -18,6 +18,7 @@ import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
+import { CookieConsent } from "./components/privacy/CookieConsent";
 import type { ConfirmationRequest } from "./lib/confirmation";
 import type { TextInputRequest } from "./lib/textInput";
 import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
@@ -683,6 +684,7 @@ export default function App() {
           )}
         </Suspense>
       </div>
+      <CookieConsent />
     </PatoisProvider>
   );
 }

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { AppLink } from "../AppLink";
 import { cx } from "../../lib/ui";
+import { openCookieSettings } from "../../lib/legal";
 
 /** Deep brand panel background — faint geometric line pattern fading into Deep. */
 export const deepPatternBackground: CSSProperties = {
@@ -58,11 +59,15 @@ export function PublicFooter({ variant = "deep" }: { variant?: "deep" | "night" 
           <EmblemRoundel size={variant === "night" ? 56 : 44} className="bg-shell" />
           <span className="font-sans text-sm font-bold tracking-[0.22em] text-shell">NESTY STAY</span>
         </AppLink>
-        <div className="font-sans text-[13px] text-on-dark-muted">
-          nestystay.net ·{" "}
-          <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
-          </a>
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 font-sans text-[13px] text-on-dark-muted">
+          <span>nestystay.net · <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href="https://wa.me/17542482435">754-248-2435</a></span>
+          <nav aria-label="Legal and support" className="flex flex-wrap gap-x-3 gap-y-1">
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/refund-policy">Refunds</AppLink>
+            <button className="underline-offset-2 hover:text-on-dark-body hover:underline" onClick={openCookieSettings} type="button">Cookie settings</button>
+          </nav>
         </div>
       </div>
     </footer>

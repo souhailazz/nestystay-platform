@@ -22,7 +22,7 @@ export function InteractiveMapPage() {
     : "https://www.openstreetmap.org/export/embed.html?bbox=-78.5%2C17.6%2C-76.0%2C18.6&layer=mapnik";
   const miniCard = (property: (typeof visible)[number], extra?: string) => (
     <button className={cx("flex cursor-pointer items-center gap-3 rounded-field border bg-cream p-2.5 text-left font-sans transition-shadow hover:shadow-[0_4px_14px_rgba(6,43,43,0.1)]", property.id === active?.id ? "border-[1.5px] border-deep-hover" : "border-sand-border", extra)} key={property.id} onClick={() => setActiveId(property.id)} type="button">
-      <img alt="" className="block h-[76px] w-24 shrink-0 rounded-[12px] object-cover" src={property.imageUrl ?? property.galleryUrls?.[0] ?? getStayImage(0).src} />
+<img alt={`${property.title} preview`} className="block h-[76px] w-24 shrink-0 rounded-[12px] object-cover" src={property.imageUrl ?? property.galleryUrls?.[0] ?? getStayImage(0).src} />
       <span><span className="block font-display text-[15px] font-semibold text-ink">{property.title}</span><span className="mt-px block text-[12.5px] text-gray-600">{property.location}</span><span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink"><strong>{formatMoney(property.nightlyRate, property.currency)}</strong> / night <TierBadge className="!px-2.5 !py-[3px] !text-[9.5px]" level={property.badgeLevel} /></span></span>
     </button>
   );

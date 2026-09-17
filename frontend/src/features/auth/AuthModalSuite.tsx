@@ -106,8 +106,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const [registerPhone, setRegisterPhone] = useState("+18765550123");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("Password123!");
   const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [smsCode, setSmsCode] = useState("");
   const [smsChallenge, setSmsChallenge] = useState<{ flowId: string; maskedPhone: string; expiresAt: string } | null>(null);
@@ -702,23 +702,25 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                 value={registerConfirmPassword}
               />
             </label>
-            <label className="flex cursor-pointer items-center gap-2.5 font-sans text-[13px] text-ink">
+            <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
                 checked={acceptedTerms}
                 className="size-4 accent-deep-hover"
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
+                required
                 type="checkbox"
               />
-              I accept the terms.
+              <span>I agree to the <AppLink className="font-semibold text-deep-hover underline" href="/terms" target="_blank">Terms of Service</AppLink>.</span>
             </label>
-            <label className="flex cursor-pointer items-center gap-2.5 font-sans text-[13px] text-ink">
+            <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
                 checked={acceptedPrivacy}
                 className="size-4 accent-deep-hover"
                 onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                required
                 type="checkbox"
               />
-              I accept the privacy policy.
+              <span>I acknowledge the <AppLink className="font-semibold text-deep-hover underline" href="/privacy" target="_blank">Privacy Policy</AppLink>.</span>
             </label>
             {noticePanel}
             <button className={deepPill} disabled={loading || auth.isAuthBusy} type="submit">
