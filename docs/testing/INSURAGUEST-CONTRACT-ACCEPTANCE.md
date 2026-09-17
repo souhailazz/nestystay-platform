@@ -63,4 +63,4 @@ Focused browser result: **3 passed, 0 failed**. The full configured browser regr
 
 **Contract behavior is complete for local deterministic application acceptance. Live InsuraGuest provider acceptance remains external and is required before production coverage is advertised as insurer-backed.**
 
-Candidate implementation SHAs: backend `9bcbb8c739d5fc755d3a381bce883da7fb85153a`, frontend `d83cdd453f9e0496ea85c03efb9783c2b222967e`. These are feature-branch SHAs and still require the client's protected-main PR review/merge before staging deployment.
+Candidate implementation SHAs: backend `7689988`, frontend `d83cdd4`, root mirror `39b931f`. These are feature-branch SHAs and still require the client's protected-main PR review/merge before staging deployment.
