@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import QRCode from "qrcode";
 import {
   ArrowRight,
   BadgeCheck,
@@ -133,9 +132,9 @@ function RequireSession({ auth, children }: { auth: AuthController; children: (s
   return <>{children(auth.session)}</>;
 }
 
-function HeroImage({ index = 0, alt = "" }: { index?: number; alt?: string }) {
+function HeroImage({ index = 0, alt = "", priority = false }: { index?: number; alt?: string; priority?: boolean }) {
   const image = getStayImage(index);
-  return <img className="completion-hero-image" src={image.src} alt={alt || image.alt} loading="lazy" />;
+  return <img className="completion-hero-image" src={image.src} srcSet={image.srcSet} sizes="(max-width: 760px) 100vw, (max-width: 1100px) 92vw, 1080px" alt={alt || image.alt} decoding="async" fetchPriority={priority ? "high" : "low"} height="720" loading={priority ? "eager" : "lazy"} width="1080" />;
 }
 
 export function PublicContentRoute({ slug }: { slug: string }) {
@@ -445,7 +444,8 @@ function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }
       return;
     }
 
-    QRCode.toDataURL(enrollment.otpAuthUri, { margin: 1, width: 184 })
+    void import("qrcode")
+      .then(({ default: QRCode }) => QRCode.toDataURL(enrollment.otpAuthUri, { margin: 1, width: 184 }))
       .then((dataUri) => {
         if (!cancelled) setQrDataUri(dataUri);
       })
@@ -597,10 +597,10 @@ export function ExperiencesPage({ slug }: { slug?: string }) {
 function ExperienceCard({ experience, index }: { experience: Experience; index: number }) {
   return (
     <Card className="stay-result-card">
-      <HeroImage index={index} alt={experience.name} />
+      <HeroImage index={index} alt={experience.name} priority={index === 0} />
       <div className="stay-result-card__body">
         <Badge tone="green">{experience.category}</Badge>
-        <h3>{experience.name}</h3>
+        <h2>{experience.name}</h2>
         <p>{experience.parish} - {experience.providerName}</p>
         <strong>{formatMoney(experience.price, experience.currency)} / guest</strong>
         <AppLink className={buttonClassName("outline")} href={`/experiences/${experience.slug}`}>View details</AppLink>
@@ -759,6 +759,7 @@ function BookingReservationCard({ booking, token }: { booking: Booking; token: s
     try {
       const issued = await api.issueBookingQr(booking.id, token);
       setQr(issued);
+      const { default: QRCode } = await import("qrcode");
       setQrImage(await QRCode.toDataURL(issued.validationUrl, { margin: 1, width: 220 }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Gate pass could not be issued.");

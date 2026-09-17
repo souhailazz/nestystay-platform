@@ -3872,6 +3872,36 @@ body {
     min-height: 220px;
   }
 }
+
+@keyframes nesty-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes nesty-modal-surface-in {
+  from { opacity: 0; transform: translate3d(0, 28px, 0) scale(.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes nesty-mobile-nav-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.site-nav__mobile-panel {
+  transform-origin: top center;
+  animation: nesty-mobile-nav-in .18s ease-out both;
+}
+
+.modal-overlay-enter { animation: nesty-modal-fade-in .18s ease-out both; }
+.modal-surface-enter { animation: nesty-modal-surface-in .22s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay-enter,
+  .modal-surface-enter,
+  .site-nav__mobile-panel { animation: none; }
+}
+
 .progress-bar {
   position: relative;
   height: 8px;

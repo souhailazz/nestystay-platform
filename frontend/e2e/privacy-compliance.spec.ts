@@ -21,6 +21,10 @@ test.describe("public privacy and consent surfaces", () => {
     await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toBeVisible();
     await page.getByRole("button", { name: "Reject optional" }).click();
     await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toHaveCount(0);
+    // Desktop exposes the compact Explore nav item; mobile exposes it inside
+    // the responsive menu. Both are the same public destination.
+    const menuButton = page.getByRole("button", { name: "Open menu", exact: true });
+    if (await menuButton.isVisible()) await menuButton.click();
     await page.getByRole("link", { name: "Explore", exact: true }).click();
     await page.getByRole("button", { name: "Cookie settings", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toBeVisible();

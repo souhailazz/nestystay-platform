@@ -1,4 +1,3 @@
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
@@ -24,7 +23,6 @@ export function Modal({
   const dialogRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
-  const reduceMotion = useReducedMotion();
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -82,46 +80,36 @@ export function Modal({
       ? "min-h-[100dvh] w-full rounded-none p-5 sm:min-h-0 sm:w-[min(960px,100%)] sm:rounded-[22px] sm:p-7"
       : "max-h-[calc(100dvh-48px)] w-[min(720px,100%)] rounded-[22px] p-7";
 
+  if (!open) return null;
+
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className={`fixed inset-0 z-[200] grid overflow-y-auto bg-[rgba(6,43,43,0.45)] ${overlayClass}`}
-          onMouseDown={(event) => {
-            if (closeOnOverlayClick && event.target === event.currentTarget) onCloseRef.current();
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduceMotion ? 0.01 : 0.18 }}
-        >
-          <motion.section
-            aria-labelledby={titleId}
-            aria-modal="true"
-            className={`${surfaceClass} overflow-y-auto bg-cream shadow-modal`}
-            initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: reduceMotion ? 0.01 : 0.22 }}
-            ref={dialogRef}
-            role="dialog"
-            tabIndex={-1}
+    <div
+      className={`modal-overlay-enter fixed inset-0 z-[200] grid overflow-y-auto bg-[rgba(6,43,43,0.45)] ${overlayClass}`}
+      onMouseDown={(event) => {
+        if (closeOnOverlayClick && event.target === event.currentTarget) onCloseRef.current();
+      }}
+    >
+      <section
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className={`${surfaceClass} modal-surface-enter overflow-y-auto bg-cream shadow-modal`}
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
+        <header className="mb-5 flex items-center justify-between gap-4">
+          <h2 className="m-0 font-display text-2xl font-medium leading-tight text-ink" id={titleId}>{title}</h2>
+          <button
+            aria-label="Close modal"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-pill border border-sand-border bg-transparent text-ink transition-colors duration-200 hover:bg-shell focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-deep-hover/25"
+            onClick={onClose}
+            type="button"
           >
-            <header className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="m-0 font-display text-2xl font-medium leading-tight text-ink" id={titleId}>{title}</h2>
-              <button
-                aria-label="Close modal"
-                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-pill border border-sand-border bg-transparent text-ink transition-colors duration-200 hover:bg-shell focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-deep-hover/25"
-                onClick={onClose}
-                type="button"
-              >
-                <X size={18} />
-              </button>
-            </header>
-            {children}
-          </motion.section>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <X size={18} />
+          </button>
+        </header>
+        {children}
+      </section>
+    </div>
   );
 }

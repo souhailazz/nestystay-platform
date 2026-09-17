@@ -1,18 +1,11 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, Search, UserRound, X } from "lucide-react";
 import { AppLink, navigate } from "./components/AppLink";
 import { EmblemRoundel } from "./components/layout/PublicShell";
-import FeatureCards from "./components/landing/FeatureCards";
-import FinalCTA from "./components/landing/FinalCTA";
-import Hero3D from "./components/landing/Hero3D";
-import HowItWorks from "./components/landing/HowItWorks";
-import PropertyShowcase from "./components/landing/PropertyShowcase";
-import ScrollStory from "./components/landing/ScrollStory";
-import TrustSection from "./components/landing/TrustSection";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { cx } from "./lib/ui";
 import { useAuth, type AuthController } from "./hooks/useAuth";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
@@ -22,7 +15,8 @@ import { CookieConsent } from "./components/privacy/CookieConsent";
 import { Seo, siteUrl } from "./components/seo/Seo";
 import type { ConfirmationRequest } from "./lib/confirmation";
 import type { TextInputRequest } from "./lib/textInput";
-import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
+const LandingPage = lazy(() => import("./features/public/LandingHome").then(({ LandingHome }) => ({ default: LandingHome })));
+const TravelerStateContainer = lazy(() => import("./features/traveler/TravelerStateContainer").then(({ TravelerStateContainer }) => ({ default: TravelerStateContainer })));
 const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
 const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
 const PasswordlessCompletionPage = lazy(() => import("./features/auth/AuthStateContainer").then(({ PasswordlessCompletionPage }) => ({ default: PasswordlessCompletionPage })));
@@ -193,14 +187,8 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
           </button>
         </div>
 
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.nav
-              animate={{ opacity: 1, y: 0 }}
-              className="flex w-full flex-col gap-0.5 border-t border-white/10 px-2 py-2 md:hidden"
-              exit={{ opacity: 0, y: -12 }}
-              initial={{ opacity: 0, y: -12 }}
-            >
+        {menuOpen && (
+            <nav className="site-nav__mobile-panel flex w-full flex-col gap-0.5 border-t border-white/10 px-2 py-2 md:hidden">
               <form
                 aria-label="Global search"
                 className="mb-1 flex min-h-11 items-center gap-2 rounded-nav border border-white/15 bg-white/5 px-3 focus-within:border-yellow"
@@ -241,25 +229,10 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
               >
                 {auth.session ? "Profile" : "Sign in"}
               </AppLink>
-            </motion.nav>
-          )}
-        </AnimatePresence>
+            </nav>
+        )}
       </header>
     </div>
-  );
-}
-
-function LandingPage() {
-  return (
-    <>
-      <Hero3D />
-      <ScrollStory />
-      <FeatureCards />
-      <PropertyShowcase />
-      <HowItWorks />
-      <TrustSection />
-      <FinalCTA />
-    </>
   );
 }
 
@@ -611,7 +584,7 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
 }
 
 export default function App() {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const auth = useAuth();
   const route = useRoute();
   const access = getRouteAccess(route, auth.session);

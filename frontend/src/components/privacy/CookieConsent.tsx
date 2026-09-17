@@ -39,11 +39,12 @@ export function CookieConsent() {
   };
 
   return (
-    <aside
+    <div
       aria-describedby="cookie-consent-copy"
       aria-labelledby="cookie-consent-title"
       className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[760px] rounded-card border border-sand-border bg-cream p-4 shadow-[0_16px_50px_rgba(4,31,31,0.22)] sm:inset-x-6 sm:p-5"
       role="dialog"
+      aria-modal="true"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
@@ -63,6 +64,6 @@ export function CookieConsent() {
         </div>
       </div>
       {settingsOpen && <p className="m-0 mt-3 text-xs text-sand-600" role="status">Your preference is saved on this device. No optional analytics is installed in this build.</p>}
-    </aside>
+    </div>
   );
 }

@@ -23,7 +23,7 @@ export function ErrorState({
       <span className="grid size-14 place-items-center rounded-full bg-coral-tint text-coral-text">
         <AlertTriangle aria-hidden="true" size={26} strokeWidth={1.5} />
       </span>
-      <h3 className="m-0 font-display text-xl font-medium leading-snug text-ink">Something went wrong</h3>
+      <h2 className="m-0 font-display text-xl font-medium leading-snug text-ink">Something went wrong</h2>
       <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{userSafeErrorMessage(message)}</p>
       {onRetry && (
         <Button onClick={onRetry} variant="outline">

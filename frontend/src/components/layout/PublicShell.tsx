@@ -28,7 +28,10 @@ export function EmblemRoundel({
         alt=""
         aria-hidden="true"
         className="block h-[86%] w-[86%] rounded-full object-contain"
-        src="/assets/nestystay-emblem.png"
+        decoding="async"
+        sizes="128px"
+        src="/assets/optimized/nestystay-emblem-128.webp"
+        srcSet="/assets/optimized/nestystay-emblem-64.webp 64w, /assets/optimized/nestystay-emblem-96.webp 96w, /assets/optimized/nestystay-emblem-128.webp 128w"
       />
     </span>
   );

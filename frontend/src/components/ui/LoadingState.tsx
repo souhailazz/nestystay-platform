@@ -29,13 +29,13 @@ export function LoadingState({ label = "Loading Nesty Stay data" }: { label?: st
       <div className="grid justify-items-center gap-1 text-center">
         {showPatois ? (
           <>
-            <h3 className="m-0 font-display text-xl font-medium italic leading-snug text-deep-hover">Tek Time</h3>
+            <h2 className="m-0 font-display text-xl font-medium italic leading-snug text-deep-hover">Tek Time</h2>
             <p className="m-0 font-sans text-[13px] leading-relaxed text-gray-600">
               Take your time — we&apos;re loading the latest NestyStay data.
             </p>
           </>
         ) : (
-          <h3 className="m-0 font-display text-xl font-medium leading-snug text-ink">{label}…</h3>
+          <h2 className="m-0 font-display text-xl font-medium leading-snug text-ink">{label}…</h2>
         )}
         <span className="sr-only">{label}</span>
       </div>
