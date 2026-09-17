@@ -23,6 +23,15 @@
     <meta name="twitter:title" content="NestyStay — Jamaican stays, made clear" />
     <meta name="twitter:description" content="Discover Jamaican stays, compare real listing details, and book with clear availability, host information, and terms." />
     <meta name="twitter:image" content="https://nestystay.net/assets/reference/landing-hero-editorial-realistic.png" />
+    <script id="nesty-seo-jsonld" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Organization", "@id": "https://nestystay.net/#organization", "name": "NestyStay", "url": "https://nestystay.net/", "logo": "https://nestystay.net/assets/nestystay-emblem.png", "telephone": "+1-754-248-2435" },
+          { "@type": "WebSite", "@id": "https://nestystay.net/#website", "name": "NestyStay", "url": "https://nestystay.net/", "publisher": { "@id": "https://nestystay.net/#organization" }, "potentialAction": { "@type": "SearchAction", "target": "https://nestystay.net/explore?search={search_term_string}", "query-input": "required name=search_term_string" } }
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -34,6 +43,13 @@
   </head>
   <body class="notranslate" translate="no">
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>Jamaican stays, made clear</h1>
+        <p>Discover Jamaican stays, compare listing details, and review availability and booking terms.</p>
+        <p><a href="/explore">Explore stays</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
