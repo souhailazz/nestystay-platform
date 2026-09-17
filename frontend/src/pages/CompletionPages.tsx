@@ -47,7 +47,7 @@ import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type Ad
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
-import { TierBadge } from "../components/layout/PublicShell";
+import { PublicFooter, TierBadge } from "../components/layout/PublicShell";
 import { BookingStateContainer } from "../features/booking/BookingStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
 import { HostReviewsBadgesSettings } from "../features/host/HostReviewsBadgesSettings";
@@ -89,6 +89,7 @@ function CompletionShell({
   title,
   copy,
   actions,
+  publicFooter = false,
   children,
 }: {
   id: string;
@@ -96,13 +97,17 @@ function CompletionShell({
   title: string;
   copy: string;
   actions?: ReactNode;
+  publicFooter?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="product-page spec-page completion-page">
-      <PageHeader eyebrow={`${id} / ${eyebrow}`} title={title} copy={copy} actions={actions} />
-      {children}
-    </div>
+    <>
+      <div className="product-page spec-page completion-page">
+        <PageHeader eyebrow={`${id} / ${eyebrow}`} title={title} copy={copy} actions={actions} />
+        {children}
+      </div>
+      {publicFooter && <PublicFooter />}
+    </>
   );
 }
 
@@ -571,7 +576,7 @@ export function ExperiencesPage({ slug }: { slug?: string }) {
   }
 
   return (
-    <CompletionShell id="PUB-05" eyebrow="Experiences" title="Di Riddim Right" copy="Book food, music, water, and wellness experiences with verified local providers.">
+    <CompletionShell id="PUB-05" eyebrow="Experiences" title="Di Riddim Right" copy="Book food, music, water, and wellness experiences with verified local providers." publicFooter>
       <section className="product-section">
         <div className="search-panel">
           <Field label="Search"><Input placeholder="Food, music, wellness, water" value={query} onChange={(event) => setQuery(event.target.value)} /></Field>
@@ -606,7 +611,7 @@ function ExperienceCard({ experience, index }: { experience: Experience; index: 
 
 function ExperienceDetail({ experience }: { experience: Experience }) {
   return (
-    <CompletionShell id="PUB-08" eyebrow="Experience detail" title={experience.name} copy={experience.summary}>
+    <CompletionShell id="PUB-08" eyebrow="Experience detail" title={experience.name} copy={experience.summary} publicFooter>
       <section className="product-section details-layout">
         <HeroImage index={2} alt={experience.name} />
         <div className="details-copy">
@@ -637,7 +642,7 @@ export function JournalPage({ slug }: { slug?: string }) {
   }
 
   return (
-    <CompletionShell id="PUB-11" eyebrow="Journal" title="Island stories and hosting guidance." copy="A database-backed journal with categories, featured articles, and responsive detail pages.">
+    <CompletionShell id="PUB-11" eyebrow="Journal" title="Island stories and hosting guidance." copy="A database-backed journal with categories, featured articles, and responsive detail pages." publicFooter>
       <section className="product-section">
         <div className="search-panel"><Field label="Search"><Input value={query} onChange={(event) => setQuery(event.target.value)} /></Field></div>
         <DataGate state={list}>
@@ -666,7 +671,7 @@ function ArticleCard({ article }: { article: JournalArticle }) {
 
 function JournalDetail({ article }: { article: JournalArticle }) {
   return (
-    <CompletionShell id="PUB-11" eyebrow={article.category} title={article.title} copy={`${article.author} - ${new Date(article.publishedAt).toLocaleDateString()}`}>
+    <CompletionShell id="PUB-11" eyebrow={article.category} title={article.title} copy={`${article.author} - ${new Date(article.publishedAt).toLocaleDateString()}`} publicFooter>
       <section className="product-section">
         <Card className="article-body-card">
           <p>{article.body}</p>

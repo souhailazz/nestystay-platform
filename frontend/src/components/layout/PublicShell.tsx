@@ -61,6 +61,14 @@ export function PublicFooter({ variant = "deep" }: { variant?: "deep" | "night" 
         </AppLink>
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 font-sans text-[13px] text-on-dark-muted">
           <span>nestystay.net · <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href="https://wa.me/17542482435">754-248-2435</a></span>
+          <nav aria-label="Explore NestyStay" className="flex flex-wrap gap-x-3 gap-y-1">
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/explore">Explore stays</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/experiences">Experiences</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/journal">Jamaica Journal</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/trust">Trust &amp; safety</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/help">Help</AppLink>
+            <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/contact">Contact</AppLink>
+          </nav>
           <nav aria-label="Legal and support" className="flex flex-wrap gap-x-3 gap-y-1">
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink>
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink>

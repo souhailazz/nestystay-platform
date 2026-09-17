@@ -19,4 +19,35 @@ Disallow: /payment/
 Disallow: /screens
 Disallow: /design-system
 
+# AI/search agents may access public, indexable marketplace content. The
+# private/operational paths above remain excluded for every named agent too.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /explore/map
+Disallow: /login
+Disallow: /register
+Disallow: /auth/
+Disallow: /guest-dashboard
+Disallow: /traveler/
+Disallow: /host-dashboard
+Disallow: /host/
+Disallow: /admin/
+Disallow: /pm/
+Disallow: /owner/
+Disallow: /provider/
+Disallow: /officer/
+Disallow: /booking/
+Disallow: /payment/
+Disallow: /screens
+Disallow: /design-system
+
 Sitemap: https://nestystay.net/sitemap.xml
