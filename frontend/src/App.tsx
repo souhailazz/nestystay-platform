@@ -19,6 +19,7 @@ import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
 import { CookieConsent } from "./components/privacy/CookieConsent";
+import { Seo, siteUrl } from "./components/seo/Seo";
 import type { ConfirmationRequest } from "./lib/confirmation";
 import type { TextInputRequest } from "./lib/textInput";
 import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
@@ -615,6 +616,25 @@ export default function App() {
   const route = useRoute();
   const access = getRouteAccess(route, auth.session);
   const canRenderWorkspace = access.kind === "allowed" && isWorkspaceRoute(route);
+  const canonicalPath = route.canonicalPath.includes(":") ? window.location.pathname : route.canonicalPath;
+  const publicRoute = ["home", "explore", "map-search", "property", "public-content", "experiences", "journal"].includes(route.name);
+  const routeSeo: Record<string, { title: string; description: string }> = {
+    home: { title: "Jamaican stays, made clear", description: "Discover Jamaican stays, compare real listing details, and book with clear availability, host information, and terms." },
+    explore: { title: "Explore Jamaican stays", description: "Search Jamaican stays by destination, dates, guests, host badge, amenities, and current availability." },
+    "map-search": { title: "Map search for Jamaican stays", description: "Browse available Jamaican stays by map and listing details." },
+    property: { title: "Property details", description: "Review property photos, amenities, availability, pricing, host information, and booking terms on NestyStay." },
+    experiences: { title: "Jamaican experiences", description: "Explore local experiences and practical details for your Jamaica trip." },
+    journal: { title: "NestyStay Journal", description: "Travel notes, local context, and practical ideas for planning a Jamaica stay." },
+    "public-content": { title: "NestyStay information", description: "Read NestyStay policies, support information, trust guidance, and service details." },
+  };
+  const seo = routeSeo[route.name] ?? { title: "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${siteUrl()}/#organization`, name: "NestyStay", url: siteUrl(), logo: `${siteUrl()}/assets/nestystay-emblem.png`, telephone: "+1-754-248-2435" },
+      { "@type": "WebSite", "@id": `${siteUrl()}/#website`, name: "NestyStay", url: siteUrl(), publisher: { "@id": `${siteUrl()}/#organization` }, potentialAction: { "@type": "SearchAction", target: `${siteUrl()}/explore?search={search_term_string}`, "query-input": "required name=search_term_string" } },
+    ],
+  };
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = reduceMotion ? "auto" : "smooth";
@@ -662,6 +682,7 @@ export default function App() {
 
   return (
     <PatoisProvider>
+      <Seo canonicalPath={canonicalPath} description={seo.description} jsonLd={route.name === "home" ? organizationJsonLd : undefined} noindex={!publicRoute || route.name === "map-search" || Boolean(window.location.search)} title={seo.title} />
       <ConfirmationHost />
       <TextInputHost />
       <div

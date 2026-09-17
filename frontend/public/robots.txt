@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /explore/map
+Disallow: /login
+Disallow: /register
+Disallow: /auth/
+Disallow: /guest-dashboard
+Disallow: /traveler/
+Disallow: /host-dashboard
+Disallow: /host/
+Disallow: /admin/
+Disallow: /pm/
+Disallow: /owner/
+Disallow: /provider/
+Disallow: /officer/
+Disallow: /booking/
+Disallow: /payment/
+Disallow: /screens
+Disallow: /design-system
+
+Sitemap: https://nestystay.net/sitemap.xml

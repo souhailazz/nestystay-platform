@@ -33,15 +33,18 @@ export default function Hero3D() {
           transformPerspective: 1200,
         }}
       >
-        <img
-          src="/assets/reference/landing-hero-editorial-realistic.png"
-          alt=""
-          className="reference-hero__photo"
-          draggable={false}
-          fetchPriority="high"
-          width={1672}
-          height={941}
-        />
+        <picture>
+          <source srcSet="/assets/reference/landing-hero-editorial-realistic.webp" type="image/webp" />
+          <img
+            src="/assets/reference/landing-hero-editorial-realistic.png"
+            alt=""
+            className="reference-hero__photo"
+            draggable={false}
+            fetchPriority="high"
+            width={1672}
+            height={941}
+          />
+        </picture>
       </motion.div>
 
       <motion.div

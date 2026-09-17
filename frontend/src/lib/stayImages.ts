@@ -5,19 +5,19 @@ export type StayImage = {
 
 export const stayImages: StayImage[] = [
   {
-    src: "/assets/stays/jamaica-seaview-villa.png",
+    src: "/assets/stays/jamaica-seaview-villa.webp",
     alt: "Jamaican seaview villa with an infinity pool above turquoise water",
   },
   {
-    src: "/assets/stays/jamaica-kingston-townhouse.png",
+    src: "/assets/stays/jamaica-kingston-townhouse.webp",
     alt: "Leafy Kingston townhouse stay with mountain views",
   },
   {
-    src: "/assets/stays/jamaica-beach-cottage.png",
+    src: "/assets/stays/jamaica-beach-cottage.webp",
     alt: "Jamaican beach cottage veranda beside clear Caribbean water",
   },
   {
-    src: "/assets/stays/jamaica-blue-mountain-retreat.png",
+    src: "/assets/stays/jamaica-blue-mountain-retreat.webp",
     alt: "Blue Mountains eco-retreat with a veranda overlooking misty hills",
   },
 ];
