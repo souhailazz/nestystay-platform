@@ -100,11 +100,11 @@ function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) 
 
 export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo }: AuthModalSuiteProps) {
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
-  const [email, setEmail] = useState("guest@nestystay.local");
-  const [password, setPassword] = useState("Password123!");
-  const [registerDisplayName, setRegisterDisplayName] = useState("Nesty Guest");
-  const [registerPhone, setRegisterPhone] = useState("+18765550123");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("Password123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [registerDisplayName, setRegisterDisplayName] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
