@@ -103,12 +103,6 @@ public interface IProviderEventStore
     Task MarkProcessedAsync(Guid providerEventId, ProviderEventProcessingResult result, CancellationToken cancellationToken);
 }
 
-public interface IInsuranceProvider
-{
-    string ProviderName { get; }
-    Task<IReadOnlyList<string>> GetAvailablePlansAsync(CancellationToken cancellationToken);
-}
-
 public sealed record EkycStartRequest(
     string SubjectId,
     UserRole SubjectRole,

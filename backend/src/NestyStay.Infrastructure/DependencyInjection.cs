@@ -9,6 +9,7 @@ using NestyStay.Application.PhaseOne;
 using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.SpecCompletion;
 using NestyStay.Domain;
+using NestyStay.Domain.Insurance;
 using NestyStay.Application.Wellness;
 using NestyStay.Application.PropertyManager;
 using NestyStay.Infrastructure.Persistence;
@@ -1144,12 +1145,37 @@ internal sealed class GoogleTokenInfoValidator(IConfiguration configuration, Tim
 
 internal sealed class InsuraGuestProvider : IInsuranceProvider
 {
+    private readonly IConfiguration configuration;
+
+    public InsuraGuestProvider(IConfiguration configuration) => this.configuration = configuration;
+
     public string ProviderName => "InsuraGuest";
 
-    public Task<IReadOnlyList<string>> GetAvailablePlansAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<string>>([
-            "$50/month non-US: $10K property damage",
-            "$69/month US: $10K property damage + $10K accidental medical",
-            "$99/month US: $25K property damage + $25K accidental medical"
+    public Task<IReadOnlyList<InsurancePlan>> GetAvailablePlansAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<InsurancePlan>>([
+            new("non-us-50", "NON_US", 50m, "USD", 10_000m, 0m, "$10K property damage"),
+            new("us-69", "US", 69m, "USD", 10_000m, 10_000m, "$10K property damage + $10K accidental medical"),
+            new("us-99", "US", 99m, "USD", 25_000m, 25_000m, "$25K property damage + $25K accidental medical")
         ]);
+
+    public Task<InsuranceProviderResult> ActivateAsync(Guid propertyId, InsurancePlan plan, string idempotencyKey, CancellationToken cancellationToken)
+    {
+        var outcome = configuration["Insurance:LocalActivationOutcome"]?.Trim().ToUpperInvariant();
+        if (outcome == "FAILED")
+        {
+            return Task.FromResult(new InsuranceProviderResult(ProviderName, "FAILED", $"ig_local_failed_{propertyId:N}", "Deterministic local provider failure."));
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        return Task.FromResult(new InsuranceProviderResult(ProviderName, "ACTIVE", $"ig_local_{propertyId:N}", EffectiveAt: now, RenewsAt: now.AddMonths(1)));
+    }
+
+    public Task<InsuranceProviderResult> CancelAsync(string providerReference, string idempotencyKey, CancellationToken cancellationToken) =>
+        Task.FromResult(new InsuranceProviderResult(ProviderName, "CANCELLED", providerReference));
+
+    public Task<InsuranceProviderResult> RenewAsync(string providerReference, InsurancePlan plan, string idempotencyKey, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return Task.FromResult(new InsuranceProviderResult(ProviderName, "ACTIVE", providerReference, EffectiveAt: now, RenewsAt: now.AddMonths(1)));
+    }
 }

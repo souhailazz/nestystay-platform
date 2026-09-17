@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NestyStay.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NestyStay.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NestyStayDbContext))]
-    partial class NestyStayDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917123203_AddInsuraGuestPolicyLifecycle")]
+    partial class AddInsuraGuestPolicyLifecycle
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2601,69 +2604,6 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                     b.HasIndex("PropertyId", "Status");
 
                     b.ToTable("insurance_policy");
-                });
-
-            modelBuilder.Entity("NestyStay.Domain.Insurance.InsurancePolicyEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<string>("FromStatus")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("from_status");
-
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("idempotency_key");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<Guid>("PolicyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("policy_id");
-
-                    b.Property<Guid>("PropertyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("property_id");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("reason");
-
-                    b.Property<string>("ToStatus")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("to_status");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("insurance_policy_event");
                 });
 
             modelBuilder.Entity("NestyStay.Domain.Integrations.IntegrationFailover", b =>

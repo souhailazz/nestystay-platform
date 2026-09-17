@@ -10,6 +10,7 @@ using NestyStay.Domain.Directories;
 using NestyStay.Domain.Documents;
 using NestyStay.Domain.Identity;
 using NestyStay.Domain.Integrations;
+using NestyStay.Domain.Insurance;
 using NestyStay.Domain.Messaging;
 using NestyStay.Domain.Notifications;
 using NestyStay.Domain.Payments;
@@ -93,6 +94,9 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
     public DbSet<EscrowHold> EscrowHolds => Set<EscrowHold>();
     public DbSet<Payout> Payouts => Set<Payout>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<InsurancePolicy> InsurancePolicies => Set<InsurancePolicy>();
+    public DbSet<InsurancePolicyEvent> InsurancePolicyEvents => Set<InsurancePolicyEvent>();
+    public DbSet<InsuranceClaim> InsuranceClaims => Set<InsuranceClaim>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
 
@@ -329,6 +333,10 @@ public sealed class NestyStayDbContext(DbContextOptions<NestyStayDbContext> opti
         modelBuilder.Entity<MilestoneUserProfilePhoto>().HasIndex(photo => new { photo.UserId, photo.Status, photo.IsCurrent });
         modelBuilder.Entity<MilestoneTwoFactorChallenge>().HasIndex(challenge => challenge.ChallengeId).IsUnique();
         modelBuilder.Entity<MilestoneProperty>().HasIndex(property => property.HostUserId);
+        modelBuilder.Entity<InsurancePolicy>().HasIndex(policy => new { policy.PropertyId, policy.Status });
+        modelBuilder.Entity<InsurancePolicy>().HasIndex(policy => policy.LastIdempotencyKey).IsUnique();
+        modelBuilder.Entity<InsurancePolicy>().HasIndex(policy => policy.ProviderReference).IsUnique();
+        modelBuilder.Entity<InsuranceClaim>().HasIndex(claim => new { claim.PropertyId, claim.Status });
         modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => photo.ObjectKey).IsUnique();
         modelBuilder.Entity<MilestonePropertyPhoto>().HasIndex(photo => new { photo.PropertyId, photo.HostUserId, photo.Status });
         modelBuilder.Entity<MilestoneBooking>().HasIndex(booking => new { booking.PropertyId, booking.CheckIn, booking.CheckOut });

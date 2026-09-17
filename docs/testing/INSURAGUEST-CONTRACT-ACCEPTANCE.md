@@ -34,12 +34,13 @@ The plans are returned by `GET /api/insurance/plans` from the `IInsuranceProvide
 - host activation and idempotent replay;
 - persisted lifecycle history;
 - cancellation and renewal-due/renewal transitions;
+- deterministic provider failure (`PENDING → FAILED`) and persisted failure state;
 - cross-host read protection;
 - 72-hour claim rejection and valid claim persistence.
 
-Focused result on 2026-09-17: **4 passed, 0 failed, 0 skipped**.
+Focused result on 2026-09-17: **5 passed, 0 failed, 0 skipped**.
 
-The existing full backend suite also passed: **187 passed, 0 failed, 0 skipped** across Domain (5), Application (23), Infrastructure (27) and API (132) test projects after the InsuraGuest migrations were applied.
+The existing full backend suite also passed: **188 passed, 0 failed, 0 skipped** across Domain (5), Application (23), Infrastructure (27) and API (133) test projects after the InsuraGuest migrations were applied.
 
 ## Browser evidence
 
