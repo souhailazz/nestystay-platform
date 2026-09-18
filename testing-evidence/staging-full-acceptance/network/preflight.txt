@@ -1,0 +1,20 @@
+NestyStay staging black-box pre-flight
+Date: 2026-09-18
+Base URL: https://staging.nestystay.net/
+
+GET /                                                         200  HTTPS reachable; X-Robots-Tag: noindex, nofollow
+GET /api/health/live                                          404  response through staging domain
+GET /api/health/ready                                         404  response through staging domain
+GET /api/properties                                            200  application/json; six seeded properties returned
+GET /robots.txt                                                200  Content-Type: text/html; SPA HTML; X-Robots-Tag: noindex, nofollow
+GET /sitemap.xml                                               200  Content-Type: text/html; SPA HTML; X-Robots-Tag: noindex, nofollow
+
+Sample /api/properties titles:
+- Calendar operations stay 1789743878830
+- Calendar operations stay 1789743906650
+- Calendar operations stay 1789743932449
+- Kingston Business Stay
+- Montego Bay Standard Apartment
+- Ocho Rios Verified Villa
+
+The staging noindex header is appropriate for staging. The robots and sitemap paths are still incorrect because they serve the application HTML instead of their required file formats.

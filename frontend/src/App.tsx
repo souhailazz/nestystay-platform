@@ -9,7 +9,7 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
-import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
+import { getRouteAccess, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
 import { CookieConsent } from "./components/privacy/CookieConsent";
 import { Seo, siteUrl } from "./components/seo/Seo";
@@ -600,7 +600,19 @@ export default function App() {
     journal: { title: "NestyStay Journal", description: "Travel notes, local context, and practical ideas for planning a Jamaica stay." },
     "public-content": { title: "NestyStay information", description: "Read NestyStay policies, support information, trust guidance, and service details." },
   };
-  const seo = routeSeo[route.name] ?? { title: "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
+  const publicContentSeo: Record<string, { title: string; description: string }> = {
+    about: { title: "About NestyStay", description: "Learn how NestyStay helps guests discover trusted Jamaican stays and local experiences." },
+    trust: { title: "Trust & Safety", description: "Learn how NestyStay supports safer stays through verification, clear policies, and guest support." },
+    help: { title: "Help Center & FAQs", description: "Find answers about searching, booking, payments, verification, cancellations, and support on NestyStay." },
+    contact: { title: "Contact NestyStay", description: "Contact NestyStay for booking support, host help, safety questions, and general assistance." },
+    terms: { title: "Terms of Service", description: "Review the terms that govern use of the NestyStay booking platform." },
+    privacy: { title: "Privacy Policy", description: "Review how NestyStay collects, uses, protects, and retains personal information." },
+    cookies: { title: "Cookie Policy", description: "Learn how NestyStay uses cookies and similar technologies." },
+    "refund-policy": { title: "Refund Policy", description: "Review NestyStay cancellation, refund, and payment-resolution rules." },
+  };
+  const seo = route.name === "public-content"
+    ? publicContentSeo[route.slug] ?? routeSeo[route.name]
+    : routeSeo[route.name] ?? { title: "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -620,9 +632,8 @@ export default function App() {
   }, [auth.logout, route.name]);
 
   useEffect(() => {
-    const definition = getRouteDefinition(route);
-    document.title = definition ? `${definition.title} · NestyStay` : "NestyStay";
-  }, [route]);
+    document.title = `${seo.title} · NestyStay`;
+  }, [seo.title]);
 
   useEffect(() => {
     let cancelled = false;
