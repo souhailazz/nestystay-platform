@@ -307,6 +307,7 @@ Local validation for this remediation:
 - Frontend unit tests: 48/48 PASS across 9 files.
 - Frontend production build: PASS.
 - Frontend lint: PASS with 0 errors; existing repository warnings remain.
+- Backend health endpoint tests: 11/11 PASS locally against the current API test project.
 - Local browser smoke: Terms page showed a page-specific H1/title; empty registration submission showed all expected inline errors.
 
 Staging has not been re-certified after these changes because deployment requires the protected-branch review/merge workflow. Until that happens, the original staging failures remain open in this report and must not be marked resolved based on local results alone.
