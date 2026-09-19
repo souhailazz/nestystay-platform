@@ -31,6 +31,8 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   const passwordInputs = page.locator('input[autocomplete="new-password"]');
   await passwordInputs.nth(0).fill(password);
   await passwordInputs.nth(1).fill(password);
+  await page.locator("#register-terms").check();
+  await page.locator("#register-privacy").check();
   await page.getByRole("button", { name: "Create my account", exact: true }).click();
   console.log("guest: submitted registration");
   await expect(page).toHaveURL(/\/guest-dashboard$/);
@@ -53,7 +55,7 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   await expect(page.getByTitle(`Approximate map location for ${property!.title}`)).toBeVisible();
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
   console.log("guest: opened booking modal");
-  const bookingDialog = page.getByRole("dialog");
+  const bookingDialog = page.getByRole("dialog", { name: /^Book /i });
   await expect(bookingDialog.getByRole("heading", { name: /Book / })).toBeVisible();
 
   // Keep repeatable evidence runs isolated from previously held dates by

@@ -26,10 +26,15 @@ export function useAuth() {
   // a refresh.  The profile request deliberately never receives a bearer
   // secret in JavaScript; accessToken stays an empty compatibility field.
   useEffect(() => {
+    const storedSession = loadSession();
+    // An anonymous public visit has no session hint. Avoid an expected 401
+    // request on every public route while preserving cookie rehydration for
+    // sessions created by this frontend.
+    if (!storedSession) return;
     let active = true;
     void api.getProfile().then((profile) => {
       if (!active) return;
-      const previous = loadSession();
+      const previous = loadSession() ?? storedSession;
       const next: AuthSession = {
         userId: profile.userId,
         email: profile.email,

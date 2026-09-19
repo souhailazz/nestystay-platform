@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BookOpen, Clock, User, ArrowRight } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 import type { JournalArticleItem } from "./types";
+import { AppLink } from "../../components/AppLink";
 
 interface JournalPageProps {
   view: string;
@@ -43,9 +44,9 @@ export function JournalPage({ view }: JournalPageProps) {
             </div>
 
             <div className="mt-4 pt-3 border-t">
-              <a href={`/journal/${art.slug}`} className="btn btn-outline btn-sm w-full text-center">
+              <AppLink href={`/journal/${art.slug}`} className="btn btn-outline btn-sm w-full text-center">
                 Read Full Story <ArrowRight size={14} />
-              </a>
+              </AppLink>
             </div>
           </div>
         ))}

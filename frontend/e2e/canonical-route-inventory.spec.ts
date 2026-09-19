@@ -33,7 +33,7 @@ const password = "NestyStay1";
 
 test.describe.configure({ mode: "serial", timeout: 600_000 });
 
-test("99 canonical screens and 54 aliases render from the canonical manifest", async ({ page }, testInfo) => {
+test("99 canonical screens and 57 aliases render from the canonical manifest", async ({ page }, testInfo) => {
   test.skip(!supportedProjects.includes(testInfo.project.name as (typeof supportedProjects)[number]), "The inventory is the Chromium responsive certification matrix.");
   const cases = [
     ...SCREEN_MANIFEST.map((screen) => ({ kind: "canonical" as const, screen, route: materialize(screen.canonicalPath), role: roleFor(screen) })),
@@ -41,7 +41,7 @@ test("99 canonical screens and 54 aliases render from the canonical manifest", a
   ];
   expect(SCREEN_MANIFEST).toHaveLength(99);
   expect(cases.filter((item) => item.kind === "canonical")).toHaveLength(99);
-  expect(cases.filter((item) => item.kind === "alias")).toHaveLength(54);
+  expect(cases.filter((item) => item.kind === "alias")).toHaveLength(57);
 
   const results: InventoryResult[] = [];
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -114,9 +114,9 @@ test("99 canonical screens and 54 aliases render from the canonical manifest", a
   mkdirSync(evidenceDir, { recursive: true });
   writeFileSync(path.join(evidenceDir, `route-manifest-${testInfo.project.name}.json`), JSON.stringify({
     generatedAt: new Date().toISOString(),
-    canonicalScreens: 95,
-    routePatterns: 146,
-    aliases: 52,
+    canonicalScreens: 99,
+    routePatterns: 156,
+    aliases: 57,
     project: testInfo.project.name,
     results,
   }, null, 2));

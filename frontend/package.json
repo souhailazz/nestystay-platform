@@ -13,7 +13,8 @@
     "test:e2e:production": "playwright test --config=playwright.production-smoke.config.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:update": "playwright test --update-snapshots",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seo:sitemap": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import QRCode from "qrcode";
 import { Calendar, MapPin, QrCode, MessageSquare, Download, RotateCcw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { api, formatMoney, type Booking, type QrAccess, type QrHistoryEvent, type QrIssueResult } from "../../lib/api";
@@ -76,6 +75,7 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
     try {
       const issued = await api.issueBookingQr(selectedBooking.id, token);
       const gateUrl = `${window.location.origin}/gate/qr?token=${encodeURIComponent(issued.token)}&propertyId=${encodeURIComponent(issued.propertyId)}`;
+      const { default: QRCode } = await import("qrcode");
       const image = await QRCode.toDataURL(gateUrl, { margin: 1, width: 220 });
       setQrByBooking((current) => ({ ...current, [selectedBooking.id]: issued }));
       setQrImageByBooking((current) => ({ ...current, [selectedBooking.id]: image }));
