@@ -1,0 +1,83 @@
+{
+  "startedAt": "2026-08-30T16:52:48.182Z",
+  "checks": [
+    {
+      "name": "Host registration",
+      "ok": true,
+      "detail": "{\"userId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"email\":\"[redacted]\",\"displayName\":\"Live host\",\"requiresTwoFactor\":false}"
+    },
+    {
+      "name": "Host login",
+      "ok": true,
+      "detail": "{\"userId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"email\":\"[redacted]\",\"requiresTwoFactor\":false,\"challengeId\":null,\"challengeExpiresAt\":null,\"accessToken\":\"[redacted]\",\"expiresAt\":\"2026-08-31T00:52:48.2366681+00:00\",\"roles\":[\"Host\"],\"permissions\":[]}"
+    },
+    {
+      "name": "Guest registration",
+      "ok": true,
+      "detail": "{\"userId\":\"0c36e418-0808-4b9b-bc3e-409539a2cba1\",\"email\":\"[redacted]\",\"displayName\":\"Live guest\",\"requiresTwoFactor\":false}"
+    },
+    {
+      "name": "Guest login",
+      "ok": true,
+      "detail": "{\"userId\":\"0c36e418-0808-4b9b-bc3e-409539a2cba1\",\"email\":\"[redacted]\",\"requiresTwoFactor\":false,\"challengeId\":null,\"challengeExpiresAt\":null,\"accessToken\":\"[redacted]\",\"expiresAt\":\"2026-08-31T00:52:48.2678225+00:00\",\"roles\":[\"Guest\"],\"permissions\":[]}"
+    },
+    {
+      "name": "property persisted",
+      "ok": true,
+      "detail": "{\"id\":\"148733a4-a610-4a52-9cea-cdeed924b89f\",\"hostUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"hostName\":\"Live host\",\"title\":\"Live QR Villa 1788108768281\",\"location\":\"Ocho Rios\",\"country\":\"Jamaica\",\"nightlyRate\":120,\"currency\":\"USD\",\"badgeLevel\":\"Free\",\"guestVerificationEnabled\":false,\"insuraGuestEnabled\":false,\"cancellationPolicy\":\"Flexible\",\"highlights\":[\"Host-created listing\"],\"isArchived\":false}"
+    },
+    {
+      "name": "no-eKYC booking approved",
+      "ok": true,
+      "detail": "{\"id\":\"bd51646a-82f5-4d45-8fc7-08302b442b2c\",\"propertyId\":\"148733a4-a610-4a52-9cea-cdeed924b89f\",\"hostUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"guestUserId\":\"0c36e418-0808-4b9b-bc3e-409539a2cba1\",\"checkIn\":\"2026-08-30\",\"checkOut\":\"2026-08-31\",\"status\":\"APPROVED\",\"verificationStatus\":\"PASSED\",\"paymentStatus\":\"AUTHORIZED\",\"requiresGuestVerification\":false,\"datesHeld\":false,\"holdExpiresAt\":null,\"nights\":1,\"nightlyRate\":120,\"staySubtotal\":120,\"guestPlatformFee\":10.8,\"totalAmount\":130.8,\"currency\":\"USD\",\"propertyTitle\":\"Live QR Villa 1788108768281\",\"hostName\":\"Live host\",\"ekycProvider\":null,\"ekycTransactionId\":null,\"ekycTransactionUrl\":null,\"paymentProvider\":\"Stripe\",\"paymentAuthorizationReference\":\"stripe_local_auth_bd51646a82f54d458fc708302b442b2c\",\"paymentClientSecret\":\"[redacted]\",\"paymentCaptureReference\":null,\"paymentRefundReference\":null,\"refundedAmount\":0,\"refundReason\":null,\"refundedAt\":null,\"priceBreakdown\":[{\"code\":\"stay\",\"description\":\"120.00 x 1 night stay\",\"amount\":120,\"currency\":\"USD\",\"isRefundable\":true},{\"code\":\"guest-platform-fee\",\"description\":\"9% NestyStay guest platform fee\",\"amount\":10.8,\"currency\":\"USD\",\"isRefundable\":false}],\"notifications\":[{\"recipientType\":\"guest\",\"recipient\":\"live-m3-m4-guest-1788108768250-h1zvd@nestystay.local\",\"subject\":\"NestyStay booking approved\",\"queuedAt\":\"2026-08-30T16:52:48.2961742+00:00\"},{\"recipientType\":\"host\",\"recipient\":\"live-m3-m4-host-1788108768184-6lbjs@nestystay.local\",\"subject\":\"NestyStay booking approved\",\"queuedAt\":\"2026-08-30T16:52:48.2961742+00:00\"}],\"timeline\":[\"Booking created\",\"No guest eKYC required\",\"Booking approved\",\"Notification queued for guest\",\"Notification queued for host\",\"Stripe manual-capture payment authorized after approval\"]}"
+    },
+    {
+      "name": "QR issued",
+      "ok": true,
+      "detail": "{\"status\":\"Active\",\"tokenLength\":43}"
+    },
+    {
+      "name": "wrong-property QR rejected",
+      "ok": true,
+      "detail": "{\"valid\":false,\"result\":\"WrongProperty\",\"bookingId\":null,\"propertyId\":null,\"validFrom\":null,\"expiresAt\":null,\"validationCount\":0,\"message\":\"QR access token is not valid for this property.\"}"
+    },
+    {
+      "name": "valid QR accepted",
+      "ok": true,
+      "detail": "{\"valid\":true,\"result\":\"Valid\",\"bookingId\":\"bd51646a-82f5-4d45-8fc7-08302b442b2c\",\"propertyId\":\"148733a4-a610-4a52-9cea-cdeed924b89f\",\"validFrom\":\"2026-08-30T00:00:00+00:00\",\"expiresAt\":\"2026-08-31T00:00:00+00:00\",\"validationCount\":1,\"message\":\"QR access approved for this property and booking.\"}"
+    },
+    {
+      "name": "wellness subscription application state",
+      "ok": true,
+      "detail": "{\"id\":\"5149ee16-b45a-4164-a2a9-73e571a52a7a\",\"hostUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"planKey\":\"wellness-monthly\",\"monthlyAmount\":19,\"currency\":\"USD\",\"status\":\"Active\",\"currentPeriodStart\":\"2026-08-30T16:52:48.3138953+00:00\",\"currentPeriodEnd\":\"2026-09-30T16:52:48.3138953+00:00\",\"includedVisits\":1,\"usedVisits\":0,\"remainingVisits\":1,\"paymentProvider\":\"Stripe\",\"paymentReference\":\"stripe_local_auth_0cc24d7407784475932d28c8d6db13bc\"}"
+    },
+    {
+      "name": "wellness subscription renewal is idempotent while active",
+      "ok": true,
+      "detail": "{\"id\":\"5149ee16-b45a-4164-a2a9-73e571a52a7a\",\"hostUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"planKey\":\"wellness-monthly\",\"monthlyAmount\":19,\"currency\":\"USD\",\"status\":\"Active\",\"currentPeriodStart\":\"2026-08-30T16:52:48.313895+00:00\",\"currentPeriodEnd\":\"2026-09-30T16:52:48.313895+00:00\",\"includedVisits\":1,\"usedVisits\":0,\"remainingVisits\":1,\"paymentProvider\":\"Stripe\",\"paymentReference\":\"stripe_local_auth_0cc24d7407784475932d28c8d6db13bc\"}"
+    },
+    {
+      "name": "provider enters moderation queue",
+      "ok": true,
+      "detail": "{\"id\":\"d43b0cdc-3fcc-4c87-a444-e5d02c58be8f\",\"ownerUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"slug\":\"live-provider-1788108768318\",\"kind\":\"LocalBusiness\",\"category\":\"Tours\",\"name\":\"Live Provider 1788108768318\",\"parish\":\"St. Ann\",\"badgeLevel\":\"Verified\",\"description\":\"Live persisted provider smoke\",\"availabilitySummary\":\"Daily\",\"contactMode\":\"Platform messaging only\",\"rating\":0,\"reviewCount\":0,\"verificationStatus\":\"Pending\",\"status\":\"PendingReview\",\"isActive\":false,\"isBrickAndMortar\":true,\"policeBadgeNumber\":null,\"createdAt\":\"2026-08-30T16:52:48.3205923+00:00\",\"updatedAt\":\"2026-08-30T16:52:48.3206451+00:00\"}"
+    },
+    {
+      "name": "provider moderation publishes",
+      "ok": true,
+      "detail": "{\"id\":\"d43b0cdc-3fcc-4c87-a444-e5d02c58be8f\",\"ownerUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"slug\":\"live-provider-1788108768318\",\"kind\":\"LocalBusiness\",\"category\":\"Tours\",\"name\":\"Live Provider 1788108768318\",\"parish\":\"St. Ann\",\"badgeLevel\":\"Verified\",\"description\":\"Live persisted provider smoke\",\"availabilitySummary\":\"Daily\",\"contactMode\":\"Platform messaging only\",\"rating\":0,\"reviewCount\":0,\"verificationStatus\":\"Verified\",\"status\":\"Published\",\"isActive\":true,\"isBrickAndMortar\":true,\"policeBadgeNumber\":null,\"createdAt\":\"2026-08-30T16:52:48.320592+00:00\",\"updatedAt\":\"2026-08-30T16:52:48.323407+00:00\"}"
+    },
+    {
+      "name": "published provider is public",
+      "ok": true,
+      "detail": "{\"id\":\"d43b0cdc-3fcc-4c87-a444-e5d02c58be8f\",\"ownerUserId\":\"2480e4c9-881d-4465-8bcb-e438247759e7\",\"slug\":\"live-provider-1788108768318\",\"kind\":\"LocalBusiness\",\"category\":\"Tours\",\"name\":\"Live Provider 1788108768318\",\"parish\":\"St. Ann\",\"badgeLevel\":\"Verified\",\"description\":\"Live persisted provider smoke\",\"availabilitySummary\":\"Daily\",\"contactMode\":\"Platform messaging only\",\"rating\":0,\"reviewCount\":0,\"verificationStatus\":\"Verified\",\"status\":\"Published\",\"isActive\":true,\"isBrickAndMortar\":true,\"policeBadgeNumber\":null,\"createdAt\":\"2026-08-30T16:52:48.320592+00:00\",\"updatedAt\":\"2026-08-30T16:52:48.323407+00:00\"}"
+    },
+    {
+      "name": "police directory is restricted",
+      "ok": true,
+      "detail": "{\"title\":\"A signed session bearer token is required.\",\"status\":401,\"traceId\":\"0HNO6MP9DEUK1:00000008\"}"
+    }
+  ],
+  "finishedAt": "2026-08-30T16:52:48.328Z",
+  "passed": 15,
+  "failed": 0
+}

@@ -1,0 +1,14 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "panels": [
+    {"type": "timeseries", "title": "CPU usage", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}, "targets": [{"expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU"}]},
+    {"type": "timeseries", "title": "Memory usage", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}, "targets": [{"expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", "legendFormat": "memory"}]},
+    {"type": "timeseries", "title": "Disk usage", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}, "targets": [{"expr": "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})", "legendFormat": "root"}]},
+    {"type": "stat", "title": "Dependency health", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}, "targets": [{"expr": "min(nestystay_dependency_health)", "legendFormat": "healthy"}]}
+  ],
+  "schemaVersion": 39,
+  "title": "NestyStay Infrastructure",
+  "time": {"from": "now-6h", "to": "now"},
+  "version": 1
+}

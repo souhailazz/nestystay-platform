@@ -1,0 +1,667 @@
+[
+  {
+    "Screen ID": "PUB-01",
+    "Screen Name": "Homepage",
+    "Description & Key Components": "Hero search bar: WHERE (patois placeholder 'Weh Yuh Deh?' / English: 'Where are you going?') / CHECK IN / CHECK OUT / TRAVELERS. Popular Destinations grid (Montego Bay, Kingston, Negril, Port Antonio, Ocho Rios). Featured Caribbean Retreats carousel. Trust section: Verified Hosts, Identity Verification, Secure Payments, Trusted Community. Pre-launch signup strip.",
+    "Milestone": "M1, M2-10",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-02",
+    "Screen Name": "Search results / Listing grid",
+    "Description & Key Components": "Grid of property cards (4→2→1 cols). Each card: WebP image, property name, parish, price/night, star rating, badge icons (Verified, Trusted, Wellness). Filter bar: Price range, Bedrooms, Amenities, Verified only, Badge level, Wellness. Sort: Recommended, Price low-high, Guest rating, Newest.",
+    "Milestone": "M1, M2-08",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-03",
+    "Screen Name": "Map search view",
+    "Description & Key Components": "Full-width map with price pins. Left panel: condensed listing cards. Map pins update on hover. 'Back to list' CTA. Mobile: map full-screen with card drawer from bottom.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-04",
+    "Screen Name": "Property listing detail",
+    "Description & Key Components": "Photo gallery. Title, parish, guest/bed/bath, star rating + review count. Host card (badges, response time). Amenities grid. Description (expandable). House rules. Calendar. Price breakdown sidebar. Reserve Now CTA. Emergency: 119 displayed prominently on all Jamaica listings (M3-09).",
+    "Milestone": "M1, M3-09",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-05",
+    "Screen Name": "Experiences listing",
+    "Description & Key Components": "Hero tagline: 'Di Riddim Right' (patois) / 'The rhythm is right' (English). Book food, music, water and wellness experiences. Cards with experience photo, name, provider, duration, price, category badge. Filter by category and parish.",
+    "Milestone": "M2",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-06",
+    "Screen Name": "Sorting view",
+    "Description & Key Components": "Sort drawer: Recommended, Price low-high, Guest rating, Newest. Active sort shown in pill on filter bar.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-07",
+    "Screen Name": "No results state",
+    "Description & Key Components": "'No stays match these filters.' CTAs: Try nearby dates, Remove a filter, Explore another parish. Always shows 3 suggested properties below the message.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-08",
+    "Screen Name": "Experience detail",
+    "Description & Key Components": "Full experience page. Provider profile, description, included items, pricing, availability calendar, booking CTA. Trust badges. Platform messaging only.",
+    "Milestone": "M2",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-09",
+    "Screen Name": "About / Trust page",
+    "Description & Key Components": "Why NestyStay exists. Platform story and Jamaican identity. 4 pillars: Local teams, accountability, verification, island community. Founder biography.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-10",
+    "Screen Name": "Help center",
+    "Description & Key Components": "Greeting for returning users: 'Welcome back, Bredda.' or 'Welcome back, Sistren.' (English: Brother / Sister). Searchable FAQ. Response standard: within one business hour.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-11",
+    "Screen Name": "Blog / Journal",
+    "Description & Key Components": "Island stories, hosting guidance, platform updates. Card grid with featured image, title, category tag, date, read time.",
+    "Milestone": "M2",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-12",
+    "Screen Name": "Contact page",
+    "Description & Key Components": "Contact form: Name, Email, Subject, Message. WhatsApp direct link 754-248-2435.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-13",
+    "Screen Name": "Terms of service",
+    "Description & Key Components": "Governing law: State of Florida, USA. Sections: Scope, Eligibility, Host/Guest Obligations, Officer Terms (non-negotiable section clearly marked), Liability, Privacy, Governing Law. Jamaica addendum linked.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "PUB-14",
+    "Screen Name": "Privacy policy",
+    "Description & Key Components": "GDPR and CCPA compliance. Data retention: booking records 7 years, officer ID logs deleted at annual reset (zero linkage), guest profiles account lifetime. No data sold.",
+    "Milestone": "M1",
+    "_table": 17
+  },
+  {
+    "Screen ID": "AUTH-01",
+    "Screen Name": "Login",
+    "Description & Key Components": "Patois hero: 'Whaah Gwaan?' (large italic yellow) / 'What is going on?' (small gray below). Tagline: 'Stay close to the island. Book with confidence.' Email + Password. Continue CTA. Social auth: Google, Apple, Facebook. Post-login toast: 'Yuh Gud?' — 'Are you OK? Welcome back, [Name]!'",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-02",
+    "Screen Name": "Register — select role",
+    "Description & Key Components": "Patois header: 'Come Een!' / 'Come in! Welcome!' Two-path card: Join as Guest / Join as Host. Social auth on both paths.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-03",
+    "Screen Name": "Register — email + password",
+    "Description & Key Components": "Full Name, Email, Password (show/hide), Confirm Password. Role shown at top. Terms checkbox. 'Create account' CTA. Success state: 'Big Up Yuhself!' / 'Respect yourself! Well done!'",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-04",
+    "Screen Name": "Social auth consent",
+    "Description & Key Components": "Provider logo. 'NestyStay only receives the profile details required to create or access your account.' Continue CTA. Role selection for new users.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-05",
+    "Screen Name": "Email verification",
+    "Description & Key Components": "6-digit OTP entry OR link confirmation. On success: 'Respek!' / 'Respect! / I appreciate you!' — Verification confirmed.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-06",
+    "Screen Name": "Phone verification",
+    "Description & Key Components": "International phone number (Jamaica +1876 default). Verify and continue CTA.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-07",
+    "Screen Name": "OTP entry",
+    "Description & Key Components": "6-digit code (auto-advance per digit). Helper text: 'Easy Nuh' / 'Take it easy — the code is on its way.' Countdown timer 5 min. Resend after timer.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-08",
+    "Screen Name": "Forgot password",
+    "Description & Key Components": "Email field. Recovery link CTA. Below form: 'Nuh Worry Yuhself' / 'Don't worry about it — we'll sort this out.' Link expires 30 minutes.",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-09",
+    "Screen Name": "Reset password success",
+    "Description & Key Components": "New password fields. On success redirect: 'Yuh Back Inna Di Mix!' / 'You're back in the mix! Welcome back!'",
+    "Milestone": "M1-03",
+    "_table": 19
+  },
+  {
+    "Screen ID": "AUTH-10",
+    "Screen Name": "2FA setup (Authenticator)",
+    "Description & Key Components": "QR code enrollment. On 2FA accepted: 'Everyting Criss' / 'Everything is perfect — authentication enabled.' Recovery codes shown — user must confirm saved. Per M2-07.",
+    "Milestone": "M2-07",
+    "_table": 19
+  },
+  {
+    "Screen ID": "BOOK-01",
+    "Screen Name": "Guest selection popup",
+    "Description & Key Components": "Property image + name. Dates. ADULTS stepper. CHILDREN stepper — label: 'Pickney' (patois) / 'Children' (English below). ACCESSIBILITY field. Protection: Included. Price: Stay + Service fee + Total. Continue CTA.",
+    "Milestone": "M1-06",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-02",
+    "Screen Name": "Booking confirmation",
+    "Description & Key Components": "Guest name. Property summary. Dates. Total with breakdown. BILLING COUNTRY. Terms checkbox. 'Confirm booking' CTA. 'You won't be charged yet.'",
+    "Milestone": "M1-06",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-03",
+    "Screen Name": "Checkout — card payment",
+    "Description & Key Components": "Stripe Elements card field. Billing country. 'Confirm and pay' CTA. 256-BIT ENCRYPTED VERIFICATION badge.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-04",
+    "Screen Name": "Payment success",
+    "Description & Key Components": "'Irie!' (large, yellow, italic) / 'Excellent! — Booking confirmed.' Green checkmark (one-time animation). Confirmation number NST-2026-XXXX. Property details. Check-in/out. 'View reservation' CTA. 'Bless Up' notification sent to host.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-05",
+    "Screen Name": "Payment failure",
+    "Description & Key Components": "'Dutty Tough' (patois) / 'Times are hard — let's try again.' 15-minute hold countdown. 'Try payment again' primary CTA. 'Find another stay' secondary.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-06",
+    "Screen Name": "Booking rejected",
+    "Description & Key Components": "'Request not approved.' No charge made. Explore similar verified stays CTA.",
+    "Milestone": "M1-07",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-07",
+    "Screen Name": "Booking pending",
+    "Description & Key Components": "'Nuh Fret' (patois) / 'Don't worry — we're confirming your stay.' Clock icon. Host typically replies within 10 minutes. Date hold countdown.",
+    "Milestone": "M1-07, M1-09",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-08",
+    "Screen Name": "Booking cancelled",
+    "Description & Key Components": "'Suh It Guh' (patois) / 'That's how it goes.' Refund status and timeline. 'Find another stay' CTA.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-09",
+    "Screen Name": "Invoice",
+    "Description & Key Components": "Invoice NST-2026-XXXX. Guest + billing details. Price breakdown. Download invoice CTA.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "BOOK-10",
+    "Screen Name": "Receipt",
+    "Description & Key Components": "Simpler confirmation of payment received. Amount, date, payment method (last 4). Download receipt CTA.",
+    "Milestone": "M1-08",
+    "_table": 22
+  },
+  {
+    "Screen ID": "TRAV-01",
+    "Screen Name": "Dashboard overview",
+    "Description & Key Components": "Welcome header with guest name. KPI strip: upcoming stays, protected amount, matches. Recent stays with status badges. Notification center.",
+    "Milestone": "M1-09",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-02",
+    "Screen Name": "Trip suggestions",
+    "Description & Key Components": "Matched stays. 'Available' status. Dates, price, match score. 'Explore Jamaica' CTA.",
+    "Milestone": "M2",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-03",
+    "Screen Name": "Upcoming reservations",
+    "Description & Key Components": "Upcoming bookings: image, name, dates, status badge. 'Prepare for check-in' CTA for next stay.",
+    "Milestone": "M1-09",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-04",
+    "Screen Name": "Past reservations",
+    "Description & Key Components": "Completed stays. Rating given / 'Write a review' if pending. Re-book CTA.",
+    "Milestone": "M1-09",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-05",
+    "Screen Name": "Cancelled reservations",
+    "Description & Key Components": "Cancelled bookings with reason. Refund status. '$0 outstanding' if fully refunded.",
+    "Milestone": "M1-09",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-06",
+    "Screen Name": "Reservation detail",
+    "Description & Key Components": "Full booking breakdown. Host contact via platform. Check-in instructions. Cancellation policy. QR code for gated community entry if applicable.",
+    "Milestone": "M1-09",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-07",
+    "Screen Name": "Wishlist — saved stays",
+    "Description & Key Components": "Grid of saved properties. Availability status per stay. Unsave (heart toggle).",
+    "Milestone": "M2",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-08",
+    "Screen Name": "Favorites collections",
+    "Description & Key Components": "Named collections (Honeymoon, Business Trips). Create, rename, delete. Drag-and-drop.",
+    "Milestone": "M2",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-09",
+    "Screen Name": "Payment methods",
+    "Description & Key Components": "Saved cards (last 4 + expiry). Default card. Add via Stripe. Remove CTA. Stripe tokenized — no full card numbers stored.",
+    "Milestone": "M1-08",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-10",
+    "Screen Name": "Payment history",
+    "Description & Key Components": "All transactions. Filter by date/status. Download receipt per row.",
+    "Milestone": "M1-08",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-11",
+    "Screen Name": "Invoices",
+    "Description & Key Components": "All invoices. Filter by year. Bulk download.",
+    "Milestone": "M1-08",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-12",
+    "Screen Name": "Profile settings",
+    "Description & Key Components": "Full name, email, phone. Photo upload. Language, currency, communication preferences. 'Jamaican Patois greetings' toggle — default ON. Delete account: 'One Love' / 'Goodbye / Peace.'",
+    "Milestone": "M1-03",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-13",
+    "Screen Name": "Identity verification",
+    "Description & Key Components": "Verification status: Verified / Pending / Action required. Document type, renewal date. Re-verify CTA. Alibaba eKYC embedded.",
+    "Milestone": "M1-07, M2-02",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-14",
+    "Screen Name": "Preferences",
+    "Description & Key Components": "Destination types, amenity preferences, budget range, accessibility needs. Patois toggle here too.",
+    "Milestone": "M2",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-15",
+    "Screen Name": "Reviews given",
+    "Description & Key Components": "Published reviews with property, date, rating, text. Host reply shown. Edit within 48h.",
+    "Milestone": "M2-05",
+    "_table": 24
+  },
+  {
+    "Screen ID": "TRAV-16",
+    "Screen Name": "Pending reviews + notifications",
+    "Description & Key Components": "Reviews due (deadline countdown). Notifications center: messages, status changes, payments.",
+    "Milestone": "M2-05",
+    "_table": 24
+  },
+  {
+    "Screen ID": "HOST-01",
+    "Screen Name": "Revenue dashboard",
+    "Description & Key Components": "KPI: REVENUE, OCCUPANCY, GUEST LOVE, OPEN TASKS. Revenue chart (30/60/90 day). Top-earning properties. Payout schedule. Export CSV.",
+    "Milestone": "M1-09, M2",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-02",
+    "Screen Name": "Analytics",
+    "Description & Key Components": "Occupancy trend. Avg nightly rate. Page views. Booking conversion. Guest origin map. Export.",
+    "Milestone": "M2",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-03",
+    "Screen Name": "Properties list",
+    "Description & Key Components": "All properties. Each card: thumbnail, name, status (Published/Draft/Archived), badge, occupancy, next booking. Header: 'Manage Your Yard' (patois) / 'Manage Your Properties' (English below). Empty state: 'Run Di Ting' / 'Handle it — create your first listing.'",
+    "Milestone": "M1-04",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-04",
+    "Screen Name": "Archived properties",
+    "Description & Key Components": "Archived listings. Re-activate CTA. Delete permanently (with confirmation modal).",
+    "Milestone": "M1-04",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-05",
+    "Screen Name": "Property creation wizard",
+    "Description & Key Components": "Steps: Property type → Location → Capacity → Amenities → Photos → Description → Pricing → Availability → Guest verification upsell toggle (M4-06) → Review. On publish: 'Galang Bad!' toast / 'You're doing amazing — listing published!'",
+    "Milestone": "M1-04, M4-06",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-06",
+    "Screen Name": "Property editing",
+    "Description & Key Components": "Same sections as wizard, inline editing. Draft or publish. Change history log.",
+    "Milestone": "M1-04",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-07",
+    "Screen Name": "Seasonal pricing",
+    "Description & Key Components": "Calendar with rate overlays. Independence Week, Christmas/New Year, Easter, Carnival. Minimum stay per season.",
+    "Milestone": "M2",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-08",
+    "Screen Name": "Promotions",
+    "Description & Key Components": "Create promotion: discount %, eligible dates, minimum nights, badge level. Last-minute discount toggle.",
+    "Milestone": "M2-06",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-09",
+    "Screen Name": "Reservation management",
+    "Description & Key Components": "Bookings table: guest name, property, dates, status (PENDING/APPROVED/REJECTED/CANCELLED/COMPLETED). Approve/Reject CTAs. iCal sync status.",
+    "Milestone": "M1-09",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-10",
+    "Screen Name": "Reports",
+    "Description & Key Components": "Monthly summary: revenue, occupancy, bookings, cancellations, review score. Export PDF/CSV.",
+    "Milestone": "M2",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-11",
+    "Screen Name": "Exports",
+    "Description & Key Components": "Booking history, Revenue, Guest list, Tax report. Date range. Download per type.",
+    "Milestone": "M2",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-12",
+    "Screen Name": "Reviews management",
+    "Description & Key Components": "All guest reviews. Reply CTA (30 days). Flag for moderation. Average by property.",
+    "Milestone": "M2-05",
+    "_table": 27
+  },
+  {
+    "Screen ID": "HOST-13",
+    "Screen Name": "Badge & account settings",
+    "Description & Key Components": "Current badge (FREE/VERIFIED/TRUSTED/WELLNESS). Unlock path for next level. Trusted Badge $49 CTA. Guest verification toggle per property. Founding Member status. Trusted Badge renewal date. 2FA link.",
+    "Milestone": "M2-01 through M2-09",
+    "_table": 27
+  },
+  {
+    "Screen ID": "PM-15",
+    "Screen Name": "Portfolio availability",
+    "Description & Key Components": "Calendar across ALL managed properties. Color-coded by unit. Booking conflicts highlighted. Block dates across multiple units. iCal sync status per property.",
+    "Milestone": "M1-05, M5-01",
+    "_table": 29
+  },
+  {
+    "Screen ID": "MSG-01",
+    "Screen Name": "Inbox",
+    "Description & Key Components": "Conversation list sorted by most recent. Name, Verified badge, last message, timestamp, unread count. Filter: All / Guests / Hosts / Support. Search.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-02",
+    "Screen Name": "Conversation list detail",
+    "Description & Key Components": "Booking reference linked. Archived tab.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-03",
+    "Screen Name": "Chat view",
+    "Description & Key Components": "Thread with timestamps. Read status. Typing indicator. Booking context card pinned top.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-04",
+    "Screen Name": "Media sharing",
+    "Description & Key Components": "Photo attachments with thumbnail and file size. Tap to expand. Max 10MB. WebP preferred.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-05",
+    "Screen Name": "Document sharing",
+    "Description & Key Components": "PDF attachments. Secure link (expires 24h). Used for: arrival guides, receipts.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-06",
+    "Screen Name": "Online status — online",
+    "Description & Key Components": "Patois: 'Mi Deh Yah' / 'I'm right here' — replaces 'Online now' for consenting hosts.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-07",
+    "Screen Name": "Online status — offline",
+    "Description & Key Components": "'Offline · replies when connected.' Response time shown.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-08",
+    "Screen Name": "Read receipts",
+    "Description & Key Components": "'Read · 9:44 AM' under sent messages. Unread: 'Delivered' only.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "MSG-09",
+    "Screen Name": "NestyStay support thread",
+    "Description & Key Components": "Automated + human support. Verification confirmations, booking status, payment notifications. Cannot be deleted.",
+    "Milestone": "M1-10",
+    "_table": 31
+  },
+  {
+    "Screen ID": "ADM-01",
+    "Screen Name": "Admin dashboard",
+    "Description & Key Components": "KPI: ACTIVE USERS (18.4k), VERIFIED STAYS (1,248), OPEN CASES (24), RISK ALERTS (7). Activity feed: VERIFIED / FLAGGED items.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-02",
+    "Screen Name": "Platform KPIs",
+    "Description & Key Components": "Trend charts: users, listings, bookings, revenue, verification rate, cancellation rate. Export CSV.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-03",
+    "Screen Name": "User management",
+    "Description & Key Components": "Directory: name, email (hashed), role, status. Suspend / Reinstate / Delete. Audit log.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-04",
+    "Screen Name": "Property moderation",
+    "Description & Key Components": "All listings: VERIFIED/FLAGGED/PENDING REVIEW. Remove, suppress, or approve. Flag history.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-05",
+    "Screen Name": "Reservations overview",
+    "Description & Key Components": "All bookings. Full timeline per booking. Override status (admin only, mandatory reason + audit log).",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-06",
+    "Screen Name": "Payments & transactions",
+    "Description & Key Components": "All Stripe transactions. Refund initiation. Payout status. Revenue reconciliation.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-07",
+    "Screen Name": "Disputes",
+    "Description & Key Components": "Case ID (NST-240 format). Type, parties, status. Evidence uploads. Resolution: Full refund / Partial / Dismiss.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-08",
+    "Screen Name": "Support tickets",
+    "Description & Key Components": "Helpdesk queue. Priority, SLA timer. Assign to team. Internal notes. Close with summary.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-09",
+    "Screen Name": "Reports & exports",
+    "Description & Key Components": "Platform reports. Compliance report for Jamaican tax authorities. Scheduled weekly/monthly email.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-10",
+    "Screen Name": "Fraud detection",
+    "Description & Key Components": "Risk scoring per user. Flagged items. Ban/whitelist actions. Case creation from flag.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ADM-11",
+    "Screen Name": "Flagged users & properties",
+    "Description & Key Components": "Flag reason, date, source (user report / auto-detection). Resolve: Clear / Suspend / Remove.",
+    "Milestone": "M1-12",
+    "_table": 37
+  },
+  {
+    "Screen ID": "ERR-01",
+    "Screen Name": "401 — Login required",
+    "Description & Key Components": "'Sign in required.' Log in to continue. 'Return safely' CTA.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-02",
+    "Screen Name": "403 — Access restricted",
+    "Description & Key Components": "'Access is restricted.' No mention of specific permission missing.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-03",
+    "Screen Name": "404 — Page not found",
+    "Description & Key Components": "'This page drifted away.' Return to trusted stays or search Jamaica. 'Return safely' CTA + search bar.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-04",
+    "Screen Name": "500 — Server error",
+    "Description & Key Components": "'Something needs attention.' Team notified. Data protected. Error reference code for support.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-05",
+    "Screen Name": "Maintenance",
+    "Description & Key Components": "'We are preparing the next welcome.' NestyStay back shortly. Bookings preserved. WhatsApp 754-248-2435.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-06",
+    "Screen Name": "Loading / skeleton",
+    "Description & Key Components": "Patois tagline: 'Tek Time' / 'Take your time — we're loading your island experience.' 1200ms shimmer. Never blank.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-07",
+    "Screen Name": "No properties",
+    "Description & Key Components": "'No properties yet.' Create listing or explore CTA.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-08",
+    "Screen Name": "No favorites",
+    "Description & Key Components": "'No favorites saved.' Save a stay to return to it here.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-09",
+    "Screen Name": "Empty inbox",
+    "Description & Key Components": "'Your inbox is clear.' New messages will appear here.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "ERR-10",
+    "Screen Name": "No reservations",
+    "Description & Key Components": "'No reservations found.' Explore verified stays or adjust dates.",
+    "Milestone": "M1",
+    "_table": 39
+  },
+  {
+    "Screen ID": "HPRO-01..05",
+    "Screen Name": "Host profile screens",
+    "Description & Key Components": "Public host profile, biography, trust indicators, badges, reviews, listings, Link Mi/contact, editing, preview, privacy/visibility states. Detailed IDs referenced by Appendix A; only HPRO-05 phrase row is explicit in document.",
+    "Milestone": "M2",
+    "_table": "appendix"
+  }
+]

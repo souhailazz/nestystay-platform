@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-09-02T11:43:57.087Z",
+  "base": "http://127.0.0.1:5019",
+  "checks": [
+    {
+      "name": "standard quote returns 200",
+      "passed": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "standard host commission is 3%",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":90,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":120}"
+    },
+    {
+      "name": "standard host commission rounds to cents",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":90,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":120}"
+    },
+    {
+      "name": "standard guest platform fee is 9%",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":90,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":120}"
+    },
+    {
+      "name": "standard revenue equals commission plus guest fee",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":90,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":120}"
+    },
+    {
+      "name": "Platinum founding fee is flat",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":29,\"guestFeeDescription\":\"Platinum lifetime founding guest flat fee\",\"nestyStayRevenue\":59}"
+    },
+    {
+      "name": "Platinum revenue includes host commission",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":29,\"guestFeeDescription\":\"Platinum lifetime founding guest flat fee\",\"nestyStayRevenue\":59}"
+    },
+    {
+      "name": "Gold founding fee is flat",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":36,\"guestFeeDescription\":\"Gold lifetime founding guest flat fee\",\"nestyStayRevenue\":66}"
+    },
+    {
+      "name": "Gold revenue includes host commission",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":36,\"guestFeeDescription\":\"Gold lifetime founding guest flat fee\",\"nestyStayRevenue\":66}"
+    },
+    {
+      "name": "Silver founding fee is flat",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":45,\"guestFeeDescription\":\"Silver lifetime founding guest flat fee\",\"nestyStayRevenue\":75}"
+    },
+    {
+      "name": "Silver revenue includes host commission",
+      "passed": true,
+      "detail": "{\"bookingValue\":1000,\"nights\":5,\"hostCommissionPercent\":3,\"hostCommissionAmount\":30,\"guestFeeAmount\":45,\"guestFeeDescription\":\"Silver lifetime founding guest flat fee\",\"nestyStayRevenue\":75}"
+    },
+    {
+      "name": "fractional booking commission is cent-rounded",
+      "passed": true,
+      "detail": "{\"bookingValue\":123.45,\"nights\":2,\"hostCommissionPercent\":3,\"hostCommissionAmount\":3.7,\"guestFeeAmount\":11.11,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":14.81}"
+    },
+    {
+      "name": "fractional booking guest fee is cent-rounded",
+      "passed": true,
+      "detail": "{\"bookingValue\":123.45,\"nights\":2,\"hostCommissionPercent\":3,\"hostCommissionAmount\":3.7,\"guestFeeAmount\":11.11,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":14.81}"
+    },
+    {
+      "name": "fractional booking revenue is cent-rounded",
+      "passed": true,
+      "detail": "{\"bookingValue\":123.45,\"nights\":2,\"hostCommissionPercent\":3,\"hostCommissionAmount\":3.7,\"guestFeeAmount\":11.11,\"guestFeeDescription\":\"Standard guest platform fee\",\"nestyStayRevenue\":14.81}"
+    },
+    {
+      "name": "negative booking value rejected",
+      "passed": true,
+      "detail": "status=400"
+    },
+    {
+      "name": "zero nights rejected",
+      "passed": true,
+      "detail": "status=400"
+    }
+  ],
+  "passed": 16,
+  "failed": 0,
+  "rulesCovered": [
+    "host commission",
+    "standard guest fee",
+    "founding flat fees",
+    "cent rounding",
+    "negative/zero validation"
+  ]
+}

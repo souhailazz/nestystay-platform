@@ -1,0 +1,650 @@
+{
+  "generatedAt": "2026-09-15T15:16:14.746Z",
+  "total": 54,
+  "passed": 54,
+  "failed": 0,
+  "rate": 100,
+  "results": [
+    {
+      "name": "profile",
+      "method": "GET",
+      "url": "/api/auth/profile",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "booking list",
+      "method": "GET",
+      "url": "/api/bookings",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owned properties",
+      "method": "GET",
+      "url": "/api/properties/owned",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "property manager dashboard",
+      "method": "GET",
+      "url": "/api/property-manager/dashboard",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner portal",
+      "method": "GET",
+      "url": "/api/property-manager/owner/portal",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "wellness subscriptions",
+      "method": "GET",
+      "url": "/api/wellness/subscriptions",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "wellness visits",
+      "method": "GET",
+      "url": "/api/wellness/visits",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "messages inbox",
+      "method": "GET",
+      "url": "/api/spec/messages/inbox",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "admin operations",
+      "method": "GET",
+      "url": "/api/spec/admin/operations",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "badge assignments",
+      "method": "GET",
+      "url": "/api/badges-pricing/badges/assignments",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot create property",
+      "method": "POST",
+      "url": "/api/properties",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot list host properties",
+      "method": "GET",
+      "url": "/api/properties/owned",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot use PM dashboard",
+      "method": "GET",
+      "url": "/api/property-manager/dashboard",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot use owner portal",
+      "method": "GET",
+      "url": "/api/property-manager/owner/portal",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot use wellness admin",
+      "method": "GET",
+      "url": "/api/wellness/admin/dashboard",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot use spec admin",
+      "method": "GET",
+      "url": "/api/spec/admin/operations",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest cannot read admin audit",
+      "method": "GET",
+      "url": "/api/spec/admin/audit-log",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host cannot use PM dashboard",
+      "method": "GET",
+      "url": "/api/property-manager/dashboard",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host cannot use owner portal",
+      "method": "GET",
+      "url": "/api/property-manager/owner/portal",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager cannot use owner portal",
+      "method": "GET",
+      "url": "/api/property-manager/owner/portal",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner cannot use PM dashboard",
+      "method": "GET",
+      "url": "/api/property-manager/dashboard",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "officer cannot use PM dashboard",
+      "method": "GET",
+      "url": "/api/property-manager/dashboard",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "provider cannot list host properties",
+      "method": "GET",
+      "url": "/api/properties/owned",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot read guest A traveler data",
+      "method": "GET",
+      "url": "/api/spec/traveler/dfbe107a-dce2-44fe-9653-f035ea0aea2d",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot create guest A collection",
+      "method": "POST",
+      "url": "/api/spec/traveler/dfbe107a-dce2-44fe-9653-f035ea0aea2d/wishlist/collections",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot prepare guest A identity upload",
+      "method": "POST",
+      "url": "/api/spec/traveler/dfbe107a-dce2-44fe-9653-f035ea0aea2d/identity-documents/uploads",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host B cannot archive host A property",
+      "method": "POST",
+      "url": "/api/properties/5bc27160-cb03-438e-b92f-53a9630e5dd9/archive",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host B cannot delete host A property",
+      "method": "DELETE",
+      "url": "/api/properties/5bc27160-cb03-438e-b92f-53a9630e5dd9",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host B cannot prepare host A photo",
+      "method": "POST",
+      "url": "/api/properties/5bc27160-cb03-438e-b92f-53a9630e5dd9/photos/uploads",
+      "expected": [
+        401,
+        403,
+        404
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot read guest A booking",
+      "method": "GET",
+      "url": "/api/bookings/0e9afb26-dd74-4dc3-8334-5ebaf6e92c68",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "host B cannot read host A booking",
+      "method": "GET",
+      "url": "/api/bookings/0e9afb26-dd74-4dc3-8334-5ebaf6e92c68",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot capture guest A booking",
+      "method": "POST",
+      "url": "/api/bookings/0e9afb26-dd74-4dc3-8334-5ebaf6e92c68/capture-payment",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "guest B cannot download guest A invoice",
+      "method": "GET",
+      "url": "/api/bookings/0e9afb26-dd74-4dc3-8334-5ebaf6e92c68/invoice",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot read manager A invoice",
+      "method": "GET",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot read manager A owner statement",
+      "method": "GET",
+      "url": "/api/property-manager/owners/65712d83-cc8c-42af-88ec-90e4e9b7fe16/statement",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot verify manager A owner",
+      "method": "POST",
+      "url": "/api/property-manager/owners/65712d83-cc8c-42af-88ec-90e4e9b7fe16/verification",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot read owner A invoice",
+      "method": "GET",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot read manager A statement",
+      "method": "GET",
+      "url": "/api/property-manager/owners/65712d83-cc8c-42af-88ec-90e4e9b7fe16/statement",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot assign manager A owner property",
+      "method": "POST",
+      "url": "/api/property-manager/properties",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot create utility for manager A property",
+      "method": "POST",
+      "url": "/api/property-manager/utilities",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot update manager A maintenance",
+      "method": "PATCH",
+      "url": "/api/property-manager/maintenance/1949ca19-0500-4aec-bfcb-ecc5f7dd2a5a",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot store manager A document",
+      "method": "POST",
+      "url": "/api/property-manager/documents",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot download manager A document",
+      "method": "GET",
+      "url": "/api/property-manager/documents/e28e514f-64ef-454b-b9c8-284117b9a92f/download",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot vote on manager A governance",
+      "method": "POST",
+      "url": "/api/property-manager/governance/proposals/d377b025-aa37-4c2b-8d48-4ade152043e6/votes",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot revoke manager A QR",
+      "method": "POST",
+      "url": "/api/property-manager/qr/ca5c5081-4cfc-4e4f-a910-503908c5ce79/revoke",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "manager B cannot pay manager A invoice",
+      "method": "POST",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320/payments",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot read owner A statement",
+      "method": "GET",
+      "url": "/api/property-manager/owners/65712d83-cc8c-42af-88ec-90e4e9b7fe16/statement",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 403,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot download owner A document",
+      "method": "GET",
+      "url": "/api/property-manager/documents/e28e514f-64ef-454b-b9c8-284117b9a92f/download",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot create maintenance on owner A property",
+      "method": "POST",
+      "url": "/api/property-manager/maintenance",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot vote on owner A governance",
+      "method": "POST",
+      "url": "/api/property-manager/governance/proposals/d377b025-aa37-4c2b-8d48-4ade152043e6/votes",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "owner B cannot open owner A portal",
+      "method": "GET",
+      "url": "/api/property-manager/owner/portal",
+      "expected": [
+        400,
+        403,
+        404
+      ],
+      "actual": 400,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "provider cannot read manager invoice",
+      "method": "GET",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "gate guard cannot read manager invoice",
+      "method": "GET",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320",
+      "expected": [
+        403,
+        404
+      ],
+      "actual": 404,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    },
+    {
+      "name": "anonymous cannot read manager invoice",
+      "method": "GET",
+      "url": "/api/property-manager/invoices/0a69d9e4-0896-441f-aafa-0f44574c1320",
+      "expected": [
+        401
+      ],
+      "actual": 401,
+      "passed": true,
+      "bodyExposesStackTrace": false
+    }
+  ]
+}

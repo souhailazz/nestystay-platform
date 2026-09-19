@@ -1,0 +1,2570 @@
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Bell,
+  BookOpen,
+  CalendarDays,
+  Camera,
+  Check,
+  CreditCard,
+  Download,
+  FileText,
+  Heart,
+  Map,
+  MapPin,
+  Navigation,
+  Phone,
+  LayoutDashboard,
+  Lock,
+  Mail,
+  MessageSquare,
+  Paperclip,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Star,
+  TriangleAlert,
+  X,
+  UserRound,
+} from "lucide-react";
+import { AppLink } from "../components/AppLink";
+import { Badge } from "../components/ui/Badge";
+import { Button, buttonClassName } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { EmptyState } from "../components/ui/EmptyState";
+import { ErrorState } from "../components/ui/ErrorState";
+import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
+import { LoadingState } from "../components/ui/LoadingState";
+import { ListControls, downloadCsv } from "../components/ui/ListControls";
+import { StatusChip } from "../components/ui/StatusChip";
+import { Modal } from "../components/ui/Modal";
+import { PageHeader } from "../components/ui/PageHeader";
+import type { AuthController } from "../hooks/useAuth";
+import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type DirectoryProviderDocument, type DirectoryProviderInsights, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { PatoisPhrase, PatoisToggle } from "../lib/patois";
+import { getStayImage } from "../lib/stayImages";
+import { cx } from "../lib/ui";
+import { PublicFooter, TierBadge } from "../components/layout/PublicShell";
+import { BookingStateContainer } from "../features/booking/BookingStateContainer";
+import { HostStateContainer } from "../features/host/HostStateContainer";
+import { HostReviewsBadgesSettings } from "../features/host/HostReviewsBadgesSettings";
+import { AdminStateContainer } from "../features/admin/AdminStateContainer";
+import { PublicStateContainer } from "../features/public/PublicStateContainer";
+
+type AsyncState<T> = {
+  data: T | null;
+  error: string | null;
+  loading: boolean;
+  reload: () => void;
+};
+
+function useAsync<T>(loader: () => Promise<T>, deps: React.DependencyList): AsyncState<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    loader()
+      .then((result) => mounted && setData(result))
+      .catch((caught) => mounted && setError(caught instanceof Error ? caught.message : "Request failed."))
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [...deps, version]);
+
+  return { data, error, loading, reload: () => setVersion((value) => value + 1) };
+}
+
+function CompletionShell({
+  id,
+  eyebrow,
+  title,
+  copy,
+  actions,
+  publicFooter = false,
+  children,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  copy: string;
+  actions?: ReactNode;
+  publicFooter?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <div className="product-page spec-page completion-page">
+        <PageHeader eyebrow={`${id} / ${eyebrow}`} title={title} copy={copy} actions={actions} />
+        {children}
+      </div>
+      {publicFooter && <PublicFooter />}
+    </>
+  );
+}
+
+function DataGate<T>({ state, children }: { state: AsyncState<T>; children: (data: T) => ReactNode }) {
+  if (state.loading) return <LoadingState />;
+  if (state.error) return <ErrorState message={state.error} onRetry={state.reload} />;
+  if (!state.data) return <EmptyState title="No data found." />;
+  return <>{children(state.data)}</>;
+}
+
+function RequireSession({ auth, children }: { auth: AuthController; children: (session: NonNullable<AuthController["session"]>) => ReactNode }) {
+  if (!auth.session) {
+    return (
+      <section className="product-section product-section--center">
+        <EmptyState
+          title="Sign in required."
+          copy="This screen is connected to protected API data and needs a local session token."
+          action={<AppLink className={buttonClassName("sun")} href="/login">Log in</AppLink>}
+        />
+      </section>
+    );
+  }
+  return <>{children(auth.session)}</>;
+}
+
+function HeroImage({ index = 0, alt = "", priority = false }: { index?: number; alt?: string; priority?: boolean }) {
+  const image = getStayImage(index);
+  return <img className="completion-hero-image" src={image.src} srcSet={image.srcSet} sizes="(max-width: 760px) 100vw, (max-width: 1100px) 92vw, 1080px" alt={alt || image.alt} decoding="async" fetchPriority={priority ? "high" : "low"} height="720" loading={priority ? "eager" : "lazy"} width="1080" />;
+}
+
+export function PublicContentRoute({ slug }: { slug: string }) {
+  return <PublicStateContainer view={slug} session={null} />;
+}
+
+function ContactForm() {
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setNotice(null);
+    setError(null);
+    try {
+      await api.createContactRequest(form);
+      setNotice("Contact request saved and queued for support.");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Contact request failed.");
+    }
+  }
+
+  return (
+    <Card className="settings-card">
+      <form className="management-form" onSubmit={submit}>
+        <Field label="Name"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
+        <Field label="Email"><Input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field>
+        <Field label="Subject"><Input value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} /></Field>
+        <Field label="Message"><Textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></Field>
+        <Button type="submit"><Mail size={17} /> Send</Button>
+        {notice && <div className="notice-panel">{notice}</div>}
+        {error && <ErrorState message={error} />}
+      </form>
+    </Card>
+  );
+}
+
+function screenForPage(page: PublicContentPage) {
+  const map: Record<string, string> = {
+    about: "PUB-09",
+    trust: "PUB-09",
+    help: "PUB-10",
+    contact: "PUB-12",
+    terms: "PUB-13",
+    privacy: "PUB-14",
+    maintenance: "ERR-05",
+  };
+  return map[page.slug] ?? "PUB-10";
+}
+
+export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthController }) {
+  const social = useAsync(() => api.getSocialAuthConfig(), []);
+  const [flow, setFlow] = useState<{ id: string; deliveryChannel: string; expiresAt: string; status: string; attemptsRemaining: number } | null>(null);
+  const [destination, setDestination] = useState(auth.session?.email ?? "guest@nestystay.local");
+  const [code, setCode] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [resetRequestId, setResetRequestId] = useState(() => new URLSearchParams(window.location.search).get("requestId") ?? "");
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
+  const [linkFlowId] = useState(() => new URLSearchParams(window.location.search).get("flowId") ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const canUseDevelopmentDelivery = import.meta.env.DEV || import.meta.env.MODE === "test";
+  const normalizedKind = ({
+    "email-verification": "email",
+    "phone-verification": "phone",
+    "forgot-password": "forgot",
+    "reset-password": "reset",
+    "2fa-setup": "twofa",
+    "social-consent": "social",
+  } as Record<string, string>)[kind] ?? kind;
+
+  useEffect(() => {
+    if (normalizedKind !== "email" || !linkFlowId || !resetToken) return;
+    setNotice("Verifying your secure email link…");
+    void api.completeAuthFlow({ flowId: linkFlowId, token: resetToken })
+      .then((completed) => setNotice(completed.status === "Completed" ? "Email verified. You can continue to NestyStay." : "Verification " + completed.status.toLowerCase() + "."))
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "This verification link is invalid or expired."));
+  }, [normalizedKind, linkFlowId, resetToken]);
+
+  async function start(flowType = normalizedKind) {
+    setError(null);
+    const started = await api.startAuthFlow({ userId: auth.session?.userId, flowType, destination });
+    setFlow({
+      id: started.id,
+      deliveryChannel: started.deliveryChannel,
+      expiresAt: started.expiresAt,
+      status: started.status,
+      attemptsRemaining: started.attemptsRemaining,
+    });
+    setCode("");
+    setNotice(`Code sent by ${started.deliveryChannel.toLowerCase()}.`);
+  }
+
+  async function complete() {
+    if (!flow) return;
+    setError(null);
+    const completed = await api.completeAuthFlow({ flowId: flow.id, code });
+    setFlow({
+      id: completed.id,
+      deliveryChannel: completed.deliveryChannel,
+      expiresAt: completed.expiresAt,
+      status: completed.status,
+      attemptsRemaining: completed.attemptsRemaining,
+    });
+    setNotice(`${completed.flowType} completed: ${completed.status}`);
+  }
+
+  async function useDevelopmentDelivery() {
+    if (!flow) return;
+    setError(null);
+    const secret = await api.getDevelopmentAuthFlowSecret(flow.id);
+    setCode(secret.code);
+    setNotice(`Development delivery loaded. Expires at ${new Date(secret.expiresAt).toLocaleTimeString()}.`);
+  }
+
+  async function requestReset() {
+    setError(null);
+    const response = await api.requestPasswordReset(destination);
+    setResetRequestId(response.requestId);
+    setNotice(response.message);
+  }
+
+  async function useDevelopmentResetToken() {
+    setError(null);
+    const secret = await api.getDevelopmentPasswordResetToken(resetRequestId);
+    setResetToken(secret.token);
+    setNotice(`Development reset token loaded. Expires at ${new Date(secret.expiresAt).toLocaleTimeString()}.`);
+  }
+
+  async function completeReset() {
+    setError(null);
+    const response = await api.completePasswordReset({
+      requestId: resetRequestId,
+      token: resetToken,
+      newPassword,
+      confirmPassword,
+    });
+    setNotice(response.passwordChanged ? "Password reset completed." : response.status);
+    setResetToken("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  function run(action: () => Promise<void>) {
+    void action().catch((caught) => {
+      setError(caught instanceof Error ? caught.message : "Authentication flow failed.");
+    });
+  }
+
+  const titleMap: Record<string, [string, string, string]> = {
+    role: ["AUTH-02", "Come Een!", "Create your guest or host account."],
+    email: ["AUTH-05", "Email verification", "Respek - confirm the six-digit verification code."],
+    phone: ["AUTH-06", "Phone verification", "Jamaica +1876 phone verification with retry states."],
+    otp: ["AUTH-07", "OTP entry", "Easy Nuh - the code is on its way."],
+    forgot: ["AUTH-08", "Forgot password", "Nuh Worry Yuhself - we will sort this out."],
+    reset: ["AUTH-09", "Reset password", "Yuh Back Inna Di Mix after reset completes."],
+    twofa: ["AUTH-10", "2FA setup", "QR enrollment, recovery codes, and verification."],
+    recovery: ["AUTH-10", "Recovery codes", "Generate, copy, and download local recovery codes."],
+    social: ["AUTH-04", "Social auth consent", "Provider consent is shown only when configured."],
+  };
+  const [id, title, copy] = titleMap[normalizedKind] ?? titleMap.email;
+
+  return (
+    <CompletionShell
+      id={id}
+      eyebrow="Authentication"
+      title={title}
+      copy={copy}
+      actions={<PatoisToggle />}
+    >
+      <section className="product-section management-layout">
+        <Card className="settings-card">
+          {normalizedKind === "role" ? (
+            <>
+              <PatoisPhrase phrase="Come Een!" translation="Come in! Welcome!" />
+              <div className="spec-card-grid">
+                <AppLink className={buttonClassName("sun")} href="/register?role=guest">Join as Guest</AppLink>
+                <AppLink className={buttonClassName("outline")} href="/register?role=host">Join as Host</AppLink>
+              </div>
+            </>
+          ) : normalizedKind === "twofa" || normalizedKind === "recovery" ? (
+            <RequireSession auth={auth}>
+              {(session) => <RecoveryCodesPanel userId={session.userId} token={session.accessToken} />}
+            </RequireSession>
+          ) : normalizedKind === "forgot" ? (
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(requestReset); }}>
+              <PatoisPhrase phrase="Nuh Worry Yuhself" translation="Don't worry about it - we'll sort this out." />
+              <Field label="Email">
+                <Input type="email" value={destination} onChange={(event) => setDestination(event.target.value)} />
+              </Field>
+              <Button type="submit"><ShieldCheck size={17} /> Send reset link</Button>
+            </form>
+          ) : normalizedKind === "reset" ? (
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(completeReset); }}>
+              <PatoisPhrase phrase="Yuh Back Inna Di Mix!" translation="You're back in the mix! Welcome back!" />
+              <Field label="Request ID">
+                <Input value={resetRequestId} onChange={(event) => setResetRequestId(event.target.value)} />
+              </Field>
+              <Field label="Reset token">
+                <Input value={resetToken} onChange={(event) => setResetToken(event.target.value)} />
+              </Field>
+              {canUseDevelopmentDelivery && resetRequestId && (
+                <Button type="button" onClick={() => run(useDevelopmentResetToken)} variant="ghost">Use development token</Button>
+              )}
+              <Field label="New password">
+                <Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+              </Field>
+              <Field label="Confirm password">
+                <Input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+              </Field>
+              <Button type="submit"><Lock size={17} /> Reset password</Button>
+            </form>
+          ) : (
+            <form className="management-form" onSubmit={(event) => { event.preventDefault(); run(() => start()); }}>
+              <PatoisPhrase phrase={normalizedKind === "forgot" ? "Nuh Worry Yuhself" : normalizedKind === "otp" ? "Easy Nuh" : "Respek!"} translation="English translation is shown directly below the patois phrase." />
+              <Field label={normalizedKind === "phone" ? "Phone number" : "Email"}>
+                <Input value={destination} onChange={(event) => setDestination(event.target.value)} />
+              </Field>
+              <Button type="submit"><ShieldCheck size={17} /> Start flow</Button>
+            </form>
+          )}
+          {flow && (
+            <div className="notice-panel">
+              <span>{flow.deliveryChannel} delivery pending until {new Date(flow.expiresAt).toLocaleTimeString()}.</span>
+              <Field label="Enter code"><Input value={code} onChange={(event) => setCode(event.target.value)} /></Field>
+              {canUseDevelopmentDelivery && (
+                <Button onClick={() => run(useDevelopmentDelivery)} variant="ghost">Use development delivery</Button>
+              )}
+                <Button onClick={() => run(complete)}>Verify code</Button>
+            </div>
+          )}
+          {notice && <div className="notice-panel">{notice}</div>}
+          {error && <ErrorState message={error} />}
+        </Card>
+        <DataGate state={social}>
+          {(config) => (
+            <Card className="settings-card">
+              <h3>Social authentication</h3>
+              <p>Google is active only when server-side OAuth validation is configured. Apple and Facebook stay unavailable until complete secure flows ship.</p>
+              <div className="button-row">
+                <Button disabled={!config.googleEnabled} variant="outline">Google</Button>
+                <Button disabled={!config.appleEnabled} variant="outline">Apple</Button>
+                <Button disabled={!config.facebookEnabled} variant="outline">Facebook</Button>
+              </div>
+              <small>{config.requiredEnvironmentVariables.join(", ")}</small>
+            </Card>
+          )}
+        </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+export function OwnerInvitationPage() {
+  const params = new URLSearchParams(window.location.search);
+  const flowId = params.get("flowId") ?? "";
+  const token = params.get("token") ?? "";
+  const [status, setStatus] = useState<"loading" | "accepted" | "error">("loading");
+  const [message, setMessage] = useState("Checking your secure invitation link…");
+
+  useEffect(() => {
+    if (!flowId || !token) {
+      setStatus("error");
+      setMessage("This invitation link is incomplete. Ask the property manager to send a new invitation.");
+      return;
+    }
+    void api.acceptOwnerInvitation({ flowId, token })
+      .then((result) => {
+        setStatus("accepted");
+        setMessage(result.status === "Completed" ? "Invitation accepted. Sign in to open your owner portal." : "Invitation is no longer active.");
+      })
+      .catch((caught) => {
+        setStatus("error");
+        setMessage(caught instanceof Error ? caught.message : "This invitation link is invalid or expired.");
+      });
+  }, [flowId, token]);
+
+  return (
+    <CompletionShell id="PM-INVITE" eyebrow="Owner invitation" title="Your NestyStay owner portal starts here." copy="This secure link is single-use and expires after seven days.">
+      <section className="product-section product-section--center">
+        <Card className="settings-card max-w-xl">
+          <div className={status === "accepted" ? "notice-panel" : status === "error" ? "rounded-field bg-coral-tint p-4 text-sm" : "notice-panel"} role="status" aria-live="polite">{message}</div>
+          {status === "accepted" && <AppLink className={buttonClassName("sun") + " mt-4 inline-flex"} href="/login">Sign in to owner portal <ArrowRight size={16} /></AppLink>}
+          {status === "error" && <AppLink className={buttonClassName("outline") + " mt-4 inline-flex"} href="/contact">Contact support</AppLink>}
+        </Card>
+      </section>
+    </CompletionShell>
+  );
+}
+
+function RecoveryCodesPanel({ userId, token }: { userId: string; token: string }) {
+  const [codes, setCodes] = useState<{ code: string; used: boolean }[]>([]);
+  const [enrollment, setEnrollment] = useState<{ enrollmentId: string; manualKey: string; otpAuthUri: string; expiresAt: string } | null>(null);
+  const [qrDataUri, setQrDataUri] = useState("");
+  const [setupCode, setSetupCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!enrollment) {
+      setQrDataUri("");
+      return;
+    }
+
+    void import("qrcode")
+      .then(({ default: QRCode }) => QRCode.toDataURL(enrollment.otpAuthUri, { margin: 1, width: 184 }))
+      .then((dataUri) => {
+        if (!cancelled) setQrDataUri(dataUri);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Authenticator QR could not be rendered.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enrollment]);
+
+  async function generate() {
+    await run(async () => {
+      setCodes(await api.generateRecoveryCodes(userId, token));
+      setNotice("Recovery codes regenerated. Store them now; they are shown once.");
+    });
+  }
+
+  async function beginEnrollment() {
+    await run(async () => {
+      const started = await api.beginTwoFactorEnrollment(token);
+      setEnrollment(started);
+      setCodes([]);
+      setSetupCode("");
+      setNotice("Authenticator setup started.");
+    });
+  }
+
+  async function confirmEnrollment() {
+    if (!enrollment) return;
+    await run(async () => {
+      const confirmed = await api.confirmTwoFactorEnrollment(token, {
+        enrollmentId: enrollment.enrollmentId,
+        code: setupCode,
+      });
+      setCodes(confirmed.recoveryCodes.map((code) => ({ code, used: false })));
+      setEnrollment(null);
+      setSetupCode("");
+      setNotice("Authenticator enabled. Recovery codes are shown once.");
+    });
+  }
+
+  async function disableTwoFactor() {
+    await run(async () => {
+      if (!disableCode.trim()) {
+        throw new Error("Enter an authenticator or recovery code before disabling 2FA.");
+      }
+
+      const disabled = await api.disableTwoFactor(token, { code: disableCode });
+      if (disabled.disabled) {
+        setCodes([]);
+        setEnrollment(null);
+        setDisableCode("");
+        setSetupCode("");
+        setNotice("Authenticator disabled. Restart setup to require 2FA again.");
+      }
+    });
+  }
+
+  async function run(action: () => Promise<void>) {
+    setError(null);
+    setNotice(null);
+    try {
+      await action();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Two-factor action failed.");
+    }
+  }
+
+  function download() {
+    const blob = new Blob([codes.map((item) => item.code).join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "nestystay-recovery-codes.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      <Button onClick={beginEnrollment}><ShieldCheck size={17} /> Start authenticator setup</Button>
+      {enrollment && (
+        <div className="notice-panel">
+          {qrDataUri && <img className="auth-qr-image" src={qrDataUri} alt="Authenticator QR code" height={160} width={160} />}
+          <Field label="Manual setup key">
+            <Input readOnly value={enrollment.manualKey} />
+          </Field>
+          <Field label="Authenticator code">
+            <Input inputMode="numeric" value={setupCode} onChange={(event) => setSetupCode(event.target.value)} />
+          </Field>
+          <small>Expires at {new Date(enrollment.expiresAt).toLocaleTimeString()}.</small>
+          <Button onClick={confirmEnrollment}><Lock size={17} /> Enable authenticator</Button>
+        </div>
+      )}
+      <Button onClick={generate} variant="outline"><Lock size={17} /> Regenerate recovery codes</Button>
+      <div className="notice-panel">
+        <Field label="Authenticator or recovery code">
+          <Input value={disableCode} onChange={(event) => setDisableCode(event.target.value)} />
+        </Field>
+        <Button onClick={disableTwoFactor} variant="ghost"><Lock size={17} /> Disable 2FA</Button>
+      </div>
+      {notice && <div className="notice-panel">{notice}</div>}
+      {error && <ErrorState message={error} />}
+      {codes.length > 0 && (
+          <div className="spec-table-wrap responsive-table-cards">
+            <table className="spec-table"><tbody>{codes.map((item) => <tr key={item.code}><td data-label="Code">{item.code}</td><td data-label="Status">{item.used ? "Used" : "Unused"}</td></tr>)}</tbody></table>
+          <Button onClick={() => void navigator.clipboard.writeText(codes.map((item) => item.code).join("\n"))} variant="outline">Copy</Button>
+          <Button onClick={download} variant="ghost"><Download size={17} /> Download</Button>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function ExperiencesPage({ slug }: { slug?: string }) {
+  const [query, setQuery] = useState("");
+  const list = useAsync(() => api.getExperiences({ query }), [query]);
+  const detail = useAsync(() => (slug ? api.getExperience(slug) : Promise.resolve(null)), [slug]);
+
+  if (slug) {
+    return (
+      <DataGate state={detail}>
+        {(experience) => experience && <ExperienceDetail experience={experience} />}
+      </DataGate>
+    );
+  }
+
+  return (
+    <CompletionShell id="PUB-05" eyebrow="Experiences" title="Di Riddim Right" copy="Book food, music, water, and wellness experiences with verified local providers." publicFooter>
+      <section className="product-section">
+        <div className="search-panel">
+          <Field label="Search"><Input placeholder="Food, music, wellness, water" value={query} onChange={(event) => setQuery(event.target.value)} /></Field>
+          <Button variant="dark"><Search size={17} /> Search</Button>
+        </div>
+        <DataGate state={list}>
+          {(items) => items.length === 0 ? <EmptyState title="No experiences found." /> : (
+            <div className="stay-result-grid">
+              {items.map((experience, index) => <ExperienceCard experience={experience} index={index} key={experience.id} />)}
+            </div>
+          )}
+        </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+function ExperienceCard({ experience, index }: { experience: Experience; index: number }) {
+  return (
+    <Card className="stay-result-card">
+      <HeroImage index={index} alt={experience.name} priority={index === 0} />
+      <div className="stay-result-card__body">
+        <Badge tone="green">{experience.category}</Badge>
+        <h2>{experience.name}</h2>
+        <p>{experience.parish} - {experience.providerName}</p>
+        <strong>{formatMoney(experience.price, experience.currency)} / guest</strong>
+        <AppLink className={buttonClassName("outline")} href={`/experiences/${experience.slug}`}>View details</AppLink>
+      </div>
+    </Card>
+  );
+}
+
+function ExperienceDetail({ experience }: { experience: Experience }) {
+  return (
+    <CompletionShell id="PUB-08" eyebrow="Experience detail" title={experience.name} copy={experience.summary} publicFooter>
+      <section className="product-section details-layout">
+        <HeroImage index={2} alt={experience.name} />
+        <div className="details-copy">
+          <Badge tone="sun">{experience.rating} rating</Badge>
+          <p>{experience.description}</p>
+          <div className="highlight-list highlight-list--large">
+            {[...experience.included, ...experience.rules, ...experience.availability].map((item) => <span key={item}><Check size={14} /> {item}</span>)}
+          </div>
+          <div className="booking-sidebar-lite">
+            <strong>{formatMoney(experience.price, experience.currency)}</strong>
+            <Field label="Guests"><Input min="1" defaultValue="2" type="number" /></Field>
+            <Field label="Date"><Input type="date" /></Field>
+            <Button><CalendarDays size={17} /> Request experience</Button>
+          </div>
+        </div>
+      </section>
+    </CompletionShell>
+  );
+}
+
+export function JournalPage({ slug }: { slug?: string }) {
+  const [query, setQuery] = useState("");
+  const list = useAsync(() => api.getJournal({ query }), [query]);
+  const detail = useAsync(() => (slug ? api.getJournalArticle(slug) : Promise.resolve(null)), [slug]);
+
+  if (slug) {
+    return <DataGate state={detail}>{(article) => article && <JournalDetail article={article} />}</DataGate>;
+  }
+
+  return (
+    <CompletionShell id="PUB-11" eyebrow="Journal" title="Island stories and hosting guidance." copy="A database-backed journal with categories, featured articles, and responsive detail pages." publicFooter>
+      <section className="product-section">
+        <div className="search-panel"><Field label="Search"><Input value={query} onChange={(event) => setQuery(event.target.value)} /></Field></div>
+        <DataGate state={list}>
+          {(articles) => (
+            <div className="spec-card-grid spec-card-grid--three">
+              {articles.map((article) => <ArticleCard article={article} key={article.id} />)}
+            </div>
+          )}
+        </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+function ArticleCard({ article }: { article: JournalArticle }) {
+  return (
+    <Card className="spec-card">
+      <BookOpen size={22} />
+      <Badge tone="slate">{article.category}</Badge>
+      <h3>{article.title}</h3>
+      <p>{article.summary}</p>
+      <AppLink className={buttonClassName("outline")} href={`/journal/${article.slug}`}>Read article</AppLink>
+    </Card>
+  );
+}
+
+function JournalDetail({ article }: { article: JournalArticle }) {
+  return (
+    <CompletionShell id="PUB-11" eyebrow={article.category} title={article.title} copy={`${article.author} - ${new Date(article.publishedAt).toLocaleDateString()}`} publicFooter>
+      <section className="product-section">
+        <Card className="article-body-card">
+          <p>{article.body}</p>
+          <div className="highlight-list">{article.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+        </Card>
+      </section>
+    </CompletionShell>
+  );
+}
+
+export function BookingSpecStatePage({ state, auth, bookingId }: { state: string; auth: AuthController; bookingId?: string }) {
+  return <BookingStateContainer state={state} bookingId={bookingId} auth={auth} />;
+}
+
+export function TravelerSpecPage({ view, auth }: { view: string; auth: AuthController }) {
+  if (!auth.session) return <ErrorState message="Sign in is required to open the traveler workspace." />;
+  return <TravelerWorkspaceView view={view} userId={auth.session.userId} token={auth.session.accessToken} />;
+}
+
+function TravelerWorkspaceView({ view, userId, token }: { view: string; userId: string; token: string }) {
+  const workspace = useAsync(() => api.getTravelerWorkspace(userId, token), [userId, token]);
+  const bookings = useAsync(() => api.getBookings(token), [token]);
+
+  return (
+    <CompletionShell id={travelerScreenId(view)} eyebrow="Traveler portal" title={travelerTitle(view)} copy="Dedicated traveler route connected to persisted traveler APIs.">
+      <section className="product-section">
+        {view === "notifications" && <NotificationPreferencesPanel userId={userId} />}
+        <DataGate state={workspace}>
+          {(data) => (
+            <>
+            {view.includes("reservation") || view === "qr" ? <ReservationPanel bookings={bookings.data ?? []} view={view} token={token} /> : null}
+            {view === "wishlist" || view === "collections" ? <WishlistPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "payment-methods" ? <PaymentMethodsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "payment-history" ? <PaymentHistoryPanel bookings={bookings} token={token} /> : null}
+            {view === "invoices" ? <InvoiceListPanel bookings={bookings} token={token} /> : null}
+            {view === "preferences" || view === "profile" ? <PreferencesPanel /> : null}
+            {view === "identity" ? <IdentityPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "reviews-given" || view === "reviews-pending" ? <ReviewsPanel data={data} view={view} bookings={bookings.data ?? []} userId={userId} token={token} reload={workspace.reload} /> : null}
+            {view === "notifications" ? <NotificationsPanel data={data} userId={userId} token={token} reload={workspace.reload} /> : null}
+            </>
+          )}
+        </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+type BookingDocumentDownload = {
+  blob: Blob;
+  fileName: string;
+};
+
+type PaymentHistoryRow = {
+  id: string;
+  bookingId: string;
+  label: string;
+  propertyTitle: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  status: "AUTHORIZED" | "CAPTURED" | "REFUNDED";
+  canDownloadReceipt: boolean;
+};
+
+function ReservationPanel({ bookings, view, token }: { bookings: Booking[]; view: string; token: string }) {
+  const filtered = bookings.filter((booking) =>
+    view === "reservations-cancelled" ? booking.status === "REJECTED" :
+    view === "reservations-past" ? booking.paymentStatus === "CAPTURED" :
+    true,
+  );
+  return filtered.length === 0 ? <EmptyState title="No reservations found." /> : (
+    <div className="compact-list">{filtered.map((booking) => (
+      <BookingReservationCard booking={booking} token={token} key={booking.id} />
+    ))}</div>
+  );
+}
+
+function BookingReservationCard({ booking, token }: { booking: Booking; token: string }) {
+  const [qr, setQr] = useState<import("../lib/api").QrIssueResult | null>(null);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const eligible = ["APPROVED", "Approved", "CONFIRMED", "Confirmed", "PAYMENTCAPTURED", "PaymentCaptured"].includes(booking.status) || booking.paymentStatus === "Captured";
+  async function issue() {
+    setError(null);
+    try {
+      const issued = await api.issueBookingQr(booking.id, token);
+      setQr(issued);
+      const { default: QRCode } = await import("qrcode");
+      setQrImage(await QRCode.toDataURL(issued.validationUrl, { margin: 1, width: 220 }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Gate pass could not be issued.");
+    }
+  }
+  async function revoke() {
+    if (!qr) return;
+    try {
+      await api.revokeBookingQr(qr.id, token);
+      setQr(null);
+      setQrImage(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Gate pass could not be revoked.");
+    }
+  }
+  const gateValidatorUrl = qr
+    ? `/gate/qr?token=${encodeURIComponent(qr.token)}&propertyId=${encodeURIComponent(qr.propertyId)}`
+    : null;
+  return <Card className="compact-list__item">
+    <CalendarDays size={20} />
+    <div><strong>{booking.propertyTitle}</strong><span>{booking.checkIn} - {booking.checkOut}</span></div>
+    <Badge tone={booking.status === "APPROVED" || booking.paymentStatus === "Captured" ? "green" : "sun"}>{booking.status}</Badge>
+    <AppLink className={buttonClassName("outline")} href={`/booking/${booking.id}/invoice`}>Invoice</AppLink>
+    {eligible && !qr && <Button variant="outline" onClick={issue}>Generate gate QR</Button>}
+    {qr && <div className="flex flex-wrap items-center gap-3"><div className="text-xs"><div className="font-semibold">Gate QR active</div><div>Valid through {new Date(qr.expiresAt).toLocaleDateString()}</div><div className="mt-2 flex flex-wrap gap-2"><AppLink className={buttonClassName("outline")} href={gateValidatorUrl!}>Open gate validator</AppLink><Button variant="outline" onClick={revoke}>Revoke</Button></div></div>{qrImage && <img alt="Secure booking gate QR" height={110} src={qrImage} width={110} />}</div>}
+    {error && <span className="text-xs text-error-text">{error}</span>}
+  </Card>;
+}
+
+/**
+ * M4 gate-facing QR validation UI. The QR image points here so a property
+ * attendant can scan it and receive a human-readable decision rather than a
+ * raw JSON API response. The same screen also supports manual token entry for
+ * scanners that copy a value instead of opening the encoded URL.
+ */
+export function QrGateValidationPage() {
+  const initialQuery = useMemo(() => {
+    const query = new URLSearchParams(window.location.search);
+    return {
+      token: query.get("token") ?? "",
+      propertyId: query.get("propertyId") ?? "",
+    };
+  }, []);
+  const [token, setToken] = useState(initialQuery.token);
+  const [propertyId, setPropertyId] = useState(initialQuery.propertyId);
+  const [deviceMetadata, setDeviceMetadata] = useState("");
+  const [result, setResult] = useState<import("../lib/api").QrValidationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const autoValidated = useRef(false);
+
+  async function validate(event?: FormEvent) {
+    event?.preventDefault();
+    const nextToken = token.trim();
+    const nextPropertyId = propertyId.trim();
+    if (!nextToken || !nextPropertyId) {
+      setResult(null);
+      setError("Enter the QR token and property ID to validate gate access.");
+      return;
+    }
+
+    setError(null);
+    setResult(null);
+    setIsValidating(true);
+    try {
+      const validation = await api.validateQr(nextToken, nextPropertyId, deviceMetadata.trim() || undefined);
+      setResult(validation);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "QR validation could not be completed.");
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
+  useEffect(() => {
+    if (autoValidated.current || !initialQuery.token || !initialQuery.propertyId) return;
+    autoValidated.current = true;
+    void validate();
+  }, [initialQuery.propertyId, initialQuery.token]);
+
+  const decision = result?.result ?? (result?.valid ? "Valid" : "Invalid");
+  const approved = result?.valid === true;
+
+  return (
+    <CompletionShell
+      id="QR-GATE"
+      eyebrow="Property gate"
+      title="Verify a gate *pass*"
+      copy="Scan a guest QR or enter its token to check the live booking, property, date window, and revocation status."
+    >
+      <section className="product-section" data-testid="qr-gate-page">
+        <form className="management-form" onSubmit={validate}>
+          <div className="form-grid form-grid--two">
+            <Field label="QR token" hint="Paste the token from a scanner or a guest’s gate pass.">
+              <Input aria-label="QR token" onChange={(event) => setToken(event.target.value)} placeholder="Paste QR token" value={token} />
+            </Field>
+            <Field label="Property ID" hint="The property where the guest is requesting entry.">
+              <Input aria-label="Property ID" onChange={(event) => setPropertyId(event.target.value)} placeholder="Property UUID" value={propertyId} />
+            </Field>
+            <Field className="form-grid__full" label="Gate device (optional)">
+              <Input aria-label="Gate device" onChange={(event) => setDeviceMetadata(event.target.value)} placeholder="Gate tablet or scanner ID" value={deviceMetadata} />
+            </Field>
+          </div>
+          <div className="button-row">
+            <Button disabled={isValidating} type="submit">
+              {isValidating ? "Checking gate access…" : "Validate QR access"}
+            </Button>
+            <AppLink className={buttonClassName("outline")} href="/traveler/qr">Guest QR passes</AppLink>
+          </div>
+        </form>
+
+        {error && <ErrorState message={error} />}
+        {result && (
+          <div
+            aria-live="polite"
+            className={approved ? "rounded-card border border-success/30 bg-success-tint p-6" : "rounded-card border border-coral/30 bg-coral-tint p-6"}
+            data-testid="qr-gate-result"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-sand-500">Gate decision</div>
+                <h2 className="m-0 mt-1 font-display text-2xl font-medium">{approved ? "Access approved" : "Access denied"}</h2>
+              </div>
+              <StatusChip value={decision} />
+            </div>
+            <p className="mt-3 mb-0 text-[14px] leading-relaxed text-gray-700">{result.message}</p>
+            <div className="mt-4 grid gap-2 text-[12.5px] text-gray-700 sm:grid-cols-2">
+              <span>Booking: <strong>{result.bookingId ?? "Not disclosed"}</strong></span>
+              <span>Property: <strong>{result.propertyId ?? propertyId}</strong></span>
+              <span>Valid from: <strong>{result.validFrom ? new Date(result.validFrom).toLocaleString() : "—"}</strong></span>
+              <span>Expires: <strong>{result.expiresAt ? new Date(result.expiresAt).toLocaleString() : "—"}</strong></span>
+              <span>Scans recorded: <strong>{result.validationCount}</strong></span>
+            </div>
+          </div>
+        )}
+      </section>
+    </CompletionShell>
+  );
+}
+
+function PaymentHistoryPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {
+  const [status, setStatus] = useState("all");
+  const rows = useMemo(() => {
+    const transactions = (bookings.data ?? []).flatMap((booking) => buildPaymentRows(booking));
+    return status === "all" ? transactions : transactions.filter((item) => item.status === status);
+  }, [bookings.data, status]);
+
+  return (
+    <DataGate state={bookings}>
+      {() => (
+        <>
+          <div className="search-panel spec-filter-bar">
+            <Field label="Status">
+              <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="all">All</option>
+                <option value="AUTHORIZED">Authorized</option>
+                <option value="CAPTURED">Captured</option>
+                <option value="REFUNDED">Refunded</option>
+              </Select>
+            </Field>
+          </div>
+          {rows.length === 0 ? (
+            <EmptyState title="No payment activity yet." />
+          ) : (
+            <div className="compact-list">
+              {rows.map((row) => (
+                <Card className="compact-list__item" key={row.id}>
+                  <CreditCard size={20} />
+                  <div>
+                    <strong>{row.label}</strong>
+                    <span>{row.propertyTitle} - {row.reference}</span>
+                  </div>
+                  <Badge tone={row.status === "REFUNDED" ? "coral" : row.status === "CAPTURED" ? "green" : "sun"}>{row.status}</Badge>
+                  <strong>{row.amount < 0 ? "-" : ""}{formatMoney(Math.abs(row.amount), row.currency)}</strong>
+                  {row.canDownloadReceipt && (
+                    <Button variant="outline" onClick={() => downloadBookingDocument(() => api.downloadBookingReceipt(row.bookingId, token))}>
+                      <Download size={16} /> Receipt
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </DataGate>
+  );
+}
+
+function InvoiceListPanel({ bookings, token }: { bookings: AsyncState<Booking[]>; token: string }) {
+  const [year, setYear] = useState("all");
+  const years = useMemo(() => {
+    const values = new Set((bookings.data ?? []).map((booking) => booking.checkIn.slice(0, 4)));
+    return Array.from(values).sort().reverse();
+  }, [bookings.data]);
+  const invoices = useMemo(() => {
+    const all = bookings.data ?? [];
+    return year === "all" ? all : all.filter((booking) => booking.checkIn.startsWith(year));
+  }, [bookings.data, year]);
+
+  async function downloadVisible() {
+    for (const booking of invoices) {
+      await downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token));
+    }
+  }
+
+  const gridCols = "grid-cols-[1.1fr_1.4fr_1fr_0.7fr_0.8fr_0.9fr]";
+
+  return (
+    <DataGate state={bookings}>
+      {() => (
+        <div className="flex flex-col gap-5 font-sans text-ink">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <select
+              aria-label="Filter by year"
+              className="min-h-[46px] rounded-pill border-[1.5px] border-sand-input bg-cream px-[18px] font-sans text-[13.5px] font-semibold text-ink outline-none focus:border-deep-hover"
+              onChange={(event) => setYear(event.target.value)}
+              value={year}
+            >
+              <option value="all">All years</option>
+              {years.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <button
+              className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-pill border-none bg-deep px-[22px] font-sans text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:pointer-events-none disabled:bg-shell disabled:text-sand-500"
+              disabled={invoices.length === 0}
+              onClick={downloadVisible}
+              type="button"
+            >
+              <Download size={15} /> Download all
+            </button>
+          </div>
+          {invoices.length === 0 ? (
+            <EmptyState title="No invoices for this filter." />
+          ) : (
+            <div className="overflow-hidden rounded-card border border-sand-border bg-cream">
+              <div className={`grid ${gridCols} gap-3 bg-shell px-5 py-3 text-[11px] font-bold tracking-[0.1em] text-sand-500`}>
+                <span>INVOICE</span><span>PROPERTY</span><span>DATES</span><span>AMOUNT</span><span>STATUS</span><span />
+              </div>
+              {invoices.map((booking, index) => (
+                <div
+                  className={`grid ${gridCols} items-center gap-3 border-b border-shell px-5 py-[13px] text-[13px] last:border-b-0 ${index % 2 === 1 ? "bg-[#FAF6EA]" : ""}`}
+                  key={booking.id}
+                >
+                  <span className="font-mono text-xs">NST-{booking.checkIn.slice(0, 4)}-{booking.id.slice(0, 4).toUpperCase()}</span>
+                  <span>{booking.propertyTitle ?? booking.propertyId}</span>
+                  <span className="text-gray-600">{booking.checkIn} → {booking.checkOut}</span>
+                  <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong>
+                  <span><StatusChip value={booking.paymentStatus === "CAPTURED" ? "Paid" : booking.paymentStatus} /></span>
+                  <span className="text-right">
+                    <button
+                      className="inline-flex min-h-11 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[12.5px] font-bold text-deep-hover hover:text-deep"
+                      onClick={() => downloadBookingDocument(() => api.downloadBookingInvoice(booking.id, token))}
+                      type="button"
+                    >
+                      <Download size={13} /> Download
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </DataGate>
+  );
+}
+
+function WishlistPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  const [name, setName] = useState("");
+  async function add() {
+    await api.createWishlistCollection(userId, token, { name: name || "New Collection" });
+    setName("");
+    reload();
+  }
+  return (
+    <>
+      <div className="search-panel"><Field label="Collection"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field><Button onClick={add}>Create collection</Button></div>
+      <div className="spec-card-grid">{data.wishlistCollections.map((collection) => <Card key={collection.id}><h3>{collection.name}</h3><p>{collection.items.length} saved stays</p><div className="compact-list">{collection.items.map((item) => <span key={item.id}>{item.propertyTitle} - {item.status}</span>)}</div></Card>)}</div>
+    </>
+  );
+}
+
+function PaymentMethodsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function addCard() {
+    setIsAdding(true);
+    setError(null);
+    try {
+      const setupIntent = await api.createPaymentMethodSetupIntent(userId, token);
+      await api.addPaymentMethod(userId, token, { setupIntentReference: setupIntent.setupIntentReference, isDefault: data.paymentMethods.length === 0 });
+      reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Payment method could not be saved.");
+    } finally {
+      setIsAdding(false);
+    }
+  }
+  return (
+    <>
+      {error && <ErrorState message={error} />}
+      <Button disabled={isAdding} onClick={addCard}><CreditCard size={17} /> {isAdding ? "Preparing secure setup" : "Add secure card"}</Button>
+      <div className="compact-list">{data.paymentMethods.map((method) => <Card className="compact-list__item" key={method.id}><CreditCard size={20} /><div><strong>{method.brand} ending {method.last4}</strong><span>{method.expMonth}/{method.expYear}</span></div><Badge tone={method.isDefault ? "green" : "slate"}>{method.isDefault ? "Default" : "Saved"}</Badge></Card>)}</div>
+    </>
+  );
+}
+
+function PreferencesPanel() {
+  return <Card className="settings-card"><PatoisToggle /><Field label="Currency"><Select defaultValue="USD"><option>USD</option><option>JMD</option></Select></Field><Field label="Communication"><Select defaultValue="email"><option value="email">Email</option><option value="sms">SMS</option></Select></Field></Card>;
+}
+
+type IdentityUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type IdentityUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: IdentityUploadStatus;
+  upload?: IdentityDocumentUpload;
+  error?: string;
+};
+
+const maximumIdentityDocumentBytes = 10 * 1024 * 1024;
+
+function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  const [documentType, setDocumentType] = useState("Passport");
+  const [issuingCountry, setIssuingCountry] = useState("JM");
+  const [expiresOn, setExpiresOn] = useState("");
+  const [uploads, setUploads] = useState<IdentityUploadItem[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+  const cameraVideo = useRef<HTMLVideoElement | null>(null);
+  const cameraStream = useRef<MediaStream | null>(null);
+  const identityDocuments = data.identityDocuments ?? [];
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!cameraOpen || !cameraVideo.current || !cameraStream.current) return;
+    cameraVideo.current.srcObject = cameraStream.current;
+    void cameraVideo.current.play().catch(() => undefined);
+  }, [cameraOpen]);
+
+  async function startCamera() {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Live camera access is unavailable in this browser. Use the file picker below instead.");
+      return;
+    }
+    try {
+      cameraStream.current?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      cameraStream.current = stream;
+      setCameraOpen(true);
+      if (cameraVideo.current) {
+        cameraVideo.current.srcObject = stream;
+        await cameraVideo.current.play().catch(() => undefined);
+      }
+    } catch {
+      setCameraError("Camera permission was not granted. You can still upload a photo or PDF with the file picker.");
+      setCameraOpen(false);
+    }
+  }
+
+  function stopCamera() {
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
+    if (cameraVideo.current) cameraVideo.current.srcObject = null;
+    setCameraOpen(false);
+  }
+
+  function captureCameraPhoto() {
+    const video = cameraVideo.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      setCameraError("The camera is still starting. Hold the document steady and try again.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError("Could not capture the camera frame. Use the file picker instead.");
+      return;
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError("Could not encode the camera frame. Use the file picker instead.");
+        return;
+      }
+      const file = new File([blob], `identity-camera-${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+      addFiles([file]);
+      stopCamera();
+    }, "image/jpeg", 0.86);
+  }
+
+  function updateUpload(id: string, patch: Partial<IdentityUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice(null);
+    if (file.size > maximumIdentityDocumentBytes) {
+      updateUpload(id, { status: "failed", error: "Identity documents must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareIdentityDocumentUpload(userId, token, {
+        documentType,
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+        issuingCountry,
+        expiresOn: expiresOn || null,
+      });
+      updateUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadIdentityDocumentContent(userId, prepared.id, token, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+      setNotice(`${uploaded.fileName} uploaded and verified.`);
+      reload();
+    } catch (caught) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Identity document upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | File[] | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumIdentityDocumentBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Identity documents must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Identity document upload cancelled." });
+  }
+
+  function retryUpload(item: IdentityUploadItem) {
+    updateUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  return (
+    <Card className="settings-card identity-document-card">
+      <ShieldCheck size={28} />
+      <h3>Identity verification</h3>
+      <p>Configured identity verification status: Verified / Pending / Action required. Use your camera on mobile or upload a file. Re-verification launches through the protected booking and auth flow.</p>
+      <div className="form-grid form-grid--two">
+        <Field label="Document type">
+          <Select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
+            <option value="Passport">Passport</option>
+            <option value="DriverLicense">Driver license</option>
+            <option value="NationalId">National ID</option>
+          </Select>
+        </Field>
+        <Field label="Issuing country">
+          <Input maxLength={2} value={issuingCountry} onChange={(event) => setIssuingCountry(event.target.value.toUpperCase())} />
+        </Field>
+        <Field label="Expires on" className="form-grid__full">
+          <Input type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.target.value)} />
+        </Field>
+      </div>
+      <div className="message-upload-bar">
+        <Button onClick={() => void startCamera()} type="button" variant="outline"><Camera size={17} /> Use live camera</Button>
+        <label className={buttonClassName("outline", "message-file-picker")}>
+          <Paperclip size={17} /> Upload document
+          <input accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+        </label>
+      </div>
+      {cameraOpen && (
+        <div className="identity-camera" role="group" aria-label="Identity document camera">
+          <video aria-label="Live document camera preview" autoPlay className="identity-camera__video" muted playsInline ref={cameraVideo} />
+          <div className="identity-camera__actions">
+            <Button onClick={captureCameraPhoto} type="button"><Camera size={16} /> Capture document</Button>
+            <Button onClick={stopCamera} type="button" variant="ghost"><X size={16} /> Close camera</Button>
+          </div>
+        </div>
+      )}
+      {cameraError && <div aria-live="polite" className="notice-panel notice-panel--error">{cameraError}</div>}
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item" key={upload.id}>
+              <FileText size={16} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={16} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={16} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove document" variant="ghost"><X size={16} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {identityDocuments.length > 0 && (
+        <div className="compact-list">
+          {identityDocuments.map((document) => (
+            <div className="compact-list__item identity-document-row" key={document.id}>
+              <FileText size={18} />
+              <div>
+                <strong>{document.documentType}</strong>
+                <span>{document.fileName} · {document.scanStatus}</span>
+              </div>
+              <Badge tone="green">{document.status}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <div className="notice-panel">{notice}</div>}
+    </Card>
+  );
+}
+
+const REVIEW_WINDOW_DAYS = 30;
+
+/** TRAV-PEND (DS v2) — pending reviews from real bookings: completed stays not yet
+ *  reviewed, with the review deadline; submissions go through the reviews API. */
+function ReviewsPanel({ data, view, bookings, userId, token, reload }: { data: TravelerWorkspace; view: string; bookings: Booking[]; userId: string; token: string; reload: () => void }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const reviewedKeys = new Set(data.reviews.flatMap((r) => [r.bookingId, r.propertyId].filter(Boolean) as string[]));
+  const finished = bookings.filter((b) => new Date(b.checkOut).getTime() < Date.now() && !/cancel|reject/i.test(b.status));
+  const pending = finished
+    .filter((b) => !reviewedKeys.has(b.id) && !reviewedKeys.has(b.propertyId))
+    .map((b) => {
+      const deadline = new Date(b.checkOut);
+      deadline.setDate(deadline.getDate() + REVIEW_WINDOW_DAYS);
+      const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86_400_000);
+      return { booking: b, daysLeft, closed: daysLeft <= 0 };
+    });
+  const open = pending.filter((p) => !p.closed);
+  const closed = pending.filter((p) => p.closed);
+
+  async function submit(booking: Booking) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.submitReview(userId, token, {
+        bookingId: booking.id,
+        propertyId: booking.propertyId,
+        subjectTitle: booking.propertyTitle ?? "Jamaican stay",
+        rating,
+        text: text || "Great stay!",
+      });
+      setOpenId(null);
+      setText("");
+      setRating(5);
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Review could not be submitted.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (view === "reviews-given") {
+    return (
+      <div className="flex flex-col gap-3 font-sans text-ink">
+        {data.reviews.length === 0 && <EmptyState title="No reviews yet" copy="Reviews you write appear here." />}
+        {data.reviews.map((review) => (
+          <div className="flex items-start gap-3.5 rounded-card border border-sand-border bg-cream p-5" key={review.id}>
+            <div className="flex-1">
+              <div className="font-display text-[17px] font-medium">{review.subjectTitle}</div>
+              <p className="m-0 mt-1 text-[13.5px] text-gray-600">{review.text}</p>
+            </div>
+            <StatusChip value={`★ ${review.rating}/5`} className="!bg-success-tint !text-success-text" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 font-sans text-ink">
+      <h2 className="m-0 font-display text-[clamp(24px,2.6vw,32px)] font-normal tracking-[-0.01em]">
+        You have {open.length} pending <em className="italic text-deep-hover">review{open.length === 1 ? "" : "s"}.</em>
+      </h2>
+      {error && <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">{error}</div>}
+      {open.length === 0 && <EmptyState title="Nothing to review" copy="Completed stays show up here for 30 days." />}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
+        {open.map(({ booking, daysLeft }, index) => (
+          <div className="flex flex-col gap-3 rounded-card bg-deep p-[22px]" key={booking.id}>
+            <div className="flex items-center gap-3">
+              <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover" height={64} loading="lazy" src={getStayImage(index).src} width={64} />
+              <div>
+                <div className="font-display text-lg font-medium text-on-dark-heading">{booking.propertyTitle ?? "Jamaican stay"}</div>
+                <div className="text-xs text-on-dark-muted">stayed {booking.checkIn} → {booking.checkOut}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <span className="rounded-pill border border-amber px-3 py-[5px] text-[11px] font-bold tracking-[0.06em] text-yellow">
+                {daysLeft} DAY{daysLeft === 1 ? "" : "S"} LEFT TO REVIEW
+              </span>
+              <button
+                className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-none bg-yellow px-[22px] font-sans text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+                onClick={() => setOpenId(openId === booking.id ? null : booking.id)}
+                type="button"
+              >
+                Write review
+              </button>
+            </div>
+            {openId === booking.id && (
+              <div className="flex flex-col gap-2.5 rounded-field bg-night p-4">
+                <label className="flex items-center gap-2.5 text-[13px] font-semibold text-on-dark-body">
+                  Rating
+                  <select
+                    className="min-h-11 rounded-field border border-on-dark-faint/40 bg-transparent px-3 font-sans text-on-dark-heading outline-none [&>option]:text-ink"
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    value={rating}
+                  >
+                    {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} ★</option>)}
+                  </select>
+                </label>
+                <textarea
+                  className="min-h-[90px] rounded-field border border-on-dark-faint/40 bg-transparent p-3 font-sans text-sm text-on-dark-heading outline-none placeholder:text-on-dark-faint"
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="How was your stay?"
+                  value={text}
+                />
+                <button
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-pill border-none bg-yellow px-5 font-sans text-[13px] font-bold text-deep transition-colors hover:bg-yellow-press disabled:pointer-events-none disabled:opacity-60"
+                  disabled={busy}
+                  onClick={() => submit(booking)}
+                  type="button"
+                >
+                  {busy ? "Submitting…" : "Submit review"}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {closed.map(({ booking }, index) => (
+        <div className="rounded-card border border-sand-border bg-cream p-[22px]" key={booking.id}>
+          <div className="flex items-center gap-3 opacity-60">
+            <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover grayscale-[0.6]" height={64} loading="lazy" src={getStayImage(index + 2).src} width={64} />
+            <div className="flex-1">
+              <div className="font-display text-lg font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>
+              <div className="text-xs text-gray-600">stayed {booking.checkIn} → {booking.checkOut}</div>
+            </div>
+            <span className="rounded-pill bg-shell px-3.5 py-1.5 text-[11px] font-bold tracking-[0.06em] text-sand-500">
+              REVIEW WINDOW CLOSED
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NotificationPreferencesPanel({ userId }: { userId: string }) {
+  const storageKey = `nestyStay.notification-preferences.${userId}`;
+  const [preferences, setPreferences] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      return saved ? { email: true, sms: false, push: true, ...JSON.parse(saved) as Partial<{ email: boolean; sms: boolean; push: boolean }> } : { email: true, sms: false, push: true };
+    } catch {
+      return { email: true, sms: false, push: true };
+    }
+  });
+  const [notice, setNotice] = useState<string | null>(null);
+  const update = (key: keyof typeof preferences, value: boolean) => setPreferences((current) => ({ ...current, [key]: value }));
+  return <Card className="mb-4"><h2 className="m-0 font-display text-2xl">Delivery channels</h2><p className="m-0 mt-2 text-sm text-sand-600">Choose which delivery channels this device should use for booking and message updates.</p><div className="mt-4 grid gap-2 sm:grid-cols-3"><label className="checkbox-card"><input aria-label="Email notifications" checked={preferences.email} onChange={(event) => update("email", event.target.checked)} type="checkbox" /> Email notifications</label><label className="checkbox-card"><input aria-label="SMS notifications" checked={preferences.sms} onChange={(event) => update("sms", event.target.checked)} type="checkbox" /> SMS notifications</label><label className="checkbox-card"><input aria-label="Push notifications" checked={preferences.push} onChange={(event) => update("push", event.target.checked)} type="checkbox" /> Push notifications</label></div><div className="mt-4 flex flex-wrap items-center gap-3"><Button onClick={() => { window.localStorage.setItem(storageKey, JSON.stringify(preferences)); setNotice("Notification preferences saved."); }}>Save preferences</Button>{notice && <span className="text-sm font-semibold text-success-text" role="status">{notice}</span>}</div></Card>;
+}
+
+function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
+  async function readAll() {
+    await api.markAllNotificationsRead(userId, token);
+    window.dispatchEvent(new Event("nesty:notifications-changed"));
+    reload();
+  }
+  function markRead(notificationId: string) {
+    void api.markNotificationRead(userId, notificationId, token).then(() => {
+      window.dispatchEvent(new Event("nesty:notifications-changed"));
+    });
+  }
+  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink aria-label={`Open ${item.title}`} href={item.deepLink} onClick={() => markRead(item.id)}>Open</AppLink></Card>)}</div></>;
+}
+
+function travelerScreenId(view: string) {
+  const map: Record<string, string> = { wishlist: "TRAV-07", collections: "TRAV-08", "payment-methods": "TRAV-09", "payment-history": "TRAV-10", invoices: "TRAV-11", profile: "TRAV-12", identity: "TRAV-13", preferences: "TRAV-14", "reviews-given": "TRAV-15", "reviews-pending": "TRAV-16", notifications: "TRAV-16", "reservations-upcoming": "TRAV-03", "reservations-past": "TRAV-04", "reservations-cancelled": "TRAV-05", "reservation-detail": "TRAV-06", qr: "TRAV-06" };
+  return map[view] ?? "TRAV-01";
+}
+
+function travelerTitle(view: string) {
+  if (view === "notifications") return "Notification preferences";
+  return view.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildPaymentRows(booking: Booking): PaymentHistoryRow[] {
+  const rows: PaymentHistoryRow[] = [];
+  if (booking.paymentAuthorizationReference) {
+    rows.push({
+      id: `${booking.id}-authorization`,
+      bookingId: booking.id,
+      label: "Authorization",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentAuthorizationReference,
+      amount: booking.totalAmount,
+      currency: booking.currency,
+      status: "AUTHORIZED",
+      canDownloadReceipt: false,
+    });
+  }
+
+  if (booking.paymentCaptureReference) {
+    rows.push({
+      id: `${booking.id}-capture`,
+      bookingId: booking.id,
+      label: "Payment received",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentCaptureReference,
+      amount: booking.totalAmount,
+      currency: booking.currency,
+      status: "CAPTURED",
+      canDownloadReceipt: booking.paymentStatus === "CAPTURED" || booking.paymentStatus === "REFUNDED",
+    });
+  }
+
+  if (booking.paymentRefundReference && (booking.refundedAmount ?? 0) > 0) {
+    rows.push({
+      id: `${booking.id}-refund`,
+      bookingId: booking.id,
+      label: "Refund issued",
+      propertyTitle: booking.propertyTitle ?? booking.propertyId,
+      reference: booking.paymentRefundReference,
+      amount: -booking.refundedAmount,
+      currency: booking.currency,
+      status: "REFUNDED",
+      canDownloadReceipt: false,
+    });
+  }
+
+  return rows;
+}
+
+async function downloadBookingDocument(load: () => Promise<BookingDocumentDownload>) {
+  const file = await load();
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function MessagesPage({ auth, conversationId }: { auth: AuthController; conversationId?: string }) {
+  if (!auth.session) return <ErrorState message="Sign in is required to open messages." />;
+  return <MessagesWorkspace userId={auth.session.userId} token={auth.session.accessToken} conversationId={conversationId} />;
+}
+
+function MessagesWorkspace({ userId, token, conversationId }: { userId: string; token: string; conversationId?: string }) {
+  const inbox = useAsync(() => api.getInbox(userId, token), [userId, token]);
+  const selectedId = conversationId ?? inbox.data?.conversations[0]?.id;
+  const conversation = useAsync(() => selectedId ? api.getConversation(selectedId, userId, token) : Promise.resolve(null), [selectedId, userId, token]);
+  return (
+    <CompletionShell id="MSG-01-09" eyebrow="Messaging" title="Platform messaging." copy="Persisted inbox, conversation threads, read receipts, attachments, support thread, and polling-ready data.">
+      <section className="product-section message-layout">
+        <DataGate state={inbox}>
+          {(data) => <Card className="thread-list">{data.conversations.map((item) => <AppLink href={`/messages/${item.id}`} key={item.id}><strong>{item.participantLabel}</strong><span>{item.lastMessage}</span><Badge tone={item.unreadCount ? "sun" : "slate"}>{item.unreadCount}</Badge></AppLink>)}</Card>}
+        </DataGate>
+        <DataGate state={conversation}>
+          {(data) => data ? <ConversationPanel conversation={data} userId={userId} token={token} reload={conversation.reload} /> : <EmptyState title="Your inbox is clear." />}
+        </DataGate>
+      </section>
+    </CompletionShell>
+  );
+}
+
+type MessageUploadStatus = "queued" | "uploading" | "uploaded" | "failed" | "cancelled";
+
+type MessageUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: MessageUploadStatus;
+  attachment?: AttachmentUpload;
+  error?: string;
+};
+
+const maximumMessageAttachmentBytes = 10 * 1024 * 1024;
+
+function ConversationPanel({ conversation, userId, token, reload }: { conversation: Conversation; userId: string; token: string; reload: () => void }) {
+  const [body, setBody] = useState("");
+  const [uploads, setUploads] = useState<MessageUploadItem[]>([]);
+  const [notice, setNotice] = useState("");
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  function updateUpload(id: string, patch: Partial<MessageUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice("");
+
+    if (file.size > maximumMessageAttachmentBytes) {
+      updateUpload(id, { status: "failed", error: "Attachments must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareMessageAttachmentUpload(conversation.id, userId, token, {
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateUpload(id, { attachment: prepared, progress: 5, status: "uploading" });
+      const uploaded = await api.uploadMessageAttachmentContent(conversation.id, prepared.id, userId, token, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { attachment: uploaded, progress: 100, status: "uploaded", error: undefined });
+    } catch (error) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: error instanceof Error ? error.message : "Attachment upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumMessageAttachmentBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Attachments must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Attachment upload cancelled." });
+  }
+
+  function retryUpload(item: MessageUploadItem) {
+    updateUpload(item.id, { attachment: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  async function downloadAttachment(file: MessageAttachment) {
+    if (!file.attachmentId) return;
+    try {
+      const download = await api.getMessageAttachmentDownload(conversation.id, file.attachmentId, userId, token);
+      window.open(download.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Attachment download failed.");
+    }
+  }
+
+  async function send() {
+    const attachments = uploads
+      .filter((upload): upload is MessageUploadItem & { attachment: AttachmentUpload } => upload.status === "uploaded" && Boolean(upload.attachment))
+      .map((upload) => ({
+        attachmentId: upload.attachment.id,
+        fileName: upload.attachment.fileName,
+        contentType: upload.attachment.contentType,
+        sizeBytes: upload.attachment.sizeBytes,
+        url: null,
+        status: upload.attachment.status,
+        objectKey: upload.attachment.objectKey,
+        expiresAt: upload.attachment.expiresAt,
+        scanStatus: upload.attachment.scanStatus,
+        thumbnailUrl: upload.attachment.thumbnailUrl,
+      }));
+
+    try {
+      await api.sendMessage(conversation.id, userId, token, { body, attachments });
+      setBody("");
+      setUploads([]);
+      setNotice("");
+      reload();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Message could not be sent.");
+    }
+  }
+
+  const hasActiveUploads = uploads.some((upload) => upload.status === "queued" || upload.status === "uploading");
+  const canSend = body.trim().length > 0 && !hasActiveUploads;
+
+  return (
+    <Card className="message-thread">
+      <h3>{conversation.subject}</h3>
+      {conversation.messages.map((message) => <div className={message.senderUserId === userId ? "message-bubble message-bubble--reply" : "message-bubble"} key={message.id}><p>{message.body}</p><small>{message.status} - {new Date(message.sentAt).toLocaleTimeString()}</small>{message.attachments.map((file) => <button className="message-attachment-link" disabled={!file.attachmentId} key={file.attachmentId ?? file.fileName} onClick={() => void downloadAttachment(file)} type="button"><FileText size={14} /> <span>{file.fileName}</span><small>{file.scanStatus ?? file.status}</small></button>)}</div>)}
+      <Field label="Message"><Textarea value={body} onChange={(event) => setBody(event.target.value)} /></Field>
+      <div className="message-upload-bar">
+        <label className={buttonClassName("outline", "message-file-picker")}>
+          <Paperclip size={17} /> Attach
+          <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+        </label>
+        <Button disabled={!canSend} onClick={send}><MessageSquare size={17} /> Send</Button>
+      </div>
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item" key={upload.id}>
+              <FileText size={16} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={16} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={16} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove attachment" variant="ghost"><X size={16} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <div className="notice-panel">{notice}</div>}
+    </Card>
+  );
+}
+
+function createUploadId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function resolveMessageAttachmentContentType(file: File) {
+  if (file.type) return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  return "application/octet-stream";
+}
+
+/* DIR-02 / DIR-BIZ (DS v2) — directory lists render live api.getDirectoryProviders
+   data (no sample chips needed). Category pills filter client-side. Trades adds
+   the discreet EITA credit (spec); Trusted providers render as featured Deep
+   cards (spec: Trusted = featured placement). */
+export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: string; auth: AuthController }) {
+  const isM4Directory = kind !== "Verification" && kind !== "Provider" && kind !== "ProviderDashboard";
+  const isHost = auth.session?.roles.some((role) => role.toLowerCase() === "host") ?? false;
+  const requiresBadge = isM4Directory && ["Custodian", "Trades", "LocalBusiness", "Police"].includes(kind ?? "");
+  const badgeAccess = useAsync(() => requiresBadge && auth.session && isHost
+    ? api.getBadgeFeatureAccess("Host", auth.session.userId, auth.session.accessToken)
+    : Promise.resolve(null), [requiresBadge, isHost, auth.session?.userId, auth.session?.accessToken]);
+  const badgeRank: Record<string, number> = { Free: 0, Verified: 1, Trusted: 2, Wellness: 3 };
+  const requiredRank: Record<string, number> = { Custodian: 1, Trades: 2, LocalBusiness: 1, Police: 3 };
+  const badgePending = requiresBadge && isHost && auth.session && badgeAccess.data === null && !badgeAccess.error;
+  const directoryLocked = requiresBadge && (kind === "Police"
+    ? (!auth.session || !isHost || (!!badgeAccess.data && (badgeRank[badgeAccess.data.activeLevel] ?? 0) < (requiredRank[kind] ?? 0)))
+    : (!!auth.session && (!isHost || (!!badgeAccess.data && (badgeRank[badgeAccess.data.activeLevel] ?? 0) < (requiredRank[kind ?? ""] ?? 0)))));
+  const list = useAsync(() => kind === "Provider" || kind === "ProviderDashboard" || directoryLocked || badgePending ? Promise.resolve([]) : isM4Directory ? api.getM4DirectoryProviders({ kind }, auth.session?.accessToken) : api.getDirectoryProviders({ kind }), [kind, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
+  const detail = useAsync(() => slug && !directoryLocked && !badgePending ? (isM4Directory ? api.getM4DirectoryProvider(slug, auth.session?.accessToken) : api.getDirectoryProvider(slug)) : Promise.resolve(null), [slug, isM4Directory, directoryLocked, badgePending, auth.session?.accessToken]);
+  const recentViews = useAsync(() => auth.session && !slug ? api.getDirectoryRecentViews(auth.session.accessToken) : Promise.resolve([] as DirectoryProvider[]), [auth.session?.accessToken, slug]);
+  const [category, setCategory] = useState("All");
+  const [directoryQuery, setDirectoryQuery] = useState("");
+  const [directorySort, setDirectorySort] = useState("name");
+  const [directoryPage, setDirectoryPage] = useState(0);
+  const [directoryView, setDirectoryView] = useState<"list" | "map">("list");
+  const [parish, setParish] = useState("All");
+  const [availabilityOnly, setAvailabilityOnly] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [savedSearches, setSavedSearches] = useState<string[]>([]);
+  useEffect(() => setDirectoryPage(0), [category, directoryQuery, directorySort, parish, availabilityOnly]);
+  useEffect(() => {
+    if (!slug || !detail.data || !auth.session) return;
+    void api.recordDirectoryRecentView(detail.data.id, auth.session.accessToken).catch(() => undefined);
+  }, [slug, detail.data?.id, auth.session?.accessToken]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem("nestyStay.directoryFavorites") ?? "[]") as unknown;
+      if (Array.isArray(stored)) setFavorites(stored.filter((item): item is string => typeof item === "string"));
+      const searches = JSON.parse(window.localStorage.getItem("nestyStay.directorySearches") ?? "[]") as unknown;
+      if (Array.isArray(searches)) setSavedSearches(searches.filter((item): item is string => typeof item === "string"));
+    } catch { /* local storage is optional */ }
+  }, []);
+  function toggleFavorite(slug: string) {
+    setFavorites((current) => {
+      const next = current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug];
+      window.localStorage.setItem("nestyStay.directoryFavorites", JSON.stringify(next));
+      return next;
+    });
+  }
+  function saveSearch() {
+    const value = directoryQuery.trim();
+    if (!value) return;
+    setSavedSearches((current) => {
+      const next = [value, ...current.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 5);
+      window.localStorage.setItem("nestyStay.directorySearches", JSON.stringify(next));
+      return next;
+    });
+  }
+  if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} auth={auth} />}</DataGate>;
+  if (kind === "Provider" || kind === "ProviderDashboard") {
+    return <RequireSession auth={auth}>{(session) => <ProviderPortal session={session} mode={kind} />}</RequireSession>;
+  }
+  if (kind === "Verification") return <GuestVerificationUpsell auth={auth} />;
+
+  const isTrades = kind === "Trades";
+  const screenId = kind === "Custodian" ? "DIR-01" : isTrades ? "DIR-02" : kind === "Police" ? "DIR-POLICE" : kind === "Verification" ? "DIR-06" : "DIR-BIZ";
+
+  return (
+    <div className="flex flex-col gap-5 font-sans text-ink" id={screenId}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+          {isTrades ? (
+            <>
+              Trades <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : kind === "Custodian" ? (
+            <>
+              Custodian <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : kind === "Police" ? (
+            <>
+              Police <em className="italic text-deep-hover">wellness directory</em>
+            </>
+          ) : kind === "Verification" ? (
+            <>
+              Verification <em className="italic text-deep-hover">directory</em>
+            </>
+          ) : (
+            <>
+              Local <em className="italic text-deep-hover">businesses</em>
+            </>
+          )}
+        </h1>
+        {isTrades && <span className="text-[11.5px] text-sand-500">Powered by EITA — electricianinthisarea.com</span>}
+      </div>
+
+      {kind === "Police" && <div className="rounded-card border border-coral/30 bg-coral-tint p-[18px] text-coral-text" role="region" aria-label="Emergency 119"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="flex items-center gap-2"><TriangleAlert size={18} /> Emergency? Call 119</strong><p className="m-0 mt-1 text-sm">For immediate danger use Jamaica’s emergency line. Share your location and keep this page open for safety guidance.</p></div><a className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-coral px-5 font-semibold text-white" href="tel:119"><Phone size={16} /> Tap to call 119</a></div><div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-pill bg-white/70 px-3 py-1.5">Emergency: 119</span><span className="rounded-pill bg-white/70 px-3 py-1.5">Non-emergency: use the directory contacts</span></div></div>}
+      {directoryLocked && <div className="rounded-card border border-sand-border bg-cream p-[22px] text-[13px] text-gray-600"><strong>{kind === "Police" ? "Wellness badge access" : `${kind === "Trades" ? "Trusted" : "Verified"} badge access`}</strong><p className="m-0 mt-1">{kind === "Police" ? "Police wellness directory access requires a signed-in host with an active Wellness badge." : `A ${kind === "Trades" ? "Trusted" : "Verified"} badge is required to use this directory.`}</p><div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-pill bg-yellow/25 px-3 py-1.5 font-semibold">Upgrade to unlock · from US$49/year</span><AppLink className={buttonClassName("sun")} href="/host/badges">View badge options <ArrowRight size={16} /></AppLink></div></div>}
+
+      {!directoryLocked && !badgePending && auth.session && recentViews.data && recentViews.data.length > 0 && <section className="product-section" aria-label="Recently viewed providers"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="m-0 font-display text-2xl">Recently viewed</h2><p className="m-0 text-sm text-sand-600">Your private provider history is only visible to you.</p></div><Button variant="outline" onClick={() => void api.clearDirectoryRecentViews(auth.session!.accessToken).then(recentViews.reload).catch(() => undefined)}>Clear history</Button></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{recentViews.data.slice(0, 6).map((provider) => <Card className="p-4" key={provider.id}><strong>{provider.name}</strong><p className="m-0 text-sm text-sand-600">{provider.category} · {provider.parish}</p><div className="mt-2 flex gap-2"><AppLink className={buttonClassName("outline")} href={`/directory/providers/${provider.slug}`}>View</AppLink><Button variant="outline" onClick={() => void api.removeDirectoryRecentView(provider.id, auth.session!.accessToken).then(recentViews.reload).catch(() => undefined)}>Remove</Button></div></Card>)}</div></section>}
+      {!directoryLocked && !badgePending && !list.error && <DataGate state={list}>
+        {(providers) => {
+          const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
+          const parishes = ["All", ...Array.from(new Set(providers.map((provider) => provider.parish))).sort()];
+          const filtered = providers
+            .filter((provider) => category === "All" || provider.category === category)
+            .filter((provider) => parish === "All" || provider.parish === parish)
+            .filter((provider) => !availabilityOnly || /available|open|24|mon|daily/i.test(provider.availabilitySummary))
+            .filter((provider) => !directoryQuery.trim() || `${provider.name} ${provider.category} ${provider.parish}`.toLowerCase().includes(directoryQuery.trim().toLowerCase()))
+            .sort((left, right) => directorySort === "rating" ? right.rating - left.rating : directorySort === "category" ? left.category.localeCompare(right.category) : left.name.localeCompare(right.name));
+          const pageSize = 12;
+          const visibleProviders = filtered.slice(directoryPage * pageSize, (directoryPage + 1) * pageSize);
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2" aria-label="Directory categories">
+                {categories.map((item) => (
+                  <button
+                    className={cx(
+                      "inline-flex min-h-11 cursor-pointer items-center rounded-pill px-[18px] font-sans text-[13px] font-semibold transition-colors",
+                      category === item
+                        ? "border-none bg-deep text-on-dark-heading"
+                        : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink",
+                    )}
+                    key={item}
+                    onClick={() => setCategory(item)}
+                    type="button"
+                  >
+                    {item}
+                  </button>
+                ))}
+                <div className="ml-auto flex flex-wrap gap-2">
+                {kind !== "Police" && <AppLink
+                    className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
+                    href="/directory/provider/onboarding"
+                  >
+                    Provider onboarding
+                </AppLink>}
+                  <AppLink
+                    className="inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-sand-input px-[18px] font-sans text-[13px] font-semibold text-ink transition-colors hover:border-deep"
+                    href="/directory/provider"
+                  >
+                    Provider dashboard
+                  </AppLink>
+                </div>
+              </div>
+              <div className="grid gap-3 rounded-card border border-sand-border bg-cream p-4 md:grid-cols-[1fr_180px_auto_auto_auto] md:items-end">
+                <Field label="Directory search"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 text-sand-500" size={16} /><Input aria-label="Directory search" className="pl-9" list="directory-search-suggestions" onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search providers, services, parish" value={directoryQuery} /><datalist id="directory-search-suggestions">{providers.slice(0, 12).map((provider) => <option key={provider.id} value={provider.name} />)}</datalist></div></Field>
+                <Field label="Parish"><Select value={parish} onChange={(event) => setParish(event.target.value)}>{parishes.map((item) => <option key={item}>{item}</option>)}</Select></Field>
+                <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input checked={availabilityOnly} onChange={(event) => setAvailabilityOnly(event.target.checked)} type="checkbox" /> Available now</label>
+                <div className="flex gap-2"><Button aria-pressed={directoryView === "list"} onClick={() => setDirectoryView("list")} variant={directoryView === "list" ? "dark" : "outline"}>List</Button><Button aria-pressed={directoryView === "map"} onClick={() => setDirectoryView("map")} variant={directoryView === "map" ? "dark" : "outline"}><Map size={15} /> Map</Button></div>
+                <Button onClick={saveSearch} variant="outline">Save search</Button>
+              </div>
+              {savedSearches.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-sand-600"><span>Saved searches:</span>{savedSearches.map((item) => <button className="rounded-pill border border-sand-border px-3 py-1.5 font-semibold hover:border-deep" key={item} onClick={() => setDirectoryQuery(item)} type="button">{item}</button>)}</div>}
+              <ListControls
+                label="Search providers"
+                onExport={() => downloadCsv("nesty-directory.csv", ["Name", "Category", "Parish", "Badge"], filtered.map((provider) => [provider.name, provider.category, provider.parish, provider.badgeLevel]))}
+                onPageChange={setDirectoryPage}
+                onQueryChange={setDirectoryQuery}
+                onSortChange={setDirectorySort}
+                page={directoryPage}
+                pageSize={pageSize}
+                query={directoryQuery}
+                sort={directorySort}
+                sortOptions={[{ value: "name", label: "Name" }, { value: "category", label: "Category" }, { value: "rating", label: "Rating" }]}
+                total={filtered.length}
+              />
+              {filtered.length === 0 ? (
+                <EmptyState title="No providers in this category yet." />
+              ) : (
+                <div className={directoryView === "map" ? "grid min-h-[300px] grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3 rounded-card border border-sand-border bg-[#e4eee8] p-4" : "grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-4"} data-testid={directoryView === "map" ? "directory-map" : "directory-list"}>
+                  {visibleProviders.map((provider) => (
+                    <ProviderCard isTrades={isTrades} isFavorite={favorites.includes(provider.slug)} key={provider.id} onToggleFavorite={() => toggleFavorite(provider.slug)} provider={provider} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }}
+      </DataGate>}
+      {!directoryLocked && !badgePending && list.error && <section className="grid gap-4 rounded-card border border-sand-border bg-cream p-4" aria-label="Directory recovery">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+          <Field label="Directory search"><Input aria-label="Directory search" onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search providers, services, parish" value={directoryQuery} /></Field>
+          <div className="flex gap-2"><Button aria-pressed={directoryView === "list"} onClick={() => setDirectoryView("list")} variant={directoryView === "list" ? "dark" : "outline"}>List</Button><Button aria-pressed={directoryView === "map"} onClick={() => setDirectoryView("map")} variant={directoryView === "map" ? "dark" : "outline"}><Map size={15} /> Map</Button></div>
+          <Button onClick={list.reload} variant="outline">Retry</Button>
+        </div>
+        <div data-testid={directoryView === "map" ? "directory-map" : "directory-list"} className="rounded-card border border-sand-border bg-white p-5 text-sm text-sand-600" role="status">Directory data is temporarily unavailable. Your search is preserved; try again when the service is back.</div>
+      </section>}
+    </div>
+  );
+}
+
+function ProviderPortal({ session, mode }: { session: NonNullable<AuthController["session"]>; mode: string }) {
+  const slug = `provider-${session.userId.slice(0, 8)}`;
+  const mine = useAsync(() => api.getM4DirectoryMine(session.accessToken), [session.accessToken]);
+  const provider = useMemo(() => mine.data?.find((candidate) => candidate.slug === slug) ?? mine.data?.[0] ?? null, [mine.data, slug]);
+  const [form, setForm] = useState({
+    name: provider?.name ?? `${session.displayName} Services`,
+    kind: "LocalBusiness",
+    category: provider?.category ?? "Host services",
+    parish: provider?.parish ?? "Kingston",
+    badgeLevel: provider?.badgeLevel ?? "Verified",
+    description: provider?.description ?? "Platform-approved provider profile with services, availability, requests, and messaging.",
+    availabilitySummary: provider?.availabilitySummary ?? "Mon-Fri 8 AM-5 PM",
+    contactMode: provider?.contactMode ?? "Platform messaging only",
+    isActive: provider?.isActive ?? false,
+    isBrickAndMortar: provider?.isBrickAndMortar ?? true,
+    services: provider?.services?.join(", ") ?? "",
+    openingHours: provider?.openingHours ?? "Mon-Fri 08:00-17:00",
+    emergencyAvailable: provider?.emergencyAvailable ?? false,
+    serviceRadiusKm: provider?.serviceRadiusKm ?? 25,
+  });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [documents, setDocuments] = useState<string[]>([]);
+  const [providerDocuments, setProviderDocuments] = useState<DirectoryProviderDocument[]>([]);
+  const [documentUploadBusy, setDocumentUploadBusy] = useState(false);
+  const [insights, setInsights] = useState<DirectoryProviderInsights | null>(null);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
+  const [reviewResponses, setReviewResponses] = useState<Record<string, string>>({});
+  const [quoteResponses, setQuoteResponses] = useState<Record<string, { amount: string; message: string }>>({});
+  const [activeStep, setActiveStep] = useState(1);
+  const draftKey = `nestyStay.providerDraft.${session.userId}`;
+
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(window.localStorage.getItem(draftKey) ?? "null") as { form?: typeof form; termsAccepted?: boolean; documents?: string[]; activeStep?: number } | null;
+      if (draft?.form) setForm((current) => ({ ...current, ...draft.form }));
+      if (draft?.termsAccepted) setTermsAccepted(true);
+      if (Array.isArray(draft?.documents)) setDocuments(draft.documents);
+      if (draft?.activeStep) setActiveStep(draft.activeStep);
+    } catch { /* draft recovery is best effort */ }
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!provider) return;
+    setForm({
+      name: provider.name,
+      kind: provider.kind,
+      category: provider.category,
+      parish: provider.parish,
+      badgeLevel: provider.badgeLevel,
+      description: provider.description,
+      availabilitySummary: provider.availabilitySummary,
+      contactMode: provider.contactMode,
+      isActive: provider.isActive,
+      isBrickAndMortar: provider.isBrickAndMortar ?? true,
+      services: provider.services?.join(", ") ?? "",
+      openingHours: provider.openingHours ?? "",
+      emergencyAvailable: provider.emergencyAvailable ?? false,
+      serviceRadiusKm: provider.serviceRadiusKm ?? 25,
+    });
+  }, [provider]);
+
+  useEffect(() => {
+    if (!provider?.id) return;
+    void api.getM4DirectoryProviderDocuments(provider.id, session.accessToken).then(setProviderDocuments).catch(() => undefined);
+  }, [provider?.id, session.accessToken]);
+
+  useEffect(() => {
+    if (!provider?.slug) {
+      setInsights(null);
+      return;
+    }
+    setInsightsError(null);
+    void api.getDirectoryProviderInsights(provider.slug, session.accessToken)
+      .then(setInsights)
+      .catch((caught) => setInsightsError(caught instanceof Error ? caught.message : "Provider analytics are unavailable."));
+  }, [provider?.slug, session.accessToken]);
+
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function saveDraft() {
+    window.localStorage.setItem(draftKey, JSON.stringify({ form, termsAccepted, documents, activeStep, savedAt: new Date().toISOString() }));
+    setNotice("Draft saved. You can return to this application any time.");
+  }
+
+  async function uploadProviderDocuments(files: File[]) {
+    if (!provider?.id || files.length === 0) return;
+    setDocumentUploadBusy(true);
+    try {
+      for (const file of files) {
+        const prepared = await api.prepareM4DirectoryProviderDocumentUpload(provider.id, session.accessToken, { documentType: "BUSINESS_DOCUMENT", fileName: file.name, contentType: file.type, sizeBytes: file.size });
+        await api.uploadM4DirectoryProviderDocumentContent(provider.id, prepared.id, session.accessToken, file);
+      }
+      setProviderDocuments(await api.getM4DirectoryProviderDocuments(provider.id, session.accessToken));
+      setNotice("Provider documents uploaded, scanned, and attached to your moderation application.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Provider document upload failed.");
+    } finally {
+      setDocumentUploadBusy(false);
+    }
+  }
+
+  function attachDocuments(files: FileList | null) {
+    if (!files?.length) return;
+    const selected = Array.from(files);
+    setDocuments((current) => Array.from(new Set([...current, ...selected.map((file) => file.name)])));
+    if (provider?.id) void uploadProviderDocuments(selected);
+    else setNotice("Documents are attached to this draft. Save the profile once, then upload them to the secure provider document vault.");
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!termsAccepted) { setError("Accept the provider terms before submitting for review."); setActiveStep(3); return; }
+    setNotice(null);
+    setError(null);
+    try {
+      const saved = await api.saveM4DirectoryProvider(session.accessToken, { slug, ...form, services: form.services.split(",").map((item) => item.trim()).filter(Boolean) });
+      setNotice(`${saved.name} is saved for review. ${saved.status ?? "PendingReview"}.`);
+      window.localStorage.removeItem(draftKey);
+      mine.reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Provider profile could not be saved.");
+    }
+  }
+
+  /* DIR-PROV — profile form is persisted by the M4 moderation API. */
+  return (
+    <div className="flex flex-col gap-5 font-sans text-ink" id={mode === "Provider" ? "DIR-04" : "DIR-PROV"}>
+      <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
+        {mode === "Provider" ? (
+          <>
+            Provider <em className="italic text-deep-hover">onboarding</em>
+          </>
+        ) : (
+          <>
+            Your provider <em className="italic text-deep-hover">profile</em>
+          </>
+        )}
+      </h1>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <form className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]" onSubmit={save}>
+          <div className="flex flex-wrap items-center gap-2" aria-label="Provider onboarding steps">{["Profile", "Availability", "Documents & terms"].map((step, index) => <button aria-current={activeStep === index + 1 ? "step" : undefined} className={cx("rounded-pill px-3 py-1.5 text-xs font-semibold", activeStep === index + 1 ? "bg-deep text-white" : "bg-shell text-sand-600")} key={step} onClick={() => setActiveStep(index + 1)} type="button">{index + 1}. {step}</button>)}</div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Business name"><Input value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
+            <Field label="Provider type">
+              <Select value={form.kind} onChange={(event) => update("kind", event.target.value)}>
+                <option value="Custodian">Custodian</option>
+                <option value="Trades">Trades</option>
+                <option value="LocalBusiness">Local business</option>
+              </Select>
+            </Field>
+            <Field label="Category"><Input value={form.category} onChange={(event) => update("category", event.target.value)} /></Field>
+            <Field label="Parish"><Input value={form.parish} onChange={(event) => update("parish", event.target.value)} /></Field>
+            <Field label="Badge level">
+              <Select value={form.badgeLevel} onChange={(event) => update("badgeLevel", event.target.value)}>
+                <option>Free</option>
+                <option>Verified</option>
+                <option>Trusted</option>
+              </Select>
+            </Field>
+            <Field label="Availability"><Input value={form.availabilitySummary} onChange={(event) => update("availabilitySummary", event.target.value)} /></Field>
+          </div>
+          <Field label="Description"><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} /></Field>
+          <div className="grid gap-3 sm:grid-cols-2"><Field label="Services (comma separated)"><Input placeholder="Cleaning, key handover" value={form.services} onChange={(event) => update("services", event.target.value)} /></Field><Field label="Opening hours"><Input placeholder="Mon-Fri 08:00-17:00" value={form.openingHours} onChange={(event) => update("openingHours", event.target.value)} /></Field><Field label="Service radius (km)"><Input inputMode="decimal" min="1" max="500" type="number" value={form.serviceRadiusKm} onChange={(event) => update("serviceRadiusKm", Number(event.target.value))} /></Field><InlineLabel><input checked={form.emergencyAvailable} type="checkbox" onChange={(event) => update("emergencyAvailable", event.target.checked)} /> Emergency availability</InlineLabel></div>
+          <InlineLabel><input checked={form.isBrickAndMortar} type="checkbox" onChange={(event) => update("isBrickAndMortar", event.target.checked)} /> Brick-and-mortar location</InlineLabel>
+          <div className="rounded-field border border-sand-border bg-shell p-3 text-xs text-sand-600"><strong>Application checklist</strong><div className="mt-2 grid gap-1.5 sm:grid-cols-2"><span>{form.name.trim() ? "✓" : "○"} Business identity</span><span>{form.parish.trim() ? "✓" : "○"} Service area</span><span>{form.availabilitySummary.trim() ? "✓" : "○"} Availability</span><span>{documents.length ? "✓" : "○"} Supporting documents</span></div></div>
+          <Field label="Business documents" hint="PDF, JPEG or PNG; up to 25 MB each. Files are scanned before moderation."><Input accept="application/pdf,image/jpeg,image/png" disabled={documentUploadBusy} multiple onChange={(event) => { attachDocuments(event.target.files); event.currentTarget.value = ""; }} type="file" /></Field>
+          {documents.length > 0 && <div className="flex flex-wrap gap-2 text-xs">{documents.map((document) => <span className="rounded-pill bg-mint-tint px-3 py-1.5 text-mint-text" key={document}>{document}</span>)}</div>}
+          {providerDocuments.length > 0 && <div className="grid gap-2 rounded-field border border-sand-border bg-white p-3 text-xs"><strong>Secure document vault</strong>{providerDocuments.map((doc) => <div className="flex flex-wrap items-center justify-between gap-2" key={doc.id}><span>{doc.fileName} · {doc.scanStatus}</span>{doc.status === "Uploaded" && <button className="font-semibold underline" onClick={() => void api.getM4DirectoryProviderDocumentDownload(provider!.id, doc.id, session.accessToken).then((download) => { const link = window.document.createElement("a"); link.href = download.url; link.download = download.fileName; link.rel = "noopener noreferrer"; link.click(); }).catch((caught) => setError(caught instanceof Error ? caught.message : "Document download failed."))} type="button">Download</button>}</div>)}</div>}
+          <label className="flex items-start gap-2 text-sm"><input checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} type="checkbox" /><span>I accept the provider terms, privacy notice, and moderation rules.</span></label>
+          <div className="text-xs text-sand-500">Contact is always platform messaging only. New or changed listings remain hidden until admin verification.</div>
+          <div className="flex flex-wrap gap-2.5">
+            <Button type="submit" variant="dark"><BadgeCheck size={17} /> Save provider profile</Button>
+            <Button onClick={saveDraft} type="button" variant="outline">Save draft</Button>
+            <AppLink
+              className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+              href={`/directory/providers/${slug}`}
+            >
+              Preview public listing
+            </AppLink>
+          </div>
+          {notice && (
+            <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] font-semibold text-success-text">{notice}</div>
+          )}
+          {error && <ErrorState message={error} />}
+        </form>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <TierBadge level={form.badgeLevel} />
+              <StatusChip value={provider?.status ?? (form.isActive ? "Published" : "PendingReview")} />
+            </div>
+            <div className="text-xs text-sand-500">
+              Required badge: {form.kind === "Trades" ? "Trusted" : "Verified"}. Badge eligibility is enforced server-side.
+            </div>
+            <div className="text-xs text-sand-500">Requests and messages stay in the platform inbox — {form.contactMode}.</div>
+            <div className="rounded-field bg-shell p-3 text-sm"><strong>Application status timeline</strong><div className="mt-2 grid gap-1.5"><span>✓ Profile draft</span><span className={provider?.status === "Published" ? "text-success-text" : "text-yellow-700"}>● {provider?.status === "Published" ? "Published" : "Pending admin review"}</span><span className="text-sand-500">○ Renewal reminder after approval</span></div></div>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" aria-label="Provider analytics and requests">
+            <div className="flex flex-wrap items-center justify-between gap-2"><div className="text-[13px] font-semibold">Requests and performance</div><span className="text-xs text-sand-500">Owner-scoped live analytics</span></div>
+            {insightsError && <div className="rounded-field bg-coral-tint px-3 py-2 text-xs text-coral-text" role="alert">{insightsError}</div>}
+            {!provider ? <EmptyState title="Save your provider profile to activate analytics." /> : !insights ? <LoadingState label="Loading provider analytics…" /> : <>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><div className="rounded-field bg-shell p-3"><strong>{insights.quoteRequests}</strong><span className="mt-1 block text-xs text-sand-600">Quote requests</span></div><div className="rounded-field bg-shell p-3"><strong>{insights.acceptedQuotes}</strong><span className="mt-1 block text-xs text-sand-600">Accepted quotes</span></div><div className="rounded-field bg-shell p-3"><strong>{insights.reviews}</strong><span className="mt-1 block text-xs text-sand-600">Published reviews</span></div><div className="rounded-field bg-shell p-3"><strong>{insights.averageRating ? insights.averageRating.toFixed(1) : "New"}</strong><span className="mt-1 block text-xs text-sand-600">Average rating</span></div></div>
+              <div className="grid gap-2"><strong className="text-xs uppercase tracking-[0.08em] text-sand-500">Quote inbox</strong>{insights.quotes.length === 0 && <p className="m-0 text-xs text-sand-600">No quote requests yet.</p>}{insights.quotes.map((quote) => { const draft = quoteResponses[quote.id] ?? { amount: quote.responseAmount?.toString() ?? "", message: quote.message ?? "" }; return <div className="rounded-field border border-sand-border bg-white p-3 text-xs" key={quote.id}><div className="flex flex-wrap justify-between gap-2"><strong>{quote.scope}</strong><StatusChip value={quote.status} /></div><p className="m-0 mt-1 text-sand-600">Requested {new Date(quote.createdAt).toLocaleDateString()} {quote.budget ? `· Budget ${formatMoney(quote.budget)}` : ""}</p>{quote.status === "PENDING" && <div className="mt-2 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input aria-label={`Quote amount ${quote.id}`} inputMode="decimal" placeholder="Amount" value={draft.amount} onChange={(event) => setQuoteResponses((current) => ({ ...current, [quote.id]: { ...draft, amount: event.target.value } }))} /><Input aria-label={`Quote message ${quote.id}`} placeholder="Message" value={draft.message} onChange={(event) => setQuoteResponses((current) => ({ ...current, [quote.id]: { ...draft, message: event.target.value } }))} /><Button onClick={() => void api.respondDirectoryQuote(quote.id, session.accessToken, { status: "ACCEPTED", amount: draft.amount ? Number(draft.amount) : undefined, message: draft.message }).then(() => api.getDirectoryProviderInsights(provider.slug, session.accessToken)).then(setInsights).catch((caught) => setInsightsError(caught instanceof Error ? caught.message : "Quote response failed."))} variant="outline">Respond</Button></div>}</div>; })}</div>
+              <div className="grid gap-2"><strong className="text-xs uppercase tracking-[0.08em] text-sand-500">Review responses</strong>{insights.reviewsList.length === 0 && <p className="m-0 text-xs text-sand-600">No reviews are available to respond to.</p>}{insights.reviewsList.map((review) => <div className="rounded-field border border-sand-border bg-white p-3 text-xs" key={review.id}><div className="flex flex-wrap justify-between gap-2"><strong>{"★".repeat(review.rating)} review</strong><StatusChip value={review.status} /></div><p className="m-0 mt-1 text-sand-600">{review.body}</p>{review.providerResponse ? <p className="m-0 mt-2 border-l-2 border-deep pl-2 text-sand-600">Response: {review.providerResponse}</p> : <div className="mt-2 flex gap-2"><Input aria-label={`Review response ${review.id}`} placeholder="Thank the guest…" value={reviewResponses[review.id] ?? ""} onChange={(event) => setReviewResponses((current) => ({ ...current, [review.id]: event.target.value }))} /><Button disabled={!reviewResponses[review.id]?.trim()} onClick={() => void api.respondDirectoryReview(review.id, session.accessToken, reviewResponses[review.id]).then(() => api.getDirectoryProviderInsights(provider.slug, session.accessToken)).then(setInsights).catch((caught) => setInsightsError(caught instanceof Error ? caught.message : "Review response failed."))} variant="outline">Reply</Button></div>}</div>)}</div>
+            </>}
+            <div className="text-xs text-sand-500">Quote responses, review replies, services and availability remain scoped to this provider account and are recorded in the API audit trail.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProviderCard({ provider, isTrades, isFavorite, onToggleFavorite }: { provider: DirectoryProvider; isTrades?: boolean; isFavorite?: boolean; onToggleFavorite?: () => void }) {
+  if (provider.badgeLevel === "Trusted") {
+    return (
+      <div className="flex flex-col gap-2.5 rounded-card bg-deep p-[22px]">
+        <div className="flex justify-between gap-2.5">
+          <span className="inline-flex items-center rounded-pill bg-yellow/15 px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-yellow">
+            FEATURED
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-yellow px-3 py-1 text-[10.5px] font-bold tracking-[0.1em] text-deep">
+            ★ TRUSTED
+          </span>
+        </div>
+        <div className="font-display text-[19px] font-medium text-on-dark-heading">{provider.name}</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center rounded-pill bg-mint-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-mint-text">
+            {provider.category.toUpperCase()}
+          </span>
+          <span className="text-xs text-on-dark-muted">
+            {provider.parish} · {provider.availabilitySummary}
+          </span>
+        </div>
+        <div className="text-[13px] text-on-dark-muted">{provider.description}</div>
+        <div className="flex flex-wrap gap-2">
+        {onToggleFavorite && <button aria-label={isFavorite ? `Remove ${provider.name} from favorites` : `Save ${provider.name} to favorites`} aria-pressed={isFavorite} className="inline-flex min-h-[46px] items-center gap-2 rounded-pill border border-yellow/50 px-4 text-sm font-semibold text-yellow hover:bg-yellow/10" onClick={onToggleFavorite} type="button"><Heart fill={isFavorite ? "currentColor" : "none"} size={16} /> {isFavorite ? "Saved" : "Save"}</button>}
+        <AppLink
+          className="mt-auto inline-flex min-h-[46px] items-center justify-center rounded-pill bg-yellow font-sans text-[13.5px] font-bold text-deep transition-colors hover:bg-yellow-press"
+          href={`/directory/providers/${provider.slug}`}
+        >
+          View provider
+        </AppLink>
+        <AppLink className="inline-flex min-h-[46px] items-center gap-1 rounded-pill border border-yellow/50 px-4 text-sm font-semibold text-yellow" href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={15} /> Contact</AppLink>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-card border border-sand-border bg-cream p-[22px]">
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="font-display text-[19px] font-medium">{provider.name}</div>
+        {isTrades && provider.badgeLevel === "Verified" && (
+          <span className="inline-flex shrink-0 items-center rounded-pill bg-info-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-info-text">
+            ⚡ EITA VERIFIED
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center rounded-pill bg-mint-tint px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em] text-mint-text">
+          {provider.category.toUpperCase()}
+        </span>
+        <span className="text-xs text-gray-600">
+          {provider.parish} · {provider.availabilitySummary}
+        </span>
+      </div>
+      <div className="text-[13px] text-gray-600">{provider.description}</div>
+      {(provider.services?.length || provider.openingHours || provider.serviceRadiusKm) && <div className="text-xs text-sand-600">{provider.services?.slice(0, 4).join(" · ")}{provider.openingHours ? ` · ${provider.openingHours}` : ""}{provider.serviceRadiusKm ? ` · ${provider.serviceRadiusKm} km radius` : ""}{provider.emergencyAvailable ? " · Emergency availability" : ""}</div>}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2.5">
+        {provider.badgeLevel === "Free" ? (
+          <span className="text-[11.5px] text-sand-500">Free listing</span>
+        ) : isTrades && provider.badgeLevel === "Verified" ? (
+          <span />
+        ) : (
+          <TierBadge className="!px-2.5 !py-1 !text-[10.5px]" level={provider.badgeLevel} />
+        )}
+        <div className="flex flex-wrap gap-2">
+        {onToggleFavorite && <button aria-label={isFavorite ? `Remove ${provider.name} from favorites` : `Save ${provider.name} to favorites`} aria-pressed={isFavorite} className="inline-flex min-h-[46px] items-center gap-2 rounded-pill border-[1.5px] border-sand-input px-4 text-sm font-semibold text-ink hover:border-deep" onClick={onToggleFavorite} type="button"><Heart fill={isFavorite ? "currentColor" : "none"} size={16} /> {isFavorite ? "Saved" : "Save"}</button>}
+        <AppLink
+          className="inline-flex min-h-[46px] items-center rounded-pill border-[1.5px] border-sand-input px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep"
+          href={`/directory/providers/${provider.slug}`}
+        >
+          View provider
+        </AppLink>
+        <AppLink className="inline-flex min-h-[46px] items-center gap-1 rounded-pill border-[1.5px] border-sand-input px-4 text-sm font-semibold text-ink" href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={15} /> Contact</AppLink>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProviderDetail({ provider, auth }: { provider: DirectoryProvider; auth: AuthController }) {
+  const isPolice = provider.kind === "Police";
+  const isBusiness = provider.kind === "LocalBusiness";
+  const reviews = useAsync(() => api.getDirectoryReviews(provider.slug), [provider.slug]);
+  const [quoteScope, setQuoteScope] = useState("");
+  const [quoteBudget, setQuoteBudget] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewRating, setReviewRating] = useState("5");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const token = auth.session?.accessToken ?? "";
+  async function submitQuote(event: FormEvent) {
+    event.preventDefault(); setNotice(null); setError(null);
+    try { await api.createDirectoryQuote(provider.slug, token, { scope: quoteScope, budget: quoteBudget ? Number(quoteBudget) : undefined }); setQuoteScope(""); setQuoteBudget(""); setNotice("Quote request sent. The provider will respond in the platform inbox."); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Quote request failed."); }
+  }
+  async function submitReview(event: FormEvent) {
+    event.preventDefault(); setNotice(null); setError(null);
+    try { await api.createDirectoryReview(provider.slug, token, { rating: Number(reviewRating), body: reviewBody }); setReviewBody(""); reviews.reload(); setNotice("Review submitted for moderation."); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Review submission failed."); }
+  }
+  return <CompletionShell id="DIR-05" eyebrow={provider.kind} title={provider.name} copy={provider.description}><section className="product-section details-layout"><HeroImage index={3} /><Card className="settings-card"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{provider.badgeLevel} verified</Badge><span className="text-sm text-sand-600"><Star className="mr-1 inline text-yellow" size={15} /> {provider.rating ? provider.rating.toFixed(1) : "New"} ({provider.reviewCount} reviews)</span></div><p className="flex items-center gap-2"><MapPin size={16} /> {provider.parish}</p><p className="flex items-center gap-2"><ClockIcon /> {provider.availabilitySummary}</p>{(provider.services?.length || provider.openingHours || provider.serviceRadiusKm) && <div className="rounded-field border border-sand-border bg-white p-3 text-sm"><strong>Service details</strong><div className="mt-1 text-sand-600">{provider.services?.join(" · ") || "Services available on request"}</div>{provider.openingHours && <div className="mt-1 text-sand-600">Hours: {provider.openingHours}</div>}{provider.weeklyHoursJson && <div className="mt-1 text-sand-600">Structured hours configured</div>}{provider.holidayClosuresJson && provider.holidayClosuresJson !== "[]" && <div className="mt-1 text-sand-600">Holiday closures listed</div>}{provider.promotionsJson && provider.promotionsJson !== "[]" && <div className="mt-1 text-sand-600">Current promotions available</div>}{provider.accessibilityInfo && <div className="mt-1 text-sand-600">Accessibility: {provider.accessibilityInfo}</div>}{provider.serviceRadiusKm && <div className="mt-1 text-sand-600">Coverage: {provider.serviceRadiusKm} km radius</div>}{provider.emergencyAvailable && <div className="mt-1 font-semibold text-coral-text">Emergency availability</div>}</div>}{isBusiness && <div className="rounded-field bg-shell p-3 text-sm"><strong>Local business essentials</strong><div className="mt-1 flex flex-wrap gap-2 text-sand-600"><span>Open-now status uses Jamaica time</span><span>Promotions and exceptional closures are shown</span></div><a className="mt-2 inline-flex items-center gap-1 font-semibold underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${provider.name} ${provider.parish}`)}`} rel="noreferrer" target="_blank"><Navigation size={15} /> Get directions</a></div>}{isPolice && <div className="rounded-field bg-coral-tint p-3 text-sm text-coral-text"><strong>Emergency: 119</strong><p className="m-0 mt-1">For immediate danger call <a className="font-bold underline" href="tel:119">119</a>. Use this profile for non-emergency platform contact.</p></div>}<AppLink className={buttonClassName("sun")} href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={17} /> Contact provider</AppLink></Card></section><section className="product-section grid gap-4 lg:grid-cols-2"><Card><h2 className="m-0 font-display text-2xl">Request a quote</h2>{auth.session ? <form className="mt-3 grid gap-3" onSubmit={submitQuote}><Field label="Work needed"><Textarea required value={quoteScope} onChange={(event) => setQuoteScope(event.target.value)} placeholder="Describe the job, preferred timing and access details" /></Field><Field label="Budget (optional)"><Input inputMode="decimal" min="0" step="0.01" type="number" value={quoteBudget} onChange={(event) => setQuoteBudget(event.target.value)} /></Field><Button type="submit" variant="dark">Send quote request</Button></form> : <p className="text-sm text-sand-600">Sign in to request a quote and keep the conversation in NestyStay.</p>}</Card><Card><h2 className="m-0 font-display text-2xl">Reviews</h2><DataGate state={reviews}>{(items) => items.length ? <div className="mt-3 grid gap-2">{items.map((item) => <div className="rounded-field border border-sand-border p-3" key={item.id}><div className="font-semibold">{"★".repeat(item.rating)} <span className="text-xs text-sand-500">{new Date(item.createdAt).toLocaleDateString()}</span></div><p className="m-0 mt-1 text-sm">{item.body}</p>{item.providerResponse && <p className="m-0 mt-2 border-l-2 border-deep pl-2 text-sm text-sand-600">Provider response: {item.providerResponse}</p>}</div>)}</div> : <p className="mt-3 text-sm text-sand-600">No published reviews yet.</p>}</DataGate>{auth.session && <form className="mt-4 grid gap-3 border-t border-sand-border pt-4" onSubmit={submitReview}><div className="grid gap-3 sm:grid-cols-[120px_1fr]"><Field label="Rating"><Select value={reviewRating} onChange={(event) => setReviewRating(event.target.value)}><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Okay</option><option value="2">2 — Poor</option><option value="1">1 — Bad</option></Select></Field><Field label="Your review"><Textarea required value={reviewBody} onChange={(event) => setReviewBody(event.target.value)} /></Field></div><Button type="submit" variant="outline">Submit review</Button></form>}</Card></section>{(notice || error) && <div className="product-section">{notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm font-semibold text-success-text" role="status">{notice}</div>}{error && <div className="rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}</div>}</CompletionShell>;
+}
+
+function ClockIcon() {
+  return <span aria-hidden="true" className="inline-flex size-4 items-center justify-center rounded-full border border-current text-[9px]">◷</span>;
+}
+
+function GuestVerificationUpsell({ auth }: { auth: AuthController }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return <CompletionShell id="DIR-06" eyebrow="Guest verification" title="You can continue without verification." copy="Verification remains available from your guest dashboard whenever you are ready."><AppLink className={buttonClassName("sun")} href="/guest-dashboard">Return to dashboard <ArrowRight size={16} /></AppLink></CompletionShell>;
+  return <CompletionShell id="DIR-06" eyebrow="Guest verification" title="Verify once. Travel with confidence." copy="Identity verification helps hosts protect every stay and unlocks faster, trusted bookings."><section className="product-section grid gap-4 md:grid-cols-3"><Card><Check className="text-success-text" /><h3 className="mt-3 font-display text-xl">What you get</h3><p className="text-sm text-sand-600">A verified profile, clearer booking approvals, and access to badge-gated services.</p></Card><Card><ShieldCheck className="text-deep-hover" /><h3 className="mt-3 font-display text-xl">Private by design</h3><p className="text-sm text-sand-600">Documents are encrypted, role-restricted, and never shown in directory listings.</p></Card><Card><CreditCard className="text-deep-hover" /><h3 className="mt-3 font-display text-xl">Simple pricing</h3><p className="text-sm text-sand-600">Verification is free in local milestone mode. Any live provider fee is shown before payment.</p></Card></section><div className="product-section flex flex-wrap gap-3"><AppLink className={buttonClassName("sun")} href={auth.session ? "/traveler/identity" : "/login"}>Start verification <ArrowRight size={16} /></AppLink><Button onClick={() => setDismissed(true)} variant="outline">Not now</Button></div></CompletionShell>;
+}
+
+export function HostProfileSpecPage({ slug, edit, auth }: { slug?: string; edit?: boolean; auth: AuthController }) {
+  if (edit) return <HostProfileEditorApi auth={auth} />;
+  if (slug) return <HostProfileDetailApi slug={slug} />;
+  return <HostProfileDirectoryApi />;
+}
+
+function HostProfileDirectoryApi() {
+  const profiles = useAsync(() => api.getHostProfiles(), []);
+  return <CompletionShell id="HPRO-01" eyebrow="Host profiles" title="Meet the people behind the stay." copy="Browse public host profiles backed by the same API used by profile detail and messaging."><section className="product-section"><DataGate state={profiles}>{(items) => items.length ? <div className="spec-card-grid">{items.map((profile) => <HostProfileCard key={profile.id} profile={profile} />)}</div> : <EmptyState title="No public host profiles yet." />}</DataGate></section></CompletionShell>;
+}
+
+function HostProfileDetailApi({ slug }: { slug: string }) {
+  const profile = useAsync(() => api.getHostProfile(slug), [slug]);
+  return <DataGate state={profile}>{(data) => <HostProfileDetail profile={data} />}</DataGate>;
+}
+
+function HostProfileCard({ profile }: { profile: HostProfile }) {
+  return <Card className="spec-card"><UserRound size={22} /><h3>{profile.displayName}</h3><p>{profile.bio}</p><Badge tone="green">{profile.rating} - {profile.reviewCount} reviews</Badge><AppLink className={buttonClassName("outline")} href={`/hosts/${profile.slug}`}>Open profile</AppLink></Card>;
+}
+
+function HostProfileDetail({ profile }: { profile: HostProfile }) {
+  return <CompletionShell id="HPRO-05" eyebrow="Host profile" title={profile.displayName} copy={profile.bio}><section className="product-section details-layout"><HeroImage index={1} /><Card className="settings-card"><PatoisPhrase phrase="Link Mi" translation="Contact me through platform messaging." /><Badge tone="green">{profile.badges.join(", ")}</Badge><p>{profile.parish} - {profile.responseTime}</p><div className="highlight-list">{profile.highlights.map((item) => <span key={item}>{item}</span>)}</div><AppLink className={buttonClassName("sun")} href="/messages">Contact host</AppLink></Card></section></CompletionShell>;
+}
+
+function HostProfileEditorApi({ auth }: { auth: AuthController }) {
+  const session = auth.session;
+  const profile = useAsync(() => api.getHostProfile("my-host-profile"), [session?.userId]);
+  const [displayName, setDisplayName] = useState(session?.displayName ?? "");
+  const [bio, setBio] = useState("Host profile managed by NestyStay.");
+  const [parish, setParish] = useState("St. Ann");
+  const [isPublic, setIsPublic] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!profile.data) return;
+    setDisplayName(profile.data.displayName);
+    setBio(profile.data.bio);
+    setParish(profile.data.parish);
+    setIsPublic(profile.data.isPublic);
+  }, [profile.data]);
+  async function save() {
+    if (!session) return;
+    setNotice(null); setSaveError(null);
+    try {
+      await api.updateHostProfile("my-host-profile", session.accessToken, { hostUserId: session.userId, displayName, parish, bio, responseTime: profile.data?.responseTime ?? "Replies in 10 minutes", badges: profile.data?.badges ?? ["Verified"], listingIds: profile.data?.listingIds ?? [], isPublic, highlights: profile.data?.highlights ?? ["Verified host"] });
+      setNotice("Host profile saved.");
+      profile.reload();
+    } catch (caught) {
+      setSaveError(caught instanceof Error ? caught.message : "Host profile could not be saved.");
+    }
+  }
+  if (!session) return <ErrorState message="Sign in is required to edit a host profile." />;
+  return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><DataGate state={profile}>{() => <Card className="settings-card"><Field label="Display name"><Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Field><Field label="Parish"><Input value={parish} onChange={(event) => setParish(event.target.value)} /></Field><Field label="Bio"><Textarea value={bio} onChange={(event) => setBio(event.target.value)} /></Field><InlineLabel><input checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} type="checkbox" /> Public profile visible</InlineLabel><div className="flex flex-wrap gap-2"><Button onClick={save}>Save profile</Button><AppLink className={buttonClassName("outline")} href="/host/profile/preview">Preview profile</AppLink></div>{notice && <div className="notice-panel" role="status">{notice}</div>}{saveError && <ErrorState message={saveError} />}</Card>}</DataGate></section></CompletionShell>;
+}
+
+export function HostSpecPage({ view, auth, propertyId }: { view: string; auth: AuthController; propertyId?: string }) {
+  if (["analytics", "pricing", "promotions", "exports", "reviews", "badges", "settings", "archived"].includes(view) && auth.session) {
+    return <HostOps view={view} hostUserId={auth.session.userId} token={auth.session.accessToken} />;
+  }
+  return <HostStateContainer view={view} auth={auth} propertyId={propertyId} />;
+}
+
+function HostOps({ view, hostUserId, token }: { view: string; hostUserId: string; token: string }) {
+  const ops = useAsync(() => api.getHostOperations(hostUserId, token), [hostUserId, token]);
+  if (view === "badges" || view === "settings") {
+    return <HostReviewsBadgesSettings view={view} token={token} hostUserId={hostUserId} />;
+  }
+  return (
+    <CompletionShell id={hostScreenId(view)} eyebrow="Host portal" title={travelerTitle(view)} copy="Host-facing analytics, seasonal pricing, promotions, exports, reviews, badges, settings, and archive controls.">
+      <DataGate state={ops}>{(data) => <HostOpsPanel view={view} data={data} hostUserId={hostUserId} token={token} reload={ops.reload} />}</DataGate>
+    </CompletionShell>
+  );
+}
+
+function HostOpsPanel({ view, data, hostUserId, token, reload }: { view: string; data: HostOperations; hostUserId: string; token: string; reload: () => void }) {
+  async function addPricing() {
+    await api.saveHostPricingRule(hostUserId, token, { propertyId: "11111111-1111-4111-8111-111111111111", name: "Carnival Weekend", startsOn: "2026-04-10", endsOn: "2026-04-16", nightlyRate: 260, minimumStay: 3, isActive: true });
+    reload();
+  }
+  async function addPromotion() {
+    await api.saveHostPromotion(hostUserId, token, { propertyId: "11111111-1111-4111-8111-111111111111", name: "Early Yaad Deal", discountPercent: 10, startsOn: "2026-08-01", endsOn: "2026-09-01", minimumNights: 2, badgeLevel: "Trusted", isActive: true });
+    reload();
+  }
+  if (view === "analytics") return <MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["ADR", formatMoney(data.analytics.averageNightlyRate)], ["Bookings", String(data.analytics.bookingCount)]]} />;
+  if (view === "pricing") return <><Button onClick={addPricing}>Add seasonal rule</Button><Table labels={["Rule", "Starts", "Ends", "Nightly rate", "Minimum stay"]} rows={data.pricingRules.map((item) => [item.name, item.startsOn, item.endsOn, formatMoney(item.nightlyRate), `${item.minimumStay} nights`])} /></>;
+  if (view === "promotions") return <><Button onClick={addPromotion}>Create promotion</Button><Table labels={["Promotion", "Discount", "Starts", "Ends", "Status"]} rows={data.promotions.map((item) => [item.name, `${item.discountPercent}%`, item.startsOn, item.endsOn, item.isActive ? "Active" : "Off"])} /></>;
+  if (view === "reviews") return <ReviewsPanel data={{ userId: hostUserId, wishlistCollections: [], paymentMethods: [], identityDocuments: [], reviews: data.reviews, notifications: [] }} view="reviews-given" bookings={[]} userId={hostUserId} token={token} reload={reload} />;
+  if (view === "exports" || view === "reports") return <><Button onClick={() => downloadCsv("nesty-host-report.csv", ["Metric", "Value"], [["Revenue", String(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]])}>Download CSV report</Button><MetricCards items={[["Revenue", formatMoney(data.analytics.revenue)], ["Occupancy", `${data.analytics.occupancyPercent}%`], ["Bookings", String(data.analytics.bookingCount)]]} /></>;
+  return <MetricCards items={[["Badge progress", "Verified -> Trusted"], ["Exports", "CSV ready"], ["Archived properties", "0"], ["Notifications", "Enabled"]]} />;
+}
+
+function hostScreenId(view: string) {
+  const map: Record<string, string> = { analytics: "HOST-02", pricing: "HOST-07", promotions: "HOST-08", exports: "HOST-11", reviews: "HOST-12", badges: "HOST-13", settings: "HOST-13", archived: "HOST-04" };
+  return map[view] ?? "HOST-01";
+}
+
+function MetricCards({ items }: { items: [string, string][] }) {
+  return <section className="product-section metric-grid">{items.map(([label, value]) => <Card className="metric-card" key={label}><span><LayoutDashboard size={20} /></span><small>{label}</small><strong>{value}</strong></Card>)}</section>;
+}
+
+function Table({ labels, rows }: { labels: string[]; rows: ReactNode[][] }) {
+  return <div className="spec-table-wrap responsive-table-cards"><table className="spec-table"><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td data-label={labels[cellIndex] ?? `Column ${cellIndex + 1}`} key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
+}
+
+export function AdminOpsSpecPage({ view, auth }: { view: string; auth: AuthController }) {
+  return <AdminStateContainer view={view} auth={auth} />;
+}
+
+type AdminEvidenceUploadItem = {
+  id: string;
+  file: File;
+  progress: number;
+  status: IdentityUploadStatus;
+  upload?: AdminCaseEvidenceUpload;
+  error?: string;
+};
+
+const maximumAdminCaseEvidenceBytes = 10 * 1024 * 1024;
+
+function AdminCaseEvidenceControl({ adminCase, token, reload }: { adminCase: AdminCase; token: string; reload: () => void }) {
+  const [uploads, setUploads] = useState<AdminEvidenceUploadItem[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const uploadControllers = useRef<Record<string, AbortController>>({});
+  const evidence = adminCase.evidence ?? [];
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
+  }, []);
+
+  function updateUpload(id: string, patch: Partial<AdminEvidenceUploadItem>) {
+    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function uploadFile(id: string, file: File) {
+    setNotice(null);
+    if (file.size > maximumAdminCaseEvidenceBytes) {
+      updateUpload(id, { status: "failed", error: "Evidence must be 10 MB or smaller." });
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllers.current[id] = controller;
+
+    try {
+      const contentType = resolveMessageAttachmentContentType(file);
+      const prepared = await api.prepareAdminCaseEvidenceUpload(token, adminCase.id, {
+        fileName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      });
+      updateUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
+      const uploaded = await api.uploadAdminCaseEvidenceContent(token, adminCase.id, prepared.id, file, {
+        signal: controller.signal,
+        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
+      });
+      updateUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
+      setNotice(`${uploaded.fileName} verified.`);
+      reload();
+    } catch (caught) {
+      updateUpload(id, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: caught instanceof Error ? caught.message : "Evidence upload failed.",
+      });
+    } finally {
+      delete uploadControllers.current[id];
+    }
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    Array.from(files).forEach((file) => {
+      const id = createUploadId();
+      const isTooLarge = file.size > maximumAdminCaseEvidenceBytes;
+      setUploads((items) => [...items, {
+        id,
+        file,
+        progress: 0,
+        status: isTooLarge ? "failed" : "queued",
+        error: isTooLarge ? "Evidence must be 10 MB or smaller." : undefined,
+      }]);
+      if (!isTooLarge) {
+        void uploadFile(id, file);
+      }
+    });
+  }
+
+  function cancelUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    updateUpload(id, { status: "cancelled", error: "Evidence upload cancelled." });
+  }
+
+  function retryUpload(item: AdminEvidenceUploadItem) {
+    updateUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
+    void uploadFile(item.id, item.file);
+  }
+
+  function removeUpload(id: string) {
+    uploadControllers.current[id]?.abort();
+    setUploads((items) => items.filter((item) => item.id !== id));
+  }
+
+  async function downloadEvidence(evidenceId: string) {
+    try {
+      setNotice(null);
+      const download = await api.getAdminCaseEvidenceDownload(token, adminCase.id, evidenceId);
+      const link = document.createElement("a");
+      link.href = download.url;
+      link.download = download.fileName;
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (caught) {
+      setNotice(caught instanceof Error ? caught.message : "Evidence download failed.");
+    }
+  }
+
+  return (
+    <div className="admin-evidence-cell">
+      {evidence.length > 0 && (
+        <div className="admin-evidence-list">
+          {evidence.map((item) => (
+            <div className="admin-evidence-row" key={item.id}>
+              <FileText size={15} />
+              <div>
+                <strong>{item.fileName}</strong>
+                <small>{item.scanStatus}</small>
+              </div>
+              <Button onClick={() => void downloadEvidence(item.id)} title="Download evidence" variant="ghost"><Download size={15} /></Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label className={buttonClassName("outline", "message-file-picker admin-evidence-picker")}>
+        <Paperclip size={15} /> Evidence
+        <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
+      </label>
+      {uploads.length > 0 && (
+        <div className="message-upload-list">
+          {uploads.map((upload) => (
+            <div className="message-upload-item admin-evidence-upload" key={upload.id}>
+              <FileText size={15} />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
+                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
+              </div>
+              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
+              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
+              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove evidence" variant="ghost"><X size={15} /></Button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {notice && <small className="admin-evidence-notice">{notice}</small>}
+    </div>
+  );
+}
+
+function AdminOpsPanel({ data, token, reload, view }: { data: AdminOperations; token: string; reload: () => void; view: string }) {
+  const [caseToResolve, setCaseToResolve] = useState<AdminCase | null>(null);
+  async function create() {
+    await api.createAdminCase(token, { caseType: travelerTitle(view), subjectType: "User", priority: "Normal", reason: "Manual admin review opened from UI.", assignedTo: "Ops" });
+    reload();
+  }
+  async function resolve() {
+    if (!caseToResolve) return;
+    await api.resolveAdminCase(token, caseToResolve.id, { resolutionNotes: "Reviewed and resolved with audit record." });
+    setCaseToResolve(null);
+    reload();
+  }
+  return (
+    <>
+      <MetricCards items={data.metrics.map((item) => [item.label, item.value]) as [string, string][]} />
+      <Button onClick={create}>Create admin case</Button>
+      <Table labels={["Case", "Priority", "Status", "Reason", "Evidence", "Action"]} rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <AdminCaseEvidenceControl adminCase={item} key={`${item.id}-evidence`} reload={reload} token={token} />, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
+      <h3 className="section-subtitle">Audit log</h3>
+      <Table labels={["Action", "Subject", "Reason", "Created"]} rows={data.auditEvents.slice(0, 10).map((item) => [item.action, item.subjectType, item.reason, new Date(item.createdAt).toLocaleString()])} />
+      <Modal open={Boolean(caseToResolve)} title="Resolve admin case" onClose={() => setCaseToResolve(null)}>
+        <p>Every sensitive action requires a reason and writes an audit record.</p>
+        <Button onClick={resolve}>Confirm resolution</Button>
+      </Modal>
+    </>
+  );
+}
+
+function adminScreenId(view: string) {
+  const map: Record<string, string> = { users: "ADM-03", moderation: "ADM-04", reservations: "ADM-05", payments: "ADM-06", disputes: "ADM-07", support: "ADM-08", reports: "ADM-09", fraud: "ADM-10", flagged: "ADM-11", audit: "ADM-11" };
+  return map[view] ?? "ADM-01";
+}

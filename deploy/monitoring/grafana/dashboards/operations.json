@@ -1,0 +1,14 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "panels": [
+    {"type": "timeseries", "title": "Background jobs", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}, "targets": [{"expr": "nestystay_worker_heartbeat", "legendFormat": "worker heartbeat"}]},
+    {"type": "timeseries", "title": "Queued / failed email", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}, "targets": [{"expr": "nestystay_email_queue_pending", "legendFormat": "queued"}, {"expr": "increase(nestystay_email_delivery_failures_total[1h])", "legendFormat": "failed"}]},
+    {"type": "timeseries", "title": "QR validations", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}, "targets": [{"expr": "increase(nestystay_qr_validations_total[1h])", "legendFormat": "validations"}]},
+    {"type": "timeseries", "title": "File uploads", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}, "targets": [{"expr": "increase(nestystay_file_uploads_total[1h])", "legendFormat": "uploads"}]}
+  ],
+  "schemaVersion": 39,
+  "title": "NestyStay Operations",
+  "time": {"from": "now-6h", "to": "now"},
+  "version": 1
+}

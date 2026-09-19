@@ -1,0 +1,11 @@
+{
+  "status": "BLOCKED_TOOLING",
+  "generatedAt": "2026-09-02",
+  "reason": "The Lighthouse CLI is not installed in the local workspace, so a reproducible Lighthouse audit could not be executed without introducing a new dependency.",
+  "browserTimingEvidence": {
+    "status": "PASS",
+    "source": "../09-performance/browser-performance.json",
+    "routes": 9,
+    "unexpected5xx": 0
+  }
+}

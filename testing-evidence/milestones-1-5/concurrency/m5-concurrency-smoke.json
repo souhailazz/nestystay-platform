@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-08-31",
+  "operation": "two simultaneous payments with the same idempotency key",
+  "httpStatuses": [200, 200],
+  "finalInvoiceBalance": 20.0,
+  "persistedPaymentRows": 1,
+  "result": "PASS"
+}

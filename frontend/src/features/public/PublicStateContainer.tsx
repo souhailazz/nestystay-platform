@@ -1,0 +1,39 @@
+import { PublicSearchMap } from "./PublicSearchMap";
+import { PropertyDetailPage } from "./PropertyDetailPage";
+import { ExperiencesPage } from "./ExperiencesPage";
+import { JournalPage } from "./JournalPage";
+import { LegalHelpPages } from "./LegalHelpPages";
+import type { AuthSession } from "../../lib/auth";
+
+interface PublicStateContainerProps {
+  view: string;
+  propertyId?: string;
+  session: AuthSession | null;
+}
+
+export function PublicStateContainer({ view, propertyId, session }: PublicStateContainerProps) {
+  if (view === "search" || view === "map" || view === "grid" || view === "explore") {
+    return <PublicSearchMap view={view} session={session} />;
+  }
+
+  if (view === "detail" || view === "property-detail") {
+    return <PropertyDetailPage propertyId={propertyId} session={session} />;
+  }
+
+  if (view === "experiences" || view === "tours") {
+    return <ExperiencesPage view={view} />;
+  }
+
+  if (view === "journal" || view === "articles") {
+    return <JournalPage view={view} />;
+  }
+
+  if (
+    ["about", "trust", "terms", "privacy", "help", "faq", "contact", "maintenance"].includes(view) ||
+    view.startsWith("help/")
+  ) {
+    return <LegalHelpPages view={view.startsWith("help/") ? "help" : view} />;
+  }
+
+  return <PublicSearchMap view={view} session={session} />;
+}

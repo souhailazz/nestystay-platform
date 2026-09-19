@@ -1,0 +1,31 @@
+# Production Readiness Gap Matrix
+
+Generated: 2026-07-28
+
+| Area | Status | Fresh Evidence | Remaining Work |
+| --- | --- | --- | --- |
+| Cumulative patch application | PARTIAL | Named patch file was absent; phase-0 behavior was recreated from handoff. | Locate original patch only if exact provenance is required. |
+| Network allowlist | CODE COMPLETE — TESTED LOCALLY | NuGet HTTP 200; Playwright CDN non-403; Azure Edge 307. | None. |
+| Backend restore/build/test | CODE COMPLETE — TESTED LOCALLY | Restore passed; build passed with 0 warnings/errors; 76/76 backend tests passed after admin/audit/secrets/state-machine/Stripe webhook slices. | None for completed local slices. |
+| Booking rate limit | CODE COMPLETE — TESTED LOCALLY | New unit/integration tests cover threshold, retry, separate guests, expiry, concurrency, invalid guest, and middleware 429. | Tune configured limits later if product policy changes. |
+| Rate-limit distributed safety | CODE COMPLETE — TESTED LOCALLY | Persisted quota row with unique guest index and serializable transaction on relational providers. | Live horizontal deployment verification still required. |
+| API exception middleware | CODE COMPLETE — TESTED LOCALLY | Typed exception maps to 429 with `Retry-After` and `rate_limit_exceeded`; generic invalid operation remains 400. | None. |
+| Security headers | CODE COMPLETE — TESTED LOCALLY | Non-development header tests and development OpenAPI test passed. | Production CDN/frontend hosting should verify same policy at edge. |
+| Frontend 429 handling | CODE COMPLETE — TESTED LOCALLY | API wrapper carries `code`/`retryAfterSeconds`; booking review renders retry message; unit test passed. | None. |
+| Frontend validation | CODE COMPLETE — TESTED LOCALLY | Typecheck passed; 24/24 unit tests passed; build passed with the existing Vite circular chunk warning. | Investigate npm audit findings and Vite circular chunk warning outside this slice. |
+| Playwright E2E | CODE COMPLETE — TESTED LOCALLY | Chromium installed; 15/15 Playwright tests passed with externalized local runtime env values supplied explicitly after Stripe webhook persistence changes. | Keep PostgreSQL available on `55432` and provide local env values for E2E. |
+| Administrator identity | CODE COMPLETE — TESTED LOCALLY | Named admin bootstrap, persisted permissions/status, session resolution, TOTP challenge completion, self-service admin-role rejection, and disabled/locked/revoked session rejection are covered by API tests. Legacy static admin tokens are production-disabled unless explicitly re-enabled. | Configure production bootstrap secrets through the deployment secret manager and rotate/remove bootstrap credentials after first use. |
+| Permission model | CODE COMPLETE — TESTED LOCALLY | Small permission catalog plus policy names protect booking, refund, payment, user, property, officer, financial, audit, system, and super-admin workflows; non-admin and under-permissioned sessions return 401/403 in tests. | Refine granularity later if operations teams need narrower workflow separation. |
+| Admin frontend auth | CODE COMPLETE — TESTED LOCALLY | Frontend sessions carry admin permissions; admin routes require role/permission; privileged controls disable without permission; admin token paste fields were removed; login TOTP verification flow is wired. | None for this local slice. |
+| Audit attribution | CODE COMPLETE — TESTED LOCALLY | Existing milestone audit table now records actor role, effective permission, correlation ID, reason, and previous/new JSON snapshots for admin cases, booking verification/refund/capture, officer mutations, payout marking, and system configuration changes; API tests assert enriched metadata. | Add more domain-specific previous/new snapshots as future privileged workflows are introduced. |
+| Officer zero-linkage | MISSING | No implementation completed in this slice. | Implement from `officer-zero-linkage.md` when specification file is available. |
+| Secrets externalization | CODE COMPLETE — TESTED LOCALLY | Tracked appsettings no longer contain DB passwords, admin token hashes, or session/TOTP secrets; `.env.example` is placeholder-only; CI Postgres no longer has a fixed tracked password; frontend checkout fails closed without `VITE_STRIPE_PUBLIC_KEY`; production validator rejects missing, placeholder, development DB, test Stripe, legacy-token, and bootstrap-secret misconfiguration. Rotation candidates are listed in `secrets-rotation-candidates.md`. | Load real production values from the deployment secret manager and rotate anything matching prior tracked development defaults before launch. |
+| Booking/payment state machines | CODE COMPLETE — TESTED LOCALLY | Shared state-machine rules now guard verification, capture, refund, authorization, and webhook payment transitions across in-memory and EF stores; capture moves internal booking state to `PaymentCaptured`; stale failed/cancelled webhooks no longer downgrade captured payments; API conflicts map to 409 with `booking_state_conflict`. Backend tests cover typed conflicts and persistence. | Expand rules when Sprint 3 cancellation/ledger states are introduced. |
+| Stripe local implementation | CODE COMPLETE — TESTED LOCALLY | Stripe gateway uses idempotency keys for setup intents, payment intents, captures, and refunds; production Stripe webhooks now use `/api/webhooks/stripe/raw` raw-body signature verification; signed webhook tests cover invalid signatures, valid events, duplicate replay, and booking updates; `provider_event` persists event id/type/payload hash/status/subject with a unique provider-event index; stale failed/cancelled webhooks do not downgrade captured payments. Migration applied, rolled back, and reapplied locally. | Validate against Stripe CLI/live webhook delivery before launch. |
+| Cancellation/refund/ledger | PARTIAL | Existing refund path and payment attempts exist. | Implement Sprint 3 cancellation policies, refund states, immutable host ledger, balances, reconciliation. |
+
+## Remaining P0 Failures
+
+- Officer zero-linkage controls are not implemented because `artifacts/production-readiness/officer-zero-linkage.md` is absent.
+
+All other local P0 slices in this matrix are implemented and tested locally.

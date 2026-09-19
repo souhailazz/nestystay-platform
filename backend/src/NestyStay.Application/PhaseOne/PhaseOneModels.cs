@@ -1,0 +1,474 @@
+using NestyStay.Domain;
+
+namespace NestyStay.Application.PhaseOne;
+
+public sealed record RegisterUserRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    string? Phone,
+    string? ConfirmPassword = null,
+    bool AcceptedTerms = false,
+    bool AcceptedPrivacy = false,
+    UserRole Role = UserRole.Guest);
+
+public sealed record RegisterUserResponse(Guid UserId, string Email, string DisplayName, bool RequiresTwoFactor);
+
+public sealed record LoginRequest(
+    string Email,
+    string Password,
+    string? DeviceName = null,
+    bool RememberDevice = false,
+    string? UserAgent = null,
+    string? IpAddress = null);
+
+public sealed record LoginResponse(
+    Guid UserId,
+    string Email,
+    bool RequiresTwoFactor,
+    string? ChallengeId,
+    DateTimeOffset? ChallengeExpiresAt,
+    string? AccessToken = null,
+    DateTimeOffset? ExpiresAt = null,
+    IReadOnlyList<UserRole>? Roles = null,
+    IReadOnlyList<string>? Permissions = null);
+
+public sealed record DevelopmentAuthCodeResponse(string ChallengeId, string Code, DateTimeOffset ExpiresAt);
+
+public sealed record VerifyTwoFactorRequest(
+    string ChallengeId,
+    string Code,
+    string? DeviceName = null,
+    bool RememberDevice = false,
+    string? UserAgent = null,
+    string? IpAddress = null);
+
+public sealed record VerifyTwoFactorResponse(Guid UserId, string AccessToken, DateTimeOffset ExpiresAt, IReadOnlyList<UserRole> Roles, IReadOnlyList<string>? Permissions = null);
+
+public sealed record BeginTwoFactorEnrollmentResponse(
+    string EnrollmentId,
+    string ManualKey,
+    string OtpAuthUri,
+    DateTimeOffset ExpiresAt);
+
+public sealed record ConfirmTwoFactorEnrollmentRequest(string EnrollmentId, string Code);
+
+public sealed record ConfirmTwoFactorEnrollmentResponse(bool Enabled, IReadOnlyList<string> RecoveryCodes);
+
+public sealed record DisableTwoFactorRequest(string Code);
+
+public sealed record DisableTwoFactorResponse(bool Disabled);
+
+public sealed record GoogleSignInRequest(string Credential, UserRole? Role = null);
+
+public sealed record GoogleSignInResponse(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string AccessToken,
+    DateTimeOffset ExpiresAt,
+    IReadOnlyList<UserRole> Roles,
+    string Provider,
+    IReadOnlyList<string>? Permissions = null);
+
+public sealed record AdministratorBootstrapRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    IReadOnlyList<string>? Permissions = null,
+    bool RequireTwoFactor = false);
+
+public sealed record AdministratorBootstrapResponse(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    IReadOnlyList<string> Permissions,
+    bool Created);
+
+public sealed record AdministratorSessionDto(
+    Guid UserId,
+    string Email,
+    IReadOnlyList<UserRole> Roles,
+    IReadOnlyList<string> Permissions);
+
+public sealed record PasswordResetRequest(string Email, string? RequestIp = null);
+
+public sealed record PasswordResetRequestResponse(string RequestId, string Message, DateTimeOffset ExpiresAt);
+
+public sealed record CompletePasswordResetRequest(string RequestId, string Token, string NewPassword, string ConfirmPassword);
+
+public sealed record CompletePasswordResetResponse(string Status, bool PasswordChanged);
+
+public sealed record LogoutResponse(bool LoggedOut, DateTimeOffset InvalidatedAt);
+
+public sealed record UserSessionDto(
+    Guid Id,
+    string DeviceName,
+    string Browser,
+    string? ApproximateLocation,
+    DateTimeOffset IssuedAt,
+    DateTimeOffset LastUsedAt,
+    DateTimeOffset ExpiresAt,
+    bool IsCurrent,
+    bool IsTrusted,
+    DateTimeOffset? TrustedUntil,
+    bool IsRevoked);
+
+public sealed record DevelopmentPasswordResetTokenResponse(string RequestId, string Token, DateTimeOffset ExpiresAt);
+
+public sealed record UserProfileDto(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string? Phone,
+    IReadOnlyList<UserRole> Roles,
+    bool IsTwoFactorEnabled,
+    UserProfilePhotoDto? Photo);
+
+public sealed record UpdateUserProfileRequest(string DisplayName, string? Phone);
+
+public sealed record UserProfilePhotoDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Status, string ScanStatus, DateTimeOffset UploadedAt, string? Sha256Hash = null);
+
+public sealed record PrepareProfilePhotoUploadRequest(string FileName, string ContentType, long SizeBytes);
+
+public sealed record ProfilePhotoUploadDto(Guid Id, Guid UserId, string FileName, string ContentType, long SizeBytes, string ObjectKey, string UploadUrl, string Status, string ScanStatus, DateTimeOffset ExpiresAt, string? Sha256Hash = null);
+
+public sealed record ProfilePhotoDownloadDto(Guid Id, string FileName, string ContentType, long SizeBytes, string Url, DateTimeOffset ExpiresAt);
+
+public sealed record PropertyListingDto(
+    Guid Id,
+    Guid HostUserId,
+    string HostName,
+    string Title,
+    string Location,
+    string Country,
+    decimal NightlyRate,
+    string Currency,
+    BadgeLevel BadgeLevel,
+    bool GuestVerificationEnabled,
+    bool InsuraGuestEnabled,
+    string CancellationPolicy,
+    IReadOnlyList<string> Highlights,
+    bool IsArchived = false,
+    bool IsDraft = false,
+    string Parish = "",
+    string Description = "",
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null,
+    decimal RatingAverage = 0,
+    int ReviewCount = 0,
+    string ModerationStatus = "Approved",
+    string? ModerationReason = null,
+    DateTimeOffset? ModeratedAt = null,
+    Guid? ModeratedByUserId = null,
+    string HostVerificationStatus = "NotStarted");
+
+public sealed record PropertyRevisionDto(
+    Guid Id,
+    Guid PropertyId,
+    int Version,
+    string SnapshotJson,
+    DateTimeOffset CreatedAt,
+    Guid? CreatedByUserId);
+
+public sealed record BulkPropertyEditRequest(
+    IReadOnlyCollection<Guid> PropertyIds,
+    decimal? NightlyRate = null,
+    string? CancellationPolicy = null,
+    bool? GuestVerificationEnabled = null,
+    bool? InsuraGuestEnabled = null,
+    string? IdempotencyKey = null);
+
+public sealed record BulkPropertyEditPreviewDto(
+    int RequestedCount,
+    int MatchedCount,
+    IReadOnlyList<Guid> PropertyIds,
+    IReadOnlyList<string> ChangedFields,
+    decimal? NightlyRate,
+    string? CancellationPolicy,
+    bool? GuestVerificationEnabled,
+    bool? InsuraGuestEnabled);
+
+public sealed record PropertyAvailabilityDayDto(DateOnly Date, string Status, string Source, string? Label = null);
+
+public sealed record PropertyAvailabilityDto(Guid PropertyId, DateOnly From, DateOnly To, IReadOnlyList<PropertyAvailabilityDayDto> Days);
+
+public sealed record PropertyReviewDto(
+    Guid Id,
+    string GuestDisplayName,
+    int Rating,
+    string Text,
+    DateTimeOffset CreatedAt,
+    string? HostReply = null);
+
+public sealed record CreatePropertyRequest(
+    Guid HostUserId,
+    string HostName,
+    string HostEmail,
+    string Title,
+    string Location,
+    string Country,
+    decimal NightlyRate,
+    string Currency,
+    BadgeLevel BadgeLevel = BadgeLevel.Free,
+    bool GuestVerificationEnabled = false,
+    bool InsuraGuestEnabled = false,
+    string CancellationPolicy = "Flexible",
+    IReadOnlyList<string>? Highlights = null,
+    string? Parish = null,
+    string? Description = null,
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null);
+
+public sealed record UpdatePropertyRequest(
+    string HostName,
+    string HostEmail,
+    string Title,
+    string Location,
+    string Country,
+    decimal NightlyRate,
+    string Currency,
+    BadgeLevel BadgeLevel = BadgeLevel.Free,
+    bool GuestVerificationEnabled = false,
+    bool InsuraGuestEnabled = false,
+    string CancellationPolicy = "Flexible",
+    IReadOnlyList<string>? Highlights = null,
+    string? Parish = null,
+    string? Description = null,
+    int Bedrooms = 1,
+    int Bathrooms = 1,
+    int MaxGuests = 2,
+    IReadOnlyList<string>? Amenities = null,
+    IReadOnlyList<string>? SleepingArrangements = null,
+    IReadOnlyList<string>? HouseRules = null,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? GalleryUrls = null);
+
+public sealed record PreparePropertyPhotoUploadRequest(string FileName, string ContentType, long SizeBytes, int SortOrder = 0);
+
+public sealed record PropertyPhotoUploadDto(
+    Guid Id,
+    Guid PropertyId,
+    Guid HostUserId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    string ObjectKey,
+    string UploadUrl,
+    string Status,
+    string ScanStatus,
+    DateTimeOffset ExpiresAt,
+    string? Sha256Hash = null);
+
+public sealed record BookingPropertySummaryDto(
+    Guid Id,
+    string Title,
+    string Location,
+    string Country,
+    string HostName,
+    BadgeLevel BadgeLevel,
+    bool GuestVerificationEnabled,
+    bool InsuraGuestEnabled,
+    string CancellationPolicy,
+    int MaxGuests = 2,
+    decimal CleaningFee = 0,
+    decimal ServiceFee = 0);
+
+public sealed record BookingPriceLineDto(
+    string Code,
+    string Description,
+    decimal Amount,
+    string Currency,
+    bool IsRefundable);
+
+public sealed record BookingQuoteRequest(
+    Guid PropertyId,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    int Adults = 1,
+    int Children = 0,
+    string? AccessibilityNeeds = null,
+    string? ProtectionPlan = null);
+
+public sealed record BookingQuoteDto(
+    BookingPropertySummaryDto Property,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    int Nights,
+    decimal NightlyRate,
+    decimal StaySubtotal,
+    decimal GuestPlatformFee,
+    decimal TotalAmount,
+    string Currency,
+    bool RequiresGuestVerification,
+    bool DatesAvailable,
+    DateTimeOffset? HoldExpiresAt,
+    IReadOnlyList<BookingPriceLineDto> PriceBreakdown);
+
+public sealed record CreateBookingRequest(
+    Guid PropertyId,
+    Guid GuestUserId,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    string? EkycMetaInfo = null,
+    string? DocumentType = null,
+    string? EkycCallbackUrl = null,
+    int Adults = 1,
+    int Children = 0,
+    string? AccessibilityNeeds = null,
+    string? ProtectionPlan = null,
+    string? BillingCountry = null,
+    bool TermsAccepted = false);
+
+public sealed record RefundBookingRequest(
+    decimal? Amount = null,
+    string? Reason = null,
+    string? IdempotencyKey = null);
+
+public sealed record PaymentWebhookUpdateRequest(
+    string ProviderName,
+    string ProviderEventId,
+    string EventType,
+    string PaymentIntentReference,
+    PaymentStatus Status,
+    decimal? Amount = null,
+    string? Currency = null,
+    string? ProviderReference = null,
+    string? Reason = null,
+    DateTimeOffset? OccurredAt = null);
+
+public sealed record BookingNotificationDto(
+    string RecipientType,
+    string Recipient,
+    string Subject,
+    DateTimeOffset QueuedAt);
+
+public sealed record BookingDto(
+    Guid Id,
+    Guid PropertyId,
+    Guid HostUserId,
+    Guid GuestUserId,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    string Status,
+    string VerificationStatus,
+    string PaymentStatus,
+    bool RequiresGuestVerification,
+    bool DatesHeld,
+    DateTimeOffset? HoldExpiresAt,
+    int Nights,
+    decimal NightlyRate,
+    decimal StaySubtotal,
+    decimal GuestPlatformFee,
+    decimal TotalAmount,
+    string Currency,
+    string? PropertyTitle,
+    string? HostName,
+    string? EkycProvider,
+    string? EkycTransactionId,
+    string? EkycTransactionUrl,
+    string? PaymentProvider,
+    string? PaymentAuthorizationReference,
+    string? PaymentClientSecret,
+    string? PaymentCaptureReference,
+    string? PaymentRefundReference,
+    decimal RefundedAmount,
+    string? RefundReason,
+    DateTimeOffset? RefundedAt,
+    IReadOnlyList<BookingPriceLineDto> PriceBreakdown,
+    IReadOnlyList<BookingNotificationDto> Notifications,
+    IReadOnlyList<string> Timeline,
+    string? RejectionReason = null,
+    string? RejectionSource = null,
+    Guid? RejectedByUserId = null,
+    DateTimeOffset? RejectedAt = null);
+
+public sealed record BookingDocumentDto(
+    string FileName,
+    string ContentType,
+    byte[] Content,
+    DateTimeOffset GeneratedAt);
+
+public sealed record ResolveVerificationRequest(
+    bool Passed,
+    string? ProviderReference = null,
+    string? FailureReason = null);
+
+public sealed record BookingDecisionRequest(string? Reason = null);
+
+public sealed record HostVerificationDto(
+    Guid UserId,
+    string Status,
+    string? DocumentType,
+    string? Reason,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? ReviewedAt,
+    Guid? ReviewedByUserId,
+    IReadOnlyList<string> Checklist);
+
+public sealed record HostVerificationQueueItemDto(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    string Status,
+    string? DocumentType,
+    string? Reason,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? ReviewedAt,
+    Guid? ReviewedByUserId,
+    IReadOnlyList<string> Checklist);
+
+public sealed record SubmitHostVerificationRequest(
+    string DocumentType,
+    string? Notes = null);
+
+public sealed record HostVerificationDecisionRequest(
+    string Status,
+    string? Reason = null);
+
+public sealed record PropertyModerationRequest(
+    string Status,
+    string? Reason = null);
+
+public interface IBookingDecisionStore
+{
+    Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IHostVerificationStore
+{
+    Task<HostVerificationDto> GetHostVerificationAsync(Guid userId, CancellationToken cancellationToken);
+    Task<HostVerificationDto> SubmitHostVerificationAsync(Guid userId, SubmitHostVerificationRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<HostVerificationQueueItemDto>> GetHostVerificationQueueAsync(CancellationToken cancellationToken);
+    Task<HostVerificationQueueItemDto?> ReviewHostVerificationAsync(Guid adminUserId, Guid hostUserId, HostVerificationDecisionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IPropertyModerationStore
+{
+    Task<IReadOnlyList<PropertyListingDto>> GetModerationQueueAsync(CancellationToken cancellationToken);
+    Task<PropertyListingDto?> ModeratePropertyAsync(Guid adminUserId, Guid propertyId, PropertyModerationRequest request, CancellationToken cancellationToken);
+}

@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-09-02T17:45:02.772Z",
+  "project": "desktop-firefox",
+  "workflows": [
+    "manager cookie session",
+    "owner portal persisted records",
+    "manager maintenance update",
+    "UI QR issue/revoke",
+    "gate revoked validation",
+    "mobile overflow/accessibility"
+  ],
+  "consoleErrors": [
+    "[JavaScript Error: \"downloadable font: download failed (font-family: \"Sora\" style:normal weight:400..700 stretch:100 src index:0): status=2152398850 source: https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-x.woff2\"]"
+  ],
+  "unexpected5xx": [],
+  "persisted": {
+    "propertyId": "007d28a4-544f-4028-acff-29fe1a6872c8",
+    "invoiceId": "6bff85f5-4297-4cd6-87c6-24c835b3c981",
+    "maintenanceId": "5cdc926b-f2f6-4e1a-bd55-3a2b41191764",
+    "proposalId": "4db601c1-d6b5-4e59-980c-e116c230faac"
+  },
+  "axeViolations": 0,
+  "responsive": {
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "buttons": 0
+  },
+  "passed": false
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#062B2B; -webkit-font-smoothing:antialiased; }
+  a { color:#C9DAD5; text-decoration:none; } a:hover { color:#FBF7EC; }
+</style>
+</helmet>
+<!-- AUTH-LOGOUT [SPEC] · route: /logout · data: session cleared client-side (POST /auth/logout) · nav: Log back in → AUTH-01.dc.html, Browse as guest → PUB-02.dc.html -->
+<div data-screen-label="AUTH-LOGOUT Likkle More" style="font-family:'Sora',sans-serif;color:#FBF7EC;font-size:15px;line-height:1.55;min-height:100vh;display:flex;flex-direction:column;background-color:#062B2B;background-image:linear-gradient(rgba(6,43,43,0) 0%,#062B2B 90%),url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2272%22 height=%2272%22><g fill=%22none%22 stroke=%22white%22 stroke-opacity=%220.04%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2266%22 height=%2266%22/><path d=%22M36 3 L69 36 L36 69 L3 36 Z%22/><path d=%22M3 3 A33 33 0 0 1 36 36 A33 33 0 0 1 69 3%22/><path d=%22M3 69 A33 33 0 0 0 36 36 A33 33 0 0 0 69 69%22/></g></svg>');background-size:100% 100%,72px 72px">
+  <main style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:72px 24px 48px;gap:26px">
+    <div style="display:flex;align-items:center;gap:14px"><span style="width:56px;height:56px;border-radius:50%;background:#FAF3E4;overflow:hidden;display:block;flex:none"><img src="uploads/pasted-1784678954416-0.png" alt="NestyStay emblem" style="width:150px;margin:-8px 0 0 -47px;display:block"></span><span style="font-family:'Sora',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.22em;color:#FAF3E4">NESTY STAY</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:clamp(44px,8vw,84px);line-height:1.05;color:#FFD21F;text-wrap:pretty">Likkle More</div>
+      <div style="font-size:clamp(15px,1.6vw,19px);color:#DCE6E1;max-width:480px">See you later! — You have been signed out safely.</div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <a href="AUTH-01.dc.html" style="background:#FFD21F;color:#062B2B;border-radius:999px;min-height:50px;display:inline-flex;align-items:center;gap:10px;padding:0 28px;font-size:15px;font-weight:700" style-hover="background:#F5C400;color:#062B2B">Log back in <span>→</span></a>
+      <a href="PUB-02.dc.html" style="border:1.5px solid rgba(251,247,236,0.55);color:#FBF7EC;border-radius:999px;min-height:50px;display:inline-flex;align-items:center;padding:0 28px;font-size:15px;font-weight:600" style-hover="border-color:#FBF7EC;background:rgba(251,247,236,0.08);color:#FBF7EC">Browse as guest</a>
+    </div>
+  </main>
+  <footer style="padding:24px;display:flex;justify-content:center"><span style="font-size:13px;color:#8FA8A2">nestystay.net · <a href="https://wa.me/17542482435" style="color:#8FA8A2">754-248-2435</a></span></footer>
+</div>
+</x-dc>
+</body>
+</html>

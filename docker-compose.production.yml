@@ -1,0 +1,305 @@
+name: nestystay
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_STRIPE_PUBLIC_KEY: ${VITE_STRIPE_PUBLIC_KEY:?Set VITE_STRIPE_PUBLIC_KEY}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    networks: [edge]
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: {cpus: "0.50", memory: 256M}
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD};Pooling=true;SSL Mode=Prefer
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      Security__EnableHttpsRedirection: "false"
+      BackgroundJobs__Enabled: "false"
+      Worker__SidecarEnabled: "true"
+      Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
+      Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
+      Integrations__StripeIdentityReturnUrl: ${STRIPE_IDENTITY_RETURN_URL:-}
+      Integrations__AlibabaCloudAccessKeyId: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
+      Integrations__AlibabaCloudAccessKeySecret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
+      Integrations__AlibabaCloudSecurityToken: ${ALIBABA_CLOUD_SECURITY_TOKEN:-}
+      Integrations__AlibabaEkycRegion: ${ALIBABA_EKYC_REGION:-ap-southeast-1}
+      Integrations__AlibabaEkycEndpoint: ${ALIBABA_EKYC_ENDPOINT:-cloudauth-intl.ap-southeast-1.aliyuncs.com}
+      Integrations__AlibabaEkycProductCode: ${ALIBABA_EKYC_PRODUCT_CODE:-eKYC_PRO}
+      Integrations__AlibabaEkycSceneCode: ${ALIBABA_EKYC_SCENE_CODE:-NESTYWEB}
+      Integrations__AlibabaEkycCallbackUrl: ${ALIBABA_EKYC_CALLBACK_URL:-}
+      Integrations__AlibabaEkycReturnUrl: ${ALIBABA_EKYC_RETURN_URL:-}
+      Integrations__AlibabaEkycCallbackToken: ${ALIBABA_EKYC_CALLBACK_TOKEN:-}
+      Integrations__InsuraGuestApiBaseUrl: ${INSURAGUEST_API_BASE_URL:?Set INSURAGUEST_API_BASE_URL}
+      Integrations__StorageProvider: ${OBJECT_STORAGE_PROVIDER:-minio}
+      Integrations__EkycProvider: ${EKYC_PROVIDER:-stripe_identity}
+      Integrations__PaymentProvider: ${PAYMENT_PROVIDER:-stripe}
+      Payout__Mode: ${PAYOUT_MODE:-manual}
+      BusinessMail__Provider: ${BUSINESS_MAIL_PROVIDER:-zoho}
+      Integrations__MinioEndpoint: ${MINIO_ENDPOINT:-http://minio:9000}
+      Integrations__MinioUseSsl: ${MINIO_USE_SSL:-false}
+      Integrations__MinioAccessKey: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY}
+      Integrations__MinioSecretKey: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
+      Integrations__MinioBucket: ${MINIO_BUCKET:-nesty-objects}
+      Integrations__MinioRegion: ${MINIO_REGION:-us-east-1}
+      Security__SessionTokenSecret: ${NESTYSTAY_SESSION_TOKEN_SECRET:?Set NESTYSTAY_SESSION_TOKEN_SECRET}
+      Security__TotpSecretProtectionKey: ${NESTYSTAY_TOTP_SECRET_PROTECTION_KEY:?Set NESTYSTAY_TOTP_SECRET_PROTECTION_KEY}
+      Webhooks__SharedSecret: ${NESTYSTAY_WEBHOOK_SHARED_SECRET:?Set NESTYSTAY_WEBHOOK_SHARED_SECRET}
+      Webhooks__StripeSigningSecret: ${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET}
+      NESTYSTAY_CORS_ALLOWED_ORIGINS: ${NESTYSTAY_CORS_ALLOWED_ORIGINS:-}
+      Security__SessionCookieDomain: ${NESTYSTAY_SESSION_COOKIE_DOMAIN:-}
+      Security__SessionCookieSameSite: ${NESTYSTAY_SESSION_COOKIE_SAMESITE:-Lax}
+      Email__Provider: ${EMAIL_PROVIDER:-brevo}
+      Email__Brevo__Enabled: ${BREVO_ENABLED:-true}
+      Email__Brevo__ApiKey: ${BREVO_API_KEY:-}
+      Email__Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-}
+      Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-NestyStay}
+      Email__Brevo__ReplyToEmail: ${BREVO_REPLY_TO_EMAIL:-}
+      Email__Brevo__ReplyToName: ${BREVO_REPLY_TO_NAME:-NestyStay Support}
+      Integrations__LocalStorageRoot: /var/lib/nestystay/storage
+      PublicAppUrl: ${PUBLIC_APP_URL:?Set PUBLIC_APP_URL}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    networks: [app]
+    volumes: [app-storage:/var/lib/nestystay/storage]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: {cpus: "1.00", memory: 768M}
+
+  worker:
+    image: nestystay-api:production
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      Worker__Enabled: "true"
+      Worker__SidecarEnabled: "true"
+      BackgroundJobs__Enabled: "true"
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD};Pooling=true;SSL Mode=Prefer
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      Integrations__StripeSecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
+      Integrations__StripePublishableKey: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
+      Integrations__StripeIdentityReturnUrl: ${STRIPE_IDENTITY_RETURN_URL:-}
+      Integrations__AlibabaCloudAccessKeyId: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
+      Integrations__AlibabaCloudAccessKeySecret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
+      Integrations__AlibabaCloudSecurityToken: ${ALIBABA_CLOUD_SECURITY_TOKEN:-}
+      Integrations__AlibabaEkycRegion: ${ALIBABA_EKYC_REGION:-ap-southeast-1}
+      Integrations__AlibabaEkycEndpoint: ${ALIBABA_EKYC_ENDPOINT:-cloudauth-intl.ap-southeast-1.aliyuncs.com}
+      Integrations__AlibabaEkycProductCode: ${ALIBABA_EKYC_PRODUCT_CODE:-eKYC_PRO}
+      Integrations__AlibabaEkycSceneCode: ${ALIBABA_EKYC_SCENE_CODE:-NESTYWEB}
+      Integrations__AlibabaEkycCallbackUrl: ${ALIBABA_EKYC_CALLBACK_URL:-}
+      Integrations__AlibabaEkycReturnUrl: ${ALIBABA_EKYC_RETURN_URL:-}
+      Integrations__AlibabaEkycCallbackToken: ${ALIBABA_EKYC_CALLBACK_TOKEN:-}
+      Integrations__InsuraGuestApiBaseUrl: ${INSURAGUEST_API_BASE_URL:?Set INSURAGUEST_API_BASE_URL}
+      Integrations__StorageProvider: ${OBJECT_STORAGE_PROVIDER:-minio}
+      Integrations__EkycProvider: ${EKYC_PROVIDER:-stripe_identity}
+      Integrations__PaymentProvider: ${PAYMENT_PROVIDER:-stripe}
+      Payout__Mode: ${PAYOUT_MODE:-manual}
+      BusinessMail__Provider: ${BUSINESS_MAIL_PROVIDER:-zoho}
+      Integrations__MinioEndpoint: ${MINIO_ENDPOINT:-http://minio:9000}
+      Integrations__MinioUseSsl: ${MINIO_USE_SSL:-false}
+      Integrations__MinioAccessKey: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY}
+      Integrations__MinioSecretKey: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
+      Integrations__MinioBucket: ${MINIO_BUCKET:-nesty-objects}
+      Integrations__MinioRegion: ${MINIO_REGION:-us-east-1}
+      PublicAppUrl: ${PUBLIC_APP_URL:?Set PUBLIC_APP_URL}
+      Security__SessionTokenSecret: ${NESTYSTAY_SESSION_TOKEN_SECRET:?Set NESTYSTAY_SESSION_TOKEN_SECRET}
+      Security__TotpSecretProtectionKey: ${NESTYSTAY_TOTP_SECRET_PROTECTION_KEY:?Set NESTYSTAY_TOTP_SECRET_PROTECTION_KEY}
+      Webhooks__SharedSecret: ${NESTYSTAY_WEBHOOK_SHARED_SECRET:?Set NESTYSTAY_WEBHOOK_SHARED_SECRET}
+      Webhooks__StripeSigningSecret: ${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET}
+      NESTYSTAY_CORS_ALLOWED_ORIGINS: ${NESTYSTAY_CORS_ALLOWED_ORIGINS:-}
+      Security__SessionCookieDomain: ${NESTYSTAY_SESSION_COOKIE_DOMAIN:-}
+      Security__SessionCookieSameSite: ${NESTYSTAY_SESSION_COOKIE_SAMESITE:-Lax}
+      Email__Provider: ${EMAIL_PROVIDER:-brevo}
+      Email__Brevo__Enabled: ${BREVO_ENABLED:-true}
+      Email__Brevo__ApiKey: ${BREVO_API_KEY:-}
+      Email__Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-}
+      Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-NestyStay}
+      Email__Brevo__ReplyToEmail: ${BREVO_REPLY_TO_EMAIL:-}
+      Email__Brevo__ReplyToName: ${BREVO_REPLY_TO_NAME:-NestyStay Support}
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: {cpus: "0.50", memory: 384M}
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits: {cpus: "1.00", memory: 1G}
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD}"]
+    volumes: [redis-data:/data]
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits: {cpus: "0.50", memory: 256M}
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+    volumes: [object-data:/data]
+    networks: [app]
+    expose: ["9000", "9001"]
+    healthcheck:
+      test: ["CMD-SHELL", "mc alias set local http://127.0.0.1:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" >/dev/null 2>&1 && mc ready local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits: {cpus: "1.00", memory: 768M}
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: [NESTYSTAY_DOMAIN]
+    volumes:
+      - ./deploy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [frontend, api]
+    networks: [edge, app]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [observability]
+    restart: unless-stopped
+    volumes:
+      - prometheus-data:/prometheus
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9090/-/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: [observability]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  loki:
+    image: grafana/loki:3.5.3
+    profiles: [observability]
+    restart: unless-stopped
+    volumes:
+      - loki-data:/loki
+      - ./deploy/monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+    networks: [app]
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    profiles: [observability]
+    restart: unless-stopped
+    volumes: [uptime-data:/app/data]
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres-data:
+  redis-data:
+  object-data:
+  app-storage:
+  caddy-data:
+  caddy-config:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  uptime-data:
+
+networks:
+  edge:
+    internal: false
+  app:
+    internal: true

@@ -1,0 +1,68 @@
+/* NestyStay Design System v2 — Tailwind v4 theme tokens
+   Drop into frontend/src/ and import at the TOP of index.css:  @import "./nestystay-theme.css";
+   Fonts: add to frontend/index.html <head>:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+*/
+@theme {
+  /* Brand */
+  --color-deep: #062B2B;          /* brand fields, dark sections, sidebar, pill navbar */
+  --color-deep-hover: #0E4A45;    /* links, hovers, italic accent words on light */
+  --color-yellow: #FFD21F;        /* ONLY on dark grounds (WCAG AA); hover #F5C400 */
+  --color-yellow-press: #F5C400;
+  --color-emergency: #DC2626;     /* 119 badge exclusively */
+  --color-night: #04201F;         /* opaque cards on dark */
+  --color-night-2: #041F1F;       /* nightfall grounds */
+  --color-footer: #052A22;
+  --color-ember: #D66E22;         /* atmosphere glows only — never UI */
+
+  /* Warm neutrals (light surfaces) */
+  --color-ink: #12241F;           /* primary text */
+  --color-gray-600: #5A6B63;      /* secondary text, patois translations */
+  --color-sand-500: #8A7F5E;      /* eyebrows, meta */
+  --color-sand-border: #E7DCC2;   /* hairlines, card borders */
+  --color-sand-input: #C7BC9C;    /* input borders */
+  --color-shell: #F3EAC8;         /* subtle fills, table headers, skeleton base */
+  --color-sand: #FAF3E4;          /* app/page background */
+  --color-cream: #FBF7EC;         /* cards, modals, tables, inputs */
+
+  /* On-dark text ramp */
+  --color-on-dark-heading: #FBF7EC;
+  --color-on-dark-warm: #E9DFC4;
+  --color-on-dark-body: #DCE6E1;
+  --color-on-dark-nav: #C9DAD5;
+  --color-on-dark-muted: #9FB3AC;
+  --color-on-dark-faint: #8FA8A2;
+
+  /* Semantic (StatusBadge): tint bg + dark text of same hue */
+  --color-success: #1B7A4B;  --color-success-tint: #E3F2E9;  --color-success-text: #135A38;
+  --color-coral: #D64F45;    --color-coral-tint: #FBE7E6;    --color-coral-text: #9E2B23;
+  --color-amber: #D9A800;    --color-amber-tint: #FBF1CE;    --color-amber-text: #7A5800;
+  --color-info: #2E6BD6;     --color-info-tint: #E5EDFB;     --color-info-text: #1D4FA8;
+  --color-mint: #2FB893;     --color-mint-tint: #DFF6EF;     --color-mint-text: #0E6B57;
+
+  /* Typography */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;   /* weights 400–500, optical sizing; italic = accent */
+  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radii */
+  --radius-card: 20px;        /* workspace cards */
+  --radius-photo: 26px;       /* photo cards */
+  --radius-field: 14px;       /* inputs */
+  --radius-nav: 12px;         /* sidebar items */
+  --radius-pill: 999px;       /* all buttons + badges */
+
+  /* Shadows (warm, from PUB-01) */
+  --shadow-card: 0 10px 26px rgba(96, 74, 20, 0.08);
+  --shadow-photo: 0 18px 40px rgba(96, 74, 20, 0.16);
+  --shadow-navbar: 0 12px 32px rgba(4, 31, 31, 0.35);
+  --shadow-deep: 0 34px 70px rgba(2, 14, 14, 0.6);
+  --shadow-modal: 0 40px 90px rgba(4, 31, 31, 0.4);
+}
+
+/* Motion tokens (PUB-01 principles): reveals translateY(24px)+fade 700ms ease-out, 100ms stagger;
+   loops 4–8s; hover arrows +4px; photo zoom 1.03; only transform & opacity; respect prefers-reduced-motion. */
+@keyframes ns-reveal { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes ns-shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes ns-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }

@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-09-15T15:07:45.509Z",
+  "project": "tablet-chromium",
+  "viewport": {
+    "width": 1024,
+    "height": 768
+  },
+  "screens": 12,
+  "failures": 0,
+  "results": [
+    {
+      "route": "/",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 19,
+      "undersized": []
+    },
+    {
+      "route": "/explore",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 35,
+      "undersized": []
+    },
+    {
+      "route": "/login",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 13,
+      "undersized": []
+    },
+    {
+      "route": "/register",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 13,
+      "undersized": []
+    },
+    {
+      "route": "/directory/custodians",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 23,
+      "undersized": []
+    },
+    {
+      "route": "/directory/trades",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 23,
+      "undersized": []
+    },
+    {
+      "route": "/directory/businesses",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 51,
+      "undersized": []
+    },
+    {
+      "route": "/directory/police",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 9,
+      "undersized": []
+    },
+    {
+      "route": "/gate/qr",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 5,
+      "undersized": []
+    },
+    {
+      "route": "/help",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 8,
+      "undersized": []
+    },
+    {
+      "route": "/401",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 4,
+      "undersized": []
+    },
+    {
+      "route": "/404",
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "horizontalOverflow": 0,
+      "controlCount": 3,
+      "undersized": []
+    }
+  ]
+}

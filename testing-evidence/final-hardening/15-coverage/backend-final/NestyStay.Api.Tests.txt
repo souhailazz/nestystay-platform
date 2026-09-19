@@ -1,0 +1,12 @@
+  NestyStay.Domain -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Domain\bin\Debug\net10.0\NestyStay.Domain.dll
+  NestyStay.Application -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Application\bin\Debug\net10.0\NestyStay.Application.dll
+  NestyStay.Infrastructure -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Infrastructure\bin\Debug\net10.0\NestyStay.Infrastructure.dll
+  NestyStay.Api -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\src\NestyStay.Api\bin\Debug\net10.0\NestyStay.Api.dll
+  NestyStay.Api.Tests -> C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Api.Tests\bin\Debug\net10.0\NestyStay.Api.Tests.dll
+Test run for C:\Users\Administrator\Desktop\nestystayPLATFORM\backend\tests\NestyStay.Api.Tests\bin\Debug\net10.0\NestyStay.Api.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    55, Skipped:     0, Total:    55, Duration: 5 s - NestyStay.Api.Tests.dll (net10.0)
+
+Attachments:
+  C:\Users\Administrator\Desktop\nestystayPLATFORM\testing-evidence\final-hardening\15-coverage\backend-final\NestyStay.Api.Tests\25a8bb3a-64e8-47b3-bb35-b9eb718bd88c\coverage.cobertura.xml

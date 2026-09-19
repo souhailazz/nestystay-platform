@@ -1,0 +1,18 @@
+NestyStay complete configured Playwright verification
+Date: 2026-09-09
+
+Command:
+  npx playwright test --workers=1 --reporter=line
+
+Result:
+  143 tests collected across desktop Chromium, desktop Firefox, desktop WebKit,
+  tablet Chromium and mobile Chromium projects
+  91 passed
+  0 failed
+  52 intentional skips (credential/provider-gated or viewport-scoped journeys)
+  Duration: 6.6 minutes
+
+The desktop Chromium contract/security/M1-M5 suite passed 30/30. The
+Property Manager lifecycle passed at desktop, tablet and mobile, and the
+Firefox/WebKit critical smoke passed. Authenticated fixtures use the secure
+HttpOnly session cookie and double-submit CSRF token.

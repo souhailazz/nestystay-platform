@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="Fido2" Version="4.0.0" />
+    <!-- Pin the security-fix release that overrides Fido2's vulnerable 9.0.0 transitive asset. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NestyStay.Application\NestyStay.Application.csproj" />
+    <ProjectReference Include="..\NestyStay.Infrastructure\NestyStay.Infrastructure.csproj" />
+    <ProjectReference Include="..\NestyStay.Domain\NestyStay.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

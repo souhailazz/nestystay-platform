@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-09-15T15:16:04.856Z",
+  "environment": "local production preview; synthetic unthrottled",
+  "pages": [
+    {
+      "route": "/",
+      "ttfbMs": 1.5999999940395355,
+      "domContentLoadedMs": 249.69999998807907,
+      "loadMs": 251.5,
+      "fcpMs": 428,
+      "lcpMs": 428,
+      "cls": 0,
+      "tbtMs": 45,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/explore",
+      "ttfbMs": 1.4000000059604645,
+      "domContentLoadedMs": 90,
+      "loadMs": 90.5,
+      "fcpMs": 156,
+      "lcpMs": 500,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/login",
+      "ttfbMs": 1.5999999940395355,
+      "domContentLoadedMs": 106.19999998807907,
+      "loadMs": 107.30000001192093,
+      "fcpMs": 120,
+      "lcpMs": 496,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/register",
+      "ttfbMs": 1.5999999940395355,
+      "domContentLoadedMs": 109.30000001192093,
+      "loadMs": 110.40000000596046,
+      "fcpMs": 128,
+      "lcpMs": 484,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/directory/custodians",
+      "ttfbMs": 1.9000000059604645,
+      "domContentLoadedMs": 93.2000000178814,
+      "loadMs": 94.10000002384186,
+      "fcpMs": 160,
+      "lcpMs": 444,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/directory/trades",
+      "ttfbMs": 1.699999988079071,
+      "domContentLoadedMs": 111,
+      "loadMs": 112.19999998807907,
+      "fcpMs": 176,
+      "lcpMs": 452,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/directory/businesses",
+      "ttfbMs": 1.5,
+      "domContentLoadedMs": 103.59999999403954,
+      "loadMs": 104.80000001192093,
+      "fcpMs": 172,
+      "lcpMs": 464,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/directory/police",
+      "ttfbMs": 1.9000000059604645,
+      "domContentLoadedMs": 138.90000000596046,
+      "loadMs": 139.80000001192093,
+      "fcpMs": 196,
+      "lcpMs": 472,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    },
+    {
+      "route": "/gate/qr",
+      "ttfbMs": 2.2999999821186066,
+      "domContentLoadedMs": 108.80000001192093,
+      "loadMs": 109.5,
+      "fcpMs": 128,
+      "lcpMs": 436,
+      "cls": 0,
+      "tbtMs": 0,
+      "transferBytes": 1634
+    }
+  ]
+}
