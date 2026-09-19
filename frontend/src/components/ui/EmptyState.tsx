@@ -21,7 +21,7 @@ export function EmptyState({
       <span className="grid size-14 place-items-center rounded-full bg-shell text-deep-hover">
         {icon ?? <Compass aria-hidden="true" size={26} strokeWidth={1.5} />}
       </span>
-      <h3 className="m-0 font-display text-xl font-medium leading-snug text-ink">{title}</h3>
+      <h2 className="m-0 font-display text-xl font-medium leading-snug text-ink">{title}</h2>
       {copy && <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{copy}</p>}
       {action}
     </div>

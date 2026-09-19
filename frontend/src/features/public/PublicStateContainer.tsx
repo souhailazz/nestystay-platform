@@ -29,7 +29,7 @@ export function PublicStateContainer({ view, propertyId, session }: PublicStateC
   }
 
   if (
-    ["about", "trust", "terms", "privacy", "help", "faq", "contact", "maintenance"].includes(view) ||
+    ["about", "trust", "terms", "privacy", "cookies", "refund-policy", "help", "faq", "contact", "maintenance"].includes(view) ||
     view.startsWith("help/")
   ) {
     return <LegalHelpPages view={view.startsWith("help/") ? "help" : view} />;

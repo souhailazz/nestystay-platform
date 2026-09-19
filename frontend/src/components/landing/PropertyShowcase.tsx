@@ -10,7 +10,7 @@ function PropertyArt({ index, title }: { index: number; title: string }) {
   const image = getStayImage(index);
   return (
     <div className="property-art property-art--image">
-      <img className="generated-stay-image" src={image.src} alt={`${title}: ${image.alt}`} loading="lazy" />
+      <img className="generated-stay-image" src={image.src} srcSet={image.srcSet} sizes="(max-width: 760px) 92vw, (max-width: 1200px) 44vw, 360px" alt={`${title}: ${image.alt}`} decoding="async" height="1003" loading="lazy" width="1568" />
     </div>
   );
 }

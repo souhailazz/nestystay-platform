@@ -41,6 +41,7 @@
   perspective: 1200px;
 }
 .reference-hero__backdrop { position: absolute; inset: 0; z-index: -1; }
+.reference-hero__backdrop picture { display: block; width: 100%; height: 100%; }
 .reference-hero__photo { width: 100%; height: 100%; object-fit: cover; }
 .reference-hero__content {
   position: absolute;

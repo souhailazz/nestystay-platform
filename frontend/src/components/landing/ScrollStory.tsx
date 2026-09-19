@@ -144,8 +144,11 @@ export default function ScrollStory() {
             <img
               src="/assets/landing/jamaica-coast-day.png"
               alt=""
+              loading="lazy"
               decoding="async"
-              fetchPriority="high"
+              fetchPriority="low"
+              width="1672"
+              height="941"
             />
           </picture>
           <picture className="story-photo story-photo--sunset">
@@ -162,9 +165,11 @@ export default function ScrollStory() {
             <img
               src="/assets/landing/jamaica-coast-sunset.png"
               alt=""
-              loading="eager"
+              loading="lazy"
               decoding="async"
-              fetchPriority="high"
+              fetchPriority="low"
+              width="1672"
+              height="941"
             />
           </picture>
           <div className="story-photo-shade" />

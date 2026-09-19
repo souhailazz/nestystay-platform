@@ -270,7 +270,7 @@ export default function SearchBar() {
           <MapPin aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
             <strong>Where to?</strong>
-            <span className="reference-search__value">
+            <span aria-hidden="true" className="reference-search__value">
               {location || "e.g. Kingston, Ocho Rios"}
             </span>
           </span>
@@ -297,7 +297,7 @@ export default function SearchBar() {
           <CalendarDays aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
             <strong>Check in — Check out</strong>
-            <span className="reference-search__value">
+            <span aria-hidden="true" className="reference-search__value">
               {checkIn && checkOut
                 ? `${formatShortDate(checkIn)} – ${formatShortDate(checkOut)}`
                 : checkIn
@@ -328,7 +328,7 @@ export default function SearchBar() {
           <Users aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
             <strong>Guests</strong>
-            <span className="reference-search__value">
+            <span aria-hidden="true" className="reference-search__value">
               {totalGuests === 1 ? "1 guest" : `${totalGuests} guests`}
               {infants > 0 ? `, ${infants} infant${infants > 1 ? "s" : ""}` : ""}
             </span>

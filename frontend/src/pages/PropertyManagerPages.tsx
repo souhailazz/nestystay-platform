@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { ArrowRight, Check, FileText, Home, Landmark, Megaphone, QrCode, Settings2, Wrench } from "lucide-react";
 import { AppLink } from "../components/AppLink";
 import { Button, buttonClassName } from "../components/ui/Button";
@@ -15,6 +14,13 @@ import type { PropertyManagerDashboard, PropertyManagerInvoice, PropertyManagerO
 import type { AuthController } from "../hooks/useAuth";
 import { announceFeedback } from "../lib/feedback";
 import { PropertyManagerEnhancementHub } from "./PropertyManagerEnhancementHub";
+
+const QRCode = {
+  toDataURL: async (value: string, options: { width?: number; margin?: number }) => {
+    const { default: qrcode } = await import("qrcode");
+    return qrcode.toDataURL(value, options);
+  },
+};
 
 function ErrorNotice({ error }: { error: unknown }) {
   return error ? <div className="rounded-field bg-coral-tint px-4 py-3 text-[13px] text-coral-text" role="alert">{error instanceof Error ? error.message : "The request could not be completed."}</div> : null;

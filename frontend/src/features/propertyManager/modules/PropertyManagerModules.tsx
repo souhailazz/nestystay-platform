@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { BarChart3, CalendarDays, CheckCircle2, CreditCard, FileText, ShieldCheck, Wrench } from "lucide-react";
 import { AppLink } from "../../../components/AppLink";
 import { Button } from "../../../components/ui/Button";
@@ -6,7 +6,7 @@ import { Card } from "../../../components/ui/Card";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Field, Input, Select } from "../../../components/ui/Input";
 import { StatusChip } from "../../../components/ui/StatusChip";
-import { api, formatMoney, type PropertyManagerDashboard, type PropertyManagerReport } from "../../../lib/api";
+import { api, formatMoney, type ManagedInsurance, type PropertyManagerDashboard, type PropertyManagerReport } from "../../../lib/api";
 
 export type PropertyManagerModule = "invoices" | "payments" | "utilities" | "maintenance" | "vendors" | "community" | "governance" | "documents" | "gates" | "reports" | "subscription" | "calendar" | "work-orders" | "agreements" | "approvals" | "team" | "inspections" | "cleaning" | "verification" | "insurance";
 type Payments = Awaited<ReturnType<typeof api.getPropertyManagerPayments>>;
@@ -86,8 +86,17 @@ function ReportsModule({ data, report }: PropertyManagerModuleProps) {
   return <><Card className="mb-6"><div className="flex items-center gap-2"><BarChart3 size={18} /><h2 className="m-0 font-display text-2xl">Real portfolio totals</h2></div>{report ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div>Invoice revenue<strong className="block">{formatMoney(report.grossInvoiceRevenue)}</strong></div><div>Payments<strong className="block">{formatMoney(report.paymentRevenue)}</strong></div><div>Maintenance spend<strong className="block">{formatMoney(report.maintenanceSpend)}</strong></div><div>Utility revenue<strong className="block">{formatMoney(report.utilityRevenue)}</strong></div></div> : <EmptyState title="Report unavailable" copy="Refresh to retry the portfolio report." />}</Card><Card><div className="flex items-center gap-2"><FileText size={18} /><h2 className="m-0 font-display text-2xl">Portfolio activity</h2></div>{data.maintenance.length === 0 && data.invoices.length === 0 ? <EmptyState title="No activity yet" copy="Create an owner, property, invoice or request to begin the manager workflow." /> : <div className="mt-4 grid gap-2">{data.invoices.slice(0, 5).map((invoice) => <div className="flex justify-between rounded-field border border-sand-border p-3" key={invoice.id}><span>{invoice.invoiceNumber}</span><strong>{formatMoney(invoice.balance)}</strong></div>)}</div>}</Card></>;
 }
 
-function InsuranceModule({ data }: PropertyManagerModuleProps) {
-  return <Card className="mb-6"><div className="flex items-center gap-2"><ShieldCheck size={18} /><h2 className="m-0 font-display text-2xl">Coverage readiness</h2></div><p className="mt-2 text-sm text-sand-600">This view is backed by the manager portfolio API. It reports only listing-level coverage metadata when the API exposes it; it does not invent manager plans, prices, or policy limits.</p>{data.properties.length === 0 ? <EmptyState title="No managed properties" copy="Add a managed property before reviewing coverage readiness." /> : <div className="mt-4 grid gap-2">{data.properties.map((property) => { const status = property.insuraGuestEnabled == null ? "Not exposed by API" : property.insuraGuestEnabled ? "Enabled" : "Not enabled"; return <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border p-3" key={property.id}><div><strong>{property.title}</strong><p className="m-0 text-xs text-sand-600">{property.address} · unit {property.unitNumber}</p></div><StatusChip value={status} /></div>; })}</div>}<p className="m-0 mt-4 text-xs text-sand-500">Policy purchase and plan administration remain provider-contract work; listing eligibility is configured from the canonical property workflow.</p></Card>;
+function InsuranceModule({ token }: PropertyManagerModuleProps) {
+  const [rows, setRows] = useState<ManagedInsurance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    void api.getManagedInsurance(token).then((result) => { if (active) setRows(result); }).catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "Coverage data could not be loaded."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token]);
+  return <Card className="mb-6"><div className="flex items-center gap-2"><ShieldCheck size={18} /><h2 className="m-0 font-display text-2xl">Coverage readiness</h2></div><p className="mt-2 text-sm text-sand-600">Read-only portfolio visibility for InsuraGuest policy state, contract plan, provider reference and renewal date.</p>{error && <p className="mt-3 text-sm text-coral-text" role="alert">{error}</p>}{loading ? <div aria-busy="true" className="mt-4 h-24 animate-pulse rounded-field bg-shell" /> : rows.length === 0 ? <EmptyState title="No managed properties" copy="Add a managed property before reviewing coverage readiness." /> : <div className="mt-4 grid gap-2">{rows.map((row) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border p-3" key={row.propertyId}><div><strong>{row.propertyTitle}</strong><p className="m-0 text-xs text-sand-600">{row.planCode ?? "No plan"}{row.provider ? ` · ${row.provider}` : ""}{row.renewsAt ? ` · renews ${new Date(row.renewsAt).toLocaleDateString()}` : ""}</p>{row.providerReference && <p className="m-0 text-xs text-sand-500">Provider reference: {row.providerReference}</p>}{row.failureReason && <p className="m-0 text-xs text-coral-text">{row.failureReason}</p>}</div><StatusChip value={row.status.replaceAll("_", " ")} /></div>)}</div>}</Card>;
 }
 
 function PortfolioModule({ module, title, data, busy, run, token, comment, setComment }: PropertyManagerModuleProps) {

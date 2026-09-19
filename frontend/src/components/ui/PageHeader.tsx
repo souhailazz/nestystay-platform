@@ -43,7 +43,7 @@ export function PageHeader({
 }) {
   const reducedMotion = useReducedMotion();
   return (
-    <header className="flex flex-wrap items-end justify-between gap-6">
+    <header className="flex flex-wrap items-end justify-between gap-4 sm:gap-6">
       <div className="max-w-2xl">
         <motion.span
           animate={{ opacity: 1, y: 0 }}
@@ -77,7 +77,7 @@ export function PageHeader({
       {actions && (
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center gap-3"
+          className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3"
           initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
