@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { formatMoney } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
+import { LEGAL_DETAILS } from "../../lib/legal";
 import type { BookingPriceLine } from "./types";
 
 /* Shared DS v2 chrome for the booking flow (BOOK-01 → BOOK-CONF):
@@ -132,7 +133,10 @@ export function PropertyMiniHeader({
       <img
         alt=""
         className="block size-[72px] shrink-0 rounded-field object-cover"
+        height={72}
+        loading="lazy"
         src={getStayImage(title.length).src}
+        width={72}
       />
       <div>
         <div className="font-display text-[17px] font-medium">{title}</div>
@@ -178,8 +182,8 @@ export function BookingScaffold({
       <footer className="mt-auto flex justify-center bg-footer px-6 py-5">
         <span className="text-[13px] text-on-dark-muted">
           nestystay.net ·{" "}
-          <a className="text-on-dark-muted hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
+          <a className="text-on-dark-muted hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+            {LEGAL_DETAILS.supportPhone}
           </a>
         </span>
       </footer>

@@ -9,7 +9,7 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
-import { getRouteAccess, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
+import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
 import { CookieConsent } from "./components/privacy/CookieConsent";
 import { Seo, siteUrl } from "./components/seo/Seo";
@@ -590,7 +590,8 @@ export default function App() {
   const access = getRouteAccess(route, auth.session);
   const canRenderWorkspace = access.kind === "allowed" && isWorkspaceRoute(route);
   const canonicalPath = route.canonicalPath.includes(":") ? window.location.pathname : route.canonicalPath;
-  const publicRoute = ["home", "explore", "map-search", "property", "public-content", "experiences", "journal"].includes(route.name);
+  const publicRoute = ["home", "explore", "map-search", "property", "public-content", "experiences", "journal", "directory-spec", "business-directory"].includes(route.name)
+    || (route.name === "host-profile" && !route.edit);
   const routeSeo: Record<string, { title: string; description: string }> = {
     home: { title: "Jamaican stays, made clear", description: "Discover Jamaican stays, compare real listing details, and book with clear availability, host information, and terms." },
     explore: { title: "Explore Jamaican stays", description: "Search Jamaican stays by destination, dates, guests, host badge, amenities, and current availability." },
@@ -599,6 +600,9 @@ export default function App() {
     experiences: { title: "Jamaican experiences", description: "Explore local experiences and practical details for your Jamaica trip." },
     journal: { title: "NestyStay Journal", description: "Travel notes, local context, and practical ideas for planning a Jamaica stay." },
     "public-content": { title: "NestyStay information", description: "Read NestyStay policies, support information, trust guidance, and service details." },
+    "directory-spec": { title: "Jamaica provider directory", description: "Find local Jamaican providers, trades, custodians, and trusted service contacts." },
+    "business-directory": { title: "Jamaica local business directory", description: "Discover local Jamaican businesses and practical services for your stay." },
+    "host-profile": { title: "Jamaican host profiles", description: "Explore host profiles, badges, and stay information on NestyStay." },
   };
   const publicContentSeo: Record<string, { title: string; description: string }> = {
     about: { title: "About NestyStay", description: "Learn how NestyStay helps guests discover trusted Jamaican stays and local experiences." },
@@ -610,9 +614,10 @@ export default function App() {
     cookies: { title: "Cookie Policy", description: "Learn how NestyStay uses cookies and similar technologies." },
     "refund-policy": { title: "Refund Policy", description: "Review NestyStay cancellation, refund, and payment-resolution rules." },
   };
+  const routeDefinition = getRouteDefinition(route);
   const seo = route.name === "public-content"
     ? publicContentSeo[route.slug] ?? routeSeo[route.name]
-    : routeSeo[route.name] ?? { title: "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
+    : routeSeo[route.name] ?? { title: routeDefinition?.title ?? "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@graph": [

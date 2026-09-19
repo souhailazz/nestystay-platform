@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { AppLink } from "../AppLink";
 import { cx } from "../../lib/ui";
-import { openCookieSettings } from "../../lib/legal";
+import { LEGAL_DETAILS, openCookieSettings } from "../../lib/legal";
 
 /** Deep brand panel background — faint geometric line pattern fading into Deep. */
 export const deepPatternBackground: CSSProperties = {
@@ -63,7 +63,7 @@ export function PublicFooter({ variant = "deep" }: { variant?: "deep" | "night" 
           <span className="font-sans text-sm font-bold tracking-[0.22em] text-shell">NESTY STAY</span>
         </AppLink>
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 font-sans text-[13px] text-on-dark-muted">
-          <span>nestystay.net · <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href="https://wa.me/17542482435">754-248-2435</a></span>
+          <span>nestystay.net · <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>{LEGAL_DETAILS.supportPhone}</a></span>
           <nav aria-label="Explore NestyStay" className="flex flex-wrap gap-x-3 gap-y-1">
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/explore">Explore stays</AppLink>
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/experiences">Experiences</AppLink>

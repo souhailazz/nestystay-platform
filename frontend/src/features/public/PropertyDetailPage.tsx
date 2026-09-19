@@ -239,12 +239,14 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
             alt={`${property.title} — main photo`}
             className="block aspect-[21/9] h-full w-full object-cover"
             src={heroImage}
+            width={1600}
+            height={686}
           />
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
           {gallery.slice(0, 5).map((image, i) => (
             <div className="relative aspect-[4/3] overflow-hidden rounded-field" key={image}>
-              <img alt={`${property.title} photo ${i + 1}`} className="block h-full w-full object-cover" src={image} />
+              <img alt={`${property.title} photo ${i + 1}`} className="block h-full w-full object-cover" height={600} loading="lazy" src={image} width={800} />
               {i === 4 && gallery.length > 5 && <span className="absolute inset-0 flex items-center justify-center bg-deep/55 text-[14.5px] font-semibold text-white">+ {gallery.length - 5} photos</span>}
             </div>
           ))}

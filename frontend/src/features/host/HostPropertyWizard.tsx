@@ -402,7 +402,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label="Uploaded photos">
               {formData.photos.map((photo) => (
                 <figure key={photo.id} className={`relative rounded overflow-hidden border ${photo.isCover ? "border-sun" : "border-gray-200"}`}>
-                  <img src={photo.url} alt={photo.isCover ? "Cover photo" : "Property photo"} className="w-full h-28 object-cover" />
+                  <img src={photo.url} alt={photo.isCover ? "Cover photo" : "Property photo"} className="w-full h-28 object-cover" height={112} loading="lazy" width={320} />
                   <figcaption className="p-2 text-xs flex items-center justify-between gap-1">
                     <button type="button" className="text-link" onClick={() => setCoverPhoto(photo.id)} disabled={photo.isCover}>{photo.isCover ? "Cover photo" : "Make cover"}</button>
                     <button type="button" className="text-link text-danger" onClick={() => removePhoto(photo.id)} aria-label={`Remove ${photo.isCover ? "cover " : ""}photo`}>Remove</button>
@@ -507,7 +507,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
               <div><span className="badge badge-sun">Preview</span><h3 id="listing-preview-title">{formData.title || "Untitled listing"}</h3><p className="subtext">{formData.location}, {formData.country}</p></div>
               <button type="button" className="btn btn-ghost" onClick={() => setPreviewOpen(false)} aria-label="Close listing preview">Close</button>
             </div>
-            {formData.photos.find((photo) => photo.isCover) && <img src={formData.photos.find((photo) => photo.isCover)?.url} alt="Listing cover preview" className="w-full h-56 object-cover rounded mb-4" />}
+            {formData.photos.find((photo) => photo.isCover) && <img src={formData.photos.find((photo) => photo.isCover)?.url} alt="Listing cover preview" className="w-full h-56 object-cover rounded mb-4" height={224} loading="lazy" width={640} />}
             <div className="grid grid-cols-2 gap-3 text-sm mb-4"><div><strong>From</strong><br />${formData.nightlyRate} {formData.currency} / night</div><div><strong>Guests</strong><br />Up to {formData.capacityAdults + formData.capacityChildren}</div><div><strong>Stay</strong><br />{formData.bedrooms} bedrooms · {formData.bathrooms} bathrooms</div><div><strong>Policy</strong><br />{formData.cancellationPolicy} cancellation</div></div>
             <p>{formData.description || "Add a description to help guests understand your stay."}</p>
           </section>

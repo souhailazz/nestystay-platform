@@ -2,6 +2,7 @@ export const LEGAL_DETAILS = {
   brand: "NestyStay",
   website: "https://nestystay.net",
   supportPhone: "754-248-2435",
+  supportTel: "tel:+17542482435",
   whatsappUrl: "https://wa.me/17542482435",
   lastUpdated: "September 17, 2026",
 } as const;

@@ -148,7 +148,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
           return (
             <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-3 sm:p-[22px]" key={booking.id}>
               <div className="flex flex-wrap items-start gap-2.5 sm:gap-3.5">
-                <img alt="" className="block size-20 shrink-0 rounded-field object-cover sm:size-24" src={image.src} />
+                <img alt="" className="block size-20 shrink-0 rounded-field object-cover sm:size-24" height={96} loading="lazy" src={image.src} width={96} />
                 <div className="min-w-0 flex-1 sm:min-w-[220px]">
                   <div className="flex flex-wrap items-baseline justify-between gap-2.5">
                     <div className="font-display text-[19px] font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>

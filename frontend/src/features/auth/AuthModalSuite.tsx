@@ -4,6 +4,7 @@ import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
 import { cx } from "../../lib/ui";
+import { LEGAL_DETAILS } from "../../lib/legal";
 import { signInWithGoogle } from "./googleSignIn";
 import type { AuthModalMode } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
@@ -408,8 +409,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
         </div>
         <div className="text-[13px] text-on-dark-faint">
           nestystay.net ·{" "}
-          <a className="text-on-dark-faint hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
+          <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+            {LEGAL_DETAILS.supportPhone}
           </a>
         </div>
       </aside>
@@ -773,7 +774,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
             <h2 className="m-0 font-display text-[22px] font-medium">Enable authenticator</h2>
             <p className="m-0 text-[13.5px] text-gray-600">Scan the QR code with Google Authenticator or 1Password, then enter the 6-digit code.</p>
             {totpQrUrl && (
-              <img alt="TOTP QR Code" className="mx-auto size-40 rounded-field border border-sand-border bg-white p-2" src={totpQrUrl} />
+              <img alt="TOTP QR Code" className="mx-auto size-40 rounded-field border border-sand-border bg-white p-2" height={160} src={totpQrUrl} width={160} />
             )}
             <input
               className={cx(inputClass, "text-center font-display text-lg tracking-[0.4em]")}

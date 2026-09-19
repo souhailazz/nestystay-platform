@@ -1,10 +1,11 @@
 import { AlertTriangle } from "lucide-react";
 import { Button } from "./Button";
 import { userSafeErrorMessage } from "../../lib/errorMessages";
+import { LEGAL_DETAILS } from "../../lib/legal";
 
 /**
  * DS v2 error state — translates transport/backend failures into user-safe copy.
- * Pass `isServerError` on 5xx to add the WhatsApp support link (754-248-2435).
+ * Pass `isServerError` on 5xx to add safe WhatsApp and phone support links.
  */
 export function ErrorState({
   message,
@@ -31,14 +32,10 @@ export function ErrorState({
         </Button>
       )}
       {isServerError && (
-        <a
-          className="font-sans text-[13px] font-semibold text-deep-hover underline underline-offset-4"
-          href="https://wa.me/17542482435"
-          rel="noreferrer"
-          target="_blank"
-        >
-          WhatsApp support · 754-248-2435
-        </a>
+        <div className="flex flex-wrap justify-center gap-3 text-[13px] font-semibold">
+          <a className="text-deep-hover underline underline-offset-4" href={LEGAL_DETAILS.whatsappUrl} rel="noreferrer" target="_blank">WhatsApp support</a>
+          <a className="text-deep-hover underline underline-offset-4" href={LEGAL_DETAILS.supportTel}>Call {LEGAL_DETAILS.supportPhone}</a>
+        </div>
       )}
     </div>
   );

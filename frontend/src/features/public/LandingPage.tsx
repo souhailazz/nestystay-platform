@@ -147,6 +147,9 @@ function GoldenHourHero() {
                 alt="Warm-lit villa and pool at dusk above the Negril cliffs"
                 className="block h-full w-full object-cover"
                 src="https://images.unsplash.com/photo-1416331108676-a22ccb276e35?q=80&w=900&auto=format&fit=crop"
+                height={675}
+                loading="lazy"
+                width={900}
               />
               <span className="absolute left-3 top-3 rounded-pill bg-deep/85 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-yellow">
                 FEATURED STAY
@@ -207,7 +210,7 @@ function BroadDaylight() {
               key={stay.name}
             >
               <article className="ns-zoom relative min-h-[430px] h-full overflow-hidden rounded-photo shadow-photo transition-shadow hover:shadow-[0_26px_56px_rgba(96,74,20,0.24)]">
-                <img alt={stay.alt} className="ns-zoomimg absolute inset-0 h-full w-full object-cover" src={stay.img} />
+                <img alt={stay.alt} className="ns-zoomimg absolute inset-0 h-full w-full object-cover" height={720} loading="lazy" src={stay.img} width={1080} />
                 <div className="absolute inset-0 bg-[linear-gradient(185deg,rgba(6,43,43,0)_40%,rgba(6,43,43,0.82)_100%)]" />
                 <span className="absolute left-[18px] top-[18px]">{stay.badge}</span>
                 <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3.5 p-5 pb-[22px]">
@@ -245,6 +248,9 @@ function BroadDaylight() {
               alt="Misty ridge in the Blue Mountains"
               className="block min-h-[150px] w-[42%] object-cover"
               src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=800&auto=format&fit=crop"
+              height={600}
+              loading="lazy"
+              width={800}
             />
             <div className="flex flex-col justify-center gap-1 px-5 py-[18px]">
               <span className="self-start rounded-pill bg-deep px-[11px] py-1 text-[9.5px] font-bold tracking-[0.1em] text-yellow">
