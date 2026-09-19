@@ -11,7 +11,7 @@ const evidenceDirectory = path.resolve(process.cwd(), "..", "testing-evidence", 
 
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
-test("captures the real guest/client booking experience on mobile", async ({ baseURL, page }) => {
+test("captures the real guest/client booking experience on mobile", async ({ baseURL, page }, testInfo) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const api = await playwrightRequest.newContext({ baseURL });
   const seed = await api.post("/api/spec/seed");
@@ -34,7 +34,7 @@ test("captures the real guest/client booking experience on mobile", async ({ bas
   await page.screenshot({ path: path.join(evidenceDirectory, "CLIENT-04-property-detail.png"), fullPage: false });
 
   await page.getByRole("button", { name: "Book this stay", exact: true }).click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: /^Book /i });
   await expect(dialog).toBeVisible();
   await page.screenshot({ path: path.join(evidenceDirectory, "CLIENT-05-booking-modal.png"), fullPage: false });
 
@@ -48,20 +48,13 @@ test("captures the real guest/client booking experience on mobile", async ({ bas
   expect(quoteButtonCount).toBe(1);
   expect(createButtonCount).toBe(1);
 
-  let selectedCheckIn = "";
-  let selectedCheckOut = "";
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const checkInDate = new Date(Date.now() + (120 + attempt * 11) * 86_400_000);
-    const checkOutDate = new Date(checkInDate.getTime() + 3 * 86_400_000);
-    selectedCheckIn = checkInDate.toISOString().slice(0, 10);
-    selectedCheckOut = checkOutDate.toISOString().slice(0, 10);
-    await dateInputs.nth(0).fill(selectedCheckIn);
-    await dateInputs.nth(1).fill(selectedCheckOut);
-    await quoteButton.click();
-    await page.waitForTimeout(500);
-    if (await createButton.isEnabled()) break;
-  }
-  expect(selectedCheckIn).not.toBe("");
+  // Persistent local acceptance data can occupy ordinary near-term dates.
+  // Ask the same quote endpoint used by the product for a free deterministic
+  // window, then enter those dates through the real booking UI.
+  const { checkIn, checkOut } = await findAvailableStay(api, property!.id, testInfo.project.name);
+  await dateInputs.nth(0).fill(checkIn);
+  await dateInputs.nth(1).fill(checkOut);
+  await quoteButton.click();
   await expect(createButton).toBeEnabled({ timeout: 30_000 });
   await page.screenshot({ path: path.join(evidenceDirectory, "CLIENT-06-booking-quote.png"), fullPage: false });
 
@@ -104,4 +97,19 @@ async function createGuest(api: APIRequestContext): Promise<Session> {
   const login = await api.post("/api/auth/login", { data: { email, password } });
   expect(login.ok(), await login.text()).toBeTruthy();
   return { ...(await login.json()) as Session, email, displayName: "Mobile Client Guest" };
+}
+
+async function findAvailableStay(api: APIRequestContext, propertyId: string, projectName: string) {
+  const projectOffset = projectName.includes("tablet") ? 10 : projectName.includes("mobile") ? 20 : 0;
+  const apiRoot = (process.env.PLAYWRIGHT_API_ROOT ?? process.env.PLAYWRIGHT_API_URL?.replace(/\/health\/?$/, "") ?? "http://127.0.0.1:5019/api").replace(/\/$/, "");
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const stayOffset = 12_000 + projectOffset + attempt * 5;
+    const checkIn = new Date(Date.now() + stayOffset * 86_400_000).toISOString().slice(0, 10);
+    const checkOut = new Date(Date.now() + (stayOffset + 3) * 86_400_000).toISOString().slice(0, 10);
+    const response = await api.post(`${apiRoot}/bookings/quote`, {
+      data: { propertyId, checkIn, checkOut, adults: 2, children: 0 },
+    });
+    if (response.ok()) return { checkIn, checkOut };
+  }
+  throw new Error("Could not find an available client-demo stay window after 12 attempts.");
 }

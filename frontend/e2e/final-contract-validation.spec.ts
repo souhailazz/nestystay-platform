@@ -188,6 +188,8 @@ async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: st
   const passwords = page.locator('input[autocomplete="new-password"]');
   await passwords.nth(0).fill(password);
   await passwords.nth(1).fill(password);
+  await page.locator("#register-terms").check();
+  await page.locator("#register-privacy").check();
   await page.getByRole("button", { name: "Create my account", exact: true }).click();
   await expect(page).toHaveURL(role === "Host" ? /\/host-dashboard$/ : /\/guest-dashboard$/);
   // The browser flow intentionally uses an HttpOnly cookie, so the
@@ -211,7 +213,7 @@ async function registerViaUi(page: Page, role: "Guest" | "Host", displayName: st
 
 async function chooseUniqueDates(page: Page, projectName: string, baseOffset: number) {
   const viewportOffset = projectName.includes("tablet") ? 17 : projectName.includes("mobile") ? 23 : 11;
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: /^Book /i });
   const inputs = dialog.locator('input[type="date"]');
   const quoteButton = dialog.getByRole("button", { name: "Get quote", exact: true });
   const createButton = dialog.getByRole("button", { name: "Create booking", exact: true });

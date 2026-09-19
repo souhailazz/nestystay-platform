@@ -18,16 +18,16 @@ test.describe("public privacy and consent surfaces", () => {
 
   test("optional cookies require an explicit choice and settings can be reopened", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Your cookie choices" })).toBeVisible();
     await page.getByRole("button", { name: "Reject optional" }).click();
-    await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Your cookie choices" })).toHaveCount(0);
     // Desktop exposes the compact Explore nav item; mobile exposes it inside
     // the responsive menu. Both are the same public destination.
     const menuButton = page.getByRole("button", { name: "Open menu", exact: true });
     if (await menuButton.isVisible()) await menuButton.click();
     await page.getByRole("link", { name: "Explore", exact: true }).click();
     await page.getByRole("button", { name: "Cookie settings", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "Your cookie choices" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Your cookie choices" })).toBeVisible();
   });
 
   test("registration consent is explicit and initially unchecked", async ({ page }) => {

@@ -40,13 +40,14 @@ export function CookieConsent() {
 
   return (
     <div
-      aria-describedby="cookie-consent-copy"
       aria-labelledby="cookie-consent-title"
-      className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[760px] rounded-card border border-sand-border bg-cream p-4 shadow-[0_16px_50px_rgba(4,31,31,0.22)] sm:inset-x-6 sm:p-5"
-      role="dialog"
-      aria-modal="true"
+      className="pointer-events-none fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[760px] sm:inset-x-6"
+      role="region"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div
+        aria-describedby="cookie-consent-copy"
+        className="pointer-events-auto flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-4 shadow-[0_16px_50px_rgba(4,31,31,0.22)] sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-5"
+      >
         <div className="min-w-0">
           <h2 className="m-0 font-display text-xl font-medium text-ink" id="cookie-consent-title">Your cookie choices</h2>
           <p className="m-0 mt-1.5 text-[13px] leading-5 text-gray-600" id="cookie-consent-copy">
