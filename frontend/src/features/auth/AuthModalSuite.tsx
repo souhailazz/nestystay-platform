@@ -4,6 +4,7 @@ import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
 import { cx } from "../../lib/ui";
+import { LEGAL_DETAILS } from "../../lib/legal";
 import { signInWithGoogle } from "./googleSignIn";
 import type { AuthModalMode } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
@@ -100,14 +101,15 @@ function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) 
 
 export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo }: AuthModalSuiteProps) {
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
-  const [email, setEmail] = useState("guest@nestystay.local");
-  const [password, setPassword] = useState("Password123!");
-  const [registerDisplayName, setRegisterDisplayName] = useState("Nesty Guest");
-  const [registerPhone, setRegisterPhone] = useState("+18765550123");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("Password123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [registerDisplayName, setRegisterDisplayName] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [registerErrors, setRegisterErrors] = useState<Record<string, string>>({});
   const [otpCode, setOtpCode] = useState("");
   const [smsCode, setSmsCode] = useState("");
   const [smsChallenge, setSmsChallenge] = useState<{ flowId: string; maskedPhone: string; expiresAt: string } | null>(null);
@@ -129,6 +131,15 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   function showSuccess(message: string) {
     setNotice(message);
     setNoticeTone("success");
+  }
+
+  function clearRegisterError(field: string) {
+    setRegisterErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   function finishSignIn() {
@@ -196,24 +207,30 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setNotice(null);
 
-    if (password !== registerConfirmPassword) {
-      showError("Passwords must match.");
-      setLoading(false);
+    const errors: Record<string, string> = {};
+    const normalizedEmail = email.trim();
+    if (!registerDisplayName.trim()) errors.displayName = "Enter your display name.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) errors.email = "Enter a valid email address.";
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
+      errors.password = "Use at least 8 characters with an uppercase letter, lowercase letter, and number.";
+    }
+    if (password !== registerConfirmPassword) errors.confirmPassword = "Passwords must match.";
+    if (!acceptedTerms) errors.terms = "Accept the Terms of Service to create an account.";
+    if (!acceptedPrivacy) errors.privacy = "Acknowledge the Privacy Policy to create an account.";
+
+    setRegisterErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      showError("Please correct the highlighted fields.");
       return;
     }
 
-    if (!acceptedTerms || !acceptedPrivacy) {
-      showError("Accept the terms and privacy policy to create an account.");
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
 
     try {
       const registered = await auth.register({
-        email,
+        email: normalizedEmail,
         password,
         displayName: registerDisplayName,
         phone: registerPhone,
@@ -392,8 +409,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
         </div>
         <div className="text-[13px] text-on-dark-faint">
           nestystay.net ·{" "}
-          <a className="text-on-dark-faint hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
+          <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+            {LEGAL_DETAILS.supportPhone}
           </a>
         </div>
       </aside>
@@ -613,19 +630,23 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
         )}
 
         {mode === "register" && (
-          <form className={cardClass} onSubmit={handleRegister}>
+          <form className={cardClass} noValidate onSubmit={handleRegister}>
             <h2 className="m-0 font-display text-[22px] font-medium">Create account</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
                 <span className={labelText}>Display name</span>
                 <input
+                  aria-describedby={registerErrors.displayName ? "register-display-name-error" : undefined}
+                  aria-invalid={Boolean(registerErrors.displayName)}
                   className={inputClass}
-                  onChange={(e) => setRegisterDisplayName(e.target.value)}
+                  id="register-display-name"
+                  onChange={(e) => { setRegisterDisplayName(e.target.value); clearRegisterError("displayName"); }}
                   placeholder="Keisha Brown"
                   required
                   type="text"
                   value={registerDisplayName}
                 />
+                {registerErrors.displayName && <p className="m-0 text-xs text-coral-text" id="register-display-name-error" role="alert">{registerErrors.displayName}</p>}
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className={labelText}>Phone</span>
@@ -642,13 +663,17 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               <span className={labelText}>Email</span>
               <input
                 autoComplete="email"
+                aria-describedby={registerErrors.email ? "register-email-error" : undefined}
+                aria-invalid={Boolean(registerErrors.email)}
                 className={inputClass}
-                onChange={(e) => setEmail(e.target.value)}
+                id="register-email"
+                onChange={(e) => { setEmail(e.target.value); clearRegisterError("email"); }}
                 placeholder="you@example.com"
                 required
                 type="email"
                 value={email}
               />
+              {registerErrors.email && <p className="m-0 text-xs text-coral-text" id="register-email-error" role="alert">{registerErrors.email}</p>}
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={labelText}>Account type</span>
@@ -670,8 +695,11 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               <span className={labelText}>Password</span>
               <input
                 autoComplete="new-password"
+                aria-describedby={registerErrors.password ? "register-password-error" : undefined}
+                aria-invalid={Boolean(registerErrors.password)}
                 className={inputClass}
-                onChange={(e) => setPassword(e.target.value)}
+                id="register-password"
+                onChange={(e) => { setPassword(e.target.value); clearRegisterError("password"); }}
                 required
                 type="password"
                 value={password}
@@ -690,35 +718,48 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                   </span>
                 ))}
               </div>
+              {registerErrors.password && <p className="m-0 text-xs text-coral-text" id="register-password-error" role="alert">{registerErrors.password}</p>}
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={labelText}>Confirm password</span>
               <input
                 autoComplete="new-password"
+                aria-describedby={registerErrors.confirmPassword ? "register-confirm-password-error" : undefined}
+                aria-invalid={Boolean(registerErrors.confirmPassword)}
                 className={inputClass}
-                onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                id="register-confirm-password"
+                onChange={(e) => { setRegisterConfirmPassword(e.target.value); clearRegisterError("confirmPassword"); }}
                 required
                 type="password"
                 value={registerConfirmPassword}
               />
+              {registerErrors.confirmPassword && <p className="m-0 text-xs text-coral-text" id="register-confirm-password-error" role="alert">{registerErrors.confirmPassword}</p>}
             </label>
-            <label className="flex cursor-pointer items-center gap-2.5 font-sans text-[13px] text-ink">
+            <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
+                aria-describedby={registerErrors.terms ? "register-terms-error" : undefined}
+                aria-invalid={Boolean(registerErrors.terms)}
                 checked={acceptedTerms}
                 className="size-4 accent-deep-hover"
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                id="register-terms"
+                onChange={(e) => { setAcceptedTerms(e.target.checked); clearRegisterError("terms"); }}
                 type="checkbox"
               />
-              I accept the terms.
+              <span>I agree to the <AppLink className="font-semibold text-deep-hover underline" href="/terms" target="_blank">Terms of Service</AppLink>.</span>
+              {registerErrors.terms && <span className="text-xs text-coral-text" id="register-terms-error" role="alert">{registerErrors.terms}</span>}
             </label>
-            <label className="flex cursor-pointer items-center gap-2.5 font-sans text-[13px] text-ink">
+            <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
+                aria-describedby={registerErrors.privacy ? "register-privacy-error" : undefined}
+                aria-invalid={Boolean(registerErrors.privacy)}
                 checked={acceptedPrivacy}
                 className="size-4 accent-deep-hover"
-                onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                id="register-privacy"
+                onChange={(e) => { setAcceptedPrivacy(e.target.checked); clearRegisterError("privacy"); }}
                 type="checkbox"
               />
-              I accept the privacy policy.
+              <span>I acknowledge the <AppLink className="font-semibold text-deep-hover underline" href="/privacy" target="_blank">Privacy Policy</AppLink>.</span>
+              {registerErrors.privacy && <span className="text-xs text-coral-text" id="register-privacy-error" role="alert">{registerErrors.privacy}</span>}
             </label>
             {noticePanel}
             <button className={deepPill} disabled={loading || auth.isAuthBusy} type="submit">
@@ -733,7 +774,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
             <h2 className="m-0 font-display text-[22px] font-medium">Enable authenticator</h2>
             <p className="m-0 text-[13.5px] text-gray-600">Scan the QR code with Google Authenticator or 1Password, then enter the 6-digit code.</p>
             {totpQrUrl && (
-              <img alt="TOTP QR Code" className="mx-auto size-40 rounded-field border border-sand-border bg-white p-2" src={totpQrUrl} />
+              <img alt="TOTP QR Code" className="mx-auto size-40 rounded-field border border-sand-border bg-white p-2" height={160} src={totpQrUrl} width={160} />
             )}
             <input
               className={cx(inputClass, "text-center font-display text-lg tracking-[0.4em]")}

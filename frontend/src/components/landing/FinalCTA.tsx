@@ -3,6 +3,8 @@ import { ArrowRight, Instagram, Linkedin } from "lucide-react";
 import { AppLink } from "../AppLink";
 
 export default function FinalCTA() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="final-section">
       <div className="final-grid" aria-hidden="true" />
@@ -45,7 +47,7 @@ export default function FinalCTA() {
         <AppLink aria-label="Nesty Stay home" className="brand-lockup" href="/">
           <span>NESTY STAY</span>
         </AppLink>
-        <p>© 2026 Nesty Stay. Made for slower mornings and good vibes.</p>
+        <p>© {currentYear} Nesty Stay. Made for slower mornings and good vibes.</p>
         <div className="socials">
           <a href="#top" aria-label="Instagram">
             <Instagram size={17} />

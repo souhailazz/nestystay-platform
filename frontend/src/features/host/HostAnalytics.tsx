@@ -206,7 +206,7 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
         return (
           <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={property.id}>
             <div className="flex flex-wrap items-center gap-3.5">
-              <img alt="" className="block size-[88px] shrink-0 rounded-field object-cover" src={property.imageUrl ?? getStayImage(index).src} />
+              <img alt="" className="block size-[88px] shrink-0 rounded-field object-cover" height={88} loading="lazy" src={property.imageUrl ?? getStayImage(index).src} width={88} />
               <div className="min-w-[220px] flex-1">
                 <div className="font-display text-[19px] font-medium">{property.title}</div>
                 <div className="text-[12.5px] text-gray-600">

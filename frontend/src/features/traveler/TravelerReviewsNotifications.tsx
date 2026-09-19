@@ -127,7 +127,7 @@ export function TravelerReviewsNotifications({ view, userId, token }: TravelerRe
         {open.map(({ booking, daysLeft }, index) => (
           <div className="flex flex-col gap-3 self-start rounded-card bg-deep p-[22px]" key={booking.id}>
             <div className="flex items-center gap-3">
-              <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover" src={getStayImage(index).src} />
+              <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover" height={64} loading="lazy" src={getStayImage(index).src} width={64} />
               <div>
                 <div className="font-display text-lg font-medium text-on-dark-heading">{booking.propertyTitle ?? "Jamaican stay"}</div>
                 <div className="text-xs text-on-dark-muted">
@@ -185,7 +185,7 @@ export function TravelerReviewsNotifications({ view, userId, token }: TravelerRe
       {closed.map(({ booking }, index) => (
         <div className="rounded-card border border-sand-border bg-cream p-[22px]" key={booking.id}>
           <div className="flex items-center gap-3 opacity-60">
-            <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover grayscale-[0.6]" src={getStayImage(index + 2).src} />
+            <img alt="" className="block size-16 shrink-0 rounded-[12px] object-cover grayscale-[0.6]" height={64} loading="lazy" src={getStayImage(index + 2).src} width={64} />
             <div className="flex-1">
               <div className="font-display text-lg font-medium">{booking.propertyTitle ?? "Jamaican stay"}</div>
               <div className="text-xs text-gray-600">

@@ -115,8 +115,7 @@ function GoldenHourHero() {
             </span>
           </h1>
           <p className="m-0 max-w-[440px] text-[clamp(15px,1.3vw,17px)] text-on-dark-body">
-            Jamaica&apos;s own trusted stays platform — verified hosts, wellness security visits, and doors that open
-            like they know you.
+            A Jamaica-focused place to discover stays, local hosts, and the details that matter before you book.
           </p>
           <div className="flex flex-wrap gap-3">
             <AppLink
@@ -135,24 +134,8 @@ function GoldenHourHero() {
               Become a host
             </AppLink>
           </div>
-          <div className="mt-0.5 flex items-center gap-3.5">
-            <div className="flex">
-              {[
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop",
-              ].map((src, i) => (
-                <img
-                  alt="Traveler portrait"
-                  className={cx("block size-9 rounded-full border-2 border-on-dark-heading object-cover", i > 0 && "-ml-2.5")}
-                  key={src}
-                  src={src}
-                />
-              ))}
-            </div>
-            <div className="text-[12.5px] text-on-dark-body">
-              <span className="text-yellow">★★★★★</span> &nbsp;Loved by 2,000+ island travelers
-            </div>
+          <div className="mt-0.5 max-w-[330px] text-[12.5px] text-on-dark-body">
+            Explore current listing details, host badges, availability, and booking terms in one place.
           </div>
         </div>
 
@@ -164,6 +147,9 @@ function GoldenHourHero() {
                 alt="Warm-lit villa and pool at dusk above the Negril cliffs"
                 className="block h-full w-full object-cover"
                 src="https://images.unsplash.com/photo-1416331108676-a22ccb276e35?q=80&w=900&auto=format&fit=crop"
+                height={675}
+                loading="lazy"
+                width={900}
               />
               <span className="absolute left-3 top-3 rounded-pill bg-deep/85 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-yellow">
                 FEATURED STAY
@@ -174,7 +160,7 @@ function GoldenHourHero() {
                 <div className="font-display text-[19px] font-medium text-ink">Cliffside Retreat</div>
                 <div className="mt-0.5 text-[12.5px] text-[#66705F]">Negril · Westmoreland parish</div>
               </div>
-              <div className="whitespace-nowrap text-[13px] text-ink">★ 5.0</div>
+              <div className="whitespace-nowrap text-[13px] text-ink">View listing</div>
             </div>
           </div>
           <span className="absolute -top-4 right-[-12px] block">
@@ -224,7 +210,7 @@ function BroadDaylight() {
               key={stay.name}
             >
               <article className="ns-zoom relative min-h-[430px] h-full overflow-hidden rounded-photo shadow-photo transition-shadow hover:shadow-[0_26px_56px_rgba(96,74,20,0.24)]">
-                <img alt={stay.alt} className="ns-zoomimg absolute inset-0 h-full w-full object-cover" src={stay.img} />
+                <img alt={stay.alt} className="ns-zoomimg absolute inset-0 h-full w-full object-cover" height={720} loading="lazy" src={stay.img} width={1080} />
                 <div className="absolute inset-0 bg-[linear-gradient(185deg,rgba(6,43,43,0)_40%,rgba(6,43,43,0.82)_100%)]" />
                 <span className="absolute left-[18px] top-[18px]">{stay.badge}</span>
                 <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3.5 p-5 pb-[22px]">
@@ -262,6 +248,9 @@ function BroadDaylight() {
               alt="Misty ridge in the Blue Mountains"
               className="block min-h-[150px] w-[42%] object-cover"
               src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=800&auto=format&fit=crop"
+              height={600}
+              loading="lazy"
+              width={800}
             />
             <div className="flex flex-col justify-center gap-1 px-5 py-[18px]">
               <span className="self-start rounded-pill bg-deep px-[11px] py-1 text-[9.5px] font-bold tracking-[0.1em] text-yellow">
@@ -361,18 +350,17 @@ function Dusk() {
               </div>
             </div>
             <span className="self-start rounded-pill bg-emergency px-3.5 py-[7px] text-xs font-bold tracking-[0.04em] text-white">
-              Shown on every property page
+              Emergency information
             </span>
             <p className="m-0 text-[13.5px] text-on-dark-warm opacity-90">
-              Under the header, above the gallery, above the fold — on every Jamaican listing, without exception.
-              Never buried in a footer.
+              For immediate danger in Jamaica, call 119. For platform questions, use the contact route shown on this site.
             </p>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap justify-end gap-4">
           {[
             ["Badge ID only", "Security professionals are identified by platform badge ID — never by name, photo or direct contact."],
-            ["InsuraGuest protection", "Participating properties carry InsuraGuest coverage for the whole stay — look for the badge on the listing."],
+            ["Protection information", "Where protection information is available, review the property-specific terms before booking."],
           ].map(([title, copy], i) => (
             <Reveal className="min-w-[250px] flex-[0_1_400px]" delay={i * 0.1} key={title}>
               <div className="flex h-full flex-col gap-2 rounded-[18px] border border-on-dark-faint/35 px-6 py-5">

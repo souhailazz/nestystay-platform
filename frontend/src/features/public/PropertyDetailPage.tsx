@@ -8,6 +8,7 @@ import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
 import { BookingModal } from "../../components/booking/BookingModal";
+import { Seo, siteUrl } from "../../components/seo/Seo";
 import type { AuthSession } from "../../lib/auth";
 
 interface PropertyDetailPageProps {
@@ -125,6 +126,28 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
   const galleryUrls = property.galleryUrls?.filter(Boolean) ?? [];
   const gallery = (galleryUrls.length > 0 ? galleryUrls : [property.imageUrl, getStayImage(1).src, getStayImage(2).src].filter(Boolean)) as string[];
   const heroImage = gallery[0] ?? getStayImage(0).src;
+  const propertyJsonLd = property.latitude != null && property.longitude != null ? {
+    "@context": "https://schema.org",
+    "@type": "VacationRental",
+    "@id": `${siteUrl()}/properties/${property.id}#vacation-rental`,
+    additionalType: "EntirePlace",
+    identifier: property.id,
+    name: property.title,
+    description: property.description || `${property.title} in ${property.location}.`,
+    image: gallery.slice(0, 8).map((image) => image.startsWith("http") ? image : `${siteUrl()}${image}`),
+    latitude: property.latitude,
+    longitude: property.longitude,
+    address: { "@type": "PostalAddress", addressLocality: property.location, addressRegion: property.parish || undefined, addressCountry: property.country },
+    containsPlace: {
+      "@type": "Accommodation",
+      additionalType: "EntirePlace",
+      occupancy: { "@type": "QuantitativeValue", value: property.maxGuests ?? 2 },
+      numberOfBedrooms: property.bedrooms ?? undefined,
+      numberOfBathroomsTotal: property.bathrooms ?? undefined,
+      amenityFeature: (property.amenities ?? []).map((amenity) => ({ "@type": "LocationFeatureSpecification", name: amenity, value: true })),
+    },
+    ...(property.reviewCount && property.ratingAverage ? { aggregateRating: { "@type": "AggregateRating", ratingValue: property.ratingAverage, reviewCount: property.reviewCount, bestRating: 5 } } : {}),
+  } : undefined;
 
   async function toggleWishlist() {
     const currentProperty = property;
@@ -156,6 +179,7 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
 
   return (
     <div className="font-sans text-[15px] leading-[1.55] text-ink">
+      <Seo canonicalPath={`/properties/${property.id}`} description={`${property.title} in ${property.location}. Review photos, amenities, availability, pricing, host information, and booking terms on NestyStay.`} image={heroImage} jsonLd={propertyJsonLd} title={`${property.title} in ${property.location}`} />
       {/* HEADER */}
       <header className="mx-auto flex max-w-[1200px] flex-col gap-3 px-6 pt-9">
         <AppLink
@@ -215,12 +239,14 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
             alt={`${property.title} — main photo`}
             className="block aspect-[21/9] h-full w-full object-cover"
             src={heroImage}
+            width={1600}
+            height={686}
           />
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
           {gallery.slice(0, 5).map((image, i) => (
             <div className="relative aspect-[4/3] overflow-hidden rounded-field" key={image}>
-              <img alt={`${property.title} photo ${i + 1}`} className="block h-full w-full object-cover" src={image} />
+              <img alt={`${property.title} photo ${i + 1}`} className="block h-full w-full object-cover" height={600} loading="lazy" src={image} width={800} />
               {i === 4 && gallery.length > 5 && <span className="absolute inset-0 flex items-center justify-center bg-deep/55 text-[14.5px] font-semibold text-white">+ {gallery.length - 5} photos</span>}
             </div>
           ))}

@@ -28,6 +28,7 @@ import type { AuthController } from "../hooks/useAuth";
 import { usePatois } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
+import { LEGAL_DETAILS } from "../lib/legal";
 
 function ScreenShell({
   id,
@@ -157,8 +158,8 @@ export function LoadingStatePage() {
       </div>
       <div className="mt-4 text-[13px] text-sand-500">
         nestystay.net ·{" "}
-        <a className="text-sand-500 hover:text-ink" href="https://wa.me/17542482435">
-          754-248-2435
+        <a className="text-sand-500 hover:text-ink" href={LEGAL_DETAILS.supportTel}>
+          {LEGAL_DETAILS.supportPhone}
         </a>
       </div>
     </div>
@@ -289,8 +290,8 @@ export function LogoutScreenPage() {
       <footer className="flex justify-center p-6">
         <span className="text-[13px] text-on-dark-faint">
           nestystay.net ·{" "}
-          <a className="text-on-dark-faint hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
+          <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+            {LEGAL_DETAILS.supportPhone}
           </a>
         </span>
       </footer>
@@ -399,8 +400,8 @@ export function ComingSoonPage() {
       <footer className="flex justify-center border-t border-[#1D4A46] px-6 py-7">
         <div className="text-[13px] text-on-dark-faint">
           nestystay.net ·{" "}
-          <a className="text-on-dark-faint hover:text-on-dark-body" href="https://wa.me/17542482435">
-            754-248-2435
+          <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+            {LEGAL_DETAILS.supportPhone}
           </a>
         </div>
       </footer>
@@ -565,8 +566,8 @@ function ErrorTemplate({
       {children}
       <div className="mt-6 text-[13px] text-sand-500">
         nestystay.net ·{" "}
-        <a className="text-sand-500 hover:text-ink" href="https://wa.me/17542482435">
-          754-248-2435
+        <a className="text-sand-500 hover:text-ink" href={LEGAL_DETAILS.supportTel}>
+          {LEGAL_DETAILS.supportPhone}
         </a>
       </div>
     </div>
@@ -615,7 +616,7 @@ export function AccessRestrictedPage() {
           Return safely
         </AppLink>
       </div>
-      <a className="inline-flex min-h-11 items-center text-[13.5px] font-semibold text-deep-hover" href="https://wa.me/17542482435">
+      <a className="inline-flex min-h-11 items-center text-[13.5px] font-semibold text-deep-hover" href={LEGAL_DETAILS.whatsappUrl}>
         Contact support
       </a>
     </ErrorTemplate>
@@ -670,12 +671,14 @@ export function ServerErrorPage() {
           Back to Explore
         </AppLink>
       </div>
-      <a
-        className="mt-1.5 inline-flex min-h-12 items-center gap-2.5 rounded-pill bg-success-tint px-[22px] text-sm font-bold text-success-text"
-        href="https://wa.me/17542482435"
-      >
-        Urgent? Message us on WhatsApp: 754-248-2435
-      </a>
+      <div className="mt-1.5 flex flex-wrap justify-center gap-3">
+        <a className="inline-flex min-h-12 items-center gap-2.5 rounded-pill bg-success-tint px-[22px] text-sm font-bold text-success-text" href={LEGAL_DETAILS.whatsappUrl} rel="noreferrer" target="_blank">
+          Urgent? Message us on WhatsApp
+        </a>
+        <a className="inline-flex min-h-12 items-center rounded-pill border border-sand-input px-[22px] text-sm font-bold text-deep-hover" href={LEGAL_DETAILS.supportTel}>
+          Call {LEGAL_DETAILS.supportPhone}
+        </a>
+      </div>
     </ErrorTemplate>
   );
 }

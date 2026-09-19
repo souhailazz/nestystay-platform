@@ -54,7 +54,9 @@ export function PatoisToast({
               alt=""
               aria-hidden="true"
               className="size-9 rounded-full object-contain"
+              height={36}
               src="/assets/nestystay-emblem.png"
+              width={36}
             />
           </span>
           {showPatois ? (

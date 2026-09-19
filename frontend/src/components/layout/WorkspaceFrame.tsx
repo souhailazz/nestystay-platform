@@ -8,6 +8,7 @@ import type { FeedbackTone } from "../../lib/feedback";
 import { getScreenDefinition, navigationForRole, type NavigationItem } from "../../app/routeManifest";
 import { requestConfirmation } from "../../lib/confirmation";
 import { api } from "../../lib/api";
+import { LEGAL_DETAILS, openCookieSettings } from "../../lib/legal";
 
 const roleLabels: Record<AuthSession["roles"][number], string> = {
   Guest: "Guest workspace", Host: "Host workspace", Officer: "Officer workspace", ServiceProvider: "Provider workspace",
@@ -56,7 +57,7 @@ function Breadcrumbs({ pathname, screenId }: { pathname: string; screenId: strin
   const active = getScreenDefinition(screenId)?.navigation;
   const current = active?.label ?? prettyRoute(pathname);
   return (
-    <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-sand-600">
+    <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-sand-600 sm:mb-4">
       <AppLink className="inline-flex min-h-8 items-center gap-1 rounded-pill px-2 font-semibold text-deep-hover hover:bg-shell" href="/">
         <Home aria-hidden="true" size={13} /> Home
       </AppLink>
@@ -170,7 +171,7 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
           {feedback && <div aria-live="polite" className={cx("mb-4 flex items-center justify-between gap-3 rounded-field border px-4 py-3 text-sm font-semibold", feedback.tone === "error" ? "border-coral/30 bg-coral-tint text-coral-text" : feedback.tone === "info" ? "border-blue/20 bg-info-tint text-info-text" : "border-green/20 bg-success-tint text-success-text")} role={feedback.tone === "error" ? "alert" : "status"}><span>{feedback.message}</span><button aria-label="Dismiss notification" className="rounded-pill px-2 text-lg leading-none" onClick={() => setFeedback(null)} type="button">×</button></div>}
           {children}
         </main>
-        <footer className="flex justify-center bg-footer px-6 py-[18px]"><span className="text-[13px] text-on-dark-muted">nestystay.net · <a className="text-on-dark-muted hover:text-on-dark-body" href="https://wa.me/17542482435">754-248-2435</a></span></footer>
+        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-footer px-6 py-[18px] text-[13px] text-on-dark-muted"><span>nestystay.net · <a className="text-on-dark-muted hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>{LEGAL_DETAILS.supportPhone}</a></span><nav aria-label="Legal and support" className="flex flex-wrap gap-x-3 gap-y-1"><AppLink className="hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/refund-policy">Refunds</AppLink><button className="hover:text-on-dark-body hover:underline" onClick={openCookieSettings} type="button">Cookie settings</button></nav></footer>
       </div>
       <nav aria-label="Mobile workspace navigation" className="workspace-mobile-nav fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-card border border-sand-border bg-deep/95 p-2 shadow-navbar backdrop-blur md:hidden">{mobileItems.map((item) => { const active = isActive(item, screenId, pathname); const itemKey = `${item.screenId}-${item.href}`; if (item.more) return <button aria-label="Open more workspace destinations" className="grid min-h-12 place-items-center rounded-field px-1 text-center text-[10px] font-semibold text-on-dark-nav hover:bg-on-dark-heading/10" key={itemKey} onClick={() => window.dispatchEvent(new CustomEvent("nesty:workspace-more"))} type="button">{item.label}</button>; return <AppLink aria-current={active ? "page" : undefined} className={cx("grid min-h-12 place-items-center rounded-field px-1 text-center text-[10px] font-semibold", active ? "bg-yellow text-deep" : "text-on-dark-nav hover:bg-on-dark-heading/10")} href={item.href} key={itemKey}>{item.label}</AppLink>; })}</nav>
       <WorkspaceMoreSheet items={moreItems} roleLabel={roleLabels[activeRole]} />

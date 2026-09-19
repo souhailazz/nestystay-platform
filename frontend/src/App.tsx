@@ -1,26 +1,22 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, Search, UserRound, X } from "lucide-react";
 import { AppLink, navigate } from "./components/AppLink";
 import { EmblemRoundel } from "./components/layout/PublicShell";
-import FeatureCards from "./components/landing/FeatureCards";
-import FinalCTA from "./components/landing/FinalCTA";
-import Hero3D from "./components/landing/Hero3D";
-import HowItWorks from "./components/landing/HowItWorks";
-import PropertyShowcase from "./components/landing/PropertyShowcase";
-import ScrollStory from "./components/landing/ScrollStory";
-import TrustSection from "./components/landing/TrustSection";
 import { WorkspaceFrame } from "./components/layout/WorkspaceFrame";
 import { cx } from "./lib/ui";
 import { useAuth, type AuthController } from "./hooks/useAuth";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
 import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
+import { CookieConsent } from "./components/privacy/CookieConsent";
+import { Seo, siteUrl } from "./components/seo/Seo";
 import type { ConfirmationRequest } from "./lib/confirmation";
 import type { TextInputRequest } from "./lib/textInput";
-import { TravelerStateContainer } from "./features/traveler/TravelerStateContainer";
+const LandingPage = lazy(() => import("./features/public/LandingHome").then(({ LandingHome }) => ({ default: LandingHome })));
+const TravelerStateContainer = lazy(() => import("./features/traveler/TravelerStateContainer").then(({ TravelerStateContainer }) => ({ default: TravelerStateContainer })));
 const AdminPage = lazy(() => import("./pages/ProductPages").then(({ AdminPage }) => ({ default: AdminPage })));
 const AuthPage = lazy(() => import("./pages/ProductPages").then(({ AuthPage }) => ({ default: AuthPage })));
 const PasswordlessCompletionPage = lazy(() => import("./features/auth/AuthStateContainer").then(({ PasswordlessCompletionPage }) => ({ default: PasswordlessCompletionPage })));
@@ -191,14 +187,8 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
           </button>
         </div>
 
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.nav
-              animate={{ opacity: 1, y: 0 }}
-              className="flex w-full flex-col gap-0.5 border-t border-white/10 px-2 py-2 md:hidden"
-              exit={{ opacity: 0, y: -12 }}
-              initial={{ opacity: 0, y: -12 }}
-            >
+        {menuOpen && (
+            <nav className="site-nav__mobile-panel flex w-full flex-col gap-0.5 border-t border-white/10 px-2 py-2 md:hidden">
               <form
                 aria-label="Global search"
                 className="mb-1 flex min-h-11 items-center gap-2 rounded-nav border border-white/15 bg-white/5 px-3 focus-within:border-yellow"
@@ -239,25 +229,10 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
               >
                 {auth.session ? "Profile" : "Sign in"}
               </AppLink>
-            </motion.nav>
-          )}
-        </AnimatePresence>
+            </nav>
+        )}
       </header>
     </div>
-  );
-}
-
-function LandingPage() {
-  return (
-    <>
-      <Hero3D />
-      <ScrollStory />
-      <FeatureCards />
-      <PropertyShowcase />
-      <HowItWorks />
-      <TrustSection />
-      <FinalCTA />
-    </>
   );
 }
 
@@ -609,11 +584,47 @@ function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
 }
 
 export default function App() {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const auth = useAuth();
   const route = useRoute();
   const access = getRouteAccess(route, auth.session);
   const canRenderWorkspace = access.kind === "allowed" && isWorkspaceRoute(route);
+  const canonicalPath = route.canonicalPath.includes(":") ? window.location.pathname : route.canonicalPath;
+  const publicRoute = ["home", "explore", "map-search", "property", "public-content", "experiences", "journal", "directory-spec", "business-directory"].includes(route.name)
+    || (route.name === "host-profile" && !route.edit);
+  const routeSeo: Record<string, { title: string; description: string }> = {
+    home: { title: "Jamaican stays, made clear", description: "Discover Jamaican stays, compare real listing details, and book with clear availability, host information, and terms." },
+    explore: { title: "Explore Jamaican stays", description: "Search Jamaican stays by destination, dates, guests, host badge, amenities, and current availability." },
+    "map-search": { title: "Map search for Jamaican stays", description: "Browse available Jamaican stays by map and listing details." },
+    property: { title: "Property details", description: "Review property photos, amenities, availability, pricing, host information, and booking terms on NestyStay." },
+    experiences: { title: "Jamaican experiences", description: "Explore local experiences and practical details for your Jamaica trip." },
+    journal: { title: "NestyStay Journal", description: "Travel notes, local context, and practical ideas for planning a Jamaica stay." },
+    "public-content": { title: "NestyStay information", description: "Read NestyStay policies, support information, trust guidance, and service details." },
+    "directory-spec": { title: "Jamaica provider directory", description: "Find local Jamaican providers, trades, custodians, and trusted service contacts." },
+    "business-directory": { title: "Jamaica local business directory", description: "Discover local Jamaican businesses and practical services for your stay." },
+    "host-profile": { title: "Jamaican host profiles", description: "Explore host profiles, badges, and stay information on NestyStay." },
+  };
+  const publicContentSeo: Record<string, { title: string; description: string }> = {
+    about: { title: "About NestyStay", description: "Learn how NestyStay helps guests discover trusted Jamaican stays and local experiences." },
+    trust: { title: "Trust & Safety", description: "Learn how NestyStay supports safer stays through verification, clear policies, and guest support." },
+    help: { title: "Help Center & FAQs", description: "Find answers about searching, booking, payments, verification, cancellations, and support on NestyStay." },
+    contact: { title: "Contact NestyStay", description: "Contact NestyStay for booking support, host help, safety questions, and general assistance." },
+    terms: { title: "Terms of Service", description: "Review the terms that govern use of the NestyStay booking platform." },
+    privacy: { title: "Privacy Policy", description: "Review how NestyStay collects, uses, protects, and retains personal information." },
+    cookies: { title: "Cookie Policy", description: "Learn how NestyStay uses cookies and similar technologies." },
+    "refund-policy": { title: "Refund Policy", description: "Review NestyStay cancellation, refund, and payment-resolution rules." },
+  };
+  const routeDefinition = getRouteDefinition(route);
+  const seo = route.name === "public-content"
+    ? publicContentSeo[route.slug] ?? routeSeo[route.name]
+    : routeSeo[route.name] ?? { title: routeDefinition?.title ?? "NestyStay", description: "NestyStay is a Jamaica-focused stay discovery and booking platform." };
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${siteUrl()}/#organization`, name: "NestyStay", url: siteUrl(), logo: `${siteUrl()}/assets/nestystay-emblem.png`, telephone: "+1-754-248-2435" },
+      { "@type": "WebSite", "@id": `${siteUrl()}/#website`, name: "NestyStay", url: siteUrl(), publisher: { "@id": `${siteUrl()}/#organization` }, potentialAction: { "@type": "SearchAction", target: `${siteUrl()}/explore?search={search_term_string}`, "query-input": "required name=search_term_string" } },
+    ],
+  };
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = reduceMotion ? "auto" : "smooth";
@@ -626,9 +637,8 @@ export default function App() {
   }, [auth.logout, route.name]);
 
   useEffect(() => {
-    const definition = getRouteDefinition(route);
-    document.title = definition ? `${definition.title} · NestyStay` : "NestyStay";
-  }, [route]);
+    document.title = `${seo.title} · NestyStay`;
+  }, [seo.title]);
 
   useEffect(() => {
     let cancelled = false;
@@ -661,6 +671,7 @@ export default function App() {
 
   return (
     <PatoisProvider>
+      <Seo canonicalPath={canonicalPath} description={seo.description} jsonLd={route.name === "home" ? organizationJsonLd : undefined} noindex={!publicRoute || route.name === "map-search" || Boolean(window.location.search)} title={seo.title} />
       <ConfirmationHost />
       <TextInputHost />
       <div
@@ -683,6 +694,7 @@ export default function App() {
           )}
         </Suspense>
       </div>
+      <CookieConsent />
     </PatoisProvider>
   );
 }
