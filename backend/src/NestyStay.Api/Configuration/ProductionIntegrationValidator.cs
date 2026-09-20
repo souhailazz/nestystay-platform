@@ -110,7 +110,11 @@ public static class ProductionIntegrationValidator
             throw new InvalidOperationException("Production Stripe Identity return URL must be an absolute HTTPS URL.");
         }
 
-        var emailProvider = configuration["Email:Provider"] ?? Environment.GetEnvironmentVariable("NESTYSTAY_EMAIL_PROVIDER") ?? "file";
+        // Keep production validation on the same selector resolution as DI and
+        // the integration-health endpoint. This honors EMAIL_PROVIDER and its
+        // backwards-compatible NESTYSTAY_EMAIL_PROVIDER alias instead of
+        // validating only the legacy environment variable.
+        var emailProvider = providerFlags.EmailProvider;
         var brevoEnabled = configuration["Email:Brevo:Enabled"] ?? Environment.GetEnvironmentVariable("BREVO_ENABLED");
         if (emailProvider.Equals("brevo", StringComparison.OrdinalIgnoreCase) && !string.Equals(brevoEnabled, "false", StringComparison.OrdinalIgnoreCase))
         {
