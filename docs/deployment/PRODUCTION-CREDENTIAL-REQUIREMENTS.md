@@ -10,7 +10,7 @@ the client-owned server.
 | VPS/server | Yes | Server IP, SSH access, OS access, firewall policy, resource and storage allocation | BLOCKED — client server not supplied |
 | Domain registrar | Yes | Registered production domain and DNS-management access | BLOCKED — production domain not supplied |
 | Cloudflare | Yes for the planned edge setup | Cloudflare account/zone access, DNS records, proxy/WAF decision | BLOCKED — client zone not supplied |
-| MinIO/S3-compatible object storage | Yes for production uploads | Private endpoint, application access key/secret, bucket, region, TLS choice and persistent-volume ownership | BLOCKED INFRASTRUCTURE — MinIO adapter and Compose service are ready |
+| Server-local private storage | Yes for production uploads | Persistent absolute storage directory outside the web root, service-account ownership/ACL, HMAC signing secret, off-server backup and restore policy | BLOCKED INFRASTRUCTURE — configure the server volume and secret |
 | Brevo | Yes for transactional application email | API key, verified sender domain/address, sender name, reply-to address, webhook/complaint access | BLOCKED CREDENTIAL — application adapter is ready |
 | Zoho OR Google Workspace | Yes for human/business mail | Selected mailbox provider, domain verification, support/info/billing mailboxes, operator access | CLIENT DECISION — Zoho is the documented default; Google Workspace is the alternative |
 | Stripe | Yes for live payments | Live publishable/secret keys, webhook signing secret and endpoint, test/live account access, refund/payment test authorization | BLOCKED CREDENTIAL — application integration is ready |
@@ -22,7 +22,7 @@ the client-owned server.
 - Alibaba Mail is not used. Brevo is the transactional application-email provider.
 - Zoho is the default human/business mailbox choice until the client selects
   Google Workspace instead.
-- Stripe Identity is the selected eKYC provider; Alibaba Cloud remains available only as an explicit legacy mode.
+- Stripe Identity is the selected eKYC provider; Alibaba is not an active runtime provider.
 - Stripe Connect is optional while audited manual payouts remain enabled.
 
 ## Safe handover sequence

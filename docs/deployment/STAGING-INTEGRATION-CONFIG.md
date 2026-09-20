@@ -22,28 +22,22 @@ The raw webhook validates the Stripe signature, records provider event IDs persi
 
 ### Actual provider selection
 
-Set `OBJECT_STORAGE_PROVIDER=minio` (or `s3`) to select the implemented S3-compatible MinIO adapter. `NESTYSTAY_STORAGE_PROVIDER` is the backward-compatible selector alias. The default is `local`, which selects the application-local persistent file adapter; it is suitable for local development only and is not a production object-storage service. The class is historically named `CloudflareR2StorageProvider`, but the default path is local filesystem storage and is not a verified Cloudflare R2 SDK integration.
+Set `OBJECT_STORAGE_PROVIDER=local` to select the private server-local file provider. `NESTYSTAY_STORAGE_PROVIDER` remains a backward-compatible selector alias, but `minio`, `s3`, and `r2` are no longer accepted in production. Files are stored on a persistent server volume outside the application/web root and are accessed only through the existing authorized API upload routes or short-lived HMAC-signed API download URLs.
 
 ### Exact variables
 
 | Variable | Required | Secret | Purpose | Example format | Default | Restart |
 | --- | --- | --- | --- | --- | --- | --- |
-| `OBJECT_STORAGE_PROVIDER` | Yes on staging | No | Selects `minio`/`s3` adapter | `minio` | `local` | Yes |
-| `NESTYSTAY_STORAGE_PROVIDER` | Only if the primary selector is not used | No | Legacy alias for the selector | `minio` | None | Yes |
-| `MINIO_ENDPOINT` | Yes when provider is `minio`/`s3` | No | MinIO/S3 endpoint reachable by the backend | `https://objects.example.net` | `http://minio:9000` | Yes |
-| `MINIO_ACCESS_KEY` | Yes | Yes | Least-privilege bucket service account | `nesty_staging_app` | Falls back to `MINIO_ROOT_USER` | Yes |
-| `MINIO_SECRET_KEY` | Yes | Yes | Service-account secret | secret value | Falls back to `MINIO_ROOT_PASSWORD` | Yes |
-| `MINIO_BUCKET` | Yes | No | Private application bucket | `nesty-staging-objects` | `nesty-objects` | Yes |
-| `MINIO_REGION` | No | No | Signature region | `us-east-1` | `us-east-1` | Yes |
-| `MINIO_USE_SSL` | No | No | Upgrades the configured endpoint to HTTPS when true | `true` | false | Yes |
+| `OBJECT_STORAGE_PROVIDER` | Yes on staging/production | No | Selects server-local storage | `local` | `local` | Yes |
+| `NESTYSTAY_STORAGE_PROVIDER` | Optional legacy alias | No | Backward-compatible selector | `local` | None | Yes |
+| `NESTYSTAY_STORAGE_LOCAL_ROOT` | Yes on staging/production | No | Absolute persistent directory outside the app/web root | `/var/lib/nestystay/storage` | Temporary local path in development | Yes |
+| `NESTYSTAY_STORAGE_SIGNING_SECRET` | Yes on staging/production | Yes | At least 32 random bytes for private download URL HMACs | secret value | Session secret fallback in development only | Yes |
 
-Configuration-key equivalents are under `Integrations:StorageProvider`, `Integrations:MinioEndpoint`, `Integrations:MinioAccessKey`, `Integrations:MinioSecretKey`, `Integrations:MinioBucket`, `Integrations:MinioRegion`, and `Integrations:MinioUseSsl`.
+Configuration-key equivalents are `Integrations:StorageProvider`, `Integrations:LocalStorageRoot`, and `Integrations:LocalStorageSigningSecret`.
 
-The backend currently performs a bucket-level `PUT` before each server-mediated object write and treats `409 Conflict` as “already exists”. Therefore the current adapter requires bucket-create permission at runtime unless the adapter is changed to use an administrative bucket-provisioning step. The narrow object operations otherwise used by the code are `PutObject`, `GetObject`, and presigned `GET`/`PUT` URL generation. There is no storage-interface delete operation, list operation, or multipart operation. Application archive operations are logical database state changes; blobs are not physically deleted by the current abstraction.
+The service account must own the storage directory and have no broader filesystem access. On Linux, the provider applies `0700` to directories and `0600` to files where permitted; on Windows, apply an equivalent NTFS ACL to the service account and administrators only. Do not place the directory below the frontend build directory, `wwwroot`, a public uploads directory, or `/tmp` on staging/production. Nginx must not alias or serve this directory.
 
-Use a private bucket, TLS, and a dedicated service account. Do not use the MinIO root account as the application credential. Because the current adapter creates the bucket on write, grant only the provider-equivalent bucket-create permission for this named bucket, plus `PutObject` and `GetObject`; remove unrelated bucket access. If the provider cannot grant narrowly scoped bucket creation, provision the bucket once with an administrator and open a follow-up code change to remove the per-write bucket-create requirement before production.
-
-The readiness endpoint checks PostgreSQL; the admin-only `/api/health/integrations` endpoint reports the selected storage adapter and configuration state but does not perform a remote object round-trip. Storage must therefore be verified with an authenticated upload/download smoke test after restart.
+Uploads remain server-mediated: application routes perform authorization, size/type checks, magic-byte validation, hashing, and persistence. Download DTOs contain a short-lived HMAC-signed API URL; the raw file path is never returned. The API validates the signature and expiry before opening the file. There is no public directory listing, direct bucket URL, or anonymous upload route.
 
 ### Storage feature inventory
 
@@ -68,13 +62,13 @@ Stripe Identity owns the provider verification documents. NestyStay stores the v
 
 ### Terrence’s staging steps
 
-1. Create a private bucket and a dedicated non-root service account scoped to that bucket.
-2. Set the exact MinIO variables above in the backend service environment, using the real HTTPS endpoint and secret values only on the server.
-3. Keep `MINIO_USE_SSL=true` when the endpoint is not already an `https://` URL.
+1. Create a persistent private directory on the server, owned by the .NET systemd service account, for example `/var/lib/nestystay/storage`.
+2. Set `OBJECT_STORAGE_PROVIDER=local`, `NESTYSTAY_STORAGE_LOCAL_ROOT` to that absolute directory, and a generated `NESTYSTAY_STORAGE_SIGNING_SECRET` in the backend service environment. Keep values only on the server.
+3. Confirm nginx/Caddy has no public alias for the storage directory and that the service account cannot write outside it.
 4. Restart the .NET systemd service; environment changes are not read by the running process.
 5. Confirm `/api/health/live` and `/api/health/ready` remain `200`.
 6. Using the QA host/manager/officer/provider accounts, run one property-photo, PM-document, wellness-photo, and provider-document upload, then download each through its authorized UI. Verify a wrong-role download is denied.
-7. Keep object storage and its backups persistent across backend restarts; do not use `/tmp` for staging data.
+7. Keep the storage volume and its backups persistent across backend restarts; do not use `/tmp` for staging data.
 
 ## Brevo transactional email
 

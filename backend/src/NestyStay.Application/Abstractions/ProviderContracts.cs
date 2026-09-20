@@ -42,6 +42,13 @@ public interface IStorageProvider
     Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken);
     Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Validates a short-lived provider-issued URL token before a private object
+    /// is streamed through the API. Providers that do not expose API URLs keep
+    /// the default deny behavior.
+    /// </summary>
+    bool ValidateAccessToken(string method, string objectKey, long expiresUnixSeconds, string token) => false;
+
     /// <summary>Opens a private object for server-side composition (for example, an authorized ZIP export).</summary>
     Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken) =>
         throw new NotSupportedException("The configured storage provider does not support server-side reads.");

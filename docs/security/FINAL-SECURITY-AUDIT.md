@@ -108,7 +108,7 @@ The active backend provider wiring selects Stripe Identity and does not contain 
 
 - Presigned/spec/wellness uploads have path-safe object keys, size limits and magic-byte scanning.
 - Legacy Property Manager direct-base64 documents, versions, vendor documents and maintenance attachments now use the same magic-byte/checksum scanner before storage (M-001 fixed).
-- MinIO signing and local/R2 fallback paths enforce canonical object paths and private download authorization.
+- Server-local storage enforces canonical object paths, writes atomically outside the web root, restricts Unix file modes where supported, and issues only short-lived HMAC-signed API download URLs.
 
 ### Injection, XSS and unsafe parsing
 

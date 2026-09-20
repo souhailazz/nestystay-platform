@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Back up the private application object volume. For a MinIO deployment, set
-# MINIO_ALIAS and MINIO_BUCKET after configuring `mc`; otherwise the script
-# archives the mounted local storage directory. No credentials are embedded.
+# Back up the private server-local application storage volume. The directory
+# must be outside the web root and is archived without embedding credentials.
 : "${STORAGE_ROOT:=./storage}"
 : "${BACKUP_ROOT:=./backups/object-storage}"
 : "${BACKUP_RETENTION_DAYS:=14}"
@@ -34,17 +33,8 @@ write_status() {
 trap write_status EXIT
 
 umask 077
-if [[ -n "${MINIO_ALIAS:-}" ]]; then
-  : "${MINIO_BUCKET:?MINIO_BUCKET is required with MINIO_ALIAS}"
-  command -v mc >/dev/null || { echo "mc is required for MinIO backup" >&2; exit 1; }
-  staging="$BACKUP_ROOT/.minio-${stamp}"
-  mkdir -p "$staging"
-  mc mirror --overwrite "$MINIO_ALIAS/$MINIO_BUCKET" "$staging"
-  tar -czf "$target" -C "$staging" .
-else
-  [[ -d "$STORAGE_ROOT" ]] || { echo "Storage root does not exist: $STORAGE_ROOT" >&2; exit 1; }
-  tar -czf "$target" -C "$STORAGE_ROOT" .
-fi
+[[ -d "$STORAGE_ROOT" ]] || { echo "Storage root does not exist: $STORAGE_ROOT" >&2; exit 1; }
+tar -czf "$target" -C "$STORAGE_ROOT" .
 
 test -s "$target"
 sha256sum "$target" > "$target.sha256"

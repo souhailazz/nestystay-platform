@@ -83,6 +83,9 @@ public sealed class EmailProductionConfigurationTests
             ["Integrations:StripePublishableKey"] = "production-stripe-publishable-key",
             ["Integrations:EkycProvider"] = "stripe_identity",
             ["Integrations:StripeIdentityReturnUrl"] = "https://app.example.test/booking/{bookingId}/pending",
+            ["Integrations:StorageProvider"] = "local",
+            ["Integrations:LocalStorageRoot"] = Path.Combine(Path.GetTempPath(), "nesty-production-test-storage"),
+            ["Integrations:LocalStorageSigningSecret"] = "strong-production-local-storage-signing-secret-32-plus",
             ["Integrations:InsuraGuestApiBaseUrl"] = "https://insurance.provider.invalid"
         };
         foreach (var (key, value) in overrides) values[key] = value;

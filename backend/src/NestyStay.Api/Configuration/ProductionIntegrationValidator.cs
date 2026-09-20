@@ -130,23 +130,43 @@ public static class ProductionIntegrationValidator
             }
         }
 
-        if (providerFlags.ObjectStorageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
-            providerFlags.ObjectStorageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase))
+        var storageProvider = providerFlags.ObjectStorageProvider.Trim().ToLowerInvariant();
+        if (storageProvider is not ("local" or "filesystem" or "server" or "server_local"))
         {
-            var minioSettings = new[]
-            {
-                new RequiredSetting("Integrations:MinioEndpoint", "MINIO_ENDPOINT", "MinIO endpoint"),
-                new RequiredSetting("Integrations:MinioAccessKey", "MINIO_ACCESS_KEY", "MinIO access key"),
-                new RequiredSetting("Integrations:MinioSecretKey", "MINIO_SECRET_KEY", "MinIO secret key"),
-                new RequiredSetting("Integrations:MinioBucket", "MINIO_BUCKET", "MinIO bucket")
-            };
-            var missingMinio = minioSettings
-                .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
-                .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
-                .ToArray();
-            if (missingMinio.Length > 0)
-                throw new InvalidOperationException("Production MinIO object storage is selected but configuration is incomplete. Missing: " + string.Join("; ", missingMinio));
-            foreach (var setting in minioSettings) RejectPlaceholderValue(configuration, setting);
+            throw new InvalidOperationException(
+                $"Unsupported object storage provider '{providerFlags.ObjectStorageProvider}'. NestyStay uses private server-local storage only.");
+        }
+
+        var localStorageSettings = new[]
+        {
+            new RequiredSetting("Integrations:LocalStorageRoot", "NESTYSTAY_STORAGE_LOCAL_ROOT", "private server storage root"),
+            new RequiredSetting("Integrations:LocalStorageSigningSecret", "NESTYSTAY_STORAGE_SIGNING_SECRET", "private storage URL signing secret")
+        };
+        var missingLocalStorage = localStorageSettings
+            .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
+            .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
+            .ToArray();
+        if (missingLocalStorage.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Production server-local storage configuration is incomplete. Missing: " + string.Join("; ", missingLocalStorage));
+        }
+
+        foreach (var setting in localStorageSettings) RejectPlaceholderValue(configuration, setting);
+
+        var storageRoot = Resolve(configuration, localStorageSettings[0]);
+        if (!Path.IsPathRooted(storageRoot))
+        {
+            throw new InvalidOperationException("Production private server storage root must be an absolute path outside the application directory.");
+        }
+
+        var normalizedStorageRoot = Path.GetFullPath(storageRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var contentRoot = Path.GetFullPath(environment.ContentRootPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var webRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "wwwroot"))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (IsSameOrChildPath(normalizedStorageRoot, contentRoot) || IsSameOrChildPath(normalizedStorageRoot, webRoot))
+        {
+            throw new InvalidOperationException("Production private server storage root must not be inside the application or web root.");
         }
 
         if (ResolveBoolean(configuration, "Security:AdminBootstrap:Enabled", "NESTYSTAY_ADMIN_BOOTSTRAP_ENABLED"))
@@ -206,6 +226,13 @@ public static class ProductionIntegrationValidator
 
     private static bool Contains(string? value, string expected) =>
         value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;
+
+    private static bool IsSameOrChildPath(string path, string parent)
+    {
+        var normalizedParent = parent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return path.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWith(normalizedParent, StringComparison.OrdinalIgnoreCase);
+    }
 
     private sealed record RequiredSetting(string ConfigurationKey, string EnvironmentKey, string Description);
 }

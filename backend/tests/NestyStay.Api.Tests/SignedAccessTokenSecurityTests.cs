@@ -291,6 +291,9 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             ["Integrations:StripePublishableKey"] = stripePublishableKey,
             ["Integrations:EkycProvider"] = "stripe_identity",
             ["Integrations:StripeIdentityReturnUrl"] = "https://app.example.test/booking/{bookingId}/pending",
+            ["Integrations:StorageProvider"] = "local",
+            ["Integrations:LocalStorageRoot"] = Path.Combine(Path.GetTempPath(), "nesty-production-test-storage"),
+            ["Integrations:LocalStorageSigningSecret"] = "strong-production-local-storage-signing-secret-32-plus",
             ["Integrations:CloudflareR2UploadUrlBase"] = "https://example.test/r2",
             ["Integrations:CloudflareR2DownloadUrlBase"] = "https://example.test/r2-download",
             ["Integrations:InsuraGuestApiBaseUrl"] = "https://example.test/insuraguest"
@@ -335,6 +338,8 @@ public sealed class SignedAccessTokenSecurityTests : IClassFixture<NestyStayApiF
             "STRIPE_PUBLISHABLE_KEY",
             "EKYC_PROVIDER",
             "STRIPE_IDENTITY_RETURN_URL",
+            "NESTYSTAY_STORAGE_LOCAL_ROOT",
+            "NESTYSTAY_STORAGE_SIGNING_SECRET",
             "CLOUDFLARE_R2_UPLOAD_URL_BASE",
             "CLOUDFLARE_R2_DOWNLOAD_URL_BASE",
             "INSURAGUEST_API_BASE_URL"

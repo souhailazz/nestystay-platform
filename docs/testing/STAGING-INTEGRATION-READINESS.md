@@ -9,7 +9,7 @@ Audit date: 2026-09-20. Scope: current NestyStay M1–M5 web/API implementation 
 | Stripe Identity | Yes; Stripe-only DI and session/result boundary | Deployment owner says active; values not read here | Application/provider/security tests pass; no live provider claim | Not run with a credential in this workspace | READY FOR STAGING QA | Run one safe Stripe test-mode session and signed event on staging |
 | Stripe webhook | Yes; signature validation, persistent event receipt, duplicate protection and event mapping | Deployment owner says secret active | Webhook security/persistence tests pass | Deployment owner reports functional delivery | READY | Exercise Identity events and replay/idempotency in test mode |
 | Brevo | Yes; unified templates, outbox, worker, retry and dead-letter handling | API key exists but provider was reported disabled | Template/outbox tests pass; no mailbox delivery claim | Not run | BLOCKED_STAGING_EMAIL_PROVIDER | Set selector/enable flag/sender, restart worker, verify mailbox delivery |
-| Object storage | Yes; MinIO S3-compatible adapter and scoped upload/download routes | Reported missing/placeholders | Unit/security paths exist; opt-in live MinIO test not enabled | Not run | BLOCKED_STAGING_OBJECT_STORAGE | Configure private MinIO/S3 bucket and run upload/download matrix |
+| Object storage | Yes; private server-local adapter, scoped upload routes, and signed API downloads | Server-local root and signing secret still required | Local round-trip/path/signature tests pass | Not run | BLOCKED_STAGING_OBJECT_STORAGE | Configure persistent private directory and run upload/download matrix |
 | Admin QA | Bootstrap exists; public registration correctly rejects Admin | No Admin account reported | Bootstrap/authorization code exists; no staging admin provisioned here | Not run | BLOCKED | Deployment owner provisions one QA Admin in a controlled window, then disables bootstrap |
 | Gate Guard | Enum/blueprint exists; no provisioning or role-auth path | N/A | QR validation exists, but not Gate Guard role flow | Not run | UNCLEAR_SCOPE | Clarify whether current web M4/M5 requires a dedicated role; current contract places dedicated interface later |
 | Maps | Partial: OpenStreetMap embeds and a public map-search route | External embed requires network/provider policy | Code inspected; no provider certification | Not run | PARTIAL | Verify attribution, availability and privacy policy before production |
@@ -26,7 +26,7 @@ The default and supported eKYC selector is `stripe_identity`. DI throws for unsu
 
 The current upload architecture is server-mediated. A feature first creates a scoped metadata row, then uploads through an authenticated API `PUT`; the application performs size/content-type/magic-byte/hash validation before saving. Downloads are time-limited and authorization-checked. The storage abstraction has no physical delete or bucket-list operation. PM archive/version states are logical lifecycle operations, so a persistent object-retention policy and backup policy are needed on the server.
 
-No `NESTYSTAY_MINIO_E2E` switch exists. The supported opt-in integration test is `NestyStay.Infrastructure.Tests/MinioStorageProviderTests.cs`, enabled by `MINIO_TEST_ENDPOINT` and optional `MINIO_TEST_ACCESS_KEY`, `MINIO_TEST_SECRET_KEY`, and `MINIO_TEST_BUCKET`. It was not run because no disposable MinIO endpoint was configured. Consequently upload/downloading, restart persistence, storage outage, invalid credentials, timeout, and delete/retention behavior are not claimed as staging-tested.
+The local storage provider has deterministic round-trip, path-traversal, size-limit, expiry, and signature-isolation tests. Staging still requires a persistent server directory and a real upload/download smoke test. Restart persistence, filesystem ownership/ACLs, backup/restore, wrong-role access, and public-web-root exposure are not claimed as staging-tested until the deployment owner verifies them.
 
 Insurance claim evidence is not an object upload workflow in the current code; claims persist an `EvidenceJson` field and no claim-evidence upload endpoint was found. It should not be listed as a storage defect without a separate signed requirement.
 
@@ -52,8 +52,8 @@ Admin cannot be self-registered. Startup bootstrap is the only discovered provis
 
 ## Required sequence before professional QA
 
-1. Merge the local validator fix through the protected PR workflow and redeploy staging.
-2. Configure the private MinIO/S3 bucket and service account using `docs/deployment/STAGING-INTEGRATION-CONFIG.md`; restart and run the upload/download matrix.
+1. Merge the storage/provider changes through the protected PR workflow and redeploy staging.
+2. Configure the private server directory and signing secret using `docs/deployment/STAGING-INTEGRATION-CONFIG.md`; restart and run the upload/download matrix.
 3. Enable Brevo, verify sender/domain DNS using the records Brevo provides, restart the worker, and confirm representative mailbox delivery.
 4. Provision one QA Admin through the temporary bootstrap plan, then disable bootstrap and rotate the temporary credential.
 5. Inject all QA credentials only through a secure runtime mechanism and execute the role-isolation matrix, including the invited PM Staff acceptance flow.
