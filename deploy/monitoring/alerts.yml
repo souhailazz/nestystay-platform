@@ -23,13 +23,6 @@ groups:
         annotations:
           summary: Redis is unavailable
           description: Redis health has been failing for at least two minutes.
-      - alert: NestyStayMinioUnavailable
-        expr: nestystay_dependency_health{dependency="minio"} == 0
-        for: 2m
-        labels: {severity: critical, service: minio}
-        annotations:
-          summary: MinIO is unavailable
-          description: Private object storage health has been failing for at least two minutes.
       - alert: NestyStayWorkerUnavailable
         expr: nestystay_worker_heartbeat == 0
         for: 5m

@@ -35,7 +35,7 @@
 
 - [ ] Production hosting, domain, Cloudflare/CDN and TLS certificate validated.
 - [ ] Production PostgreSQL provisioned with least-privilege credentials; migrations applied from a clean baseline.
-- [ ] Self-hosted persistent object storage volume (or reviewed MinIO adapter) configured with private access and retention rules.
+- [ ] Self-hosted persistent storage volume configured outside the web root with private filesystem permissions, signed-download secret and retention rules.
 - [ ] Automated backups configured and a restore test recorded.
 - [ ] Monitoring, alerting, centralized logs, error tracking and rate limiting enabled.
 - [ ] Secret manager configured; no credentials in source, appsettings, evidence or build output.
