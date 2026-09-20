@@ -371,15 +371,34 @@ public sealed class EmailDeliveryWorker(
 
         foreach (var item in pending)
         {
-            var result = await transport.SendAsync(new EmailMessage(
-                item.Recipient,
-                item.Subject,
-                item.Body,
-                item.Id,
-                TextBody: item.TextBody,
-                HtmlBody: item.HtmlBody,
-                ReplyToEmail: item.ReplyToEmail,
-                ReplyToName: item.ReplyToName), cancellationToken);
+            EmailTransportResult result;
+            try
+            {
+                result = await transport.SendAsync(new EmailMessage(
+                    item.Recipient,
+                    item.Subject,
+                    item.Body,
+                    item.Id,
+                    TextBody: item.TextBody,
+                    HtmlBody: item.HtmlBody,
+                    ReplyToEmail: item.ReplyToEmail,
+                    ReplyToName: item.ReplyToName), cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                // A timeout/network exception must follow the same retry/dead-letter
+                // path as a non-2xx provider response. Otherwise the row remains
+                // PROCESSING forever and the business action loses its delivery retry.
+                logger.LogWarning(
+                    "Email transport {Provider} threw {ExceptionType}; applying retry policy.",
+                    transport.ProviderName,
+                    exception.GetType().Name);
+                result = new EmailTransportResult(false, Error: $"Email transport exception: {exception.GetType().Name}");
+            }
             item.UpdatedAt = timeProvider.GetUtcNow();
             if (result.Success)
             {

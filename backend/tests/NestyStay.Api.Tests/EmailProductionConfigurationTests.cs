@@ -44,6 +44,20 @@ public sealed class EmailProductionConfigurationTests
     }
 
     [Fact]
+    public void LocalStorageSigningSecretRequiresAtLeast32Bytes()
+    {
+        var configuration = BaseConfiguration(new Dictionary<string, string?>
+        {
+            ["Integrations:LocalStorageSigningSecret"] = "too-short"
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ProductionIntegrationValidator.Validate(configuration, new TestHostEnvironment(Environments.Production)));
+
+        Assert.Contains("storage signing secret", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void StripeIdentityModeRequiresReturnUrl()
     {
         var configuration = BaseConfiguration(new Dictionary<string, string?>

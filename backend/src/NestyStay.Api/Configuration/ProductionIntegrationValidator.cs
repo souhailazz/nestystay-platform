@@ -155,6 +155,12 @@ public static class ProductionIntegrationValidator
         foreach (var setting in localStorageSettings) RejectPlaceholderValue(configuration, setting);
 
         var storageRoot = Resolve(configuration, localStorageSettings[0]);
+        var storageSigningSecret = Resolve(configuration, localStorageSettings[1]);
+        if (storageSigningSecret is null || System.Text.Encoding.UTF8.GetByteCount(storageSigningSecret) < 32)
+        {
+            throw new InvalidOperationException("Production private storage signing secret must be at least 32 bytes.");
+        }
+
         if (!Path.IsPathRooted(storageRoot))
         {
             throw new InvalidOperationException("Production private server storage root must be an absolute path outside the application directory.");

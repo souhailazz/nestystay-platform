@@ -38,13 +38,26 @@ public sealed class HealthController(
         try
         {
             var databaseReady = await db.Database.CanConnectAsync(cancellationToken);
-            return databaseReady
-                ? Ok(new { status = "ok", database = "ready", storage = "configured" })
-                : StatusCode(StatusCodes.Status503ServiceUnavailable, new { status = "degraded", database = "unavailable" });
+            var storageReadiness = await storageProvider.CheckReadinessAsync(cancellationToken);
+            if (databaseReady && storageReadiness.Ready)
+            {
+                return Ok(new { status = "ok", database = "ready", storage = storageReadiness.Status });
+            }
+
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new
+                {
+                    status = "degraded",
+                    database = databaseReady ? "ready" : "unavailable",
+                    storage = storageReadiness.Status
+                });
         }
         catch (Exception)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { status = "degraded", database = "unavailable" });
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { status = "degraded", database = "unavailable", storage = "unavailable" });
         }
     }
 

@@ -37,7 +37,7 @@ Configuration-key equivalents are `Integrations:StorageProvider`, `Integrations:
 
 The service account must own the storage directory and have no broader filesystem access. On Linux, the provider applies `0700` to directories and `0600` to files where permitted; on Windows, apply an equivalent NTFS ACL to the service account and administrators only. Do not place the directory below the frontend build directory, `wwwroot`, a public uploads directory, or `/tmp` on staging/production. Nginx must not alias or serve this directory.
 
-Uploads remain server-mediated: application routes perform authorization, size/type checks, magic-byte validation, hashing, and persistence. Download DTOs contain a short-lived HMAC-signed API URL; the raw file path is never returned. The API validates the signature and expiry before opening the file. There is no public directory listing, direct bucket URL, or anonymous upload route.
+Uploads remain server-mediated: application routes perform authorization, size/type checks, magic-byte validation, hashing, and persistence. Download DTOs contain a short-lived HMAC-signed API URL; the raw file path is never returned. The API validates the signature and expiry before opening the file. There is no public directory listing, direct bucket URL, or anonymous upload route. `/api/health/ready` now checks the configured root and performs a small write/delete probe; it returns `503` when production storage configuration is missing or the service account cannot write the directory.
 
 ### Storage feature inventory
 
@@ -66,7 +66,7 @@ Stripe Identity owns the provider verification documents. NestyStay stores the v
 2. Set `OBJECT_STORAGE_PROVIDER=local`, `NESTYSTAY_STORAGE_LOCAL_ROOT` to that absolute directory, and a generated `NESTYSTAY_STORAGE_SIGNING_SECRET` in the backend service environment. Keep values only on the server.
 3. Confirm nginx/Caddy has no public alias for the storage directory and that the service account cannot write outside it.
 4. Restart the .NET systemd service; environment changes are not read by the running process.
-5. Confirm `/api/health/live` and `/api/health/ready` remain `200`.
+5. Confirm `/api/health/live` is `200` and `/api/health/ready` is `200` with `"storage":"CONFIGURED"`; a `503` or a storage status other than `CONFIGURED` means the directory, ACL, or signing secret is still not ready.
 6. Using the QA host/manager/officer/provider accounts, run one property-photo, PM-document, wellness-photo, and provider-document upload, then download each through its authorized UI. Verify a wrong-role download is denied.
 7. Keep the storage volume and its backups persistent across backend restarts; do not use `/tmp` for staging data.
 
@@ -87,7 +87,7 @@ The transport and outbox are implemented. Selection is `EMAIL_PROVIDER=brevo`; `
 
 Configuration-key equivalents are `Email:Provider`, `Email:Brevo:Enabled`, `Email:Brevo:ApiKey`, `Email:Brevo:SenderEmail`, `Email:Brevo:SenderName`, `Email:Brevo:ReplyToEmail`, and `Email:Brevo:ReplyToName`.
 
-Enablement is staging configuration only; no further application code change is required for the transport. The backend queues emails into the PostgreSQL outbox, uses idempotency keys, has a five-attempt retry/dead-letter policy, polls from the hosted worker every five seconds, and keeps the business transaction independent of delivery. The staging service must run with `BackgroundJobs:Enabled=true` (the application default is true) or an equivalent worker deployment. Brevo must have a verified sender/domain; retrieve the actual SPF/DKIM records from Brevo. DMARC is strongly recommended. Do not invent DNS records.
+Enablement is staging configuration only; no further application code change is required for the transport. The backend queues emails into the PostgreSQL outbox, uses idempotency keys, has a five-attempt retry/dead-letter policy, polls from the hosted worker every five seconds, and keeps the business transaction independent of delivery. Provider HTTP failures and network/timeout exceptions both enter the retry/dead-letter path; they do not leave a row permanently stuck in `PROCESSING`. The staging service must run with `BackgroundJobs:Enabled=true` (the application default is true) or an equivalent worker deployment. Brevo must have a verified sender/domain; retrieve the actual SPF/DKIM records from Brevo. DMARC is strongly recommended. Do not invent DNS records.
 
 ## Admin QA provisioning
 

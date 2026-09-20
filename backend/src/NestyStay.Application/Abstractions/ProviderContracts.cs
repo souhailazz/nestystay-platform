@@ -42,6 +42,10 @@ public interface IStorageProvider
     Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken);
     Task<string> CreateDownloadUrlAsync(string objectKey, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 
+    /// <summary>Checks that the configured storage can accept and serve private objects.</summary>
+    Task<StorageProviderReadiness> CheckReadinessAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new StorageProviderReadiness(true, "CONFIGURED", "Storage provider is available."));
+
     /// <summary>
     /// Validates a short-lived provider-issued URL token before a private object
     /// is streamed through the API. Providers that do not expose API URLs keep
@@ -53,6 +57,8 @@ public interface IStorageProvider
     Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken) =>
         throw new NotSupportedException("The configured storage provider does not support server-side reads.");
 }
+
+public sealed record StorageProviderReadiness(bool Ready, string Status, string Detail);
 
 public interface IFileSafetyScanner
 {

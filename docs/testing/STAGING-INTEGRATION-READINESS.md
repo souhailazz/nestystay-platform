@@ -48,7 +48,7 @@ Admin cannot be self-registered. Startup bootstrap is the only discovered provis
 
 ## Local change made in this pass
 
-`ProductionIntegrationValidator` now resolves the email provider through the same `ProviderFeatureFlags` path used by DI. This closes a configuration-consistency bug where `EMAIL_PROVIDER=brevo` could activate Brevo while production startup validation looked only at the legacy selector. No staging configuration was changed.
+`ProductionIntegrationValidator` now resolves the email provider through the same `ProviderFeatureFlags` path used by DI. This closes a configuration-consistency bug where `EMAIL_PROVIDER=brevo` could activate Brevo while production startup validation looked only at the legacy selector. The local storage provider now exposes a real readiness check (private root plus write/delete probe), production rejects storage signing secrets shorter than 32 bytes, and email transport exceptions use the existing retry/dead-letter policy instead of leaving records in `PROCESSING`. No staging configuration was changed.
 
 ## Required sequence before professional QA
 

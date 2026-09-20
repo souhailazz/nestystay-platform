@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NestyStay.Application.Abstractions;
+using NestyStay.Domain;
+using NestyStay.Domain.Notifications;
 using NestyStay.Infrastructure.Notifications;
 using NestyStay.Infrastructure.Persistence;
 
@@ -57,6 +60,63 @@ public sealed class EmailDeliveryTests
     }
 
     [Fact]
+    public async Task WorkerRetriesTransportExceptionsInsteadOfLeavingRowsProcessing()
+    {
+        var options = new DbContextOptionsBuilder<NestyStayDbContext>()
+            .UseInMemoryDatabase($"email-worker-{Guid.NewGuid():N}")
+            .Options;
+        await using (var seed = new NestyStayDbContext(options))
+        {
+            seed.NotificationQueue.Add(new NotificationQueueItem
+            {
+                Channel = "Email",
+                Recipient = "guest@example.test",
+                Subject = "Retry me",
+                Body = "This delivery should retry.",
+                Status = NotificationStatus.Queued,
+                DeliveryStatus = "PENDING",
+                NextAttemptAt = DateTimeOffset.UtcNow
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        using var services = new ServiceCollection()
+            .AddScoped(_ => new NestyStayDbContext(options))
+            .BuildServiceProvider();
+        var worker = new EmailDeliveryWorker(
+            services.GetRequiredService<IServiceScopeFactory>(),
+            new ThrowingEmailTransport(),
+            TimeProvider.System,
+            NullLogger<EmailDeliveryWorker>.Instance);
+        using var stopping = new CancellationTokenSource();
+
+        await worker.StartAsync(stopping.Token);
+        try
+        {
+            NotificationQueueItem? processed = null;
+            for (var attempt = 0; attempt < 40 && processed is null; attempt++)
+            {
+                await Task.Delay(25);
+                await using var check = new NestyStayDbContext(options);
+                processed = await check.NotificationQueue.SingleAsync();
+                if (processed.DeliveryStatus is "PENDING" or "PROCESSING")
+                {
+                    processed = null;
+                }
+            }
+
+            Assert.NotNull(processed);
+            Assert.Equal("RETRYING", processed!.DeliveryStatus);
+            Assert.Contains("HttpRequestException", processed.LastError, StringComparison.Ordinal);
+            Assert.Equal(1, processed.AttemptCount);
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public void TemplateCatalogDoesNotAllowRawHtmlInjection()
     {
         var message = new EmailMessage("guest@example.test", "ignored", "ignored", TemplateKey: "auth-code", IsHtml: true);
@@ -99,5 +159,13 @@ public sealed class EmailDeliveryTests
             Assert.Contains("support@nestystay.net", template.HtmlBody, StringComparison.Ordinal);
             Assert.Contains("Jamaica stays, made personal.", template.HtmlBody, StringComparison.Ordinal);
         }
+    }
+
+    private sealed class ThrowingEmailTransport : IEmailDeliveryTransport
+    {
+        public string ProviderName => "Test transport";
+
+        public Task<EmailTransportResult> SendAsync(EmailMessage message, CancellationToken cancellationToken) =>
+            throw new HttpRequestException("simulated provider timeout");
     }
 }

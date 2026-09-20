@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using NestyStay.Application.Abstractions;
 
 namespace NestyStay.Infrastructure.Storage;
@@ -13,7 +14,7 @@ namespace NestyStay.Infrastructure.Storage;
 /// endpoints, while download DTOs receive short-lived HMAC-signed API URLs.
 /// No object is exposed through static-file middleware or a public directory.
 /// </summary>
-public sealed class LocalFileStorageProvider(IConfiguration configuration) : IStorageProvider
+public sealed class LocalFileStorageProvider(IConfiguration configuration, IHostEnvironment? hostEnvironment = null) : IStorageProvider
 {
     private const int BufferSize = 81920;
     private const int HeaderByteLimit = 512;
@@ -23,6 +24,60 @@ public sealed class LocalFileStorageProvider(IConfiguration configuration) : ISt
 
     public Task<string> CreateUploadUrlAsync(string objectKey, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Direct object uploads are disabled. Use the authorized application upload endpoint.");
+
+    public async Task<StorageProviderReadiness> CheckReadinessAsync(CancellationToken cancellationToken)
+    {
+        var configuredRoot = ResolveSetting("Integrations:LocalStorageRoot", "NESTYSTAY_STORAGE_LOCAL_ROOT");
+        var configuredSecret = ResolveSetting("Integrations:LocalStorageSigningSecret", "NESTYSTAY_STORAGE_SIGNING_SECRET");
+        var developmentFallbackAllowed = hostEnvironment?.EnvironmentName is "Development" or "Testing";
+
+        if (!developmentFallbackAllowed && string.IsNullOrWhiteSpace(configuredRoot))
+        {
+            return new StorageProviderReadiness(false, "BLOCKED_CONFIG", "Private storage root is not configured.");
+        }
+
+        if (!developmentFallbackAllowed && string.IsNullOrWhiteSpace(configuredSecret))
+        {
+            return new StorageProviderReadiness(false, "BLOCKED_CONFIG", "Private storage signing secret is not configured.");
+        }
+
+        if (!developmentFallbackAllowed && Encoding.UTF8.GetByteCount(configuredSecret!) < 32)
+        {
+            return new StorageProviderReadiness(false, "BLOCKED_CONFIG", "Private storage signing secret is too short.");
+        }
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var root = ResolveLocalStorageRoot();
+            if (hostEnvironment is not null && IsSameOrChildPath(root, hostEnvironment.ContentRootPath))
+            {
+                return new StorageProviderReadiness(false, "BLOCKED_CONFIG", "Private storage root is inside the application directory.");
+            }
+
+            Directory.CreateDirectory(root);
+            RestrictPermissions(root, isDirectory: true);
+            var probePath = Path.Combine(root, $".nesty-storage-readiness-{Guid.NewGuid():N}.tmp");
+            try
+            {
+                await File.WriteAllBytesAsync(probePath, [0x4E, 0x53], cancellationToken);
+            }
+            finally
+            {
+                if (File.Exists(probePath)) File.Delete(probePath);
+            }
+
+            return new StorageProviderReadiness(true, "CONFIGURED", "Private storage root is writable and signing is configured.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return new StorageProviderReadiness(false, "UNAVAILABLE", "Private storage root is not writable.");
+        }
+    }
 
     public async Task<StorageObjectWriteResult> SaveObjectAsync(StorageObjectWriteRequest request, Stream content, CancellationToken cancellationToken)
     {
@@ -243,6 +298,14 @@ public sealed class LocalFileStorageProvider(IConfiguration configuration) : ISt
             // The deployment checklist enforces ownership/permissions on hosts
             // where Unix mode APIs are unavailable to the process.
         }
+    }
+
+    private static bool IsSameOrChildPath(string candidate, string parent)
+    {
+        var normalizedCandidate = Path.GetFullPath(candidate).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedParent = Path.GetFullPath(parent).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedCandidate.Equals(normalizedParent, StringComparison.OrdinalIgnoreCase) ||
+               normalizedCandidate.StartsWith(normalizedParent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Base64UrlEncode(byte[] bytes) =>

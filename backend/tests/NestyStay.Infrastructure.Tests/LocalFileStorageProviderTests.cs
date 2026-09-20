@@ -64,6 +64,34 @@ public sealed class LocalFileStorageProviderTests
         }
     }
 
+    [Fact]
+    public async Task ReadinessProvesConfiguredRootIsWritable()
+    {
+        var root = CreateTemporaryRoot();
+        try
+        {
+            var readiness = await Create(root).CheckReadinessAsync(CancellationToken.None);
+
+            Assert.True(readiness.Ready);
+            Assert.Equal("CONFIGURED", readiness.Status);
+            Assert.Empty(Directory.GetFiles(root, ".nesty-storage-readiness-*.tmp"));
+        }
+        finally
+        {
+            DeleteTemporaryRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task ReadinessRejectsMissingServerConfiguration()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
+        var readiness = await new LocalFileStorageProvider(config).CheckReadinessAsync(CancellationToken.None);
+
+        Assert.False(readiness.Ready);
+        Assert.Equal("BLOCKED_CONFIG", readiness.Status);
+    }
+
     private static LocalFileStorageProvider Create(string root)
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
