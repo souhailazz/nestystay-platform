@@ -6,7 +6,7 @@
 | API | ASP.NET Core | Self-hosted | VPS only | Yes | PASS (Compose; `/api/health` probe) | PASS (backend suites; exact count in final report) | Local runner |
 | PostgreSQL | PostgreSQL 17 | Self-hosted | VPS disk | Yes | PASS (private volume) | PASS (migrations/integrity) | Restore rehearsal required |
 | Redis | Redis 7 | Self-hosted | VPS disk | Yes for sidecar topology | PASS (private/password) | PASS (health/config) | Single-instance in-memory limits until distributed wiring |
-| Object storage | MinIO S3-compatible provider + private volume | Self-hosted | VPS disk | Yes | PASS (application adapter and private Compose service); real VPS endpoint pending | PASS (unit/security and real MinIO container round-trip; archive/restore rehearsal) | Local file adapter for dev/test only |
+| Object storage | Private server-local file provider + persistent volume | Self-hosted | VPS disk | Yes | PASS (application adapter); server volume/ACL pending | PASS (local round-trip/path/signature tests; archive/restore rehearsal) | None; server-local storage is the selected production path |
 | Transactional email | Brevo + PostgreSQL outbox | External | Free allowance, then usage | Yes for email delivery | PASS (application); BLOCKED CREDENTIAL (real) | PASS (queue/config) | In-app + file capture |
 | Business email | Zoho (default) or Google Workspace | External | Client mailbox plan | Client decision | CLIENT DECISION | DOCUMENTED | Provider-neutral addresses |
 | Payments | Stripe | External | Per-transaction fees | Yes for live payments | PASS (application); BLOCKED CREDENTIAL (real) | PASS (local/idempotency) | Safe local/test mode |
@@ -24,4 +24,4 @@
 | TLS | Caddy + Let's Encrypt | Self-hosted/external CA | Free | Yes | PASS (config); BLOCKED DOMAIN | PASS (Caddy validate) | Staging HTTP only |
 | DNS/proxy | Cloudflare free | External | Free tier | Yes | CLIENT ACTION | Documented | Registrar DNS |
 
-No mail provider other than Brevo/Zoho/Google appears in the runtime plan. Stripe and Stripe Identity are the selected commercial application integrations; Alibaba eKYC remains available only for legacy migration compatibility.
+No mail provider other than Brevo/Zoho/Google appears in the runtime plan. Stripe and Stripe Identity are the selected commercial application integrations.

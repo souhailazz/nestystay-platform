@@ -39,7 +39,7 @@ NESTYSTAY_SESSION_COOKIE_DOMAIN=.nestystay.net
 VITE_API_BASE_URL=/api
 ```
 
-Also set the database, Redis, MinIO/object-storage, session, CSRF/webhook,
+Also set the database, Redis, private server-storage, session, CSRF/webhook,
 email, payment, monitoring and backup values from `.env.production.example`.
 Use dedicated staging data and test-mode provider accounts.
 
@@ -66,7 +66,9 @@ Use dedicated staging data and test-mode provider accounts.
    and `deploy/Caddyfile.production`.
 2. Configure the server-only environment above.
 3. Start the complete compose stack, including `caddy`, `frontend`, `api`,
-   `worker`, `postgres`, `redis`, `minio` and observability services.
+   `worker`, `postgres`, `redis` and observability services. Mount the private
+   storage volume at the configured `NESTYSTAY_STORAGE_LOCAL_ROOT`; do not
+   publish or alias that directory through the edge proxy.
 4. Confirm the DNS A/AAAA record for `staging.nestystay.net` points to the
    server and that ports 80/443 reach Caddy.
 5. Run migrations and seed only the dedicated staging/demo data.
@@ -114,7 +116,7 @@ VITE_API_BASE_URL=/api
 ```
 
 Populate the remaining server variables from `.env.production.example` using
-dedicated staging credentials: PostgreSQL, Redis, MinIO/object storage,
+dedicated staging credentials: PostgreSQL, Redis, private server storage,
 session/TOTP/webhook secrets, monitoring, backups and provider settings. Keep
 the populated file outside GitHub and do not put backend secrets in frontend
 build variables.

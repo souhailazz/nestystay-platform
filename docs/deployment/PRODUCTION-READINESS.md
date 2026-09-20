@@ -13,7 +13,7 @@
 - [x] Checked-SHA deployment runner applies EF migrations inside the private Compose network and performs a health check.
 - [x] Production compose, private networks, health checks and restart policies added; API health probes `/api/health`.
 - [x] Non-destructive deployed smoke suite covers homepage, login, listing, booking quote, badges, wellness, directories, PM/owner portals, gate QR and all health endpoints.
-- [x] MinIO S3-compatible `IStorageProvider` is implemented, private-by-default, and covered by a real container round-trip/authorization test; local object-storage archive checksum and isolated restore rehearsal completed.
+- [x] Server-local `IStorageProvider` is implemented, private-by-default, and covered by round-trip/path/signature tests; local object-storage archive checksum and isolated restore rehearsal completed.
 - [x] Verification, password-reset, and owner-invitation emails render clickable `PUBLIC_APP_URL` links with plain-text fallbacks; local capture and browser completion journeys pass.
 - [x] Prometheus starter alerts, Grafana dashboards, Loki config, Uptime Kuma monitor definitions, and structured backup status/checksum scripts are checked in.
 - [ ] Live Stripe and webhook rehearsal.
