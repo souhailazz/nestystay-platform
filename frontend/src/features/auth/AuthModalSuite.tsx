@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
+import { userSafeErrorMessage } from "../../lib/errorMessages";
 import { cx } from "../../lib/ui";
 import { LEGAL_DETAILS } from "../../lib/legal";
 import { signInWithGoogle } from "./googleSignIn";
@@ -17,8 +18,8 @@ interface AuthModalSuiteProps {
 }
 
 /* AUTH-01 (DS v2) — split brand panel + form cards. All auth logic and API
-   calls are unchanged from the previous implementation; backend errors are
-   shown verbatim in the coral notice zone. */
+   calls are unchanged from the previous implementation; user-safe errors are
+   shown in the coral notice zone. */
 
 const inputClass =
   "min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 font-sans text-[14.5px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-sand-500 focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]";
@@ -170,7 +171,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
       }
       finishSignIn();
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Login failed.");
+      showError(userSafeErrorMessage(err, "Unable to sign in. Check your email and password and try again."));
     } finally {
       setLoading(false);
     }
