@@ -3,9 +3,12 @@ import { X } from "lucide-react";
 import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
+import { loadSession } from "../../lib/auth";
+import { userSafeErrorMessage } from "../../lib/errorMessages";
 import { cx } from "../../lib/ui";
 import { LEGAL_DETAILS } from "../../lib/legal";
 import { signInWithGoogle } from "./googleSignIn";
+import { isSafeInternalReturnTo, postAuthRoute } from "./postAuthRoute";
 import type { AuthModalMode } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
 
@@ -17,8 +20,8 @@ interface AuthModalSuiteProps {
 }
 
 /* AUTH-01 (DS v2) — split brand panel + form cards. All auth logic and API
-   calls are unchanged from the previous implementation; backend errors are
-   shown verbatim in the coral notice zone. */
+   calls are unchanged from the previous implementation; user-safe errors are
+   shown in the coral notice zone. */
 
 const inputClass =
   "min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 font-sans text-[14.5px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-sand-500 focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]";
@@ -144,17 +147,15 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   function finishSignIn() {
     onClose?.();
-    if (returnTo?.startsWith("/")) {
+    if (isSafeInternalReturnTo(returnTo)) {
       navigate(returnTo);
       return;
     }
-    const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
-    if (roles.includes("propertymanager")) navigate("/pm/dashboard");
-    else if (roles.includes("owner")) navigate("/owner/dashboard");
-    else if (roles.includes("host")) navigate("/host-dashboard");
-    else if (roles.includes("officer")) navigate("/officer/wellness");
-    else if (roles.includes("serviceprovider") || roles.includes("localbusiness")) navigate("/directory/provider");
-    else navigate("/guest-dashboard");
+    // Authentication writes the session synchronously, while React state is
+    // updated asynchronously. Read the persisted session here so a newly
+    // authenticated role is not routed through the guest fallback first.
+    const roles = loadSession()?.roles ?? auth.session?.roles;
+    navigate(postAuthRoute(roles, registerRole));
   }
 
   async function handleLogin(e: FormEvent) {
@@ -170,7 +171,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
       }
       finishSignIn();
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Login failed.");
+      showError(userSafeErrorMessage(err, "Unable to sign in. Check your email and password and try again."));
     } finally {
       setLoading(false);
     }

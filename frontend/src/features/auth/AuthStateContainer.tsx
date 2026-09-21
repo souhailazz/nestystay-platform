@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppLink, navigate } from "../../components/AppLink";
 import type { AuthController } from "../../hooks/useAuth";
 import { AuthModalSuite } from "./AuthModalSuite";
+import { postAuthRoute } from "./postAuthRoute";
 
 interface AuthStateContainerProps {
   mode?: "login" | "register" | "forgot-password";
@@ -35,14 +36,9 @@ export function PasswordlessCompletionPage({ auth }: { auth: AuthController }) {
       .then((session) => {
         if (!active) return;
         setComplete(true);
-        const roles = session.roles.map((role) => role.toLowerCase());
         window.setTimeout(() => {
           if (!active) return;
-          if (roles.includes("propertymanager")) navigate("/pm/dashboard");
-          else if (roles.includes("owner")) navigate("/owner/dashboard");
-          else if (roles.includes("host")) navigate("/host-dashboard");
-          else if (roles.includes("officer")) navigate("/officer/wellness");
-          else navigate("/guest-dashboard");
+          navigate(postAuthRoute(session.roles, "Guest"));
         }, 500);
       })
       .catch((caught: unknown) => {

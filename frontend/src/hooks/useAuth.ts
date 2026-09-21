@@ -49,7 +49,11 @@ export function useAuth() {
     }).catch((error: unknown) => {
       if (!active) return;
       const status = (error as { status?: number } | null)?.status;
-      if (status === 401 && !loadSession()) setSession(null);
+      if (status === 401 || status === 403) {
+        clearSession();
+        setSession(null);
+        setPendingChallenge(null);
+      }
     });
     return () => { active = false; };
   }, []);
