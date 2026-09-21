@@ -3,10 +3,12 @@ import { X } from "lucide-react";
 import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
+import { loadSession } from "../../lib/auth";
 import { userSafeErrorMessage } from "../../lib/errorMessages";
 import { cx } from "../../lib/ui";
 import { LEGAL_DETAILS } from "../../lib/legal";
 import { signInWithGoogle } from "./googleSignIn";
+import { isSafeInternalReturnTo, postAuthRoute } from "./postAuthRoute";
 import type { AuthModalMode } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
 
@@ -145,17 +147,15 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   function finishSignIn() {
     onClose?.();
-    if (returnTo?.startsWith("/")) {
+    if (isSafeInternalReturnTo(returnTo)) {
       navigate(returnTo);
       return;
     }
-    const roles = auth.session?.roles?.map((role) => role.toLowerCase()) ?? [registerRole.toLowerCase()];
-    if (roles.includes("propertymanager")) navigate("/pm/dashboard");
-    else if (roles.includes("owner")) navigate("/owner/dashboard");
-    else if (roles.includes("host")) navigate("/host-dashboard");
-    else if (roles.includes("officer")) navigate("/officer/wellness");
-    else if (roles.includes("serviceprovider") || roles.includes("localbusiness")) navigate("/directory/provider");
-    else navigate("/guest-dashboard");
+    // Authentication writes the session synchronously, while React state is
+    // updated asynchronously. Read the persisted session here so a newly
+    // authenticated role is not routed through the guest fallback first.
+    const roles = loadSession()?.roles ?? auth.session?.roles;
+    navigate(postAuthRoute(roles, registerRole));
   }
 
   async function handleLogin(e: FormEvent) {
