@@ -1,6 +1,6 @@
 # Staging integration readiness
 
-Audit date: 2026-09-20. Scope: current NestyStay M1–M5 web/API implementation and the deployment owner’s staging findings. Staging and production were not modified by this audit. QA passwords are intentionally not recorded.
+Audit date: 2026-09-21. Scope: current NestyStay M1–M5 web/API implementation and the deployment owner’s staging findings. Staging and production were not modified by this audit. QA passwords are intentionally not recorded.
 
 ## Readiness matrix
 
