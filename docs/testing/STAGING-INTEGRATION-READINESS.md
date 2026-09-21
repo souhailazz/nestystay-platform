@@ -14,7 +14,7 @@ Audit date: 2026-09-20. Scope: current NestyStay M1–M5 web/API implementation 
 | Gate Guard | Enum/blueprint exists; no provisioning or role-auth path | N/A | QR validation exists, but not Gate Guard role flow | Not run | UNCLEAR_SCOPE | Clarify whether current web M4/M5 requires a dedicated role; current contract places dedicated interface later |
 | Maps | Partial: OpenStreetMap embeds and a public map-search route | External embed requires network/provider policy | Code inspected; no provider certification | Not run | PARTIAL | Verify attribution, availability and privacy policy before production |
 | Geocoding | Partial: Nominatim-compatible host suggestions with manual fallback | Optional `VITE_GEOCODER_URL` | Code inspected; no live rate-limit/provider certification | Not run | PARTIAL | Confirm permitted provider/usage policy or keep manual entry |
-| QA accounts | Eight seeded role accounts reported by deployment owner; PM Staff is invited | Credentials intentionally not stored here | No secure runtime credential mechanism was available in this workspace | Not run | BLOCKED | Run role matrix on staging with secure secret injection; do not copy passwords into repo |
+| QA accounts | Eight seeded role accounts reported by deployment owner; PM Staff is invited | Credentials intentionally not stored here | Login matrix run with runtime-only secret injection; no credentials persisted | Login responses and role claims verified; PM Staff invitation remains pending | PARTIAL | Redeploy the current frontend, then repeat protected-route and invitation-acceptance checks |
 
 ## Evidence-based findings
 
@@ -49,6 +49,18 @@ Admin cannot be self-registered. Startup bootstrap is the only discovered provis
 ## Local change made in this pass
 
 `ProductionIntegrationValidator` now resolves the email provider through the same `ProviderFeatureFlags` path used by DI. This closes a configuration-consistency bug where `EMAIL_PROVIDER=brevo` could activate Brevo while production startup validation looked only at the legacy selector. The local storage provider now exposes a real readiness check (private root plus write/delete probe), production rejects storage signing secrets shorter than 32 bytes, and email transport exceptions use the existing retry/dead-letter policy instead of leaving records in `PROCESSING`. No staging configuration was changed.
+
+The frontend branch also fixes role-aware post-login routing. The previous deployed build routed every successful password login through `/guest-dashboard` because it read React auth state before the asynchronous state update completed. The fix reads the synchronously persisted session and is covered by `postAuthRoute` tests. Commit `424a90b4d1a69703654d34436894f87d5021c5a8` is pushed to `codex/m1-m2-runtime-hardening`.
+
+## Runtime QA performed on staging
+
+Using the deployment owner's staging-only QA accounts through a temporary runtime secret (never written to source, logs, screenshots, or this document):
+
+- Guest, Host, Owner, Property Manager, Wellness Officer, Service Provider, and Local Business login requests returned HTTP 200 with the expected role claim.
+- PM Staff returned HTTP 200 with the seeded `Guest` role; the account is still in the intentionally invited state, so invitation acceptance and scoped staff permissions remain unverified.
+- The current staging frontend routed every non-Guest role to `/guest-dashboard` first, although its workspace navigation later reflected the authenticated role. This is fixed in the pushed frontend branch but is not yet visible on staging.
+- Direct protected-route checks on the current staging frontend are therefore not accepted as a client authorization pass. The backend boundary was checked separately: Guest received HTTP 403 from `/api/property-manager/dashboard`, while Property Manager received HTTP 200.
+- After the frontend branch is merged and redeployed, repeat the login landing, forbidden-route, PM Staff invitation, and mobile checks before professional QA.
 
 ## Required sequence before professional QA
 
