@@ -47,6 +47,11 @@ The five PM controllers expose **193 HTTP actions**. One is the intentionally an
 | PM Staff → Property B/Owner B | PASS | Cross-property and cross-owner requests denied |
 | PM Staff → finance completion without finance capability | PASS | Request denied |
 | PM Staff → staff-management mutation | PASS | Request denied |
+| Conversation participant isolation | PASS | `CrossResourceAuthorizationMatrixTests.ConversationsAndAttachmentsAreRestrictedToParticipants`; non-participant inbox did not expose the conversation and direct read/send/read-state/download calls were denied |
+| Message attachment ownership/isolation | PASS | Owner uploaded and participant downloaded; non-participant download and upload/complete attempts were denied |
+| Wellness visit/report/photo/officer-document isolation | PASS | `CrossResourceAuthorizationMatrixTests.WellnessVisitsReportsPhotosAndOfficerDocumentsAreScoped`; host/officer/guest cross-account reads and officer-document access were denied |
+| Provider private insights/business fields/documents | PASS | `CrossResourceAuthorizationMatrixTests.ProviderPrivateInsightsDocumentsAndBusinessFieldsAreScoped`; provider B could not read provider A private data |
+| Admin-only policy endpoint sweep | PASS | `CrossResourceAuthorizationMatrixTests.EveryAdminPolicyEndpointRejectsAllNonAdminRoles`; every discovered Admin-policy endpoint rejected all non-Admin enum roles |
 
 ## IDOR status
 
@@ -58,14 +63,17 @@ The five PM controllers expose **193 HTTP actions**. One is the intentionally an
 | Host A → Host B private records | 403/404 | Existing host ownership regressions | PASS for covered M1 families |
 | Provider A → Provider B private data | 403/404 | Existing provider ownership coverage | PASS for covered M4 families |
 | Officer A → another officer/private report | 403/404 | Existing Wellness authorization coverage | PASS for covered M3 families |
-| Non-participant → private message/attachment | 403/404 | Existing security coverage; not rerun in this focused pass | NOT_FULLY_REEXECUTED |
+| Non-participant → private message/attachment | 403/404 | Denied in the focused cross-resource API fixture | PASS |
+| Officer/host/guest → another Wellness visit/report/photo/document | 403/404 | Denied in the focused cross-resource API fixture | PASS |
+| Provider B → Provider A private insights/business fields/documents | 403/404 | Denied in the focused cross-resource API fixture | PASS |
+| Non-Admin roles → Admin-policy endpoints | 401/403 | Denied across every discovered Admin-policy endpoint | PASS |
 
 ## Certification boundary
 
-**Unexpected authorized 200 responses in the executed focused cases: 0.** The declared route-policy sweep is complete, but a literal every-resource/every-role certification is **NOT COMPLETE**: dedicated fixtures are still needed for cross-account messages/attachments, Wellness assignments/reports, provider private documents/jobs, and Admin-only resources. Physical document I/O remains blocked until MinIO is available.
+**Unexpected authorized 200 responses in the executed focused cases: 0.** The requested message/attachment, Wellness, provider-private-data, and Admin-policy boundaries are now covered by dedicated real-session API fixtures. This closes the previously listed locally testable cross-resource cases. Physical document I/O remains blocked until MinIO is available, and this focused pass does not claim every possible resource/action combination beyond the listed matrix.
 
 ### Remaining blockers
 
-- **SOUHAIL/application tests:** add the remaining dedicated cross-account fixtures and execute those API rows with real sessions.
+- **SOUHAIL/application tests:** retain the focused cross-resource regressions in the normal test suite and extend the matrix only if additional current-scope resource families are identified.
 - **TERRENCE/server:** configure private MinIO with persistence, then execute physical document/attachment download and signed-access checks.
 - **TERRENCE/server:** provision a legitimate Admin QA account for Admin workflow certification; no synthetic Admin role is accepted.

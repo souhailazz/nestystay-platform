@@ -2,10 +2,10 @@
 
 ## Focused role/IDOR continuation — 2026-09-22
 
-- Added direct API regression coverage for owner-to-owner, manager-to-manager, and scoped PM Staff access boundaries.
+- Added direct API regression coverage for owner-to-owner, manager-to-manager, scoped PM Staff access boundaries, messages/attachments, Wellness resources, provider private records, and Admin-only policies.
 - Enumerated all 192 protected PM actions and verified that enum roles outside each declared route policy did not receive a successful response.
-- Focused suite: **3 passed, 0 failed**. Full backend suite after the addition: **196 passed, 0 failed, 1 skipped**.
-- The executed focused cases produced **0 unexpected authorized 200 responses**. This is not a claim that every cross-account message, attachment, Wellness, provider, Admin, and physical storage resource has been exercised; those remain explicitly listed as incomplete certification items.
+- Focused suites: **7 passed, 0 failed**. Full backend suite after the addition: **200 passed, 0 failed, 1 skipped**.
+- The executed focused cases produced **0 unexpected authorized 200 responses** across the requested message/attachment, Wellness, provider-private-data, Admin-policy, and PM scope cases. Physical storage I/O remains separately untested.
 
 **Audit date:** 2026-09-22  
 **Result:** substantial controls present; complete security certification is NOT complete. The repaired executable browser matrix completed at 188 passed, 0 failed, 36 explicit skips, 0 not-run.
@@ -16,7 +16,7 @@
 - Stripe Identity is the active runtime identity implementation found in backend/frontend source. No active Alibaba provider was found in runtime source.
 - MinIO provider code uses private object access, signed download validation, path traversal rejection, size limits, and authorization at the API boundary. Physical MinIO I/O and restart persistence were not tested because Docker/MinIO was unavailable.
 - Authentication/session code rejects invalid or stale sessions and rehydrates from the server. The browser failures caused by empty localStorage tokens and an admin token presented as a cookie are fixture defects; no application auth bypass was introduced.
-- Server-side role/ownership checks exist. The protected PM route-policy sweep and focused owner/manager/staff IDOR cases pass; cross-account message/attachment, Wellness, provider, Admin, and physical-storage cases remain unexecuted.
+- Server-side role/ownership checks exist. The protected PM route-policy sweep and focused owner/manager/staff, message/attachment, Wellness, provider, and Admin-policy IDOR cases pass; physical-storage I/O remains unexecuted.
 - Backend NuGet vulnerability audit: no vulnerable packages reported across the nine projects. Frontend `npm audit --audit-level=high`: 0 known vulnerabilities. Root-level npm dependencies are unrelated to the frontend audit and were not used as a product result.
 - Gitleaks: root 18 candidates, backend 7, frontend 0. Reviewed path/type context without printing values; candidates are examples/development placeholders or historical workflow/config material. No confirmed active credential was established. Historical exposure/rotation status remains owner-confirmation required.
 - Alibaba search: current repository search found 295 matching lines, primarily immutable migration snapshots, historical docs/evidence, and root compose mappings. No active backend/frontend runtime provider was found. Existing migrations were not modified.
@@ -29,7 +29,7 @@ The prior 25 failed checks were concentrated in admin routes and synthetic host-
 
 - SonarQube vulnerabilities/hotspots and quality gates: not run.
 - Real MinIO authorization, invalid-type/magic-byte/oversize behavior, and restart persistence: not run.
-- Full role/IDOR matrix: partial; focused PM/API rows pass, remaining resource families listed above are not run.
+- Full role/IDOR matrix: focused requested resource families pass; a literal every-resource/every-role certification remains broader than this pass.
 - Full browser suite: executable tests green at 188 passed; 36 explicit configuration/provider skips remain.
 - Human screen-reader, forced-color, reduced-motion, and manual keyboard certification: not complete.
 - Real Brevo transport and mailbox delivery: not verified.

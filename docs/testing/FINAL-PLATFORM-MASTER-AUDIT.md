@@ -3,11 +3,12 @@
 ## Focused authorization/M5 continuation — 2026-09-22
 
 - Added `backend/tests/NestyStay.Api.Tests/PropertyManagerAuthorizationMatrixTests.cs` as server-side regression coverage. It passed 3/3 focused tests.
+- Added `backend/tests/NestyStay.Api.Tests/CrossResourceAuthorizationMatrixTests.cs`; it passed 4/4 focused tests covering messages/attachments, Wellness resources, provider private data, and Admin-policy endpoints.
 - The protected PM route-policy sweep enumerated 192 protected actions across the five PM controllers and exercised every declared-role endpoint with every enum role outside its policy; no out-of-policy 2xx response was observed.
 - Owner/manager cross-portfolio and active PM Staff scope cases now pass through real API calls, including invitation acceptance, manager activation, assigned-property read/create, unrelated-property denial, unrelated-owner denial, finance-capability denial, and staff-management denial.
-- The full backend rerun is now **196 passed, 0 failed, 1 skipped**. The single skip remains the legitimate physical MinIO test when `MINIO_TEST_ENDPOINT` is absent.
+- The full backend rerun is now **200 passed, 0 failed, 1 skipped**. The single skip remains the legitimate physical MinIO test when `MINIO_TEST_ENDPOINT` is absent.
 - This closes the earlier vague PM partial labels by classifying them as local-complete, configuration-blocked, still-partial mobile parity, or deferred scope in `PROPERTY-MANAGEMENT-FINAL-AUDIT.md`.
-- A literal every-resource/every-role IDOR certification is still **not complete** for messages/attachments, Wellness assignment/report resources, provider private jobs/documents, Admin-only workflows, and physical MinIO object I/O.
+- The requested focused message/attachment, Wellness, provider-private-data, and Admin-policy IDOR cases are now complete with 0 unexpected authorized responses. A literal every-resource/every-role certification remains broader than this focused matrix, and physical MinIO object I/O remains untested.
 
 **Audit date:** 2026-09-22 continuation pass  
 **Certification status: INCOMPLETE — do not label production-ready yet.**
