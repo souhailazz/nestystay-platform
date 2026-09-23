@@ -1,0 +1,2991 @@
+{
+  "projectKey": "nestystay-platform",
+  "projectName": "NestyStay Platform",
+  "generatedAtUtc": "2026-09-23T19:43:46.5027553Z",
+  "measures": [
+    {
+      "metric": "coverage",
+      "value": "0.0",
+      "bestValue": false
+    },
+    {
+      "metric": "bugs",
+      "value": "120",
+      "bestValue": false
+    },
+    {
+      "metric": "code_smells",
+      "value": "199",
+      "bestValue": false
+    },
+    {
+      "metric": "duplicated_lines_density",
+      "value": "8.4",
+      "bestValue": false
+    },
+    {
+      "metric": "new_violations",
+      "period": {
+        "index": 1,
+        "value": "0",
+        "bestValue": true
+      }
+    },
+    {
+      "metric": "vulnerabilities",
+      "value": "6",
+      "bestValue": false
+    },
+    {
+      "metric": "security_hotspots",
+      "value": "0",
+      "bestValue": true
+    }
+  ],
+  "qualityGate": {
+    "status": "OK",
+    "conditions": [
+      {
+        "status": "OK",
+        "metricKey": "new_violations",
+        "comparator": "GT",
+        "errorThreshold": "0",
+        "actualValue": "0"
+      }
+    ],
+    "ignoredConditions": false,
+    "period": {
+      "mode": "PREVIOUS_VERSION",
+      "date": "2026-09-23T00:08:17+00:00"
+    },
+    "caycStatus": "compliant"
+  },
+  "issueCount": 325,
+  "issues": [
+    {
+      "key": "176f9ece-1fe2-4ebd-9f14-c648b9b185a9",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "5f718dbc-ad1f-4607-a871-0c86a0229129",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6d0a2c29-dea0-4c9d-9850-727ce21514bb",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 23,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "13e9bcae-e1c8-4025-aae8-69b4ccce1bb2",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 31,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "21add49c-0948-484f-baf3-52345f0f10e7",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "42ce6571-dbc8-4ecc-a924-41a4e9392a0e",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "4872b70b-94f9-4a86-8571-64a22409f6be",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "8628645c-9693-4be2-9a9b-2abf14577657",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "c88c65ba-0e76-4c3b-a32b-4fdce7587d06",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "ff379efe-1b2c-462a-9a1d-f976a6ebfd8d",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "80a907f9-0309-4518-8d6d-ce0a4024c2aa",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 44,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e3414a7c-c5e6-48e8-ad49-16074d4203bc",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-01.dc.html",
+      "line": 44,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "49724edc-c1da-4729-8a48-6a89f7cbef48",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-KPI.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "2628cd1c-6354-4c86-ad1d-b43204495b8e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-KPI.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "aacb3c16-fa0b-4cec-abfe-da271f4a123b",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-KPI.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "65a10de6-1481-46e0-9612-3b75b06f8408",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RESET.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "a27fb17d-817a-4742-a55b-a99e14dfabb1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RESET.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "b4e186ea-479e-493e-bf95-76397c861a19",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RESET.dc.html",
+      "line": 26,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "7899b659-995f-4b3b-9666-2e898982f831",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RPT.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "50a3e0a6-fd37-4da8-9fc4-177546e6df32",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RPT.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "c8a50ef5-926d-4738-ba47-95e2ef9aa773",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RPT.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "2cbcbe95-ac91-41bf-9b27-e9f288e8ed14",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ADM-RPT.dc.html",
+      "line": 37,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "ada101fb-05fa-4de4-ae24-81a309aa7b5d",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "26f94e12-2f4c-4fed-baac-f76b5efcb8af",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6585325e-0acc-4d88-a3e8-906ba3ad598a",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-01.dc.html",
+      "line": 89,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "4c0a609f-c183-470b-b3a3-e04410ddf607",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-LOGOUT.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e20c5b39-064d-4189-a235-08c180adae4d",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-LOGOUT.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "84696708-e648-4077-867a-ae465dbe9191",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-POST.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "2a94cde4-edb7-4a35-85b2-383cb53b91ef",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-POST.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "400bdc08-405d-4455-83d3-07fa6a02e449",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-POST.dc.html",
+      "line": 26,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "f96fbaf6-8635-4102-b81a-ca2e3b023fe7",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "Web:S6819",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/AUTH-POST.dc.html",
+      "line": 42,
+      "message": "Use <output> instead of the status role to ensure accessibility across all devices."
+    },
+    {
+      "key": "562e38f8-0a2c-4aba-b19e-0140a1b03816",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "7e8558d5-a7f4-4d03-8571-f7dcfe4938dd",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "4bb0b018-0cee-4e2e-b78d-df62ceead110",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-02.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "25bd13d4-c08d-46ff-8d71-85bb0e475928",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-02.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "47570fcc-5d3f-4057-bbca-a467e4c96e9e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-03.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "a1149c97-e453-4723-bab5-8661a20f5349",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-03.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "adeda3e5-e03a-4e25-9b9a-b35ad70e8ea0",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-05.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "6cedb86b-5679-4dd4-90f3-42ca89a386f4",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-05.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "7f4a42b6-f1ab-4b05-a922-788241c95daf",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-07.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "d2afaa2b-0796-4e2a-b3cd-90a65d8fa224",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-07.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "7a1cbdc6-6878-47ea-9cf4-200a92db2b60",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-CONF.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "a95098f0-7021-4a41-b788-f071c2dea962",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/BOOK-CONF.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "c643ec9b-0156-4178-b67b-505b2aac9abe",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-02.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "8084f407-7f0f-4770-88ef-d416213d404c",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-02.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "bfaae864-4950-4d12-8b35-1c50b7c42a08",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-02.dc.html",
+      "line": 23,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "59d18288-c986-484c-80fa-bda844486d13",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-BIZ.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "5edd1acd-35a6-4b22-bfe2-3b8ca87e84d3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-BIZ.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6243936c-750f-4a6d-aff0-7b571f8ba349",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-BIZ.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "dbb868f2-159e-4a72-a23e-0dc95a87660d",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-BIZ.dc.html",
+      "line": 29,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "75c9f9e0-7de6-4574-8e99-adf24a2a9acb",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-BIZ.dc.html",
+      "line": 31,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "07ba8dbc-3ecf-43a0-bac6-6d0cb433c954",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-PROV.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "10103211-975d-422e-9838-3246153938d1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-PROV.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "739112ab-1475-4a96-a024-bc08b79a668b",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-PROV.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "7db7af13-3f4f-4b44-a8a4-eab0d4fc5b59",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-PROV.dc.html",
+      "line": 39,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "7e5fce8d-a5d6-43f3-bb6b-3b129043afc9",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/DIR-PROV.dc.html",
+      "line": 39,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "6589e934-92e7-44d8-a084-7404424846ec",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-401.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "7147e42e-6a87-40de-8460-4734176e7452",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-401.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "433ee298-25c4-49eb-8f6e-b90cb3a55ffd",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-403.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "6aa2ce3d-be78-42f6-b073-100800c3561e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-403.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "8e889624-eab8-4dab-9321-0f5959acf50c",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-404.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "57bd578b-02e8-47ed-baeb-60f5d60c61bd",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-404.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "f7ad220b-cd74-4f8b-9310-4567cdf0d56f",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-404.dc.html",
+      "line": 28,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "f9b62146-523e-4a8d-8399-ec61de8e74bd",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-500.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e9386fd8-8997-4f47-b5e8-1c38f83b1eb7",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-500.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "3d592c8e-cd0b-405e-b722-2fca30470ce1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-LOAD.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "f2f6f4b1-e6f3-42fd-b97b-a5656bf87fc9",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-LOAD.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6ab36797-f555-42c5-bd77-99c636c5e65d",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-LOAD.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e629a196-9455-4d2d-8030-4562a5e2a9ab",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NOFAV.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "351cfd7c-a381-463a-8d95-7917d3162cbe",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NOFAV.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "24e0bbe3-6e61-45e6-a66c-becbabea1796",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NOFAV.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e1288f34-770d-46ca-82f6-3404b5f23318",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NORES.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "0f01a406-7450-4a9b-a557-e1e598144a6e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NORES.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "bcc337ac-d744-47c5-a2a7-8557f6a7d974",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/ERR-NORES.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "201e2669-6c4c-4811-be67-390bee1ccbcd",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "175ef12f-af3b-4c23-8cfe-e4c7ee11dee1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "2fce4e58-1071-4a32-acba-80ddf68c6dd4",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-01.dc.html",
+      "line": 23,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "3a317905-9a7d-48d7-8ed5-61449aacfdd2",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "a8bcf933-f4fd-45ea-9306-818146a329a7",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-01.dc.html",
+      "line": 42,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "6c3b2e15-1d66-492c-881a-2adbc99bfed8",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-05.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "49e0fb68-0762-4827-8682-b10d65459804",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-05.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "a8163c2d-0962-4300-9e6e-f29477d1c525",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-05.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "1b573a4a-ddde-4178-b95d-78c1038e7986",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-BADGE.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "d3e9aa83-3833-4aca-a82d-b796c2c333fa",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-BADGE.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "e2fe4cc6-8a1c-47d0-a25d-0fd16138c15e",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-BADGE.dc.html",
+      "line": 29,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "4a30cb64-ec97-4d6e-adee-48a6aef68711",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-BADGE.dc.html",
+      "line": 39,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "b0f69000-1c46-4fe6-a1ba-2bbb61e87d37",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-EDIT.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "6b76c5f0-cddd-4512-97b1-0bb065d806ab",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-EDIT.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "426b5357-d62a-44a4-91fa-f06ed3d46564",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-EDIT.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "50a270ce-89a2-44e2-a59f-2f9c3f534314",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-RPT.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "ca6ac557-5631-4e5b-85ba-cd8f557de4e3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-RPT.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "c4d12229-a610-426f-854b-442d56b7c059",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-RPT.dc.html",
+      "line": 28,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "077f7c21-e564-4baa-b8a9-4e5ac85b876b",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-RPT.dc.html",
+      "line": 34,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "1af9369c-7722-4d7b-aa0b-47eed0195d1b",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-WELL.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "8ec8c3bc-c226-4d0c-9c79-cd146b0df9ab",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-WELL.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "7454d22b-3057-4a05-b7de-a4d28c761b8b",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/HOST-WELL.dc.html",
+      "line": 27,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "8e1d2f48-209a-4024-9d09-31a531b425f3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/INDEX.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "c7c180bc-21ca-4bb4-b3e7-25c019191e6f",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/INDEX.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "9146d051-15c6-4037-b8c3-16a7781743ab",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e4e8b99b-4005-41dd-bc48-9fd2c5f32203",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "ee6dfde5-e31c-4aee-9a8e-32ab358190d0",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-01.dc.html",
+      "line": 29,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "33a2378d-57c8-4e24-8fa5-9f18579a9c4b",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-01.dc.html",
+      "line": 46,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "c5b6d9f0-6caa-432e-b6f9-d7910e4d8058",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-DOC.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "beb0ecbb-fee8-43f4-89db-8669afd025f1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-DOC.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "87a148e9-fc2c-4525-96b5-04e7eeab24e4",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-DOC.dc.html",
+      "line": 29,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "0b690ca5-b4f8-43e3-8d65-0f2e382f3524",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-DOC.dc.html",
+      "line": 39,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "30e9057f-9fb4-457c-938f-2a35ff413e1c",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/MSG-DOC.dc.html",
+      "line": 47,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "32847f29-46e1-4a38-80b9-e8e85fd79e71",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "26eb00ee-3362-4275-beb3-6e8b5e946de8",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "0ba481f1-5a3d-46e6-a81c-24bb9ea4d53e",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 120,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "4cb24a49-3573-413a-b2b9-415d679b423f",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 219,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "267b7f59-9c1e-4eec-a214-9b6d781d4f09",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 317,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "a73f2b22-9332-473c-8103-c832d8558846",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 329,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "d96ad0fc-a00c-4ccf-8f07-0108b0d5c610",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 335,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "f22d3fe5-d1d4-4b5f-9d81-1be58520bfc4",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/NestyStay Design System v2.dc.html",
+      "line": 389,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "7b114e95-70db-4898-97ca-b8a445209a1e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "48989109-c694-421a-a892-4a759180c4f3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "de0601ad-8463-42b5-818c-d6ac3b8646d0",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-01.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "75b4020f-6e36-4001-b0b3-fefbe763c9c2",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-01.dc.html",
+      "line": 29,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "12bfcd6e-a47a-4196-98c4-fbb30512b0bf",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-01.dc.html",
+      "line": 41,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "8362336d-0c21-40f5-a08f-ec6f2d74ae77",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "b88997fd-716b-4de9-b5d4-77e0db399f99",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "f539ee48-f9dc-420a-ae4c-82780ce85483",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 23,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "65e2a49b-e75c-4b97-a8c0-64c8a0ccd98c",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 31,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "109b00db-1948-4445-bf91-d20f777405b1",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 35,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "b9cc9ea0-319e-448b-b8cf-8bbbb6a2bfb6",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-02.dc.html",
+      "line": 36,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "dbb6bf2b-0d5a-4a50-9e83-c5196d795641",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-BOOK.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "622c4382-d054-4fa7-8b0d-cd664b354a02",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-BOOK.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "094f4afe-408c-457d-8191-195490d8dbc6",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-BOOK.dc.html",
+      "line": 26,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "4707ab4b-4ec7-4052-b7ec-e9e0a4ee1be9",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-DIR.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e9c67278-3055-466d-96b5-ba353ee30243",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-DIR.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "f8e919dd-0e4f-41a4-9944-841e09472c62",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-DIR.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "638074bc-2b1b-4294-b284-abb3c171b899",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-DIR.dc.html",
+      "line": 31,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "895576f4-93d6-4f9a-a023-3649f40f1750",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/OFC-DIR.dc.html",
+      "line": 46,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "913ddb5d-8abd-44c4-8349-561f3d6d9524",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "5cc5c2ac-4184-4c50-98d3-99655fa1a20e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "bed15ec4-966a-46ae-b50d-03f14bfac8ee",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 23,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "581003fc-b544-4c6c-8a12-c8c99f7e3dbb",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 31,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "90246a19-8b44-4d8d-8b71-123d2c93cead",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 41,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e1918d92-4f33-44b4-bd53-458b6920320f",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-GATE.dc.html",
+      "line": 51,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "2135a6f7-eb7b-44b7-88f9-76fa42624645",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-INS.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e5dad9b1-a29f-4812-b3c2-7577587fb3ff",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-INS.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6d3be45b-0799-4fa4-be00-423a2ecbcb92",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-INS.dc.html",
+      "line": 27,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "49e46643-980d-40d9-989c-30314b738a3a",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-INS.dc.html",
+      "line": 39,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "b41f4425-4bcb-4986-b4be-d0784815d250",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-INS.dc.html",
+      "line": 51,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e571d83c-0d53-4feb-88a8-83fc5229b9de",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-RPT.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "b67c654d-f6bf-4ba8-b85c-daf97ecbdc19",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-RPT.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "5cd3d7cc-f7bc-4044-a300-c66941e4ba38",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-RPT.dc.html",
+      "line": 26,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "5cce0be2-afab-4e9e-8a92-3f0d5ff804b1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-RPT.dc.html",
+      "line": 31,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "f8bcc377-a80f-4f45-8025-3a75f823ce52",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-RPT.dc.html",
+      "line": 34,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "9d5517e6-807d-443a-b9fd-f9540e9ddbde",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "e3f97fbf-d3c5-4e73-ba62-41cce6d629e4",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "20976d1a-de13-4e9d-949f-3e77f606c417",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "0ace0f3e-bcb1-4833-bb06-60528c80ce41",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 31,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "296c35b1-6d5d-4d12-ab64-1cc24af2ea05",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 32,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "272e5ee1-d87f-4e3a-97c2-5e8c9e0027f1",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-UTIL.dc.html",
+      "line": 33,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "325f5e77-4ae9-4026-9bc8-6680e0543ac7",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-VERIFY.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "66e04c9b-4ec4-4c50-aead-26c4f441f73d",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-VERIFY.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "c18db069-3d98-43a7-8e18-abd140c49025",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-VERIFY.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e955a4fe-5f5d-4c4e-a031-aab41c3a04e6",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PM-VERIFY.dc.html",
+      "line": 38,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "2cb1685a-bb58-4720-a482-b6d994d3d8f5",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "bcbc01b1-8d8f-4999-91c0-887c58b443ed",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "75a0c5e2-6ca5-4811-b2cc-e490bdc5f846",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-02.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "64400f3d-a465-48e2-b828-8bd07416d926",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-02.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "a2c140aa-3dea-4b05-9ec1-38146ef6c15e",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-02.dc.html",
+      "line": 44,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "5739733a-8590-4ab4-aa59-d8d325457895",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-02.dc.html",
+      "line": 87,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "b3fb3424-96d9-4151-8cd5-d5f31276fe81",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-02.dc.html",
+      "line": 189,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "46ae8329-f799-4b1b-8af8-90d9dce81f83",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-04.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "a3611256-ace2-4247-a417-44959ecbf0ac",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-04.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "b97fa6b0-d581-4ff0-b3b3-238890eb6342",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "Web:S7927",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-04.dc.html",
+      "line": 48,
+      "message": "The accessible name should be part of the visible label."
+    },
+    {
+      "key": "dee2f4f4-561b-4b45-a240-f5b61080f8a8",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S4666",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-MAP.html",
+      "line": 36,
+      "message": "Duplicate selector \".mini .p\", first used at line 34"
+    },
+    {
+      "key": "da0f6e7f-1abd-4ddf-b006-61b247e0460f",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7785",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-MAP.html",
+      "line": 122,
+      "message": "Prefer top-level await over an async IIFE."
+    },
+    {
+      "key": "40adf8c4-8784-4d0f-98c4-74e259fbe5e0",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S2486",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-MAP.html",
+      "line": 155,
+      "message": "Handle this exception, don't catch it at all, or explain in a comment why it is ignored."
+    },
+    {
+      "key": "c6d2feac-e172-4b9b-bf2b-1160384fee30",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-SOON.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "4487c251-10a1-4d63-9039-159136a85162",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-SOON.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "65925645-1483-4a59-b439-0fd9f7c15c97",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-SOON.dc.html",
+      "line": 54,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "d881e183-1496-4e67-ada9-235601fd98c3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/PUB-SOON.dc.html",
+      "line": 54,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "c0c5cd9f-6fa5-492e-b1b3-28c6d3dd8290",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-01.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "3c8c9b4e-e2c8-4a0e-a02c-87678ec39aef",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-01.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6d08aea1-b3a7-4d07-b283-ae1892c604fe",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-01.dc.html",
+      "line": 24,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "81238943-2fd6-4850-831f-306cf1b551d3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-12.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "ee687b4e-e1ac-4dc5-9ce6-fc3b1f7d351a",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-12.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "67f8ebae-37f1-40b8-b5f1-a0300ad9991c",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-12.dc.html",
+      "line": 31,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "98522735-3bcf-43bf-be95-009807ed3a51",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-12.dc.html",
+      "line": 43,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "e16b7331-724b-44dd-a1ae-bf302daa82f1",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-COL.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "f15d2ea8-311a-473c-a749-b66c0a0d1224",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-COL.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "977727a9-cf82-4075-908a-ae31870e4904",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-COL.dc.html",
+      "line": 26,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "9b4d500a-e3ef-410d-8c9d-c8ee50f471e3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-INV.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "44f6680c-7582-4109-be6e-9af5d69aebe8",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-INV.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "6d1d8911-7051-4208-b249-dddc5f00327e",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-INV.dc.html",
+      "line": 28,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "29b0bb05-e8ee-408a-b3f6-69c048496f16",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:InputWithoutLabelCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-INV.dc.html",
+      "line": 35,
+      "message": "Add an \"id\" attribute to this input field and associate it with a label."
+    },
+    {
+      "key": "328c7e40-ce89-4dcb-a2d0-9f00292567ed",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-INV.dc.html",
+      "line": 36,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "8903864c-e95c-4e15-991a-462c71cf5c79",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-NOTIF.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "ed80fa9e-a19d-47bd-9fea-2904cecbed8a",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-NOTIF.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "859616f6-4b62-405f-b42b-20ebad43ba06",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-NOTIF.dc.html",
+      "line": 30,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "c988ce72-5b0b-4640-8347-4882df908d60",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-NOTIF.dc.html",
+      "line": 35,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "11b9f1db-6402-4195-899a-590339eab1b6",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-NOTIF.dc.html",
+      "line": 52,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "bdfb8a1c-5c64-4798-9aff-8688510c544b",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-PEND.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "a0eb7af5-5eba-4622-9065-bb58e31274b3",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-PEND.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "1d76acd9-87b0-4890-a603-9320428f73ad",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-PEND.dc.html",
+      "line": 27,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "5c127eba-61bb-465d-a3cf-8dedb5d49ea6",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-PEND.dc.html",
+      "line": 46,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "6e24716d-275e-4664-a3c5-f8904d7c5934",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:S5254",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-SUGG.dc.html",
+      "line": 2,
+      "message": "Add \"lang\" and/or \"xml:lang\" attributes to the \"<html>\" or \"<body>\" element"
+    },
+    {
+      "key": "65460aa3-0512-40b1-9345-945feeeeddd0",
+      "type": "BUG",
+      "severity": "MAJOR",
+      "rule": "Web:PageWithoutTitleCheck",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-SUGG.dc.html",
+      "line": 3,
+      "message": "Add a <title> tag to this page."
+    },
+    {
+      "key": "01d31997-df1c-4751-9a6b-94336db8aa5c",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "css:S7924",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/TRAV-SUGG.dc.html",
+      "line": 25,
+      "message": "Text does not meet the minimal contrast requirement with its background."
+    },
+    {
+      "key": "088e4be3-4af8-4ff2-8dde-427e35c61b07",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 4,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "3da2e926-813f-43e8-8bcc-56403e9e6fa3",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 5,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "68924ad6-731c-4651-bcc3-172be20bf3b3",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S1121",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 5,
+      "message": "Extract the assignment of \"obj[key]\" from this expression."
+    },
+    {
+      "key": "8bb705b3-63ae-44ec-af44-92874272d1ad",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 6,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "e06b2ba8-c56b-41ba-9df3-a5825a912c1a",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 19,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "7f75e3d0-523b-49f4-ba2e-4b9963fa5375",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 29,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "b410bf09-fbd0-48e1-856d-17b586f75526",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 47,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "59e62763-cde0-461e-b4bb-e9af1acc5388",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 71,
+      "message": "Use 'String#startsWith' method instead."
+    },
+    {
+      "key": "d1dbbca7-ce47-4cf7-ac9c-8a431daca92f",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7760",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 76,
+      "message": "Prefer default parameters over reassignment."
+    },
+    {
+      "key": "e852413a-3f48-42cf-a782-159f2758f75d",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 86,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "63eef4cb-94f4-401c-ac74-34e311baab57",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 132,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "cf54b430-2417-4fd5-8410-da6b95987f30",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2004",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 179,
+      "message": "Refactor this code to not nest functions more than 5 levels deep."
+    },
+    {
+      "key": "fd99c144-0e90-4f08-a834-b9cec2ca0123",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7744",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 193,
+      "message": "The empty object is useless."
+    },
+    {
+      "key": "7a064358-d5d2-47af-baa9-baea2d7fc26e",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 203,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "045d3f55-7e54-4772-9110-550f319da3f6",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 204,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "5628e1d6-a142-4aa0-a2f3-13aa090a782e",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7755",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 208,
+      "message": "Prefer `.at(…)` over `[….length - index]`."
+    },
+    {
+      "key": "9a7e8bf2-69b9-44b5-bb30-5db32d537482",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 208,
+      "message": "Use 'String#startsWith' method instead."
+    },
+    {
+      "key": "aa204a1e-2957-4fc1-a52f-4fd9212cb6c7",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 208,
+      "message": "Use the 'String#endsWith' method instead."
+    },
+    {
+      "key": "6b1aebcf-3aeb-4d1e-a9cb-97da377eece0",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 226,
+      "message": "Use 'String#startsWith' method instead."
+    },
+    {
+      "key": "4e6ecb1d-33fd-45a8-8bdf-9a0816e526e4",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7755",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 232,
+      "message": "Prefer `.at(…)` over `[….length - index]`."
+    },
+    {
+      "key": "5b1ed273-99af-4dc6-88ac-19d3eb095aee",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 232,
+      "message": "Use 'String#startsWith' method instead."
+    },
+    {
+      "key": "9c2ef27b-ea43-475b-9c1d-6629a3a4d4e9",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 232,
+      "message": "Use 'String#startsWith' method instead."
+    },
+    {
+      "key": "ddb77e38-d496-4a11-9d8c-e5f7e0c469f0",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6557",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 232,
+      "message": "Use the 'String#endsWith' method instead."
+    },
+    {
+      "key": "e978ad87-9475-4535-8f3f-f01cda3c6533",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 248,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed."
+    },
+    {
+      "key": "6fbd6a37-c3fe-4c5d-8a51-f289532109dc",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 263,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed."
+    },
+    {
+      "key": "2c4faee5-650e-403a-b33e-219f806308f8",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 297,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "44a8453f-baea-4a9a-aed3-bc5381dc38a8",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 298,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "78684d29-531a-4d9b-b36d-bdaa923333da",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 303,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "3cb79756-d0c6-4ff4-bda6-37765d06d322",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 314,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "0db5497a-c1df-4c43-8135-54c4b42ba2bd",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 317,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "d1539e02-720e-473b-8367-42faea83bd7c",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 360,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "df954a73-c02d-411c-9d9e-ae15bc5bdcc1",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 361,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "dc95dc7f-020e-4dfe-82d0-a5177f8ce199",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 365,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "d154df7d-74d8-464d-88c8-1458877abc22",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7780",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 382,
+      "message": "`String.raw` should be used to avoid escaping `\\`."
+    },
+    {
+      "key": "76b790e3-1b4a-4a12-b650-6e54812a38bc",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S8786",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 408,
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking."
+    },
+    {
+      "key": "374aea1e-3da8-4361-8514-a899f25d9adc",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 415,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed."
+    },
+    {
+      "key": "c788992c-001a-4760-b323-0bdc58092f1f",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7747",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 419,
+      "message": "`for…of` can iterate over iterable, it's unnecessary to convert to an array."
+    },
+    {
+      "key": "affacce8-9e99-46cc-a32f-991016e8d2a8",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S6660",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 436,
+      "message": "'If' statement should not be the only statement in 'else' block"
+    },
+    {
+      "key": "7a1e8bdc-febf-4ee1-b0aa-22b1a0c7dbd7",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 445,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "bcd7715c-485f-4856-822a-8434a98d635d",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3358",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 458,
+      "message": "Extract this nested ternary operation into an independent statement."
+    },
+    {
+      "key": "547e2dd3-0e39-4369-bbf9-9567d26852b0",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 474,
+      "message": "Prefer `.dataset` over `setAttribute(…)`."
+    },
+    {
+      "key": "4ec5d88d-c28c-48b3-81a1-50776c290137",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 486,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "b8e0c30c-7510-4f99-a57d-6ba390184341",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 487,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "05a40b92-4eb3-44c0-889f-9a5b3cd6d4f6",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 488,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "95a43bb5-5956-4bff-bab3-66ae3ab4293b",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 493,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 29 to the 15 allowed."
+    },
+    {
+      "key": "8a53a8d6-6dda-44a1-a45c-c2ab7e4faff2",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 506,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "8aa265ee-a9c2-4235-a343-9f3b5df238e5",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 534,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "6ac3d1b1-bc49-468b-b756-671dd7ea2cd0",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 562,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "05353006-31fc-496e-bf24-6a0fe4084c59",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S8786",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 575,
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking."
+    },
+    {
+      "key": "9db34513-2670-4d8b-b306-57227bf659dc",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7773",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 614,
+      "message": "Prefer `Number.parseInt` over `parseInt`."
+    },
+    {
+      "key": "f974128b-f250-4dff-a796-66c8ef8a3f5c",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7723",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 629,
+      "message": "Use `new Array()` instead of `Array()`."
+    },
+    {
+      "key": "dfeea3bc-5389-45ed-803e-52a53e157821",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 665,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "7b762dc5-20c0-4d5b-a452-3fc841298aaf",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 701,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "51b275e8-f550-423b-b132-d67aa4a20490",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3358",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 709,
+      "message": "Extract this nested ternary operation into an independent statement."
+    },
+    {
+      "key": "94a555ec-cb97-4154-81fb-d793131ad8bc",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 721,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 32 to the 15 allowed."
+    },
+    {
+      "key": "f5fae1a5-9407-44fe-8fb4-2840d5a882bb",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3358",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 724,
+      "message": "Extract this nested ternary operation into an independent statement."
+    },
+    {
+      "key": "6c5bf96b-cadc-4ecb-8a22-919cc6a275e6",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7758",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 778,
+      "message": "Prefer `String#codePointAt()` over `String#charCodeAt()`."
+    },
+    {
+      "key": "bbde3655-eb80-4935-826c-5ff74fb2567a",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7767",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 778,
+      "message": "Use `Math.trunc` instead of `| 0`."
+    },
+    {
+      "key": "60454993-d861-4772-bbef-3ee560ea3b2b",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 781,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "99b1da64-5981-4e8d-9a84-409eecdbec8e",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 786,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "7819c342-c8a6-45c9-8f37-82206e642eea",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 789,
+      "message": "Prefer `.dataset` over `getAttribute(…)`."
+    },
+    {
+      "key": "3b122261-db7c-4d1b-a66b-8b74d6be7325",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 817,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "afff0893-64c9-4473-946e-620a7ff7c72c",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 826,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "dc83e04b-6a11-4fd5-8a8b-fbf1ec48d069",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 829,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "f6aba29b-a2ee-499a-ab98-2b6051a7a26d",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1186",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 831,
+      "message": "Unexpected empty method 'componentDidMount'."
+    },
+    {
+      "key": "565ffb83-0937-42ef-b8e4-2ebc5cd77af4",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1186",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 833,
+      "message": "Unexpected empty method 'componentDidUpdate'."
+    },
+    {
+      "key": "9a296727-ca4c-4bea-b255-4b2b2d0dd130",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1186",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 835,
+      "message": "Unexpected empty method 'componentWillUnmount'."
+    },
+    {
+      "key": "f4da06c0-bbd3-4d44-9473-d6e3e89ca9c2",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1523",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 844,
+      "message": "Make sure that this dynamic injection or execution of code is safe."
+    },
+    {
+      "key": "0b0ebdf1-fb51-4db8-b40e-ad8479306360",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1523",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 850,
+      "message": "Make sure that this dynamic injection or execution of code is safe."
+    },
+    {
+      "key": "5d7f6789-7619-445b-b7aa-3f7ce6f0b142",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 873,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "a7db058d-9a69-454e-aa84-da043575c563",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3358",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 879,
+      "message": "Extract this nested ternary operation into an independent statement."
+    },
+    {
+      "key": "ded3bdc5-ef00-4674-8cf6-5aa351f3a25b",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 886,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "07a0e50b-9fc0-40be-8a08-9e99c5230d66",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7744",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 959,
+      "message": "The empty object is useless."
+    },
+    {
+      "key": "755b6645-4753-412d-a503-ad34c1848c82",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7744",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1033,
+      "message": "The empty object is useless."
+    },
+    {
+      "key": "7fff5909-ce7e-4b8c-bac8-60228bedb878",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7744",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1033,
+      "message": "The empty object is useless."
+    },
+    {
+      "key": "591a49a1-173b-48d8-8f0a-1b707aaca9fe",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7744",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1085,
+      "message": "The empty object is useless."
+    },
+    {
+      "key": "b411a648-e4d8-40c6-bc10-eadba3bb5654",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2004",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1116,
+      "message": "Refactor this code to not nest functions more than 5 levels deep."
+    },
+    {
+      "key": "806da42a-6f60-4459-a015-6119d46fdd69",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2004",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1118,
+      "message": "Refactor this code to not nest functions more than 5 levels deep."
+    },
+    {
+      "key": "7dc7741d-279a-4171-90c7-66340108c69c",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1143,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "318d3177-be44-4854-b048-9d5fb1bedf57",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1144,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "73f3987b-9546-423d-a586-821fba9d49c0",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1145,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "ebf0baef-3abd-42c1-9311-1f67d2a97195",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1146,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "87e788fa-1eb2-4e87-b972-0a694e2d57fd",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1147,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "600de658-081c-4fc3-8e6f-c0670aef382c",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1148,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "5f6be86f-40ff-430a-a8a5-f24b26453dc2",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1156,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "9f6cfc3c-26bb-4eff-ade7-304f63bccab6",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1169,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "ee53db83-08a2-40a7-adcd-20ac0f17eb44",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1170,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "f05f2881-6f7b-4e01-86a6-16e6ee4f7697",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S1523",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1218,
+      "message": "Make sure that this dynamic injection or execution of code is safe."
+    },
+    {
+      "key": "564361e1-3817-45fb-9d40-d62174c61c09",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1261,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "6d297859-8146-4664-ada5-898c115239d7",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1261,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "9ad91288-8d3c-4ab0-9130-d902a2c5985d",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1261,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "319e60f5-3f4a-4392-bf36-40f295fbfdce",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1307,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed."
+    },
+    {
+      "key": "f435fc9c-51e4-4d5e-9584-6cecaf118285",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1357,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "b1c3b841-525c-4d4e-82d4-c5808d3cd0d0",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1363,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "9a9640c7-9ee4-4d67-8c2d-3211689f6458",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1364,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "f9070113-95ec-4a45-b858-a60aaff5617e",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1365,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "7e005196-02bb-4dd8-9240-7712c655abcf",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3358",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1374,
+      "message": "Extract this nested ternary operation into an independent statement."
+    },
+    {
+      "key": "ec0b7041-655d-4d2d-9670-c3acaed96627",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2819",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1387,
+      "message": "Specify a target origin for this message."
+    },
+    {
+      "key": "b299df6e-d698-42a1-bcf9-f207e4508f05",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1396,
+      "message": "Prefer `.dataset` over `setAttribute(…)`."
+    },
+    {
+      "key": "10afe2e6-159b-47b3-b0f9-e3399498c191",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1398,
+      "message": "Prefer `.dataset` over `setAttribute(…)`."
+    },
+    {
+      "key": "6800dbfc-7f3d-4b42-9ea4-6adef8d0061e",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1402,
+      "message": "Prefer `.dataset` over `removeAttribute(…)`."
+    },
+    {
+      "key": "3a716fe4-c0a2-4e7a-9c6a-cb15b9a0ef2d",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2819",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1407,
+      "message": "Verify the origin of the received message."
+    },
+    {
+      "key": "ec9c6899-ee26-49f5-bf62-b00a04e2439a",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1408,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "f0edaeb9-403b-4f64-a4a0-224d5c2c30ab",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S7761",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1423,
+      "message": "Prefer `.dataset` over `hasAttribute(…)`."
+    },
+    {
+      "key": "94bd39fd-a750-49c8-a016-780d79e8b4b9",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1430,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 71 to the 15 allowed."
+    },
+    {
+      "key": "4bd294e2-2d7b-4d55-996a-7207c40ab6ed",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1431,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "765c042e-3ac9-469d-9c14-d05709a0a836",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7747",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1443,
+      "message": "`for…of` can iterate over iterable, it's unnecessary to convert to an array."
+    },
+    {
+      "key": "6c0593f2-7a23-455d-8e89-a0c7cb0ee7dd",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1453,
+      "message": "`rel` should be a `Set`, and use `rel.has()` to check existence or non-existence."
+    },
+    {
+      "key": "5a4a3ee6-ab21-4042-9d58-ba5c50412a9e",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7747",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1484,
+      "message": "`for…of` can iterate over iterable, it's unnecessary to convert to an array."
+    },
+    {
+      "key": "c9b1ae7c-884f-46d4-b3d5-e6a1693e1b70",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1511,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 20 to the 15 allowed."
+    },
+    {
+      "key": "6a5a513a-76b9-4167-bac0-5f359fedec83",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S2310",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1529,
+      "message": "Remove this assignment of \"i\"."
+    },
+    {
+      "key": "c0b4b92d-463c-4085-969d-a789e16bbd3f",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S2310",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1536,
+      "message": "Remove this assignment of \"i\"."
+    },
+    {
+      "key": "12180213-7cf8-4dfa-ad3c-7f399309636b",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3776",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1542,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed."
+    },
+    {
+      "key": "6201b943-ff47-49a0-a19d-317831306797",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S2310",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1561,
+      "message": "Remove this assignment of \"i\"."
+    },
+    {
+      "key": "2f314bfe-38ba-4703-afa1-cbfa7d08517f",
+      "type": "CODE_SMELL",
+      "severity": "CRITICAL",
+      "rule": "javascript:S3504",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1622,
+      "message": "Unexpected var, use let or const instead."
+    },
+    {
+      "key": "fbe9645c-9ceb-481e-995f-14e1e66bb906",
+      "type": "CODE_SMELL",
+      "severity": "MAJOR",
+      "rule": "javascript:S3800",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1651,
+      "message": "Refactor this function to always return the same type."
+    },
+    {
+      "key": "1b393039-4569-455d-a68d-b41ba78cf146",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1784,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "8ccbf007-6837-4974-954c-cf16df1fe321",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S7747",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1811,
+      "message": "`for…of` can iterate over iterable, it's unnecessary to convert to an array."
+    },
+    {
+      "key": "41395c12-8553-4167-9963-ba09ce437b03",
+      "type": "VULNERABILITY",
+      "severity": "CRITICAL",
+      "rule": "javascript:S2819",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1858,
+      "message": "Specify a target origin for this message."
+    },
+    {
+      "key": "84f2792c-c811-4e6f-b2e5-3f619c43c529",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1862,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    },
+    {
+      "key": "8427d932-f789-46b3-92b4-4ef63d24f4a8",
+      "type": "CODE_SMELL",
+      "severity": "MINOR",
+      "rule": "javascript:S6582",
+      "component": "nestystay-platform:design-system/design_handoff_nestystay_ui/screens/support.js",
+      "line": 1863,
+      "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read."
+    }
+  ]
+}
