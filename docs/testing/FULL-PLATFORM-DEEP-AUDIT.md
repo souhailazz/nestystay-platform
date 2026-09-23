@@ -7,9 +7,9 @@ Scope: isolated release-certification branches only. The dirty original workspac
 
 | Repository | Branch | SHA |
 |---|---|---|
-| Frontend | `codex/final-release-certification` | `fe9a343174d31ae3e10f3036da3fffea5b83de3d` |
-| Backend | `codex/final-release-certification` | `17ac3e4474a0d2e5a514edc3c84170518c4a2287` |
-| Root/orchestration | `codex/final-release-certification` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Frontend | `codex/final-release-certification` | `8947fafc21d321186b1fd31eece198d1285f269a` |
+| Backend | `codex/final-release-certification` | `55af964` |
+| Root/orchestration | `codex/final-release-certification` | `c53834b76a2a84e3f5c226ecafaf121b9c562e12` |
 
 ## Automated results
 
@@ -32,9 +32,9 @@ The 11 skips are explicit conditional guards: privileged/provider checks requiri
 
 ## Release blockers
 
-1. Frontend all-source coverage is 25.11% locally (Sonar reports 21.4%), below the requested 60%; new-code coverage is not at the requested 80% gate.
-2. Backend Sonar coverage imported as 0.0% because the scanner run did not receive an OpenCover report; the backend Quality Gate is therefore failed.
-3. Frontend Sonar Quality Gate is failed: 6 bugs, 3 vulnerabilities, 971 code smells and 1 new violation.
+1. Frontend all-source coverage is 25.13% locally (Sonar reports 25.8% line / 21.4% combined), below the requested 60%; new-code coverage is 18.2% combined / 25.0% line, below the requested 80% gate.
+2. Backend OpenCover coverage is now imported correctly: 51.2% overall (50.9% line, 52.1% branch). The backend Quality Gate remains failed because new-code coverage is 45.6% and one new violation remains.
+3. Frontend Sonar Quality Gate is failed: 0 bugs, 0 vulnerabilities, 970 code smells and 1 new violation. The certification pass removed the previously reported frontend security and bug findings; the gate still fails on coverage/new-code violation.
 4. Backend Sonar Quality Gate is failed: 9 bugs, 31 vulnerabilities, 1009 code smells and 1 new violation.
 5. Staging has not deployed the certification branches: `/api/health/version` currently returns 404 and `/version.json` currently falls through to HTML, so deployed SHA parity is **UNKNOWN**.
 6. Real staging MinIO I/O and Brevo mailbox delivery remain external configuration checks.
