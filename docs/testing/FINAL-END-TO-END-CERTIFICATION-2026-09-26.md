@@ -82,11 +82,17 @@ Local SonarQube is running at `http://localhost:9000`. No token is included in t
 |---|---:|---:|---:|---:|---:|---:|---|
 | Frontend | 0 | 0 | 0 | 978 | 52.5% overall / 56.2% line | 1.6% | PASS for the configured gate |
 | Platform/root | 0 | 0 | 0 | 0 | not applicable | 0.0% | PASS |
-| Backend | not submitted | not submitted | not submitted | not submitted | not submitted | not submitted | BLOCKED |
+| Backend | 0 | 0 | 0 | 1,007 | 11.2% overall / 9.6% line | 20.6% | PASS (`OK`) |
 
 The frontend Sonar scan genuinely completed and accepted LCOV, but its Sonar line coverage remains below the requested 60% target and its existing maintainability backlog includes 22 critical and 297 major code smells. The local Vitest line result is 60.04%; it must not be conflated with Sonar's separate executable-line calculation.
 
-The backend coverage-instrumented Sonar run was canceled after the collector stalled in the instrumented test hosts without submitting an analysis. The normal backend test suite is green, but this does not constitute a backend Sonar Quality Gate result.
+The backend analysis now submitted successfully and Sonar returned Quality Gate `OK`. Coverage is only 11.2% overall / 9.6% line because the fresh Infrastructure/API OpenCover collector repeatedly stalled after starting those hosts; the normal uninstrumented backend suite remains green. This is a valid Sonar analysis, but not a complete backend coverage certification.
+
+### Critical/major maintainability review
+
+The current scans contain maintainability findings, not security vulnerabilities: frontend 22 critical / 297 major code smells; backend 59 critical / 401 major code smells. The critical findings were reviewed by rule and affected area. Frontend critical findings are primarily cognitive-complexity issues in booking, host, admin and Property Manager screens plus intentionally empty test doubles; backend critical findings are primarily cognitive-complexity in the integration validator, calendar/webhook controllers and Property Manager persistence stores, with a small number of formatting/obsolete-code findings. Sonar reports 0 bugs, 0 vulnerabilities and 0 security hotspots for both projects. These findings are not silently accepted as a clean release: they remain a maintainability remediation backlog and production promotion remains blocked until the agreed policy owner accepts or remediates them.
+
+Frontend coverage is 60.04% by the local Vitest line report, but Sonar's executable-line calculation is 56.2%. The difference is documented rather than hidden; the 60% Sonar target is not yet met and is not being claimed as met.
 
 ## Security and authorization
 
@@ -95,7 +101,7 @@ The backend coverage-instrumented Sonar run was canceled after the collector sta
 - Local MinIO authorization checks passed.
 - Stripe webhook signature/idempotency and application security tests are included in the passing backend/API coverage, but external provider delivery is not claimed.
 - Alibaba is not the active runtime identity provider. Historical references/migration history remain preserved and were not deleted.
-- Final Gitleaks candidate triage was not completed in this run; the previously recorded candidates therefore remain an explicit release blocker until reviewed without exposing values.
+- Gitleaks triage is complete for the current release candidate. Frontend has 0 tracked-history findings; backend's 7 findings are placeholders/historical development values; root has 1 Alibaba placeholder plus generated-evidence false positives. No active production credential requiring rotation was identified. Details are in [`GITLEAKS-TRIAGE-2026-09-26.md`](GITLEAKS-TRIAGE-2026-09-26.md).
 - Manual human screen-reader, forced-color and full reduced-motion certification remains separate from automated accessibility coverage.
 
 ## Staging deployment parity
@@ -147,9 +153,9 @@ Property Manager dashboard/portfolio, owner scope, finance/invoices/payments, ut
 ### Souhail / code and PR workflow
 
 1. Keep PRs #9, #10 and #6 open for Terrence's review; do not bypass protected `main`.
-2. Complete backend Sonar coverage collection/submission, then review its Quality Gate and findings.
+2. Raise backend Sonar coverage above the current 11.2%/9.6% result by replacing the hanging Infrastructure/API collector path, then rerun the scan.
 3. Raise frontend Sonar coverage to the agreed target and address/review the existing critical/major maintainability backlog rather than treating a new-code green gate as full certification.
-4. Complete the final Gitleaks candidate triage without recording secret values.
+4. Keep the completed Gitleaks triage attached to the PR without recording secret values.
 5. Preserve the version metadata endpoints in the release and verify their deployment after merge.
 
 ### Terrence / staging and provider verification
@@ -176,11 +182,11 @@ Property Manager dashboard/portfolio, owner scope, finance/invoices/payments, ut
 | Browser suite has zero failures? | YES — 216 passed, 8 explicit skips |
 | Real local MinIO I/O tested? | YES |
 | Real Brevo delivery verified? | NO — external configuration/mailbox required |
-| Backend Sonar analysis submitted? | NO — collector stalled before submission |
+| Backend Sonar analysis submitted? | YES — Quality Gate `OK`; coverage collection remains incomplete |
 | Frontend Sonar gate passed? | YES, but coverage/backlog remain below full certification targets |
 | Staging SHAs verified? | NO — UNKNOWN due deployed metadata endpoints |
 | All current work merged to protected `main`? | NO — PRs #9, #10 and #6 require review/merge |
-| Ready for professional QA? | NO — staging storage/email/roles/SHA and Sonar/Gitleaks blockers remain |
+| Ready for professional QA? | NO — staging storage/email/roles/SHA and Sonar coverage/maintainability blockers remain |
 | Ready for production/real users? | NO |
 
 This report is a release-candidate evidence record, not production approval.
