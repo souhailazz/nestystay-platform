@@ -92,7 +92,7 @@ The backend analysis now submitted successfully and Sonar returned Quality Gate 
 
 The current scans contain maintainability findings, not security vulnerabilities: frontend 22 critical / 297 major code smells; backend 59 critical / 401 major code smells. The critical findings were reviewed by rule and affected area. Frontend critical findings are primarily cognitive-complexity issues in booking, host, admin and Property Manager screens plus intentionally empty test doubles; backend critical findings are primarily cognitive-complexity in the integration validator, calendar/webhook controllers and Property Manager persistence stores, with a small number of formatting/obsolete-code findings. Sonar reports 0 bugs, 0 vulnerabilities and 0 security hotspots for both projects. These findings are not silently accepted as a clean release: they remain a maintainability remediation backlog and production promotion remains blocked until the agreed policy owner accepts or remediates them.
 
-Frontend coverage is 60.04% by the local Vitest line report, but Sonar's executable-line calculation is 56.2%. The difference is documented rather than hidden; the 60% Sonar target is not yet met and is not being claimed as met.
+Frontend coverage is 60.04% by the local Vitest line report, but Sonar's executable-line calculation is 56.2%. The difference is documented rather than hidden. This is accepted only as an interim certification exception for the current PR evidence; the 60% Sonar target remains open and is **not accepted as a production-release gate**.
 
 ## Security and authorization
 
