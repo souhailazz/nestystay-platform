@@ -7,11 +7,11 @@
 
 ## Executive conclusion
 
-NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the backend suite passed 210/210 with local MinIO enabled, the frontend unit suite passed 128 tests, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the complete local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, and 11 explicit skips.
+NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the backend suite passed 211/211 with local MinIO enabled, the frontend unit suite passed 128 tests, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the complete local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, and 11 explicit skips.
 
 That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, and regression expectations. The remaining commercial-rule gap is the founding Gold/Platinum model, which still behaves as a lifetime flat-fee feature while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
 
-The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; current Sonar results are historical rather than a fresh scan at these audit SHAs; the browser suite has 11 explicit scope/configuration skips; and Gate Guard has an enum and QR UI but no complete invitation, assignment, authenticated role boundary, or revocation lifecycle.
+The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; current Sonar results are historical rather than a fresh scan at these audit SHAs; the browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, and revocation lifecycle are now implemented.
 
 ## Evidence and exact revisions
 
@@ -19,9 +19,9 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `3526b9508e7a09d6a32c369903a87b9c71573518` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
-| Backend | `codex/final-release-certification` | `dfec3e9` (`fix(pricing): apply approved ten percent guest fee`) | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
-| Frontend | `codex/final-release-certification` | `db2fbbc` (`fix(booking): align guest fee display with approved pricing`) | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
+| Root/orchestration | `codex/final-release-certification` | `36cca86` (audit docs baseline) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Backend | `codex/final-release-certification` | `7352a95` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
+| Frontend | `codex/final-release-certification` | `e9fde6e` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
@@ -150,12 +150,12 @@ Stripe Identity is the active provider in current configuration defaults and pro
 
 ### Gaps and qualifications
 
-- `UserRole.GateGuard` exists, QR scans accept an optional `GateGuardUserId`, and a `/gate` validator UI exists, but there is no complete Gate Guard invitation/provisioning/assignment path. QR validation endpoints are anonymous and rely on an optional signed-in actor rather than an authenticated Gate Guard authorization boundary. This is PARTIAL, not COMPLETE.
+- `UserRole.GateGuard`, the existing staff membership tables, and `/gate` validator UI now form a locally tested invitation/acceptance/revocation path. Authenticated QR validation requires an active `GATE_GUARD` membership with the requested property in scope; Gate Guard users are denied PM finance/professional workspaces. The anonymous validator remains intentionally available for guest/pass compatibility. Staging/browser/device qualification is still outstanding, so this is locally implemented but not fully released.
 - Guest/provider camera scanning, physical gate hardware, external delivery, and a full guard account lifecycle were not proven.
 - Map rendering uses stored latitude/longitude and an OpenStreetMap embed; no geocoding provider or address-to-coordinate workflow was found.
 - No separate native QR/gate app was found.
 
-**M4 status:** PARTIAL — directory and QR mechanics are present; Gate Guard role lifecycle and geocoding are not complete.
+**M4 status:** PARTIAL — directory, QR mechanics, and the scoped Gate Guard lifecycle are locally implemented; staging/browser/device qualification and geocoding remain outstanding.
 
 ## Milestone 5 — Property Manager platform
 
@@ -177,7 +177,7 @@ Stripe Identity is the active provider in current configuration defaults and pro
 
 ### Authentication, authorization, and session behavior
 
-The code has registration/login/session records, token validation, 2FA, lockout/rate limits, admin bootstrap, role-aware route access, ownership checks, and automated authorization tests. The local Playwright admin fixture uses a disposable bootstrap path at runtime rather than a browser bypass. The remaining certification gap is breadth: a complete current role/IDOR matrix and staging role-account proof were not independently executed in this pass. Gate validation is a special concern because the QR validator is anonymous and does not enforce a Gate Guard role boundary.
+The code has registration/login/session records, token validation, 2FA, lockout/rate limits, admin bootstrap, role-aware route access, ownership checks, and automated authorization tests. The local Playwright admin fixture uses a disposable bootstrap path at runtime rather than a browser bypass. The remaining certification gap is breadth: a complete current role/IDOR matrix and staging role-account proof were not independently executed in this pass. Gate Guard now has a separate authenticated, property-scoped validator and is denied PM finance/professional workspace access; the anonymous validator remains for guest/pass compatibility.
 
 ### Storage and uploads
 
@@ -202,8 +202,8 @@ Stored coordinates, OpenStreetMap embeds, public map/list UI, property detail ma
 
 ### Backend
 
-- Solution test run with disposable local PostgreSQL and MinIO enabled: **210 passed, 0 failed, 0 skipped**.
-- Project split from the completed run: Domain 5, Application 24, Infrastructure 32, API 149.
+- Solution test run with disposable local PostgreSQL and MinIO enabled: **211 passed, 0 failed, 0 skipped**.
+- Project split from the completed run: Domain 5, Application 24, Infrastructure 32, API 150.
 - This is local deterministic/provider-backed evidence. It is not live Stripe, Brevo, InsuraGuest, or staging evidence.
 
 ### Frontend
@@ -249,7 +249,7 @@ The audited local revisions and repository main references are recorded above. T
 6. Run a fresh Sonar scan at the release SHAs and review all bugs, vulnerabilities, hotspots, and high/major maintainability findings.
 7. Execute the two skipped configuration-dependent browser paths after staging credentials/providers are safely supplied.
 8. Complete the staging role/IDOR matrix, especially owner/PM/staff/provider/wellness/document/payment cross-account denial.
-9. Decide whether Gate Guard provisioning/authentication is current web scope. If required, the current enum/UI/anonymous validator is not enough.
+9. Run the staging/browser Gate Guard journey and confirm the deployment uses the authenticated, property-scoped validator; physical gate/device integration remains separately unverified.
 10. Verify Stripe Identity, Stripe payments/Connect, insurance, and refund/webhook paths against safe staging test-mode credentials.
 
 ### P2 — product completeness/technical debt
@@ -266,7 +266,7 @@ The audited local revisions and repository main references are recorded above. T
 | M1 Core Booking | PARTIAL | Local implementation and automated/browser evidence are strong; the approved 10% guest fee is now implemented and tested; real provider/staging parity remains unverified. |
 | M2 Badges/Membership | PARTIAL | Four badges, eligibility, management, payments, renewals, and local tests exist; Gold/Platinum commercial logic is outdated and external payment lifecycle is unverified. |
 | M3 Wellness | PARTIAL | Broad officer/visit/report/payout implementation and local tests exist; storage, email, external payment/insurance, and operational certification remain. |
-| M4 Directories/Trust/QR | PARTIAL | Directory and QR flows exist; Gate Guard account lifecycle/auth boundary and geocoding are incomplete. |
+| M4 Directories/Trust/QR | PARTIAL | Directory, QR, and scoped Gate Guard lifecycle/auth boundary are locally verified; staging/browser/device qualification and geocoding remain. |
 | M5 Property Manager | PARTIAL | Broad PM backend/UI and local persistence tests exist; real storage/email/billing/payout/deployment and full manual responsive certification remain. |
 
 ## Release verdict

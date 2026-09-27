@@ -2,11 +2,11 @@
 
 ## Last Completed Task
 
-AUTO-0001 — Correct approved post-launch guest fee across the active pricing path.
+AUTO-0002 — Add the scoped Gate Guard lifecycle and authenticated QR validation boundary.
 
 ## Validation Result
 
-- Backend full solution with local MinIO enabled: 210 passed, 0 failed, 0 skipped.
+- Backend full solution with local MinIO enabled: 211 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 128 passed across 31 files.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
@@ -19,27 +19,28 @@ AUTO-0001 — Correct approved post-launch guest fee across the active pricing p
 - Active standard guest platform fee is 10% in backend business rules, pricebook service, seed, frontend estimate/copy, and regression expectations.
 - A forward EF migration updates existing pricebook rows to 10% without editing historical migrations.
 - Local PostgreSQL and disposable MinIO-backed backend regression is green.
+- Gate Guard invitation, acceptance, property scope, authenticated QR validation, PM-workspace denial, and revocation are locally covered by the API authorization matrix.
+- Gate Guard is exposed in the frontend role model, navigation, workspace label, and authenticated QR validator.
 
 ## Partial
 
 - M1: external Stripe/Identity/Brevo/storage/payout/insurance and staging SHA parity are not proven.
 - M2: Gold/Platinum commercial membership model remains outdated; real Stripe lifecycle is not proven.
 - M3: external provider, storage, payout and operational certification remain.
-- M4: Gate Guard authenticated lifecycle and geocoding remain incomplete.
+- M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
 - Fresh Sonar analysis and full staging role/IDOR certification remain.
 
 ## Missing
 
 - Geocoding provider/workflow.
-- Complete Gate Guard invitation/provisioning/assignment path.
 - Native mobile application source, which is future scope unless explicitly promoted.
 - Fresh current-SHA Sonar export.
 - Exact deployed staging frontend/backend SHA evidence.
 
 ## Broken
 
-- Anonymous QR validation is not a complete authenticated Gate Guard authorization boundary; it accepts an optional actor instead of requiring a scoped guard role.
+- None identified in this remediation slice. The anonymous QR validator remains a guest/pass compatibility route; Gate Guard scans use the separate authenticated, property-scoped endpoint.
 
 ## Wrong Business Logic
 
@@ -55,7 +56,7 @@ AUTO-0001 — Correct approved post-launch guest fee across the active pricing p
 - Verify private MinIO configuration, backup/retention and upload workflows.
 - Verify Brevo acceptance, receipt, retry and duplicate behavior.
 - Complete current staging role/IDOR matrix.
-- Decide and, if required, implement the Gate Guard lifecycle/security boundary.
+- Complete current staging/browser role and IDOR checks, including the new Gate Guard boundary.
 - Run fresh Sonar and review findings.
 
 ## P2
@@ -88,7 +89,7 @@ AUTO-0001 — Correct approved post-launch guest fee across the active pricing p
 
 ## Next Best Action
 
-Implement and test the next highest-priority unblocked slice: Gold/Platinum model only after exact mandatory values are confirmed; otherwise proceed with Gate Guard authorization or local security/IDOR hardening while external providers remain blocked.
+Implement and test the next highest-priority unblocked slice: resolve the Gold/Platinum model only after exact mandatory values are confirmed; otherwise continue local security/IDOR hardening while external providers remain blocked.
 
 ## Loop Status
 
