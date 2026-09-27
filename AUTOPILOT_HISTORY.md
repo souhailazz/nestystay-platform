@@ -271,3 +271,18 @@ Date: 2026-09-27
 
 The complete isolated Playwright matrix was rerun with a real server-issued disposable Admin fixture and the local PostgreSQL-backed backend. **224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run.** Desktop Chromium, tablet Chromium, mobile Chromium, and the configured Firefox/WebKit critical smoke entries executed. The separate admin-token-gated checks passed **12/12**. A follow-up MinIO browser run with the private disposable container passed **3/3** across desktop/tablet/mobile Chromium. Skips remain explicit provider/credential or viewport-scope guards for the full run, deployment smoke credentials, and mobile-only checks. No source, staging, production, protected `main`, or original dirty workspace was changed.
 
+## AUTO-0014 — Expand frontend behavioral coverage
+
+Date: 2026-09-27
+
+Added behavioral Vitest coverage for the real host view router, deferred landing-section loading (IntersectionObserver and fallback paths), and Google Identity Services success/error paths. The changes are isolated to the frontend certification branch and do not alter production behavior.
+
+Evidence:
+
+- Frontend commit: `325e585` (`codex/final-release-certification`), pushed to the existing protected PR branch.
+- Full frontend unit suite: **146 passed, 0 failed across 34 files**.
+- Fresh V8 coverage: **61.14% lines, 57.08% statements, 48.71% branches, 53.38% functions**.
+- Typecheck: PASS; production build: PASS; lint: 0 errors / 113 warnings; `npm audit --audit-level=moderate`: 0 known vulnerabilities.
+
+The local coverage target is now above 60% lines. The Sonar frontend gate has not yet been re-run at this new SHA, so its prior server-side metrics remain the authoritative Sonar result until refreshed.
+

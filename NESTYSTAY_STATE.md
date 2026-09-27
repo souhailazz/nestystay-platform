@@ -2,19 +2,20 @@
 
 ## Last Completed Task
 
-AUTO-0013 — Complete local Playwright regression from the protected release branches.
+AUTO-0014 — Expand frontend behavioral coverage from the protected release branches.
 
 ## Validation Result
 
 - Backend full solution with local MinIO enabled: 212 passed, 0 failed, 0 skipped.
-- Frontend unit suite: 128 passed across 31 files.
+- Frontend unit suite: 146 passed across 34 files.
+- Fresh frontend V8 coverage: 61.14% lines (4,626/7,566), 57.08% statements, 48.71% branches, 53.38% functions.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
-- Frontend lint: 0 errors, 112 warnings.
+- Frontend lint: 0 errors, 113 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed at the current certification heads. Backend: 10.3% overall / 6.9% new-code coverage, 11 new violations, 20.4% duplication, gate FAIL. Frontend: 55.6% overall / 64.9% new-code coverage, 4 new violations, 1.4% duplication, gate FAIL. Platform: new-code gate PASS; its overall configuration findings are not runtime certification.
-- Pushed certification source revisions: root current `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`, backend current `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
+- Pushed certification source revisions: root source `20e6d9e411f112e263f4fbe9ee3c1012cfd82546` (branch head `92f60c5643bb210989ff2edcd975583d8102de20` after evidence updates), backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `325e585`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -58,7 +59,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
 - Backend Sonar: 10.3% overall coverage, 6.9% new-code coverage, 11 new violations, 20.4% duplication; gate FAIL.
-- Frontend Sonar: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL.
+- Frontend Sonar latest server-side scan remains at prior SHA `96cbac8`: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL. The newer local Vitest coverage is 61.14% at frontend `325e585`; Sonar must be rerun against that SHA before its gate is reconsidered.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.
