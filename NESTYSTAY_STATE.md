@@ -2,11 +2,11 @@
 
 ## Last Completed Task
 
-AUTO-0002 — Add the scoped Gate Guard lifecycle and authenticated QR validation boundary.
+AUTO-0003 — Harden the legacy staff endpoint against unscoped Gate Guard assignments.
 
 ## Validation Result
 
-- Backend full solution with local MinIO enabled: 211 passed, 0 failed, 0 skipped.
+- Backend full solution with local MinIO enabled: 212 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 128 passed across 31 files.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
@@ -21,6 +21,7 @@ AUTO-0002 — Add the scoped Gate Guard lifecycle and authenticated QR validatio
 - Local PostgreSQL and disposable MinIO-backed backend regression is green.
 - Gate Guard invitation, acceptance, property scope, authenticated QR validation, PM-workspace denial, and revocation are locally covered by the API authorization matrix.
 - Gate Guard is exposed in the frontend role model, navigation, workspace label, and authenticated QR validator.
+- The historical `/api/property-manager/staff` endpoint now rejects `GATE_GUARD` instead of creating a membership that cannot grant the real scoped role; the supported `/api/property-manager/p0/members` lifecycle remains covered.
 
 ## Partial
 
@@ -89,7 +90,20 @@ AUTO-0002 — Add the scoped Gate Guard lifecycle and authenticated QR validatio
 
 ## Next Best Action
 
-Implement and test the next highest-priority unblocked slice: resolve the Gold/Platinum model only after exact mandatory values are confirmed; otherwise continue local security/IDOR hardening while external providers remain blocked.
+Resolve the Gold/Platinum model only after exact mandatory values are confirmed; otherwise continue local security/IDOR hardening while external providers remain blocked.
+
+## AUTO-0003 — Harden legacy Gate Guard assignment path
+
+Priority: P1 access-control integrity  \\
+Date: 2026-09-27
+
+The historical `/api/property-manager/staff` route accepted arbitrary role text, including `GATE_GUARD`, but persisted only a legacy staff row and did not create the scoped P0 membership or synchronize the effective user role. It now rejects that role with an explicit error so callers must use the property-scoped P0 invitation/acceptance/revocation flow.
+
+Evidence:
+
+- Backend commit: `d2a3ac3`.
+- Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
+- Focused Property Manager authorization tests: 5 passed, 0 failed, 0 skipped.
 
 ## Loop Status
 

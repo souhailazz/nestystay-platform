@@ -16,12 +16,12 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "3526b9508e7a09d6a32c369903a87b9c71573518",
+      "sha": "9c6815eaccb4c20d12ce51358f0568952a4d78cb",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "7352a95",
+      "sha": "d2a3ac3",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -31,7 +31,7 @@
     }
   },
   "evidence": {
-    "backendTests": { "passed": 211, "failed": 0, "skipped": 0, "minioEnabled": true },
+    "backendTests": { "passed": 212, "failed": 0, "skipped": 0, "minioEnabled": true },
     "frontendTests": { "passed": 128, "files": 31 },
     "frontendCoverage": { "linePercent": 60.12, "statementPercent": 56.15, "branchPercent": 47.8, "functionPercent": 52.8 },
     "frontendTypecheck": "PASS",
@@ -42,8 +42,8 @@
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
     "stagingShaParity": "UNKNOWN",
     "freshSonarAtAuditedShas": "NOT_RUN",
-    "lastImplementationUpdate": "Gate Guard invitation/acceptance/revocation and authenticated property-scoped QR validation were added; standard guest fee remains corrected to approved 10%.",
-    "backendRemediationCommit": "7352a95",
+    "lastImplementationUpdate": "Legacy Gate Guard staff invitations are rejected unless they use the scoped P0 lifecycle; standard guest fee remains corrected to approved 10%.",
+    "backendRemediationCommit": "d2a3ac3",
     "frontendRemediationCommit": "e9fde6e"
   },
   "domains": [
@@ -105,7 +105,7 @@
     { "phase": "M4", "area": "QR", "requirement": "Issue, validate, expire, revoke, wrong-property and scan history", "status": "COMPLETE", "evidence": "EfPropertyManagerStore QR lifecycle and tests." },
     { "phase": "M4", "area": "Gate", "requirement": "Gate communication records and delivery retries", "status": "COMPLETE", "evidence": "Property Manager gate endpoints and state records." },
     { "phase": "M4", "area": "Gate Guard", "requirement": "GateGuard enum", "status": "COMPLETE", "evidence": "UserRole.GateGuard exists." },
-    { "phase": "M4", "area": "Gate Guard", "requirement": "GateGuard invitation/provisioning/assignment", "status": "COMPLETE", "evidence": "Existing P0 staff invite/accept/revoke flow now supports property-scoped GATE_GUARD memberships; backend authorization test covers the lifecycle." },
+    { "phase": "M4", "area": "Gate Guard", "requirement": "GateGuard invitation/provisioning/assignment", "status": "COMPLETE", "evidence": "Existing P0 staff invite/accept/revoke flow now supports property-scoped GATE_GUARD memberships; the legacy unscoped staff route rejects GATE_GUARD; backend authorization tests cover both paths." },
     { "phase": "M4", "area": "Gate Guard", "requirement": "Authenticated GateGuard authorization boundary", "status": "COMPLETE", "evidence": "POST /api/property-manager/qr/validate-authenticated requires GateGuard role, active membership, and requested-property scope; PM finance/professional access is denied; 4 API tests pass." },
     { "phase": "M4", "area": "Gate Guard", "requirement": "Responsive web gate validator UI", "status": "PARTIAL", "evidence": "Frontend role model/navigation/API path is implemented and unit/build verified; full role browser/staging/device verification remains." },
     { "phase": "M4", "area": "Maps", "requirement": "Stored-coordinate map/list rendering", "status": "COMPLETE", "evidence": "InteractiveMapPage and OpenStreetMap embeds." },

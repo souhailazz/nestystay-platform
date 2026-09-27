@@ -71,3 +71,24 @@ The code had a `GateGuard` enum and QR UI, but no complete invitation/acceptance
 ### Remaining qualification
 
 Staging account provisioning, full browser coverage for the new role, physical gate/device integration, and external deployment verification remain outstanding. No production or staging environment was modified.
+
+## AUTO-0003 — Harden legacy Gate Guard assignment path
+
+Priority: P1 access-control integrity  \\
+Date: 2026-09-27
+
+### Problem
+
+The historical `/api/property-manager/staff` endpoint accepted arbitrary role text, including `GATE_GUARD`, but only persisted a legacy row. That path could not create the scoped P0 membership or synchronize the effective `GateGuard` user role.
+
+### Changes
+
+- Reject `GATE_GUARD` on the legacy endpoint with an explicit instruction to use `/api/property-manager/p0/members`.
+- Keep the supported P0 invite/accept/revoke lifecycle unchanged and covered.
+- Add an API regression test proving the legacy route cannot create an unscoped Gate Guard assignment.
+
+### Evidence
+
+- Backend commit: `d2a3ac3`.
+- Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
+- Focused Property Manager authorization tests: 5 passed, 0 failed, 0 skipped.
