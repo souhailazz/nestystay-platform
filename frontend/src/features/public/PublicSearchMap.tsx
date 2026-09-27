@@ -52,7 +52,7 @@ function stayNights(checkIn: string, checkOut: string) {
 
 function estimatedStayTotal(property: PropertyListing, nights: number) {
   const staySubtotal = property.nightlyRate * nights;
-  const guestPlatformFee = staySubtotal * 0.09;
+  const guestPlatformFee = staySubtotal * 0.10;
   return staySubtotal + guestPlatformFee + (property.cleaningFee ?? 0) + (property.serviceFee ?? 0);
 }
 

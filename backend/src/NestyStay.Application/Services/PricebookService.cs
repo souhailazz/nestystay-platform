@@ -13,9 +13,9 @@ public sealed class PricebookService : IPricebookService
     [
         new("host-listing", "Host listing", 0m, "USD", "Always", "Hosts", true),
         new("host-commission", "Standard host commission", 3m, "PERCENT", "Per booking", "Hosts", true),
-        new("guest-standard-fee-low", "Contract guest platform fee", 9m, "PERCENT", "Per booking", "Guests", true),
-        new("guest-standard-fee-mid", "Contract guest platform fee", 9m, "PERCENT", "Per booking", "Guests", true),
-        new("guest-standard-fee-short", "Contract guest platform fee", 9m, "PERCENT", "Per booking", "Guests", true),
+        new("guest-standard-fee-low", "Contract guest platform fee", 10m, "PERCENT", "Per booking", "Guests", true),
+        new("guest-standard-fee-mid", "Contract guest platform fee", 10m, "PERCENT", "Per booking", "Guests", true),
+        new("guest-standard-fee-short", "Contract guest platform fee", 10m, "PERCENT", "Per booking", "Guests", true),
         new("guest-ekyc-first-html", "First guest verification", 9.99m, "USD", "Per first check", "Guests", true),
         new("guest-ekyc-return-html", "Return guest verification", 4.99m, "USD", "Per repeat check", "Guests", true),
         new("guest-ekyc-host-paid-pdf", "Identity verification host-paid vendor cost", 0.14m, "USD", "Per booking", "Hosts", true),
