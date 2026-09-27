@@ -36,7 +36,7 @@
     "frontendCoverage": { "linePercent": 61.14, "statementPercent": 57.08, "branchPercent": 48.71, "functionPercent": 53.38 },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
-    "frontendLint": { "errors": 0, "warnings": 113 },
+    "frontendLint": { "errors": 0, "warnings": 112 },
     "npmAuditHigh": "0 known vulnerabilities",
     "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0, "skipNote": "Latest complete local run. Explicit guards cover browser MinIO opt-in, deployment smoke credentials, and mobile-only project scope; all admin-token-gated checks passed." },
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },

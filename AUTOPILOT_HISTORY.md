@@ -282,7 +282,7 @@ Evidence:
 - Frontend commit: `325e585` (`codex/final-release-certification`), pushed to the existing protected PR branch.
 - Full frontend unit suite: **146 passed, 0 failed across 34 files**.
 - Fresh V8 coverage: **61.14% lines, 57.08% statements, 48.71% branches, 53.38% functions**.
-- Typecheck: PASS; production build: PASS; lint: 0 errors / 113 warnings; `npm audit --audit-level=moderate`: 0 known vulnerabilities.
+- Typecheck: PASS; production build: PASS; lint: 0 errors / 112 warnings; `npm audit --audit-level=moderate`: 0 known vulnerabilities.
 
 The local coverage target is now above 60% lines. The Sonar frontend gate has not yet been re-run at this new SHA, so its prior server-side metrics remain the authoritative Sonar result until refreshed.
 

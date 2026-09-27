@@ -11,7 +11,7 @@ AUTO-0014 — Expand frontend behavioral coverage from the protected release bra
 - Fresh frontend V8 coverage: 61.14% lines (4,626/7,566), 57.08% statements, 48.71% branches, 53.38% functions.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
-- Frontend lint: 0 errors, 113 warnings.
+- Frontend lint: 0 errors, 112 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed at the current certification heads. Backend: 10.3% overall / 6.9% new-code coverage, 11 new violations, 20.4% duplication, gate FAIL. Frontend: 55.6% overall / 64.9% new-code coverage, 4 new violations, 1.4% duplication, gate FAIL. Platform: new-code gate PASS; its overall configuration findings are not runtime certification.
