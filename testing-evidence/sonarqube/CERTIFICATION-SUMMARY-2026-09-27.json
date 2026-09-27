@@ -56,5 +56,24 @@
     "securityFindings": "PASS for all three current isolated project scans",
     "maintainability": "OPEN backlog remains in backend and frontend",
     "productionQualityGate": "NOT CERTIFIED; the isolated projects use a new-code-only gate and backend/frontend maintainability/coverage acceptance remains incomplete"
+  },
+  "latestBackendRefresh": {
+    "server": "http://localhost:9002",
+    "projectKey": "nestystay-backend-refresh",
+    "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215",
+    "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704",
+    "analysisStatus": "SUCCESS",
+    "qualityGate": "OK_NEW_VIOLATIONS_ONLY",
+    "bugs": 0,
+    "vulnerabilities": 0,
+    "securityHotspots": 0,
+    "codeSmells": 805,
+    "coverage": 15.1,
+    "branchCoverage": 48.7,
+    "duplication": 6.9,
+    "newViolations": 0,
+    "coverageReportsImported": 6,
+    "mainFilesWithCoverage": 48,
+    "note": "Post-refactor analysis is genuine but full backend coverage acceptance remains open."
   }
 }

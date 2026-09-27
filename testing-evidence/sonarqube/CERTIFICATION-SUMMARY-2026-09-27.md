@@ -11,3 +11,7 @@ Fresh analyses were executed on the isolated local SonarQube server at `http://l
 Backend coverage imported four fresh OpenCover reports covering 211 source files. The full backend test run completed with 210 passed, 0 failed and 2 explicit skips; the two skips are covered separately by the Docker-backed MinIO/PostgreSQL integration runs.
 
 The Sonar server returned `OK` for the isolated backend and frontend projects because their only configured gate condition is new violations. That does not certify the requested backend coverage, frontend new-code coverage, or maintainability backlog. Production readiness remains blocked by those acceptance gaps, real Brevo delivery, and deployed SHA surfaces on staging.
+
+## Post-refactor backend refresh
+
+Backend commit `e195e8b1720157cbe1c172a30e658b6dc6be7215` was re-scanned on a disposable local SonarQube instance at `http://localhost:9002`. The analysis was processed successfully (task `34d63bc6-ff30-460e-928c-385ae056a704`) with 0 bugs, 0 vulnerabilities, 0 security hotspots, 805 code smells, 15.1% overall line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported and 48 source files had coverage; this refresh is valid evidence of execution, but it does not pass the requested full backend coverage or maintainability gates.

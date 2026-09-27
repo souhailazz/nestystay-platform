@@ -339,3 +339,21 @@ Result:
 
 No source code, migrations, seed data, or tests were changed. The next implementation step is blocked only on the exact approved commercial values; local certification work continues on other unblocked release gates.
 
+## AUTO-0020 — Complete post-refactor backend Sonar refresh
+
+Priority: P1 certification evidence  \\
+Date: 2026-09-27
+
+The backend certification branch was re-analyzed on the disposable local SonarQube instance after commit `e195e8b1720157cbe1c172a30e658b6dc6be7215`. The scanner uploaded successfully and the server processed task `34d63bc6-ff30-460e-928c-385ae056a704`.
+
+Evidence:
+
+- Analysis status: `SUCCESS`.
+- Quality Gate: `OK` for the configured new-violations-only condition; new violations: 0.
+- Bugs/vulnerabilities/security hotspots: 0/0/0.
+- Code smells: 805; line coverage: 15.1%; branch coverage: 48.7%; duplication: 6.9%.
+- Six OpenCover reports were imported and Sonar identified 48 main source files with coverage. This is genuine server-side coverage import, but it is not a full backend coverage pass.
+- The configured local PostgreSQL/MinIO targeted integration test passed 1/1 on a fresh disposable database. The all-at-once API runner was separately observed to hang before summary; its reproducible passing chunks are recorded in the current state/evidence and are not inflated into a single all-at-once pass.
+
+The remaining local quality blockers are the incomplete full-source backend coverage and the maintainability backlog. External/staging blockers remain Brevo delivery, production MinIO proof/backups, deployed SHA parity, and staging role/IDOR evidence.
+

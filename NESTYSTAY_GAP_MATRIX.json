@@ -46,9 +46,9 @@
     "stagingShaParity": "BLOCKED_VERSION_SURFACES_NOT_DEPLOYED",
     "stagingPublicHealth": { "live": 200, "ready": 200, "database": "ready", "storage": "CONFIGURED", "versionApi": 404, "frontendVersionJson": "SPA_HTML_FALLBACK" },
     "freshSonarAtAuditedShas": {
-      "status": "CURRENT_SCAN_PROCESSED_GATE_FAILURES",
+      "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "6277a950d563ce32e01a51223776fac9981529dd", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 52.2, "branchCoverage": 51.8, "codeSmells": 996, "duplication": 20.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "21416d9c-313c-4d75-a8fc-59d9a4ae0575" },
+      "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; full backend coverage acceptance remains open" },
       "frontend": { "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 63.3, "branchCoverage": 48.8, "codeSmells": 977, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "60b5e8ed-0014-4772-be00-7e6feb5d035d" },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
@@ -143,7 +143,7 @@
     { "phase": "Cross-cutting", "area": "Email", "requirement": "Durable outbox, retry and idempotency", "status": "COMPLETE", "evidence": "EmailDeliveryWorker/outbox code and local test evidence." },
     { "phase": "Cross-cutting", "area": "Email", "requirement": "Brevo real transport and mailbox receipt", "status": "PARTIAL", "evidence": "BrevoEmailDeliveryTransport exists; external credentials/mailbox were not available for testing." },
     { "phase": "Cross-cutting", "area": "Security", "requirement": "Role-aware route and ownership checks", "status": "PARTIAL", "evidence": "Broad automated coverage exists; complete current staging role/IDOR matrix was not executed in this audit." },
-    { "phase": "Cross-cutting", "area": "Security", "requirement": "Fresh Sonar analysis at audited SHAs", "status": "PARTIAL", "evidence": "Fresh local server-side analyses completed at backend 6277a95, frontend 3b350a2 and root b5d06db. Security metrics are zero; backend/frontend maintainability and requested new-code coverage acceptance remain incomplete. See testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.md." },
+    { "phase": "Cross-cutting", "area": "Security", "requirement": "Fresh Sonar analysis at audited SHAs", "status": "PARTIAL", "evidence": "Fresh local server-side analyses completed at backend e195e8b, frontend 3b350a2 and root b5d06db. Backend post-refactor analysis has zero bugs/vulnerabilities/hotspots and zero new violations, but 15.1% line coverage, 805 code smells and incomplete source coverage remain. See testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.md." },
     { "phase": "Cross-cutting", "area": "Deployment", "requirement": "Exact staging frontend/backend SHA parity", "status": "MISSING", "evidence": "Deployed SHAs were not exposed or independently matched." },
     { "phase": "Cross-cutting", "area": "Accessibility", "requirement": "Automated representative accessibility coverage", "status": "COMPLETE", "evidence": "Playwright/accessibility checks included in the local matrix." },
     { "phase": "Cross-cutting", "area": "Accessibility", "requirement": "Human screen-reader, forced-color and reduced-motion certification", "status": "PARTIAL", "evidence": "Automated checks exist; human certification was not performed." },

@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-rule evidence.
+AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the remaining certification blockers.
 
 ## Validation Result
 
@@ -14,8 +14,8 @@ AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-r
 - Frontend lint: 0 errors, 112 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
-- Fresh local SonarQube analyses completed and processed at the current certification heads on isolated server port 9001. Backend: 52.2% line / 51.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication. Frontend: 63.3% line / 48.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 977 code smells, 1.4% duplication. Root/platform scope: 0 current issues. The isolated projects report Quality Gate OK because their configured condition is new violations only; this is not a production-readiness pass for coverage or maintainability.
-- Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`. Backend task `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend task `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root task `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
+- Fresh local SonarQube analyses completed and processed at the current certification heads. The prior baseline remains on isolated server port 9001. A post-refactor backend refresh on port 9002 at `e195e8b` completed server-side: 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% Sonar line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported, but only 48 backend source files had coverage; this is not a production-readiness pass for full coverage or maintainability. Frontend prior baseline remains 63.3% line / 48.8% branch coverage with 977 code smells; root/platform scope remains 0 current issues.
+- Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
 - Pushed certification source revisions: root runtime source `8a601436eff1044c1c05d43cc8ad35fba56555c5` with current evidence commits on the certification branch, backend `e195e8b1720157cbe1c172a30e658b6dc6be7215`, frontend `3b350a2`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
@@ -23,7 +23,8 @@ AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-r
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 - Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
-- Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips. The prior Sonar scan at `6277a95` remains the latest server-side result because the disposable Sonar admin session was not available for a post-refactor refresh.
+- Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips; the configured PostgreSQL/MinIO integration evidence passes when run against the disposable services. A fresh post-refactor Sonar upload and server-side processing also completed successfully; its evidence is under `testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.*`.
+- The current configured API regression was decomposed to avoid the all-at-once test-host hang: 105 non-Property-Manager tests passed, 45 in-memory Property Manager tests passed, and the PostgreSQL two-instance test passed 1/1 on a fresh disposable database. This is recorded as chunked evidence, not relabeled as a single 151-test run.
 - GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
@@ -58,7 +59,7 @@ Evidence:
 - Complete backend suite after the change: 211 passed, 0 failed, 2 explicit integration skips when the local integration variables are absent; the MinIO/PostgreSQL scenarios are covered in the configured runs already recorded above.
 - No schema, migration, provider, authorization, or business rule was changed.
 
-The next Sonar refresh is still required at `e195e8b`; the latest exported Sonar metrics remain the scan at `6277a95` and are not silently re-labeled as current.
+The post-refactor Sonar refresh at `e195e8b` is now recorded. The remaining Sonar blockers are full backend source coverage and the open maintainability backlog; the successful new-violations-only gate is not being treated as production certification.
 
 ## AUTO-0013 — Complete local Playwright regression
 

@@ -1,12 +1,16 @@
 # SonarQube Full Platform Audit
 
 Date: 2026-09-27
-Server: local SonarQube Community Build at `http://localhost:9001`
+Servers: local SonarQube Community Build at `http://localhost:9001` (prior baseline) and disposable refresh at `http://localhost:9002`
 The temporary analysis token was not committed or included in this report.
 
 ## Current local scan summary — 2026-09-27
 
-These are fresh analyses submitted and processed by the isolated local SonarQube server from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. The latest completed scan revisions are backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`. Backend source then advanced to `e195e8b1720157cbe1c172a30e658b6dc6be7215` for a behavior-preserving badge-review refactor; no post-refactor Sonar result is claimed until a new server-side analysis is processed.
+These are fresh analyses submitted and processed by isolated local SonarQube servers from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. The prior baseline remains backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`. A post-refactor backend refresh was subsequently uploaded and processed at `e195e8b1720157cbe1c172a30e658b6dc6be7215`; see [`BACKEND-POST-REFACTOR-2026-09-27.md`](../../testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.md) and the JSON evidence beside it.
+
+## Latest backend refresh at `e195e8b`
+
+The post-refactor analysis task `34d63bc6-ff30-460e-928c-385ae056a704` completed server-side with `SUCCESS`. It reported 0 bugs, 0 vulnerabilities, 0 security hotspots, 805 code smells, 15.1% overall line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports were imported, but they covered only 48 backend source files; therefore this is a valid static-analysis refresh, not evidence that the requested full backend coverage target has passed.
 
 | Project | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | New-code coverage | New violations | Duplication | Quality Gate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
