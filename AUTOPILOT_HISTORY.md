@@ -125,3 +125,33 @@ Scope: isolated certification worktrees only; no staging/production changes.
 - Fresh local Sonar analyses completed and exported. Backend and frontend gates remain failed on coverage/new-code debt; root/platform passed its new-code gate. Exact measures and issue exports are under `testing-evidence/sonarqube/`.
 
 Remaining release blockers: real Brevo delivery, staging MinIO/upload proof, exact deployed frontend/backend SHA parity, complete staging role/IDOR evidence, and Sonar remediation. Local deterministic verification is green but is not equivalent to staging or production certification.
+
+## AUTO-0007 — Align root monorepo pricing source
+
+Priority: P0 pricing integrity  \\
+Date: 2026-09-27
+
+### Problem
+
+The split backend/frontend branches had the approved 10% standard guest fee, but the tracked root monorepo copies still contained active 9% logic and copy. A root checkout could therefore calculate or display a stale guest fee even though the split repositories were corrected.
+
+### Changes
+
+- Updated root backend `PricebookService`, seed entries, and schema regression expectation to 10%.
+- Updated root frontend search estimate and booking copy/comment to 10%.
+- Generated the forward-only EF migration `20260927072014_ApplyApprovedGuestFee`; it changes only three active pricebook rows from 9m to 10m and reverses those rows on Down. Historical migrations were not edited.
+- Verified the remaining active-source scan is clean; the only remaining `0.09` match is CSS letter-spacing.
+
+### Evidence
+
+- Root backend release suite: 183 passed, 0 failed, 0 skipped.
+- Root frontend focused tests: 48 passed; typecheck PASS; production build PASS; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
+
+### Result
+
+The root monorepo and split source now represent the same approved standard guest fee. The root source commit `7d0b5285639838dbb06603b8e7065a5f1882922e` is pushed to the existing protected certification branch and remains subject to PR review; no main bypass was used.
+
+### Discovered Follow-ups
+
+- Gold/Platinum founding economics remain unresolved because exact amended handwritten values are not machine-readable.
+- External provider, staging SHA, Sonar remediation, Gitleaks review, and staging role/IDOR evidence remain open.

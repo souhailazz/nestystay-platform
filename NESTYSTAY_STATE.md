@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0006 — Complete local release certification and refresh evidence.
+AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee.
 
 ## Validation Result
 
@@ -14,7 +14,8 @@ AUTO-0006 — Complete local release certification and refresh evidence.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
 - Fresh local SonarQube analyses completed for backend, frontend, and root/platform scopes. Backend and frontend Quality Gates failed on coverage/new-code debt; the platform orchestration scope passed its new-code gate.
-- Pushed certification branch tips: root `c300c7253a95d65df620af1c96e1e9654d5f4ccf`, backend `c7984074dda30b147adcc1238f7263540c245f4c`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
+- Pushed certification source revisions: root pricing alignment `7d0b5285639838dbb06603b8e7065a5f1882922e`, backend `c7984074dda30b147adcc1238f7263540c245f4c`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
+- Root monorepo validation after pricing alignment: backend release tests 183 passed, 0 failed, 0 skipped; focused frontend tests 48 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 
 ## Confirmed Complete
 
@@ -86,6 +87,27 @@ AUTO-0006 — Complete local release certification and refresh evidence.
 
 - Frontend `PublicSearchMap` contained a second hardcoded 9% estimate independent of the backend quote.
 - The persistent pricebook migration `20260830144204_AlignSignedContractM1M2PricingV2` writes the old 9% value, requiring a forward correction migration rather than history rewriting.
+- The root monorepo copies of the split backend/frontend sources still contained active 9% guest-fee logic after the split repositories had been corrected. This was a repository-alignment defect, not a new business-rule decision.
+
+## AUTO-0007 — Align root monorepo pricing source
+
+Priority: P0 pricing integrity  \\
+Date: 2026-09-27
+
+The root monorepo is tracked separately from the split backend/frontend repositories and still contained active 9% guest-fee values in its backend service/seed/test copies and frontend estimate/copy. Those values could produce an incorrect estimate when the root checkout was used for local builds or orchestration.
+
+Changes:
+
+- Updated root backend pricebook resolution, seed values, and schema expectation from 9% to the approved 10% standard guest fee.
+- Updated root frontend search estimate and booking copy/comment to 10%.
+- Generated forward EF migration `20260927072014_ApplyApprovedGuestFee` with a reversible three-row pricebook update; no historical migration was edited.
+- Re-scanned active non-migration source: no pricing 9% references remain; the remaining `0.09` match is unrelated CSS letter-spacing.
+
+Evidence:
+
+- Root backend release suite: 183 passed, 0 failed, 0 skipped.
+- Root frontend focused tests: 48 passed; typecheck PASS; production build PASS; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
+- Original dirty workspace, staging, production, and protected `main` were not modified.
 
 ## Decisions
 

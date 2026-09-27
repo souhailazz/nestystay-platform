@@ -16,7 +16,7 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "c300c7253a95d65df620af1c96e1e9654d5f4ccf",
+      "sha": "7d0b5285639838dbb06603b8e7065a5f1882922e",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
@@ -48,7 +48,7 @@
       "frontend": { "sha": "e9fde6e353120712a7c5f9b0e8fa51e6044191dc", "qualityGate": "FAIL", "coverage": 55.6, "newCoverage": 64.9, "newViolations": 4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
       "platform": { "sha": "36c3ccbe627bbe6dbf6029e806c042b961611f3c", "qualityGate": "PASS", "newViolations": 0 }
     },
-    "lastImplementationUpdate": "Integration health now reports actual storage readiness; legacy Gate Guard staff invitations remain routed through the scoped P0 lifecycle.",
+    "lastImplementationUpdate": "Root monorepo pricing parity is corrected to the approved 10% guest fee with a forward-only EF migration; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "e9fde6e"
   },
