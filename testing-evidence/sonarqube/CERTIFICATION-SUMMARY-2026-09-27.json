@@ -17,6 +17,7 @@
       "branchCoverage": 51.8,
       "duplication": 20.4,
       "openIssues": 996,
+      "severityCounts": { "blocker": 0, "critical": 61, "major": 383, "minor": 239, "info": 313 },
       "coverageReports": "4 fresh OpenCover reports; 211 source files with coverage"
     },
     {
@@ -33,6 +34,7 @@
       "branchCoverage": 48.8,
       "duplication": 1.4,
       "openIssues": 977,
+      "severityCounts": { "blocker": 0, "critical": 14, "major": 294, "minor": 669, "info": 0 },
       "localVitestLineCoverage": 61.17,
       "note": "Sonar line coverage exceeds the requested 60% overall line threshold; new-code coverage was not emitted for this isolated baseline and is not claimed as passed."
     },
