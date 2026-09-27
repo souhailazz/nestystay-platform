@@ -11,7 +11,7 @@ public static class NestyStayBusinessRules
     public const int WellnessBadgeValidityYears = 1;
     public const int AssociationMinimumRetentionYears = 7;
     public const string JamaicaEmergencyNumber = "119";
-    public const decimal ContractGuestPlatformFeePercent = 9m;
+    public const decimal ContractGuestPlatformFeePercent = 10m;
 
     public static bool CanCapturePayment(BookingStatus status) =>
         status is BookingStatus.Approved or BookingStatus.PaymentCaptured or BookingStatus.Confirmed;
