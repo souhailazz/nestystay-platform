@@ -14,11 +14,12 @@ AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
 - Fresh local SonarQube analyses completed for backend, frontend, and root/platform scopes. Backend and frontend Quality Gates failed on coverage/new-code debt; the platform orchestration scope passed its new-code gate.
-- Pushed certification source revisions: root pricing alignment `7d0b5285639838dbb06603b8e7065a5f1882922e`, backend `c7984074dda30b147adcc1238f7263540c245f4c`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
+- Pushed certification source revisions: root pricing alignment `7d0b5285639838dbb06603b8e7065a5f1882922e`, backend current `1ce28f4dd6aa352f11d3aaf9d28b960087bd77fb`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
 - Root monorepo validation after pricing alignment: backend release tests 183 passed, 0 failed, 0 skipped; focused frontend tests 48 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
+- The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 
 ## Confirmed Complete
 

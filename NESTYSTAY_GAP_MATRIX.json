@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "c7984074dda30b147adcc1238f7263540c245f4c",
+      "sha": "1ce28f4dd6aa352f11d3aaf9d28b960087bd77fb",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -40,6 +40,7 @@
     "npmAuditHigh": "0 known vulnerabilities",
     "playwright": { "discovered": 224, "started": 224, "passed": 216, "failed": 0, "skipped": 8, "didNotRun": 0, "skipNote": "Explicit project/provider guards; production authenticated smoke requires runtime SMOKE_EMAIL and SMOKE_PASSWORD." },
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },
+    "postgresConcurrency": { "configuredPassed": 1, "configuredFailed": 0, "configuredSkipped": 0, "unconfiguredSkipped": 1, "test": "IndependentApiInstancesSerializeAvailabilityApprovalAndLedgerReversal" },
     "minioFocusedTests": { "passed": 2, "failed": 0, "skipped": 0, "endpoint": "private disposable local container; credentials not recorded" },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
     "stagingShaParity": "BLOCKED_VERSION_SURFACES_NOT_DEPLOYED",

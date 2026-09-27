@@ -190,3 +190,28 @@ Evidence:
 Result:
 
 Staging liveness/readiness is healthy, but exact SHA parity is **BLOCKED_EXTERNAL** until Terrence deploys the current branches and configures nginx/static serving for the version surfaces. Readiness `CONFIGURED` is not treated as proof of real MinIO I/O, backup durability, or upload authorization.
+
+## AUTO-0010 — Make PostgreSQL concurrency evidence honest
+
+Priority: P1 test integrity / booking concurrency  \\
+Date: 2026-09-27
+
+### Problem
+
+`PropertyManagerTwoInstancePostgresTests` returned early when `NESTYSTAY_POSTGRES_TEST_CONNECTION` was absent. That made the full suite report a pass without executing the multi-instance PostgreSQL serialization and idempotency path.
+
+### Changes
+
+- Added `PostgresIntegrationFactAttribute`, following the repository's existing MinIO integration-test pattern.
+- The test now reports an explicit skip when the disposable PostgreSQL connection is not configured and executes normally when it is present.
+- No authentication or application behavior was weakened.
+
+### Tests
+
+- Configured disposable PostgreSQL run: **1 passed, 0 failed, 0 skipped**.
+- Unconfigured run: **0 passed, 0 failed, 1 explicit skip**.
+- Full backend solution with disposable PostgreSQL and MinIO configured: **212 passed, 0 failed, 0 skipped**.
+
+### Result
+
+The concurrency evidence now distinguishes a real database run from an unavailable integration environment instead of silently treating the latter as success.
