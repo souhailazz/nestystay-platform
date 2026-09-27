@@ -7,11 +7,11 @@
 
 ## Executive conclusion
 
-NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the configured local MinIO-backed backend regression passed 212/212, the current frontend unit suite passed 146 tests across 34 files, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the latest complete local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, 11 explicit skips, and zero did-not-run.
+NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the configured local MinIO-backed backend regression passed 213/213, the current frontend unit suite passed 146 tests across 34 files, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the latest complete current-head local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, 11 explicit skips, and zero did-not-run.
 
 That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, regression expectations, and the root monorepo copies of those sources. The remaining commercial-rule gap is the founding Gold/Platinum model, which still behaves as a lifetime flat-fee feature while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
 
-The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; a post-refactor Sonar refresh now exists at backend `e195e8b` with zero bugs/vulnerabilities/hotspots and zero new violations, but only 15.1% overall line coverage, 805 open maintainability issues and partial source coverage; frontend remains at 63.3% line coverage and 977 open maintainability issues, and root orchestration scope is clean; the browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are now implemented.
+The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; a post-refactor Sonar refresh now exists at backend `e195e8b` with zero bugs/vulnerabilities/hotspots and zero new violations, but only 15.1% overall line coverage, 805 open maintainability issues and partial source coverage; frontend `352f2f8` has a fresh Quality Gate `OK` under the configured new-code condition with 56.6% Sonar-imported line coverage and 972 open maintainability issues, and root orchestration scope is clean; the browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are now implemented.
 
 ## Evidence and exact revisions
 
@@ -19,13 +19,13 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `20e6d9e` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Root/orchestration | `codex/final-release-certification` | `f024939` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
 | Backend | `codex/final-release-certification` | `0631b11` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
-| Frontend | `codex/final-release-certification` | `e9fde6e` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
+| Frontend | `codex/final-release-certification` | `352f2f8` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root runtime `8a601436eff1044c1c05d43cc8ad35fba56555c5`, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, and updated regression evidence. The backend revision includes the behavior-preserving badge-review maintainability refactor plus deterministic isolation for the real PostgreSQL API test. The post-refactor server-side Sonar refresh at `e195e8b` predates that test-only commit; it does not close the full-coverage or maintainability gates.
+Certification branch revisions at this refresh: root evidence `f02493956e93961967c7f04c27ce942fdc7d48e0`, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, and updated regression evidence. The backend revision includes the behavior-preserving badge-review maintainability refactor plus deterministic isolation for the real PostgreSQL API test. The post-refactor server-side Sonar refresh at `e195e8b` predates that test-only commit; it does not close the full-coverage or maintainability gates.
 
 ### Root monorepo parity follow-up
 
@@ -64,7 +64,7 @@ Each row in `NESTYSTAY_GAP_MATRIX.json` has exactly one status:
 - `WRONG_LOGIC`: current behavior is implemented but conflicts with the current approved business rule.
 - `NEEDS_EXACT_VALUE`: the implementation cannot be classified correctly until an unclear handwritten value/text is confirmed.
 
-The matrix contains **87 audited requirement rows**: **50 COMPLETE**, **23 PARTIAL**, **1 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **8 MISSING**, **1 BROKEN**, **1 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
+The matrix contains **87 audited requirement rows**: **52 COMPLETE**, **25 PARTIAL**, **0 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **6 MISSING**, **0 BROKEN**, **1 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
 
 ## Current business-rule audit
 
@@ -208,7 +208,7 @@ Stored coordinates, OpenStreetMap embeds, public map/list UI, property detail ma
 
 ### Backend
 
-- Solution test run with disposable local PostgreSQL and MinIO enabled: **212 passed, 0 failed, 0 skipped**.
+- Solution test run with disposable local PostgreSQL and MinIO enabled: **213 passed, 0 failed, 0 skipped**.
 - Project split from the completed run: Domain 5, Application 24, Infrastructure 32, API 151.
 - This is local deterministic/provider-backed evidence. It is not live Stripe, Brevo, InsuraGuest, or staging evidence.
 - The integration-health endpoint now reports the selected storage provider's readiness rather than assuming every provider is configured; this is local code evidence, not staging storage configuration evidence.
@@ -226,9 +226,9 @@ Stored coordinates, OpenStreetMap embeds, public map/list UI, property detail ma
 
 - Discovered: **224**.
 - Started: **224**.
-- Passed: **216**.
+- Passed: **213**.
 - Failed: **0**.
-- Skipped: **8**.
+- Skipped: **11 explicit scope/configuration skips**.
 - Did not run: **0**.
 - Runtime: local PostgreSQL, local deterministic adapters, local file email behavior, local MinIO test container; not staging/live providers.
 
@@ -236,7 +236,7 @@ The 8 skips are explicit, not silent omissions. They are produced by browser/pro
 
 ### SonarQube
 
-Fresh local SonarQube analyses were completed server-side for all three audited scopes and exported to `testing-evidence/sonarqube/`. Backend (`094b539f`) reported Quality Gate **FAIL**, 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 14.4% overall coverage, 7.5% new-code coverage, and 11 new violations. Frontend (`e9fde6e`) reported Quality Gate **FAIL**, 0 bugs, 0 vulnerabilities, 0 hotspots, 973 code smells, 55.6% overall coverage, 64.9% new-code coverage, and 4 new violations. Root/platform (`36c3ccb`) passed its new-code gate with 0 new violations; its broader orchestration findings are not runtime application certification. These are current results, not historical placeholders. Sonar remediation and a rerun remain required before a production-ready verdict.
+Fresh local SonarQube analyses were completed server-side for all three audited scopes and exported to `testing-evidence/sonarqube/`. Backend (`e195e8b`) reported Quality Gate **OK** under the configured new-violations-only condition, 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% overall imported coverage, 48.7% branch coverage, 6.9% duplication, and 0 new violations. Frontend (`352f2f8`) reported Quality Gate **OK** under the configured new-code condition, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% overall imported coverage, and 1.4% duplication. Root/platform (`b5d06db`) passed its new-code gate with 0 current issues. Sonar remediation and coverage expansion remain required before a production-ready verdict.
 
 ### Deployment
 

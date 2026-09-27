@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0023 — Refresh frontend maintainability evidence after the traveler reservation refactor and preserve the remaining certification blockers.
+AUTO-0024 — Execute the complete current-head browser regression across all configured projects.
 
 ## Validation Result
 
@@ -13,7 +13,7 @@ AUTO-0023 — Refresh frontend maintainability evidence after the traveler reser
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 107 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
-- Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
+- Latest browser regression at frontend `352f2f8`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 27.7 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the local PostgreSQL-backed application. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed and processed at the current certification heads. The prior baseline remains on isolated server port 9001. A post-refactor backend refresh on port 9002 at `e195e8b` completed server-side: 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% Sonar line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported, but only 48 backend source files had coverage; this is not a production-readiness pass for full coverage or maintainability. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
 - Pushed certification source revisions: root evidence branch `2569a9ef66ebc73b9127e84103b9fff80158c274`, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`.
@@ -103,7 +103,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
 - Backend Sonar: fresh scan imported four OpenCover reports covering 211 source files; line coverage is 52.2%, branch coverage 51.8%, with 996 maintainability issues. The requested backend quality/maintainability target is not complete.
-- Frontend Sonar: fresh scan at `3b350a28a06f8e3f8b38d8c2448af60b6145becb` reports 63.3% line coverage, above the requested 60% overall line threshold, but 977 maintainability issues remain and isolated new-code coverage was not emitted; the 80% new-code requirement is not claimed as passed. Local Vitest coverage remains 61.17% line coverage.
+- Frontend Sonar: fresh scan at `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0` reports 56.6% Sonar-imported line coverage and 972 maintainability issues. The local V8 run is 61.16% lines, above the requested 60% local threshold, but the 80% new-code requirement is not claimed as passed.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.

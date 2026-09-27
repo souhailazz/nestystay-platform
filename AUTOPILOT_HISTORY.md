@@ -1,5 +1,24 @@
 # Autopilot History
 
+## AUTO-0024 — Complete current-head browser regression
+
+Priority: P1 release evidence  \
+Date: 2026-09-27
+
+### Problem
+
+The previous full browser evidence predated the latest frontend reservation-filter refactor. The current head needed a complete, real local regression rather than an inferred result.
+
+### Validation
+
+- Command: `npm run test:e2e -- --reporter=line` with a runtime-only local PostgreSQL connection string.
+- Runtime: local PostgreSQL-backed ASP.NET API, a real server-issued disposable Admin bootstrap identity, local deterministic providers, and the configured desktop/tablet/mobile Chromium plus Firefox/WebKit projects.
+- Result: **224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run** in **27.7 minutes**.
+
+### Result
+
+The current frontend head `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0` passed the complete configured browser matrix. The skips remain explicit provider/credential or project-scope guards; they are not hidden failures. Real staging provider delivery and deployed SHA parity remain external certification gates.
+
 ## AUTO-0023 — Refresh frontend maintainability evidence after reservation-filter refactor
 
 Priority: P1 release evidence  \
