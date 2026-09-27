@@ -20,6 +20,7 @@ AUTO-0013 — Complete local Playwright regression from the protected release br
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
+- Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
 
 ## AUTO-0013 — Complete local Playwright regression
 
@@ -36,7 +37,7 @@ Evidence:
 - The separate admin-token-gated group passed 12/12.
 - The 11 skips are explicit provider/credential or viewport-scope guards: browser MinIO opt-in, deployment smoke credentials, and mobile-only checks. They are not hidden failures.
 
-The local browser gate is therefore green for executed journeys. Real staging Brevo delivery, staging MinIO I/O/backups, exact deployed SHA parity, and Sonar backend/frontend gate remediation remain open.
+The local browser gate is therefore green for executed journeys, and the separate local MinIO browser path is green. Real staging Brevo delivery, staging MinIO I/O/backups, exact deployed SHA parity, and Sonar backend/frontend gate remediation remain open.
 
 ## Confirmed Complete
 

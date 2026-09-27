@@ -20,6 +20,7 @@ This is the latest complete local browser run from the isolated certification wo
 - Did not run: **0**.
 - Projects exercised: desktop Chromium, tablet Chromium, mobile Chromium, plus the configured Firefox/WebKit critical smoke projects.
 - Separate admin-token-gated check: **12 passed, 0 failed, 0 skipped**.
+- MinIO browser opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio` and the disposable private container: **3 passed, 0 failed, 0 skipped** across desktop, tablet, and mobile Chromium. The flow covered browser upload, API/MinIO persistence, reload, signed download, and byte equality.
 
 ## Skip classification
 
@@ -27,4 +28,4 @@ The skips are explicit test guards, not unstarted tests: browser MinIO evidence 
 
 ## Interpretation
 
-The local browser regression is green for every executed journey, including booking, badges, wellness, directories, QR, Property Manager, authorization, accessibility, responsive layouts, uploads, SEO, and Stripe test-mode UI paths. This does not certify real staging Brevo delivery, real staging MinIO I/O/backups, deployed SHA parity, or production provider configuration.
+The local browser regression is green for every executed journey, including booking, badges, wellness, directories, QR, Property Manager, authorization, accessibility, responsive layouts, uploads, SEO, and Stripe test-mode UI paths. The separate MinIO browser run is also green. This does not certify real staging Brevo delivery, staging MinIO persistence/backups, deployed SHA parity, or production provider configuration.
