@@ -21,6 +21,10 @@ Backend commit `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb` makes the disposable-s
 
 The audit used isolated clean worktrees so the user's dirty working workspace was not altered. The latest remediation also rejects the historical unscoped Gate Guard staff route rather than allowing it to create misleading legacy records, and aligns the root monorepo with the split backend's scoped Gate Guard lifecycle.
 
+### Authorization/IDOR follow-up
+
+The focused local matrix was rerun at backend `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb` and passed **13/13** with zero failures or skips. It exercises cross-resource message/attachment, wellness/officer-document, provider-private-data, owner/manager/staff portfolio, Gate Guard invite/scope/revocation, admin-only endpoint, Property Manager policy, badge ownership, and logout/session boundaries. This is local API evidence; staging role/IDOR verification remains required and is not inferred from it. Evidence: `testing-evidence/final-hardening/04-authorization/LOCAL-AUTHORIZATION-MATRIX-2026-09-27.md`.
+
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
 | Root/orchestration | `codex/final-release-certification` | `f024939` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |

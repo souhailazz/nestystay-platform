@@ -41,6 +41,7 @@
     "npmAuditHigh": "0 known vulnerabilities",
     "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0, "skipNote": "Latest complete local run. Explicit guards cover browser MinIO opt-in, deployment smoke credentials, and mobile-only project scope; all admin-token-gated checks passed." },
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },
+    "authorizationIdorFocusedRerun": { "passed": 13, "failed": 0, "skipped": 0, "backendSha": "0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb", "scope": "Cross-resource messages/attachments, wellness/officer documents, provider privacy, owner/manager/staff portfolio isolation, Gate Guard invite/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership and session invalidation", "stagingRequired": true },
     "postgresConcurrency": { "configuredPassed": 1, "configuredFailed": 0, "configuredSkipped": 0, "unconfiguredSkipped": 1, "test": "IndependentApiInstancesSerializeAvailabilityApprovalAndLedgerReversal" },
     "minioFocusedTests": { "passed": 2, "failed": 0, "skipped": 0, "endpoint": "private disposable local container; credentials not recorded" },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
@@ -53,7 +54,7 @@
       "frontend": { "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "7e06d0bd-3027-4f56-a7d1-2c38f131bb84", "analysisId": "cb921fa4-45b3-482c-802a-e589f2919315", "coverageNote": "Fresh refresh after the traveler reservation filter refactor with current lcov; V8 summary is 61.16% lines, 57.12% statements, 48.76% branches, and 53.49% functions. Branch coverage was not exported by this Sonar refresh." },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
-    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
+    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; the local authorization/IDOR matrix rerun passed 13/13; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "352f2f8"
   },

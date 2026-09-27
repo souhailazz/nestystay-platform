@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0027 — Re-run the local authorization and IDOR regression matrix
+
+Priority: P1 security evidence  \
+Date: 2026-09-27
+
+The release plan required a current local authorization pass before relying on the broader full-suite result. Existing tests already covered the relevant role and ownership boundaries, so no application behavior was changed.
+
+Evidence:
+
+- Backend commit: `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb`.
+- Focused API command matched `CrossResourceAuthorizationMatrixTests`, `PropertyManagerAuthorizationMatrixTests`, and `BadgeAuthorizationTests`.
+- Result: **13 passed, 0 failed, 0 skipped**.
+- Covered cross-resource messages/attachments, wellness/officer documents, provider privacy, owner/manager/staff portfolio isolation, Gate Guard invite/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership, and logout/session invalidation.
+- Staging role/IDOR certification remains an external gate and is not inferred from local tests.
+
 ## AUTO-0026 — Execute the final reproducible backend integration-coverage run
 
 Priority: P1 quality evidence  \

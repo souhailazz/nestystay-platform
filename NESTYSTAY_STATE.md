@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0026 — Execute and retain the full reproducible backend integration-coverage result.
+AUTO-0027 — Re-run the local authorization and IDOR regression matrix.
 
 ## Validation Result
 
@@ -34,6 +34,7 @@ AUTO-0026 — Execute and retain the full reproducible backend integration-cover
 - Fresh frontend Sonar refresh at current head `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`: server-side processing succeeded; Quality Gate `OK` under the configured new-code gate, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 open code smells, 56.6% Sonar line coverage, and 1.4% duplication. Evidence: `testing-evidence/sonarqube/FRONTEND-FILTER-REFACTOR-2026-09-27.md`.
 - The backend now has a committed `dotnet-coverage` tool manifest and `tools/collect-coverage.ps1` runner at `0e58c1f`. It requires runtime-only disposable PostgreSQL and MinIO variables, restores the pinned collector, builds before instrumentation, and refuses to silently skip either integration path. The runner's credential-absence guard and tool restore passed. An initial runner attempt encountered a stale local Roslyn compiler lock; after that local process was cleared, the final runner produced a valid Cobertura report and four TRX files: Domain **6/6**, Application **24/24**, Infrastructure **32/32**, and API **151/151**—**213 passed, 0 failed, 0 skipped**. Excluding only EF-generated migration designer/snapshot source, the report measured **17,228/33,561 authored lines (51.33%)**. This does not meet the requested 80% backend coverage target.
 - A new local Sonar .NET refresh was attempted twice with the full Visual Studio coverage report and generated-migration exclusions. Both analyzer-backed builds stalled before a server upload; the pre-existing backend Sonar result remains the latest server-side result. This is a local scanner/tooling blocker, not a backend product-test failure.
+- The local authorization/IDOR regression matrix was rerun at backend `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb`: **13 passed, 0 failed, 0 skipped**. It covered cross-resource message/attachment, wellness/officer, provider, owner/manager/staff portfolio, Gate Guard invitation/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership, and session invalidation. Evidence: `testing-evidence/final-hardening/04-authorization/LOCAL-AUTHORIZATION-MATRIX-2026-09-27.md`. This strengthens local authorization evidence but does not replace staging role/IDOR verification.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
