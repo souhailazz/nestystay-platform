@@ -1,5 +1,21 @@
 # Autopilot History
 
+## AUTO-0023 — Refresh frontend maintainability evidence after reservation-filter refactor
+
+Priority: P1 release evidence  \
+Date: 2026-09-27
+
+The frontend reservation filtering helper was simplified into a decision table on certification commit `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`. This is behavior-preserving: the full frontend unit suite remains green and the production build/typecheck remain successful.
+
+Evidence:
+
+- Frontend Vitest: **146 passed** across 34 files.
+- V8 coverage: **61.16% lines**, **57.12% statements**, **48.76% branches**, **53.49% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 107 warnings**; `npm audit --audit-level=high`: **0 known vulnerabilities**.
+- SonarQube local refresh on port 9002: task `7e06d0bd-3027-4f56-a7d1-2c38f131bb84`, analysis `cb921fa4-45b3-482c-802a-e589f2919315`, Quality Gate **OK**, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 open code smells, 56.6% imported line coverage, and 1.4% duplication.
+
+The existing maintainability backlog and externally blocked staging gates remain open; this update records the latest evidence without claiming production readiness.
+
 ## AUTO-0022 — Refresh certification evidence on current release heads
 
 Priority: P1 release evidence  \

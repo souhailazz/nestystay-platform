@@ -16,7 +16,7 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "8a601436eff1044c1c05d43cc8ad35fba56555c5",
+      "sha": "2569a9ef66ebc73b9127e84103b9fff80158c274",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
@@ -26,17 +26,17 @@
     },
     "frontend": {
       "branch": "codex/final-release-certification",
-      "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb",
+      "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0",
       "mainReference": "510512375b613eb0ce5bf9ae39bf5d3f7042e008"
     }
   },
   "evidence": {
     "backendTests": { "passed": 213, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
     "frontendTests": { "passed": 146, "files": 34 },
-    "frontendCoverage": { "linePercent": 61.17, "statementPercent": 57.14, "branchPercent": 48.73, "functionPercent": 53.52 },
+    "frontendCoverage": { "linePercent": 61.16, "statementPercent": 57.12, "branchPercent": 48.76, "functionPercent": 53.49 },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
-    "frontendLint": { "errors": 0, "warnings": 112 },
+    "frontendLint": { "errors": 0, "warnings": 107 },
     "npmAuditHigh": "0 known vulnerabilities",
     "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0, "skipNote": "Latest complete local run. Explicit guards cover browser MinIO opt-in, deployment smoke credentials, and mobile-only project scope; all admin-token-gated checks passed." },
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },
@@ -49,12 +49,12 @@
       "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
       "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; scan predates the test-only 0631b11 commit; full backend coverage acceptance remains open" },
-      "frontend": { "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 977, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "1197e33b-0e52-415a-a26b-175faef7c26c", "coverageNote": "Fresh refresh with current lcov; V8 summary is 61.17% lines. Branch coverage was not exported by this refresh. The older named-project baseline was 63.3% lines / 48.8% branches." },
+      "frontend": { "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "7e06d0bd-3027-4f56-a7d1-2c38f131bb84", "analysisId": "cb921fa4-45b3-482c-802a-e589f2919315", "coverageNote": "Fresh refresh after the traveler reservation filter refactor with current lcov; V8 summary is 61.16% lines, 57.12% statements, 48.76% branches, and 53.49% functions. Branch coverage was not exported by this Sonar refresh." },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
     "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
     "backendRemediationCommit": "094b539",
-    "frontendRemediationCommit": "3b350a2"
+    "frontendRemediationCommit": "352f2f8"
   },
   "domains": [
     { "phase": "M1", "area": "Authentication", "requirement": "Registration and password login", "status": "COMPLETE", "evidence": "EfPhaseOneStore registration/login and backend/browser tests." },

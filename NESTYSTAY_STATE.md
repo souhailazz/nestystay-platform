@@ -2,21 +2,21 @@
 
 ## Last Completed Task
 
-AUTO-0022 — Refresh certification evidence on the current release heads and preserve the remaining certification blockers.
+AUTO-0023 — Refresh frontend maintainability evidence after the traveler reservation refactor and preserve the remaining certification blockers.
 
 ## Validation Result
 
 - Backend full solution with local PostgreSQL and MinIO enabled: 213 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 146 passed across 34 files.
-- Fresh frontend V8 coverage: 61.17% lines (4,634/7,575), 57.14% statements, 48.73% branches, 53.52% functions.
+- Fresh frontend V8 coverage: 61.16% lines (4,634/7,576), 57.12% statements, 48.76% branches, 53.49% functions.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
-- Frontend lint: 0 errors, 112 warnings.
+- Frontend lint: 0 errors, 107 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
-- Fresh local SonarQube analyses completed and processed at the current certification heads. The prior baseline remains on isolated server port 9001. A post-refactor backend refresh on port 9002 at `e195e8b` completed server-side: 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% Sonar line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported, but only 48 backend source files had coverage; this is not a production-readiness pass for full coverage or maintainability. Frontend prior baseline remains 63.3% line / 48.8% branch coverage with 977 code smells; root/platform scope remains 0 current issues.
+- Fresh local SonarQube analyses completed and processed at the current certification heads. The prior baseline remains on isolated server port 9001. A post-refactor backend refresh on port 9002 at `e195e8b` completed server-side: 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% Sonar line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported, but only 48 backend source files had coverage; this is not a production-readiness pass for full coverage or maintainability. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root runtime source `8a601436eff1044c1c05d43cc8ad35fba56555c5` with current evidence commits on the certification branch, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `3b350a2`.
+- Pushed certification source revisions: root evidence branch `2569a9ef66ebc73b9127e84103b9fff80158c274`, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -28,10 +28,10 @@ AUTO-0022 — Refresh certification evidence on the current release heads and pr
 - The API integration test is now isolated in a non-parallel xUnit collection. The complete configured solution then passed 213/213 with no skips; the test-only fix is backend commit `0631b11`.
 - A clean detached checkout of `0631b112195be3d4f3df1064b6c4cee31dc3aae2` reproduced a separate XPlat Code Coverage collector stall even for the single PostgreSQL API test after the test host started. The same test passes in 6 seconds without coverage, so this is recorded as coverage-tooling evidence uncertainty rather than a product/test failure; full backend Sonar coverage remains unproven.
 - GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
-- Current-head refresh: backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2` passed the complete configured solution at 213/213 with disposable PostgreSQL and MinIO; frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb` passed 146/146 unit tests, typecheck, build, and 0-error lint. These current-head checks do not change the earlier Sonar conclusion because the backend change is test-only and the recorded backend scan remains at `e195e8b`.
+- Current-head refresh: backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2` passed the complete configured solution at 213/213 with disposable PostgreSQL and MinIO; frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0` passed 146/146 unit tests, typecheck, build, and 0-error lint. The frontend refactor reduced lint warnings from 112 to 107 and preserved the local coverage profile. These current-head checks do not change the backend Sonar conclusion because the backend change is test-only; the recorded backend scan remains at `e195e8b`.
 - Disposable MinIO persistence recheck: a uniquely prefixed object remained readable after restarting `nestystay-minio-audit` on its mounted Docker volume. This proves local volume persistence only; production backup/restore and staging object lifecycle remain unverified.
 - Gitleaks triage: frontend 0 findings; backend 7 historical/example-file generic-api-key matches; root 6,729 raw matches dominated by generated Sonar JSON false positives. Findings were classified by redacted source/path; no active credential requiring rotation was found in the isolated checkouts.
-- Fresh frontend Sonar refresh at current head `3b350a28a06f8e3f8b38d8c2448af60b6145becb`: server-side processing succeeded; Quality Gate `OK` under the configured new-code gate, 0 bugs, 0 vulnerabilities, 0 hotspots, 977 open code smells, 56.6% Sonar line coverage, and 1.4% duplication. Evidence: `testing-evidence/sonarqube/FRONTEND-REFRESH-2026-09-27.md`.
+- Fresh frontend Sonar refresh at current head `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`: server-side processing succeeded; Quality Gate `OK` under the configured new-code gate, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 open code smells, 56.6% Sonar line coverage, and 1.4% duplication. Evidence: `testing-evidence/sonarqube/FRONTEND-FILTER-REFACTOR-2026-09-27.md`.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
