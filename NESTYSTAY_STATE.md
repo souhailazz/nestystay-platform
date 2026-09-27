@@ -6,7 +6,7 @@ AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the rema
 
 ## Validation Result
 
-- Backend full solution with local MinIO enabled: 212 passed, 0 failed, 0 skipped.
+- Backend full solution with local PostgreSQL and MinIO enabled: 213 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 146 passed across 34 files.
 - Fresh frontend V8 coverage: 61.17% lines (4,634/7,575), 57.12% statements, 48.75% branches, 53.47% functions.
 - Frontend typecheck: PASS.
@@ -16,7 +16,7 @@ AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the rema
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed and processed at the current certification heads. The prior baseline remains on isolated server port 9001. A post-refactor backend refresh on port 9002 at `e195e8b` completed server-side: 0 bugs, 0 vulnerabilities, 0 hotspots, 805 code smells, 15.1% Sonar line coverage, 48.7% branch coverage, 6.9% duplication and 0 new violations under the configured new-violations-only gate. Six OpenCover reports imported, but only 48 backend source files had coverage; this is not a production-readiness pass for full coverage or maintainability. Frontend prior baseline remains 63.3% line / 48.8% branch coverage with 977 code smells; root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root runtime source `8a601436eff1044c1c05d43cc8ad35fba56555c5` with current evidence commits on the certification branch, backend `e195e8b1720157cbe1c172a30e658b6dc6be7215`, frontend `3b350a2`.
+- Pushed certification source revisions: root runtime source `8a601436eff1044c1c05d43cc8ad35fba56555c5` with current evidence commits on the certification branch, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `3b350a2`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -24,7 +24,9 @@ AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the rema
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 - Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
 - Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips; the configured PostgreSQL/MinIO integration evidence passes when run against the disposable services. A fresh post-refactor Sonar upload and server-side processing also completed successfully; its evidence is under `testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.*`.
-- The current configured API regression was decomposed to avoid the all-at-once test-host hang: 105 non-Property-Manager tests passed, 45 in-memory Property Manager tests passed, and the PostgreSQL two-instance test passed 1/1 on a fresh disposable database. This is recorded as chunked evidence, not relabeled as a single 151-test run.
+- The configured API regression was initially decomposed to diagnose the all-at-once test-host hang: 105 non-Property-Manager tests passed, 45 in-memory Property Manager tests passed, and the PostgreSQL two-instance test passed 1/1. That diagnostic result is superseded by the dedicated non-parallel xUnit collection fix and the subsequent complete 151-test API run recorded below.
+- The API integration test is now isolated in a non-parallel xUnit collection. The complete configured solution then passed 213/213 with no skips; the test-only fix is backend commit `0631b11`.
+- A clean detached checkout of `0631b112195be3d4f3df1064b6c4cee31dc3aae2` reproduced a separate XPlat Code Coverage collector stall even for the single PostgreSQL API test after the test host started. The same test passes in 6 seconds without coverage, so this is recorded as coverage-tooling evidence uncertainty rather than a product/test failure; full backend Sonar coverage remains unproven.
 - GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
@@ -128,6 +130,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - Complete current staging role/IDOR matrix.
 - Complete current staging/browser role and IDOR checks, including the new Gate Guard boundary.
 - Review and remediate the fresh Sonar findings, then rerun the gates after behavior-preserving fixes and additional tests.
+- Replace or diagnose the XPlat API coverage collection path before claiming complete backend coverage; do not infer coverage from the passing no-coverage regression.
 
 ## P2
 
@@ -151,6 +154,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - The persistent pricebook migration `20260830144204_AlignSignedContractM1M2PricingV2` writes the old 9% value, requiring a forward correction migration rather than history rewriting.
 - The root monorepo copies of the split backend/frontend sources still contained active 9% guest-fee logic after the split repositories had been corrected. This was a repository-alignment defect, not a new business-rule decision.
 - A deeper cross-repository pricing scan found the root domain constant `ContractGuestPlatformFeePercent = 9m`; it is now 10m with a root and split-backend regression assertion. Active 9% pricing logic is now absent from root and split runtime source; historical migrations and unrelated CSS ratios remain excluded by design.
+- The .NET XPlat Code Coverage collector stalls on the API test host in both the working checkout and a clean detached checkout, while the exact API tests pass without coverage; Sonar coverage evidence therefore cannot yet be refreshed from a complete API run.
 
 ## AUTO-0012 — Align root monorepo Gate Guard lifecycle
 

@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215",
+      "sha": "0631b112195be3d4f3df1064b6c4cee31dc3aae2",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -31,7 +31,7 @@
     }
   },
   "evidence": {
-    "backendTests": { "passed": 212, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
+    "backendTests": { "passed": 213, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
     "frontendTests": { "passed": 146, "files": 34 },
     "frontendCoverage": { "linePercent": 61.17, "statementPercent": 57.12, "branchPercent": 48.75, "functionPercent": 53.47 },
     "frontendTypecheck": "PASS",
@@ -48,7 +48,7 @@
     "freshSonarAtAuditedShas": {
       "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; full backend coverage acceptance remains open" },
+      "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; scan predates the test-only 0631b11 commit; full backend coverage acceptance remains open" },
       "frontend": { "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 63.3, "branchCoverage": 48.8, "codeSmells": 977, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "60b5e8ed-0014-4772-be00-7e6feb5d035d" },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },

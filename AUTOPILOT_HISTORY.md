@@ -357,3 +357,34 @@ Evidence:
 
 The remaining local quality blockers are the incomplete full-source backend coverage and the maintainability backlog. External/staging blockers remain Brevo delivery, production MinIO proof/backups, deployed SHA parity, and staging role/IDOR evidence.
 
+## AUTO-0021 — Stabilize the combined PostgreSQL API regression
+
+Priority: P1 release evidence  \\
+Date: 2026-09-27
+
+### Problem
+
+The API assembly passed when its in-memory tests and PostgreSQL concurrency test were run separately, but the combined run hung when the database-backed fixture executed in parallel with the in-memory fixtures. That prevented an honest complete configured backend regression and coverage run.
+
+### Changes
+
+Placed `PropertyManagerTwoInstancePostgresTests` in a dedicated xUnit collection with parallelization disabled for that collection. This changes test scheduling only; it does not alter production code, migrations, database behavior or authorization.
+
+### Files
+
+- `tests/NestyStay.Api.Tests/PropertyManagerTwoInstancePostgresTests.cs`
+
+### Tests
+
+- API assembly with PostgreSQL enabled: **151 passed, 0 failed, 0 skipped**.
+- Full backend solution with PostgreSQL and MinIO enabled: **213 passed, 0 failed, 0 skipped**.
+- Focused PostgreSQL concurrency test: **1 passed, 0 failed, 0 skipped**.
+
+### Result
+
+The full configured regression is now deterministic without hiding or skipping the real database test. Commit `0631b112195be3d4f3df1064b6c4cee31dc3aae2` was pushed to the existing protected backend certification branch/PR.
+
+### Discovered Follow-ups
+
+The XPlat coverage collector still stalls after the API test host starts, including a single PostgreSQL API test from a clean detached checkout. The exact test passes without coverage; this remains a tooling/coverage evidence blocker and is not being reported as a test failure. A fresh Sonar upload at the new test-only SHA is still appropriate after the coverage evidence decision.
+
