@@ -151,6 +151,32 @@ The split backend/frontend branches had the approved 10% standard guest fee, but
 
 The root monorepo and split source now represent the same approved standard guest fee. The root source commit `7d0b5285639838dbb06603b8e7065a5f1882922e` is pushed to the existing protected certification branch and remains subject to PR review; no main bypass was used.
 
+## AUTO-0011 — Close remaining root pricing constant drift
+
+Priority: P0 pricing integrity  \\
+Date: 2026-09-27
+
+### Problem
+
+The root monorepo still declared `ContractGuestPlatformFeePercent = 9m` even though its pricebook/service/frontend copies and both split repositories had been moved to the approved 10% rule. This was discovered by a second exact-value scan after the earlier source-alignment commit.
+
+### Changes
+
+- Changed the root domain constant to 10m.
+- Added the same standard-fee regression assertion to root and split backend domain tests.
+- Preserved historical migrations and unrelated CSS values.
+
+### Tests
+
+- Root domain pricing tests: 6 passed, 0 failed, 0 skipped.
+- Split backend domain pricing tests: 6 passed, 0 failed, 0 skipped.
+- Root commit: `eadf8cd61e199f6bc291c7dff9c51aae991430dd`.
+- Backend commit: `6277a950d563ce32e01a51223776fac9981529dd`.
+
+### Result
+
+The active standard guest fee is now 10% across the root monorepo, split backend, split frontend, seeds, pricebook services, estimates/copy, and regression expectations. The branches remain protected PR branches; main was not bypassed.
+
 ### Discovered Follow-ups
 
 - Gold/Platinum founding economics remain unresolved because exact amended handwritten values are not machine-readable.

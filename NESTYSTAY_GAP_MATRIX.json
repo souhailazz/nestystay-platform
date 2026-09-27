@@ -16,12 +16,12 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "7d0b5285639838dbb06603b8e7065a5f1882922e",
+      "sha": "eadf8cd61e199f6bc291c7dff9c51aae991430dd",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "1ce28f4dd6aa352f11d3aaf9d28b960087bd77fb",
+      "sha": "6277a950d563ce32e01a51223776fac9981529dd",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
