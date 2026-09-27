@@ -30,6 +30,7 @@ AUTO-0022 — Refresh certification evidence on the current release heads and pr
 - GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
 - Current-head refresh: backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2` passed the complete configured solution at 213/213 with disposable PostgreSQL and MinIO; frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb` passed 146/146 unit tests, typecheck, build, and 0-error lint. These current-head checks do not change the earlier Sonar conclusion because the backend change is test-only and the recorded backend scan remains at `e195e8b`.
 - Disposable MinIO persistence recheck: a uniquely prefixed object remained readable after restarting `nestystay-minio-audit` on its mounted Docker volume. This proves local volume persistence only; production backup/restore and staging object lifecycle remain unverified.
+- Gitleaks triage: frontend 0 findings; backend 7 historical/example-file generic-api-key matches; root 6,729 raw matches dominated by generated Sonar JSON false positives. Findings were classified by redacted source/path; no active credential requiring rotation was found in the isolated checkouts.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
