@@ -91,7 +91,7 @@ Portfolio/owner scoping, owner portal, invitations, assignments, reservations/co
 
 | Area | Result |
 |---|---|
-| Backend full solution tests | **209 passed, 0 failed; 1 skipped** (`MinioStorageProviderTests.LocalMinioRoundTripAndAuthorization` is conditional when the disposable MinIO endpoint is not supplied) |
+| Backend full solution tests | **210 passed, 0 failed, 0 skipped** with the disposable MinIO endpoint enabled |
 | New M2-15 API test | **1 passed**: persisted facts, four-level evaluation, idempotent second run, history, and non-admin 403s |
 | Frontend unit tests | **128 passed across 31 files** |
 | New AdminBadges UI test | **1 passed**: loads review history, runs admin review, refreshes history and displays status |
@@ -101,7 +101,7 @@ Portfolio/owner scoping, owner portal, invitations, assignments, reservations/co
 | Frontend lint | **0 errors, 112 warnings**; warnings are pre-existing maintainability debt and are not hidden |
 | Frontend npm audit | **0 known vulnerabilities** |
 | Previously completed Playwright matrix | **224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run**; the new AdminBadges UI behavior also has a unit regression test |
-| Local MinIO | Existing disposable-container I/O certification remains PASS; the full solution run reports the conditional test as skipped when `NESTYSTAY_MINIO_E2E` is not enabled |
+| Local MinIO | **PASS**: disposable container round-trip, overwrite/hash, signed download, wrong-credential denial, and traversal/size validation tests passed; the full backend suite was rerun with the container enabled |
 | Sonar | Existing local scans report 0 bugs, 0 vulnerabilities and 0 hotspots; maintainability findings and Sonar’s lower executable-line coverage remain separate release debt |
 | Gitleaks | Existing triage found no active production credential; placeholders/historical values remain documented without exposing values |
 
