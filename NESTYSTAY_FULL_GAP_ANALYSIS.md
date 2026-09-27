@@ -27,13 +27,13 @@ The focused local matrix was rerun at backend `393edd1e20269350ed565fff8dda53b99
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `pending current docs commit` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Root/orchestration | `codex/final-release-certification` | `0cb61c3` (authorization refresh; evidence baseline `f80c14e`) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
 | Backend | `codex/final-release-certification` | `393edd1` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
 | Frontend | `codex/final-release-certification` | `352f2f8` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root current docs are pending the next commit, backend `393edd1e20269350ed565fff8dda53b997792e39`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, authorization evidence, and updated regression evidence. The backend revision includes the behavior-preserving badge-review maintainability refactor, deterministic isolation for the real PostgreSQL API test, the reproducible coverage runner, and storage/platform regression tests. The fresh backend Sonar analysis is server-side and current, but does not close the full-coverage or maintainability gates.
+Certification branch revisions at this refresh: root authorization refresh `0cb61c3` with evidence baseline `f80c14e`, backend `393edd1e20269350ed565fff8dda53b997792e39`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, authorization evidence, and updated regression evidence. The backend revision includes the behavior-preserving badge-review maintainability refactor, deterministic isolation for the real PostgreSQL API test, the reproducible coverage runner, and storage/platform regression tests. The fresh backend Sonar analysis is server-side and current, but does not close the full-coverage or maintainability gates.
 
 ### Root monorepo parity follow-up
 
