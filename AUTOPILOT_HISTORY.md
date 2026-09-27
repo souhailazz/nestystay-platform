@@ -155,3 +155,20 @@ The root monorepo and split source now represent the same approved standard gues
 
 - Gold/Platinum founding economics remain unresolved because exact amended handwritten values are not machine-readable.
 - External provider, staging SHA, Sonar remediation, Gitleaks review, and staging role/IDOR evidence remain open.
+
+## AUTO-0008 — Re-run local authorization and MinIO evidence
+
+Priority: P1 release evidence  \\
+Date: 2026-09-27
+
+The next local-only certification pass re-ran the existing security boundaries and private MinIO integration with the disposable audit container explicitly configured. No application bypass, staging change, or production change was used.
+
+Evidence:
+
+- Cross-resource authorization, Property Manager authorization, cookie/session security, signed-access-token security, and webhook-security filters: **28 passed, 0 failed, 0 skipped**.
+- MinIO provider tests with `MINIO_TEST_ENDPOINT=http://127.0.0.1:19000`: **2 passed, 0 failed, 0 skipped**. Coverage included upload/overwrite, signed download, wrong-credential denial, traversal rejection, and size validation.
+- Complete split-backend solution rerun with the private MinIO container configured: **212 passed, 0 failed, 0 skipped**.
+
+Result:
+
+The local authorization and MinIO evidence is stronger and current. It still does not certify staging credentials, production storage persistence/backups, real Brevo delivery, or deployment SHA parity.
