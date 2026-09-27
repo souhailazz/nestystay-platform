@@ -286,3 +286,9 @@ Evidence:
 
 The local coverage target is now above 60% lines. The Sonar frontend gate has not yet been re-run at this new SHA, so its prior server-side metrics remain the authoritative Sonar result until refreshed.
 
+## AUTO-0015 — Attempt fresh frontend Sonar refresh
+
+Date: 2026-09-27
+
+The frontend LCOV was ready at certification SHA `325e585`, but the local SonarScanner could not authenticate to `http://localhost:9000` and returned HTTP 401 before analysis. No server-side metrics were changed or inferred. The prior frontend Sonar result at `96cbac8` remains the authoritative gate result until a valid local Sonar session/token is supplied.
+

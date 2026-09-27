@@ -59,7 +59,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
 - Backend Sonar: 10.3% overall coverage, 6.9% new-code coverage, 11 new violations, 20.4% duplication; gate FAIL.
-- Frontend Sonar latest server-side scan remains at prior SHA `96cbac8`: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL. The newer local Vitest coverage is 61.14% at frontend `325e585`; Sonar must be rerun against that SHA before its gate is reconsidered.
+- Frontend Sonar latest server-side scan remains at prior SHA `96cbac8`: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL. The newer local Vitest coverage is 61.14% at frontend `325e585`; a refresh attempt was blocked by local SonarQube HTTP 401 authentication, so no new server-side result is claimed.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.
