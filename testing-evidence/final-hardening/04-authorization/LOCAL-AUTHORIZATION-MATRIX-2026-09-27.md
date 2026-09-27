@@ -2,7 +2,7 @@
 
 ## Scope
 
-This is a local API regression result from backend certification commit `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb`. It uses real HTTP requests and server-issued test sessions; it does not forge browser sessions or alter staging/production.
+This is a local API regression result from backend certification commit `393edd1e20269350ed565fff8dda53b997792e39`. It uses real HTTP requests and server-issued test sessions; it does not forge browser sessions or alter staging/production.
 
 ## Executed checks
 
