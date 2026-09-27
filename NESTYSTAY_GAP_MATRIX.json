@@ -38,10 +38,16 @@
     "frontendBuild": "PASS",
     "frontendLint": { "errors": 0, "warnings": 112 },
     "npmAuditHigh": "0 known vulnerabilities",
-    "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0 },
+    "playwright": { "discovered": 224, "started": 224, "passed": 216, "failed": 0, "skipped": 8, "didNotRun": 0, "skipNote": "Explicit project/provider guards; production authenticated smoke requires runtime SMOKE_EMAIL and SMOKE_PASSWORD." },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
     "stagingShaParity": "UNKNOWN",
-    "freshSonarAtAuditedShas": "NOT_RUN",
+    "freshSonarAtAuditedShas": {
+      "status": "COMPLETE_SCAN_FAILED_GATES",
+      "server": "local SonarQube Community Build 26.9.0.129388",
+      "backend": { "sha": "094b539f5d1b7abb2fb6724a8c77d47c68bebf3f", "qualityGate": "FAIL", "coverage": 14.4, "newCoverage": 7.5, "newViolations": 11, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
+      "frontend": { "sha": "e9fde6e353120712a7c5f9b0e8fa51e6044191dc", "qualityGate": "FAIL", "coverage": 55.6, "newCoverage": 64.9, "newViolations": 4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
+      "platform": { "sha": "36c3ccbe627bbe6dbf6029e806c042b961611f3c", "qualityGate": "PASS", "newViolations": 0 }
+    },
     "lastImplementationUpdate": "Integration health now reports actual storage readiness; legacy Gate Guard staff invitations remain routed through the scoped P0 lifecycle.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "e9fde6e"
@@ -133,7 +139,7 @@
     { "phase": "Cross-cutting", "area": "Email", "requirement": "Durable outbox, retry and idempotency", "status": "COMPLETE", "evidence": "EmailDeliveryWorker/outbox code and local test evidence." },
     { "phase": "Cross-cutting", "area": "Email", "requirement": "Brevo real transport and mailbox receipt", "status": "PARTIAL", "evidence": "BrevoEmailDeliveryTransport exists; external credentials/mailbox were not available for testing." },
     { "phase": "Cross-cutting", "area": "Security", "requirement": "Role-aware route and ownership checks", "status": "PARTIAL", "evidence": "Broad automated coverage exists; complete current staging role/IDOR matrix was not executed in this audit." },
-    { "phase": "Cross-cutting", "area": "Security", "requirement": "Fresh Sonar analysis at audited SHAs", "status": "MISSING", "evidence": "Only historical Sonar reports are available for this audit." },
+    { "phase": "Cross-cutting", "area": "Security", "requirement": "Fresh Sonar analysis at audited SHAs", "status": "PARTIAL", "evidence": "Fresh local server-side analyses and issue exports completed for backend 094b539f, frontend e9fde6e and platform 36c3ccbe; backend/frontend Quality Gates still fail on coverage/new-code debt and require remediation." },
     { "phase": "Cross-cutting", "area": "Deployment", "requirement": "Exact staging frontend/backend SHA parity", "status": "MISSING", "evidence": "Deployed SHAs were not exposed or independently matched." },
     { "phase": "Cross-cutting", "area": "Accessibility", "requirement": "Automated representative accessibility coverage", "status": "COMPLETE", "evidence": "Playwright/accessibility checks included in the local matrix." },
     { "phase": "Cross-cutting", "area": "Accessibility", "requirement": "Human screen-reader, forced-color and reduced-motion certification", "status": "PARTIAL", "evidence": "Automated checks exist; human certification was not performed." },

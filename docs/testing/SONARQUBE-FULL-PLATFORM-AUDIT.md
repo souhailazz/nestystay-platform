@@ -1,10 +1,22 @@
 # SonarQube Full Platform Audit
 
-Date: 2026-09-23
+Date: 2026-09-27
 Server: local SonarQube Community Build at `http://localhost:9000`
 The temporary analysis token was not committed or included in this report.
 
-## Final local scan summary
+## Current local scan summary — 2026-09-27
+
+These are fresh analyses submitted and processed by the local SonarQube server from the isolated certification worktrees. A scanner exit code of zero is not treated as a Quality Gate pass.
+
+| Project | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | New-code coverage | New violations | Duplication | Quality Gate |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `nestystay-backend` | 0 | 0 | 0 | 996 | 14.4% | 7.5% | 11 | 20.5% | FAIL |
+| `nestystay-frontend` | 0 | 0 | 0 | 973 | 55.6% | 64.9% | 4 | 1.4% | FAIL |
+| `nestystay-platform` | 120 | 6 | 0 | 199 | 0.0% | not configured | 0 | 8.4% | PASS for new-code gate |
+
+The backend and frontend gates fail because coverage and/or new-code violations do not meet the local gate. The platform scan covers orchestration/configuration paths only; its overall findings do not certify the runtime applications.
+
+## Historical scan summary
 
 | Project | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | Duplication | Quality Gate |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -24,10 +36,10 @@ The exports contain Sonar issue metadata and messages only; they contain no toke
 
 ## 2026-09-26 certification update
 
-The current release-candidate backend scan was rerun and submitted successfully from commit `ebb85f72168610be68586340bfdcba4493f37777`. Sonar processed it with Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 1,007 code smells, 11.2% overall coverage, 9.6% line coverage, 38.2% branch coverage and 20.6% duplication. The coverage number is incomplete because the fresh Infrastructure/API OpenCover collector repeatedly stalled; the normal backend suite independently passed 209/209 tests. The previous backend values above are historical and must not be used as the current result.
+The 2026-09-26 values below are retained as historical evidence only and must not be used as the current result.
 
 The current frontend scan reports Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 978 code smells, 52.5% overall / 56.2% line coverage and 1.6% duplication. Local Vitest line coverage is 60.04%; Sonar's lower executable-line calculation is the governing Sonar value. Critical/major findings were reviewed by rule and affected area and remain a documented maintainability backlog, not a security-gate pass. See [`FINAL-END-TO-END-CERTIFICATION-2026-09-26.md`](FINAL-END-TO-END-CERTIFICATION-2026-09-26.md) for the current release verdict.
 
 ## Interpretation
 
-The scans genuinely executed and uploaded server-side. A green scanner exit code is not treated as a green Quality Gate. The requested 60% overall frontend coverage and 80% new-code coverage were not achieved, and the existing high/critical maintainability/security findings have not all been refactored in this pass. Local frontend LCOV reports 25.13% line coverage; Sonar reports 25.8% line and 21.4% combined coverage because Sonar applies its own executable-line/condition accounting. The frontend remediation pass removed all previously reported frontend bugs and vulnerabilities.
+The 2026-09-27 scans genuinely executed and uploaded server-side. Backend and frontend security metrics are currently clean (zero bugs, vulnerabilities and hotspots), but the requested 60% overall frontend coverage and 80% new-code coverage were not achieved. The frontend local Vitest run reports 60.11% line coverage while Sonar reports 55.6% using its executable-line accounting; both values are recorded without conflation. Fresh issue exports are available in `testing-evidence/sonarqube/`. The next required work is behavior-preserving remediation of the fresh new-code findings and additional meaningful tests, followed by a rerun.

@@ -110,3 +110,18 @@ Date: 2026-09-27
 - Backend commit: `094b539`.
 - Health tests: 14 passed, 0 failed, 0 skipped.
 - Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
+
+## AUTO-0006 — Complete local release-certification refresh
+
+Date: 2026-09-27  \\
+Scope: isolated certification worktrees only; no staging/production changes.
+
+- Applied the forward EF migration `20260927055223_ApplyCurrentModelAlignment`; it aligns the three active pricebook seed rows to the approved 10% guest fee without editing historical migrations.
+- Confirmed the missing badge-review migration locally and verified Admin badge endpoints return 200 after migrations.
+- Backend full solution with local PostgreSQL and disposable MinIO enabled: **212 passed, 0 failed, 0 skipped**.
+- MinIO provider focused I/O tests: **2 passed, 0 failed, 0 skipped**.
+- Frontend: **128 unit tests passed** across 31 files; Vitest line coverage **60.11%**; typecheck and production build passed; lint **0 errors / 112 warnings**; npm audit **0 known vulnerabilities**.
+- Full Playwright matrix: **224 discovered / 224 started / 216 passed / 0 failed / 8 explicit skips / 0 did-not-run**. Skips are explicit scope/provider guards; production authenticated smoke still needs runtime smoke credentials.
+- Fresh local Sonar analyses completed and exported. Backend and frontend gates remain failed on coverage/new-code debt; root/platform passed its new-code gate. Exact measures and issue exports are under `testing-evidence/sonarqube/`.
+
+Remaining release blockers: real Brevo delivery, staging MinIO/upload proof, exact deployed frontend/backend SHA parity, complete staging role/IDOR evidence, and Sonar remediation. Local deterministic verification is green but is not equivalent to staging or production certification.

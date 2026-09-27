@@ -7,11 +7,11 @@
 
 ## Executive conclusion
 
-NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the backend suite passed 212/212 with local MinIO enabled, the frontend unit suite passed 128 tests, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the complete local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, and 11 explicit skips.
+NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the backend suite passed 212/212 with local MinIO enabled, the frontend unit suite passed 128 tests, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the complete local Playwright inventory started all 224 discovered tests with 216 passes, zero failures, and 8 explicit skips.
 
 That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, and regression expectations. The remaining commercial-rule gap is the founding Gold/Platinum model, which still behaves as a lifetime flat-fee feature while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
 
-The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; current Sonar results are historical rather than a fresh scan at these audit SHAs; the browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are now implemented.
+The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; fresh Sonar analyses at these audit SHAs completed but backend/frontend Quality Gates failed on coverage/new-code debt; the browser suite has 8 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are now implemented.
 
 ## Evidence and exact revisions
 
@@ -220,17 +220,17 @@ Stored coordinates, OpenStreetMap embeds, public map/list UI, property detail ma
 
 - Discovered: **224**.
 - Started: **224**.
-- Passed: **213**.
+- Passed: **216**.
 - Failed: **0**.
-- Skipped: **11**.
+- Skipped: **8**.
 - Did not run: **0**.
 - Runtime: local PostgreSQL, local deterministic adapters, local file email behavior, local MinIO test container; not staging/live providers.
 
-The 11 skips are explicit, not silent omissions. They consist of: the MinIO UI test guarded by `NESTYSTAY_MINIO_E2E=true`; an authenticated production smoke test guarded by runtime `SMOKE_EMAIL`/`SMOKE_PASSWORD`; and browser/project scope guards for mobile-only, Chromium-only, responsive Chromium, and role-matrix tests on projects where they are not applicable. The two configuration-dependent skips are meaningful release qualifications; the viewport/browser guards are intentional test scoping.
+The 8 skips are explicit, not silent omissions. They are produced by browser/project scope guards for mobile-only, Chromium-only, responsive Chromium, role-matrix and provider-gated tests on projects where they are not applicable. The production authenticated-smoke path still requires runtime `SMOKE_EMAIL`/`SMOKE_PASSWORD`; no test was silently omitted and `did_not_run` is zero.
 
 ### SonarQube
 
-No fresh Sonar analysis at the three audited SHAs was produced during this audit-only pass. Existing Sonar documents are historical evidence and must not be relabeled as current certification. The historical records report a prior frontend line result around 56%, a prior backend line result around 11.2% in one scan, and unresolved maintainability debt; the local Vitest run now shows 60.12% frontend line coverage, but this is not a Sonar Quality Gate result. A fresh scan, issue export, hotspot review, and current Quality Gate remain required.
+Fresh local SonarQube analyses were completed server-side for all three audited scopes and exported to `testing-evidence/sonarqube/`. Backend (`094b539f`) reported Quality Gate **FAIL**, 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 14.4% overall coverage, 7.5% new-code coverage, and 11 new violations. Frontend (`e9fde6e`) reported Quality Gate **FAIL**, 0 bugs, 0 vulnerabilities, 0 hotspots, 973 code smells, 55.6% overall coverage, 64.9% new-code coverage, and 4 new violations. Root/platform (`36c3ccb`) passed its new-code gate with 0 new violations; its broader orchestration findings are not runtime application certification. These are current results, not historical placeholders. Sonar remediation and a rerun remain required before a production-ready verdict.
 
 ### Deployment
 
