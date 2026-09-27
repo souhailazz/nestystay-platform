@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-09-27",
+  "server": "http://localhost:9001",
+  "credentials": "temporary local scanner credentials were revoked and are not recorded",
+  "projects": [
+    {
+      "key": "nestystay-backend-certification",
+      "sha": "6277a950d563ce32e01a51223776fac9981529dd",
+      "analysisTask": "21416d9c-313c-4d75-a8fc-59d9a4ae0575",
+      "qualityGate": "OK (isolated gate checks new violations only)",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 996,
+      "coverage": 52.1,
+      "lineCoverage": 52.2,
+      "branchCoverage": 51.8,
+      "duplication": 20.4,
+      "openIssues": 996,
+      "coverageReports": "4 fresh OpenCover reports; 211 source files with coverage"
+    },
+    {
+      "key": "nestystay-frontend-certification",
+      "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb",
+      "analysisTask": "60b5e8ed-0014-4772-be00-7e6feb5d035d",
+      "qualityGate": "OK (isolated gate checks new violations only)",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 977,
+      "coverage": 56.6,
+      "lineCoverage": 63.3,
+      "branchCoverage": 48.8,
+      "duplication": 1.4,
+      "openIssues": 977,
+      "localVitestLineCoverage": 61.17,
+      "note": "Sonar line coverage exceeds the requested 60% overall line threshold; new-code coverage was not emitted for this isolated baseline and is not claimed as passed."
+    },
+    {
+      "key": "nestystay-platform-certification",
+      "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10",
+      "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205",
+      "qualityGate": "OK",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 0,
+      "openIssues": 0,
+      "scope": "root orchestration, workflows, scripts and deployment configuration only"
+    }
+  ],
+  "interpretation": {
+    "sonarExecution": "PASS",
+    "securityFindings": "PASS for all three current isolated project scans",
+    "maintainability": "OPEN backlog remains in backend and frontend",
+    "productionQualityGate": "NOT CERTIFIED; the isolated projects use a new-code-only gate and backend/frontend maintainability/coverage acceptance remains incomplete"
+  }
+}

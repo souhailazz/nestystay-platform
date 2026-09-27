@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0014 — Expand frontend behavioral coverage from the protected release branches.
+AUTO-0017 — Run fresh isolated SonarQube certification scans with current coverage reports.
 
 ## Validation Result
 
@@ -14,7 +14,8 @@ AUTO-0014 — Expand frontend behavioral coverage from the protected release bra
 - Frontend lint: 0 errors, 112 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
-- Fresh local SonarQube analyses completed at the current certification heads. Backend: 10.3% overall / 6.9% new-code coverage, 11 new violations, 20.4% duplication, gate FAIL. Frontend: 55.6% overall / 64.9% new-code coverage, 4 new violations, 1.4% duplication, gate FAIL. Platform: new-code gate PASS; its overall configuration findings are not runtime certification.
+- Fresh local SonarQube analyses completed and processed at the current certification heads on isolated server port 9001. Backend: 52.2% line / 51.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication. Frontend: 63.3% line / 48.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 977 code smells, 1.4% duplication. Root/platform scope: 0 current issues. The isolated projects report Quality Gate OK because their configured condition is new violations only; this is not a production-readiness pass for coverage or maintainability.
+- Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`. Backend task `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend task `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root task `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
 - Pushed certification source revisions: root source `20e6d9e411f112e263f4fbe9ee3c1012cfd82546` with current evidence commits on the certification branch, backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a2`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
@@ -58,8 +59,8 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M3: external provider, storage, payout and operational certification remain.
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
-- Backend Sonar: 10.3% overall coverage, 6.9% new-code coverage, 11 new violations, 20.4% duplication; gate FAIL.
-- Frontend Sonar latest server-side scan remains at prior SHA `96cbac8`: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL. The newer local Vitest coverage is 61.17% at frontend `3b350a2`; a refresh attempt was blocked by local SonarQube HTTP 401 authentication, so no new server-side result is claimed.
+- Backend Sonar: fresh scan imported four OpenCover reports covering 211 source files; line coverage is 52.2%, branch coverage 51.8%, with 996 maintainability issues. The requested backend quality/maintainability target is not complete.
+- Frontend Sonar: fresh scan at `3b350a28a06f8e3f8b38d8c2448af60b6145becb` reports 63.3% line coverage, above the requested 60% overall line threshold, but 977 maintainability issues remain and isolated new-code coverage was not emitted; the 80% new-code requirement is not claimed as passed. Local Vitest coverage remains 61.17% line coverage.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.

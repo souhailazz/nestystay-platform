@@ -1,20 +1,20 @@
 # SonarQube Full Platform Audit
 
 Date: 2026-09-27
-Server: local SonarQube Community Build at `http://localhost:9000`
+Server: local SonarQube Community Build at `http://localhost:9001`
 The temporary analysis token was not committed or included in this report.
 
 ## Current local scan summary — 2026-09-27
 
-These are fresh analyses submitted and processed by the local SonarQube server from the isolated certification worktrees. A scanner exit code of zero is not treated as a Quality Gate pass. Current analyzed revisions are backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`, and platform `437804636b944d0e5c348185f0a2b76912e8c9f5`.
+These are fresh analyses submitted and processed by the isolated local SonarQube server from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. Current analyzed revisions are backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`.
 
 | Project | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | New-code coverage | New violations | Duplication | Quality Gate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| `nestystay-backend` | 0 | 0 | 0 | 996 | 10.3% | 6.9% | 11 | 20.4% | FAIL |
-| `nestystay-frontend` | 0 | 0 | 0 | 973 | 55.6% | 64.9% | 4 | 1.4% | FAIL |
-| `nestystay-platform` | 120 | 6 | 0 | 199 | 0.0% | not configured | 0 | 8.4% | PASS for new-code gate |
+| `nestystay-backend-certification` | 0 | 0 | 0 | 996 | 52.2% line | not emitted | 0 | 20.4% | OK — new-violations-only isolated gate |
+| `nestystay-frontend-certification` | 0 | 0 | 0 | 977 | 63.3% line | not emitted | 0 | 1.4% | OK — new-violations-only isolated gate |
+| `nestystay-platform-certification` | 0 | 0 | 0 | 0 | n/a | n/a | 0 | n/a | OK |
 
-The backend gate fails on 6.9% new-code coverage, 3.00926% new-code duplication, and 11 new violations. The frontend gate fails on 64.9% new-code coverage and 4 new violations. Both scans report zero bugs, vulnerabilities, and security hotspots. The platform scan covers orchestration/configuration paths only; its overall findings do not certify the runtime applications.
+The fresh backend and frontend scans report zero bugs, vulnerabilities and hotspots. Their isolated Quality Gate is not the requested release gate: it only evaluates new violations. Backend coverage is 52.2% line / 51.8% branch and frontend coverage is 63.3% line / 48.8% branch; backend/frontend maintainability backlogs remain at 996 and 977 code smells. The platform scan covers orchestration/configuration paths only and is not runtime application certification.
 
 ## Historical scan summary
 
@@ -33,7 +33,7 @@ The historical table is retained for comparison only. The current scan above sup
 - [`platform-issues.json`](../../testing-evidence/sonarqube/platform-issues.json)
 - [`CURRENT-SCAN-2026-09-27.json`](../../testing-evidence/sonarqube/CURRENT-SCAN-2026-09-27.json)
 
-The current summary records the server-side API results and analysis task IDs without tokens or credentials. The larger issue exports are retained as same-day Sonar issue evidence; the current gate/measure values above and in the current summary are authoritative for this run.
+The current summary records the server-side API results and analysis task IDs without tokens or credentials. The larger issue exports are retained as same-day Sonar issue evidence; the current gate/measure values above and in [`CERTIFICATION-SUMMARY-2026-09-27.md`](../../testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.md) are authoritative for this run.
 
 ## 2026-09-26 certification update
 
@@ -43,4 +43,4 @@ The current frontend scan reports Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 
 
 ## Interpretation
 
-The 2026-09-27 scans genuinely executed and uploaded server-side. Backend and frontend security metrics are currently clean (zero bugs, vulnerabilities and hotspots), but the requested 60% overall frontend coverage and 80% new-code coverage were not achieved. The frontend local Vitest run reports 60.11% line coverage while Sonar reports 55.6% using its executable-line accounting; both values are recorded without conflation. The local scan also reports 996 backend and 973 frontend maintainability issues in the current project scopes. The next required work is behavior-preserving remediation of the fresh new-code findings and additional meaningful tests, followed by a rerun.
+The 2026-09-27 scans genuinely executed and uploaded server-side. Backend and frontend security metrics are currently clean (zero bugs, vulnerabilities and hotspots). Sonar frontend line coverage is 63.3%, above the requested 60% overall line threshold, while local Vitest line coverage is 61.17%; these are recorded without conflation. The requested 80% new-code acceptance was not emitted by the isolated baseline and is not claimed as passed. The local scan reports 996 backend and 977 frontend maintainability issues in the current project scopes. The next required work is behavior-preserving remediation of the maintainability/new-code backlog and a release-gate scan against the real protected main baseline.
