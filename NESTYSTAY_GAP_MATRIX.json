@@ -33,7 +33,7 @@
   "evidence": {
     "backendTests": { "passed": 213, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
     "frontendTests": { "passed": 146, "files": 34 },
-    "frontendCoverage": { "linePercent": 61.17, "statementPercent": 57.12, "branchPercent": 48.75, "functionPercent": 53.47 },
+    "frontendCoverage": { "linePercent": 61.17, "statementPercent": 57.14, "branchPercent": 48.73, "functionPercent": 53.52 },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
     "frontendLint": { "errors": 0, "warnings": 112 },

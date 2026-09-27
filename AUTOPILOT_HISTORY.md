@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0022 — Refresh certification evidence on current release heads
+
+Priority: P1 release evidence  \
+Date: 2026-09-27
+
+The current isolated certification branches were re-verified without touching the original dirty workspace, staging data, production, or protected `main` branches.
+
+Evidence:
+
+- Backend current head `0631b112195be3d4f3df1064b6c4cee31dc3aae2`: complete solution with disposable PostgreSQL and MinIO enabled passed **213**, failed **0**, skipped **0**. The focused real MinIO provider run passed **2/2** and covered upload/overwrite, signed download, unauthorized access, traversal rejection, and size-limit rejection.
+- Frontend current head `3b350a28a06f8e3f8b38d8c2448af60b6145becb`: Vitest passed **146/146** across 34 files; V8 coverage was **61.17% lines**, **57.14% statements**, **48.73% branches**, and **53.52% functions**. Typecheck and production build passed. Lint reported **0 errors / 112 warnings**. `npm audit --audit-level=high` reported **0 known vulnerabilities**.
+- Staging read-only probes remain: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` is still the SPA HTML fallback. Exact deployed SHA parity is therefore still **UNKNOWN**, not inferred from health status.
+
+Remaining release gates are unchanged: real Brevo delivery, staging MinIO/upload and backup proof, staging role/IDOR evidence, exact deployment SHA parity, Sonar maintainability/coverage remediation, and the unresolved exact Gold/Platinum commercial values.
+
 ## AUTO-0001 — Apply approved 10 percent guest platform fee
 
 Priority: P0 pricing integrity  

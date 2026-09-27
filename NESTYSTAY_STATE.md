@@ -2,13 +2,13 @@
 
 ## Last Completed Task
 
-AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the remaining certification blockers.
+AUTO-0022 — Refresh certification evidence on the current release heads and preserve the remaining certification blockers.
 
 ## Validation Result
 
 - Backend full solution with local PostgreSQL and MinIO enabled: 213 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 146 passed across 34 files.
-- Fresh frontend V8 coverage: 61.17% lines (4,634/7,575), 57.12% statements, 48.75% branches, 53.47% functions.
+- Fresh frontend V8 coverage: 61.17% lines (4,634/7,575), 57.14% statements, 48.73% branches, 53.52% functions.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 112 warnings.
@@ -28,6 +28,7 @@ AUTO-0020 — Complete post-refactor backend Sonar refresh and preserve the rema
 - The API integration test is now isolated in a non-parallel xUnit collection. The complete configured solution then passed 213/213 with no skips; the test-only fix is backend commit `0631b11`.
 - A clean detached checkout of `0631b112195be3d4f3df1064b6c4cee31dc3aae2` reproduced a separate XPlat Code Coverage collector stall even for the single PostgreSQL API test after the test host started. The same test passes in 6 seconds without coverage, so this is recorded as coverage-tooling evidence uncertainty rather than a product/test failure; full backend Sonar coverage remains unproven.
 - GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
+- Current-head refresh: backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2` passed the complete configured solution at 213/213 with disposable PostgreSQL and MinIO; frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb` passed 146/146 unit tests, typecheck, build, and 0-error lint. These current-head checks do not change the earlier Sonar conclusion because the backend change is test-only and the recorded backend scan remains at `e195e8b`.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
