@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "28c7814e59e0c8cfde119ff65dcb4ef279af387a",
+      "sha": "0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -32,7 +32,7 @@
   },
   "evidence": {
     "backendTests": { "passed": 213, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
-    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 213, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "RUNNER_GUARD_AND_TOOL_RESTORE_PASS; FULL_RERUN_STALLED_IN_MSBUILD_BEFORE_TEST_HOST" },
+    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 213, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "PASS: Cobertura plus four per-project TRX files; stale local Roslyn compiler lock cleared before final runner validation" },
     "frontendTests": { "passed": 146, "files": 34 },
     "frontendCoverage": { "linePercent": 61.16, "statementPercent": 57.12, "branchPercent": 48.76, "functionPercent": 53.49 },
     "frontendTypecheck": "PASS",
@@ -49,7 +49,7 @@
     "freshSonarAtAuditedShas": {
       "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; scan predates the test-only 0631b11 commit. A newer complete dotnet-coverage report measures 51.33% authored lines after generated EF migration exclusions, but two analyzer-backed refresh attempts stalled before server upload; full backend coverage acceptance remains open." },
+      "backend": { "sha": "e195e8b1720157cbe1c172a30e658b6dc6be7215", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 15.1, "branchCoverage": 48.7, "codeSmells": 805, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704", "coverageNote": "6 reports imported; 48 source files covered; scan predates the test-only 0631b11 commit. The newer complete runner at 0e58c1f passed all 213 tests and measures 51.33% authored lines after generated EF migration exclusions. Fresh analyzer-backed Sonar upload still stalled before server upload; full backend coverage acceptance remains open." },
       "frontend": { "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "7e06d0bd-3027-4f56-a7d1-2c38f131bb84", "analysisId": "cb921fa4-45b3-482c-802a-e589f2919315", "coverageNote": "Fresh refresh after the traveler reservation filter refactor with current lcov; V8 summary is 61.16% lines, 57.12% statements, 48.76% branches, and 53.49% functions. Branch coverage was not exported by this Sonar refresh." },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },

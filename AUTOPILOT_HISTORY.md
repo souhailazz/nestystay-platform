@@ -1,5 +1,31 @@
 # Autopilot History
 
+## AUTO-0026 — Execute the final reproducible backend integration-coverage run
+
+Priority: P1 quality evidence  \
+Date: 2026-09-27
+
+### Problem
+
+The first invocation of the new runner inherited a stale local Roslyn compiler lock from an earlier interrupted analysis. It stalled before test-host startup, so its result could not be counted as coverage evidence.
+
+### Resolution and validation
+
+- Identified the file lock on a generated SourceLink file and stopped only the stale local `VBCSCompiler` process.
+- Changed the runner to build outside the coverage collector, then instrument the already-built test hosts.
+- Added a per-project TRX prefix so test totals cannot overwrite each other.
+- Final disposable PostgreSQL/MinIO coverage run produced a valid Cobertura report and four TRX files:
+  - Domain: **6 passed, 0 failed, 0 skipped**
+  - Application: **24 passed, 0 failed, 0 skipped**
+  - Infrastructure: **32 passed, 0 failed, 0 skipped**
+  - API: **151 passed, 0 failed, 0 skipped**
+  - Total: **213 passed, 0 failed, 0 skipped**
+- The fresh artifact reports **17,228/33,561 authored lines (51.33%)** after excluding only EF-generated migration designer/snapshot files. It is valid coverage evidence, but it does not meet the 80% requested backend target.
+
+### Result
+
+Backend test/coverage collection is repeatable and records both coverage and per-project outcomes without committing credentials. The remaining backend coverage gap is test breadth, not a skipped integration path. No production or staging system was changed.
+
 ## AUTO-0025 — Commit a reproducible backend integration-coverage workflow
 
 Priority: P1 quality evidence  \

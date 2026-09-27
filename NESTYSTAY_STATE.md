@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0025 — Make the complete backend integration-coverage run reproducible without committing service credentials.
+AUTO-0026 — Execute and retain the full reproducible backend integration-coverage result.
 
 ## Validation Result
 
@@ -32,7 +32,7 @@ AUTO-0025 — Make the complete backend integration-coverage run reproducible wi
 - Disposable MinIO persistence recheck: a uniquely prefixed object remained readable after restarting `nestystay-minio-audit` on its mounted Docker volume. This proves local volume persistence only; production backup/restore and staging object lifecycle remain unverified.
 - Gitleaks triage: frontend 0 findings; backend 7 historical/example-file generic-api-key matches; root 6,729 raw matches dominated by generated Sonar JSON false positives. Findings were classified by redacted source/path; no active credential requiring rotation was found in the isolated checkouts.
 - Fresh frontend Sonar refresh at current head `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`: server-side processing succeeded; Quality Gate `OK` under the configured new-code gate, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 open code smells, 56.6% Sonar line coverage, and 1.4% duplication. Evidence: `testing-evidence/sonarqube/FRONTEND-FILTER-REFACTOR-2026-09-27.md`.
-- The backend now has a committed `dotnet-coverage` tool manifest and `tools/collect-coverage.ps1` runner at `28c7814`. It requires runtime-only disposable PostgreSQL and MinIO variables, restores the pinned collector, and refuses to silently skip either integration path. The runner's credential-absence guard passed and its tool restore passed. A subsequent full invocation stalled in MSBuild before any test host started and was terminated after repeated idle-process checks; it is not counted as a coverage pass. The previously completed direct collector run remains the full runtime evidence: **213 passed, 0 failed, 0 skipped** and a Cobertura file was generated. Excluding only EF-generated migration designer/snapshot source, that report measured **17,228/33,561 authored lines (51.33%)**. This does not meet the requested 80% backend coverage target.
+- The backend now has a committed `dotnet-coverage` tool manifest and `tools/collect-coverage.ps1` runner at `0e58c1f`. It requires runtime-only disposable PostgreSQL and MinIO variables, restores the pinned collector, builds before instrumentation, and refuses to silently skip either integration path. The runner's credential-absence guard and tool restore passed. An initial runner attempt encountered a stale local Roslyn compiler lock; after that local process was cleared, the final runner produced a valid Cobertura report and four TRX files: Domain **6/6**, Application **24/24**, Infrastructure **32/32**, and API **151/151**—**213 passed, 0 failed, 0 skipped**. Excluding only EF-generated migration designer/snapshot source, the report measured **17,228/33,561 authored lines (51.33%)**. This does not meet the requested 80% backend coverage target.
 - A new local Sonar .NET refresh was attempted twice with the full Visual Studio coverage report and generated-migration exclusions. Both analyzer-backed builds stalled before a server upload; the pre-existing backend Sonar result remains the latest server-side result. This is a local scanner/tooling blocker, not a backend product-test failure.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
@@ -104,7 +104,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M3: external provider, storage, payout and operational certification remain.
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
-- Backend Sonar: the latest server-side scan at code-equivalent `e195e8b` reports 15.1% imported line coverage and 805 code smells. A newer direct collector completed all 213 backend tests and measures 51.33% authored-line coverage after excluding only EF-generated migration designer/snapshot source. A refreshed Sonar upload using that report is blocked by a local analyzer-build stall. The requested backend quality/maintainability target is not complete.
+- Backend Sonar: the latest server-side scan at code-equivalent `e195e8b` reports 15.1% imported line coverage and 805 code smells. The now-reproducible `0e58c1f` collector completed all 213 backend tests and measures 51.33% authored-line coverage after excluding only EF-generated migration designer/snapshot source. A refreshed Sonar upload using that report is blocked by a local analyzer-build stall. The requested backend quality/maintainability target is not complete.
 - Frontend Sonar: fresh scan at `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0` reports 56.6% Sonar-imported line coverage and 972 maintainability issues. The local V8 run is 61.16% lines, above the requested 60% local threshold, but the 80% new-code requirement is not claimed as passed.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
