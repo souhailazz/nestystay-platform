@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee.
+AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
 
 ## Validation Result
 
@@ -14,8 +14,8 @@ AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
 - Fresh local SonarQube analyses completed for backend, frontend, and root/platform scopes. Backend and frontend Quality Gates failed on coverage/new-code debt; the platform orchestration scope passed its new-code gate.
-- Pushed certification source revisions: root current `eadf8cd61e199f6bc291c7dff9c51aae991430dd`, backend current `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
-- Root monorepo validation after pricing alignment: backend release tests 183 passed, 0 failed, 0 skipped; focused frontend tests 48 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
+- Pushed certification source revisions: root current `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`, backend current `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
+- Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
@@ -29,6 +29,7 @@ AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee
 - Gate Guard invitation, acceptance, property scope, authenticated QR validation, PM-workspace denial, and revocation are locally covered by the API authorization matrix.
 - Gate Guard is exposed in the frontend role model, navigation, workspace label, and authenticated QR validator.
 - The historical `/api/property-manager/staff` endpoint now rejects `GATE_GUARD` instead of creating a membership that cannot grant the real scoped role; the supported `/api/property-manager/p0/members` lifecycle remains covered.
+- The root monorepo now matches the split backend for Gate Guard invitation constraints, role synchronization, authenticated property-scoped QR validation, revocation, and PM-workspace denial.
 - The admin integration-health endpoint now reports the selected storage provider's actual readiness status and safe detail instead of unconditionally reporting `CONFIGURED`.
 
 ## Partial
@@ -93,6 +94,27 @@ AUTO-0007 — Align root monorepo pricing source with the approved 10% guest fee
 - The persistent pricebook migration `20260830144204_AlignSignedContractM1M2PricingV2` writes the old 9% value, requiring a forward correction migration rather than history rewriting.
 - The root monorepo copies of the split backend/frontend sources still contained active 9% guest-fee logic after the split repositories had been corrected. This was a repository-alignment defect, not a new business-rule decision.
 - A deeper cross-repository pricing scan found the root domain constant `ContractGuestPlatformFeePercent = 9m`; it is now 10m with a root and split-backend regression assertion. Active 9% pricing logic is now absent from root and split runtime source; historical migrations and unrelated CSS ratios remain excluded by design.
+
+## AUTO-0012 — Align root monorepo Gate Guard lifecycle
+
+Priority: P1 access-control integrity  \\
+Date: 2026-09-27
+
+The root monorepo was missing the split backend's current Gate Guard lifecycle and authenticated QR authorization even though the split backend branch already contained it. This created repository-level behavior drift: a root checkout could accept an unscoped legacy Gate Guard assignment or fail to enforce the scoped authenticated flow.
+
+Changes:
+
+- Added the property-scoped `GATE_GUARD` invitation constraints and role synchronization on invite, acceptance, update, and revocation.
+- Added `POST /api/property-manager/qr/validate-authenticated` and denied Gate Guard users ordinary PM finance/professional workflows.
+- Kept the anonymous compatibility validator and made the legacy `/api/property-manager/staff` route reject Gate Guard assignments.
+- Added root API regression tests and updated stale root fee expectations to the approved 10% rule.
+
+Evidence:
+
+- Root commit: `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`.
+- Root backend release suite: 186 passed, 0 failed, 0 skipped.
+- Root Gate Guard regression tests: 2 passed, 0 failed, 0 skipped.
+- Protected main was not bypassed; PR #10 remains the review boundary.
 
 ## AUTO-0007 — Align root monorepo pricing source
 

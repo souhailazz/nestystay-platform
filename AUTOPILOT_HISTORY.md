@@ -241,3 +241,27 @@ Date: 2026-09-27
 ### Result
 
 The concurrency evidence now distinguishes a real database run from an unavailable integration environment instead of silently treating the latter as success.
+
+## AUTO-0012 — Align root monorepo Gate Guard lifecycle
+
+Priority: P1 access-control integrity  \\
+Date: 2026-09-27
+
+### Problem
+
+The split backend contained the current property-scoped Gate Guard lifecycle and authenticated QR authorization, but the tracked root monorepo copy did not. A root checkout could therefore drift from the split runtime and accept an unscoped legacy Gate Guard assignment.
+
+### Changes
+
+- Added `GATE_GUARD` scope validation to the root P0 invitation and update paths.
+- Synchronized the effective user role on acceptance and removed it on revocation.
+- Added the authenticated, property-scoped QR validation endpoint and denied ordinary PM finance/professional workflows to Gate Guards.
+- Made the legacy `/api/property-manager/staff` route reject Gate Guard assignments.
+- Added focused root API regression tests and corrected stale root test expectations for the approved 10% guest fee.
+
+### Evidence
+
+- Root commit: `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`.
+- Root backend release suite: **186 passed, 0 failed, 0 skipped**.
+- Root Gate Guard regression tests: **2 passed, 0 failed, 0 skipped**.
+- PR #10 remains open for protected review; no main or staging bypass was used.

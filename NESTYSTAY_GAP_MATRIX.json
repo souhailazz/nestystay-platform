@@ -16,7 +16,7 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "eadf8cd61e199f6bc291c7dff9c51aae991430dd",
+      "sha": "20e6d9e411f112e263f4fbe9ee3c1012cfd82546",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
@@ -31,7 +31,7 @@
     }
   },
   "evidence": {
-    "backendTests": { "passed": 212, "failed": 0, "skipped": 0, "minioEnabled": true },
+    "backendTests": { "passed": 212, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
     "frontendTests": { "passed": 128, "files": 31 },
     "frontendCoverage": { "linePercent": 60.12, "statementPercent": 56.15, "branchPercent": 47.8, "functionPercent": 52.8 },
     "frontendTypecheck": "PASS",
@@ -52,7 +52,7 @@
       "frontend": { "sha": "e9fde6e353120712a7c5f9b0e8fa51e6044191dc", "qualityGate": "FAIL", "coverage": 55.6, "newCoverage": 64.9, "newViolations": 4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
       "platform": { "sha": "36c3ccbe627bbe6dbf6029e806c042b961611f3c", "qualityGate": "PASS", "newViolations": 0 }
     },
-    "lastImplementationUpdate": "Root monorepo pricing parity is corrected to the approved 10% guest fee with a forward-only EF migration; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
+    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "e9fde6e"
   },
