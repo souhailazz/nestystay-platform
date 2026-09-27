@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
+AUTO-0013 — Complete local Playwright regression from the protected release branches.
 
 ## Validation Result
 
@@ -12,7 +12,7 @@ AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 112 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
-- Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
+- Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed at the current certification heads. Backend: 10.3% overall / 6.9% new-code coverage, 11 new violations, 20.4% duplication, gate FAIL. Frontend: 55.6% overall / 64.9% new-code coverage, 4 new violations, 1.4% duplication, gate FAIL. Platform: new-code gate PASS; its overall configuration findings are not runtime certification.
 - Pushed certification source revisions: root current `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`, backend current `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
@@ -20,6 +20,23 @@ AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
+
+## AUTO-0013 — Complete local Playwright regression
+
+Priority: P1 release evidence  \\
+Date: 2026-09-27
+
+The complete browser matrix was rerun after starting the isolated backend with a real server-issued disposable Admin bootstrap account and the local PostgreSQL database. No browser identity was forged and no authentication bypass was added.
+
+Evidence:
+
+- 224 tests across 36 files were discovered and all 224 started.
+- 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run.
+- Desktop Chromium, tablet Chromium, mobile Chromium, and the configured Firefox/WebKit critical smoke entries executed.
+- The separate admin-token-gated group passed 12/12.
+- The 11 skips are explicit provider/credential or viewport-scope guards: browser MinIO opt-in, deployment smoke credentials, and mobile-only checks. They are not hidden failures.
+
+The local browser gate is therefore green for executed journeys. Real staging Brevo delivery, staging MinIO I/O/backups, exact deployed SHA parity, and Sonar backend/frontend gate remediation remain open.
 
 ## Confirmed Complete
 

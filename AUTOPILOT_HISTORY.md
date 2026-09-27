@@ -265,3 +265,9 @@ The split backend contained the current property-scoped Gate Guard lifecycle and
 - Root backend release suite: **186 passed, 0 failed, 0 skipped**.
 - Root Gate Guard regression tests: **2 passed, 0 failed, 0 skipped**.
 - PR #10 remains open for protected review; no main or staging bypass was used.
+## AUTO-0013 — Complete local browser regression
+
+Date: 2026-09-27
+
+The complete isolated Playwright matrix was rerun with a real server-issued disposable Admin fixture and the local PostgreSQL-backed backend. **224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run.** Desktop Chromium, tablet Chromium, mobile Chromium, and the configured Firefox/WebKit critical smoke entries executed. The separate admin-token-gated checks passed **12/12**. Skips remain explicit provider/credential or viewport-scope guards for browser MinIO opt-in, deployment smoke credentials, and mobile-only checks. No source, staging, production, protected `main`, or original dirty workspace was changed.
+

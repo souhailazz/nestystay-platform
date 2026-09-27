@@ -1,5 +1,11 @@
 # NestyStay Full Platform Deep Audit
 
+## Current certification refresh — 2026-09-27
+
+The latest complete local browser run is recorded in [`LOCAL-PLAYWRIGHT-2026-09-27.md`](../../testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md): **224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run**. The run used a real server-issued disposable Admin fixture and the isolated PostgreSQL-backed backend. The admin-token-gated subset passed **12/12**. The explicit skips are provider/credential or viewport-scope guards only; they do not represent unstarted tests.
+
+The current source heads used were root `d1e49efc6ac5d1b3c1c8bf7d04585917be097772`, backend `6277a950d563ce32e01a51223776fac9981529dd`, and frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`. Local execution is green for the executed browser journeys, but production certification remains blocked by backend/frontend Sonar Quality Gate failures, real staging Brevo/MinIO proof, and deployed SHA parity (`/api/health/version` is 404 and `/version.json` is SPA HTML on the current staging probe).
+
 Date: 2026-09-23
 Scope: isolated release-certification branches only. The dirty original workspace and production were not changed.
 
