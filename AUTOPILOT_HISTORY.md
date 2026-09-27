@@ -9,7 +9,7 @@ The current isolated certification branches were re-verified without touching th
 
 Evidence:
 
-- Backend current head `0631b112195be3d4f3df1064b6c4cee31dc3aae2`: complete solution with disposable PostgreSQL and MinIO enabled passed **213**, failed **0**, skipped **0**. The focused real MinIO provider run passed **2/2** and covered upload/overwrite, signed download, unauthorized access, traversal rejection, and size-limit rejection.
+- Backend current head `0631b112195be3d4f3df1064b6c4cee31dc3aae2`: complete solution with disposable PostgreSQL and MinIO enabled passed **213**, failed **0**, skipped **0**. The focused real MinIO provider run passed **2/2** and covered upload/overwrite, signed download, unauthorized access, traversal rejection, and size-limit rejection. A uniquely prefixed object remained readable after restarting the disposable MinIO container, confirming the mounted Docker volume persisted it.
 - Frontend current head `3b350a28a06f8e3f8b38d8c2448af60b6145becb`: Vitest passed **146/146** across 34 files; V8 coverage was **61.17% lines**, **57.14% statements**, **48.73% branches**, and **53.52% functions**. Typecheck and production build passed. Lint reported **0 errors / 112 warnings**. `npm audit --audit-level=high` reported **0 known vulnerabilities**.
 - Staging read-only probes remain: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` is still the SPA HTML fallback. Exact deployed SHA parity is therefore still **UNKNOWN**, not inferred from health status.
 
