@@ -25,6 +25,8 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
+Final pushed certification branch tips after the evidence refresh: root `c300c7253a95d65df620af1c96e1e9654d5f4ccf`, backend `c7984074dda30b147adcc1238f7263540c245f4c`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`. The Sonar metrics below were scanned immediately before the final backend migration/frontend fixture commits; the migration is a forward seed alignment only and the frontend change is test-only.
+
 ## Architecture inventory
 
 ### Backend

@@ -16,17 +16,17 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "9c6815eaccb4c20d12ce51358f0568952a4d78cb",
+      "sha": "c300c7253a95d65df620af1c96e1e9654d5f4ccf",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "094b539",
+      "sha": "c7984074dda30b147adcc1238f7263540c245f4c",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
       "branch": "codex/final-release-certification",
-      "sha": "e9fde6e",
+      "sha": "96cbac8209f87381508bcebf0de13b8bb716ff07",
       "mainReference": "510512375b613eb0ce5bf9ae39bf5d3f7042e008"
     }
   },

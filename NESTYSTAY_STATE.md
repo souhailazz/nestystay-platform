@@ -14,6 +14,7 @@ AUTO-0006 — Complete local release certification and refresh evidence.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
 - Fresh local SonarQube analyses completed for backend, frontend, and root/platform scopes. Backend and frontend Quality Gates failed on coverage/new-code debt; the platform orchestration scope passed its new-code gate.
+- Pushed certification branch tips: root `c300c7253a95d65df620af1c96e1e9654d5f4ccf`, backend `c7984074dda30b147adcc1238f7263540c245f4c`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
 
 ## Confirmed Complete
 
