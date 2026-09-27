@@ -292,3 +292,17 @@ Date: 2026-09-27
 
 The frontend LCOV was ready at certification SHA `325e585`, but the local SonarScanner could not authenticate to `http://localhost:9000` and returned HTTP 401 before analysis. No server-side metrics were changed or inferred. The prior frontend Sonar result at `96cbac8` remains the authoritative gate result until a valid local Sonar session/token is supplied.
 
+## AUTO-0016 — Refactor admin reporting maintainability hotspots
+
+Date: 2026-09-27
+
+Refactored the Admin Insights and Admin Pricebook/Campaigns containers into smaller render components, preserving their existing API behavior and tested empty/loading/error/report states. Frontend commit `3b350a2` was pushed to the existing protected certification branch.
+
+Evidence:
+
+- Full frontend unit suite: **146 passed, 0 failed across 34 files**.
+- Fresh V8 coverage: **61.17% lines, 57.12% statements, 48.75% branches, 53.47% functions**.
+- Typecheck: PASS; production build: PASS; lint: 0 errors / 112 warnings.
+
+The server-side Sonar refresh still requires valid local authentication; no new Sonar result is claimed yet.
+

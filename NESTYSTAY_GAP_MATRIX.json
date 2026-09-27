@@ -33,7 +33,7 @@
   "evidence": {
     "backendTests": { "passed": 212, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
     "frontendTests": { "passed": 146, "files": 34 },
-    "frontendCoverage": { "linePercent": 61.14, "statementPercent": 57.08, "branchPercent": 48.71, "functionPercent": 53.38 },
+    "frontendCoverage": { "linePercent": 61.17, "statementPercent": 57.12, "branchPercent": 48.75, "functionPercent": 53.47 },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
     "frontendLint": { "errors": 0, "warnings": 112 },
@@ -54,7 +54,7 @@
     },
     "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
     "backendRemediationCommit": "094b539",
-    "frontendRemediationCommit": "325e585"
+    "frontendRemediationCommit": "3b350a2"
   },
   "domains": [
     { "phase": "M1", "area": "Authentication", "requirement": "Registration and password login", "status": "COMPLETE", "evidence": "EfPhaseOneStore registration/login and backend/browser tests." },
