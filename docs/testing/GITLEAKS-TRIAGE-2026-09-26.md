@@ -41,3 +41,7 @@ The tracked Sonar issue exports contain repeated diagnostic text that matches `g
 ## Verdict
 
 **No active credential requiring rotation was identified by this triage.** The only remaining action is normal repository hygiene: keep template values clearly marked as placeholders, keep generated evidence out of secret scans where supported, and never commit real environment values.
+
+## 2026-09-27 verification refresh
+
+The current certification heads were rescanned with Gitleaks using redacted output. Backend history reported 7 candidates, matching the classified table above; frontend history reported 0. The root history scan reported 6,729 matches: 6,728 are repeated generated Sonar issue-export text in `testing-evidence/sonarqube/`, and one is the documented placeholder in `.env.production.example`. No active credential was exposed or identified. Generated evidence must remain excluded from release secret scanning or treated as a documented false-positive class.
