@@ -1,5 +1,32 @@
 # Autopilot History
 
+## AUTO-0025 — Commit a reproducible backend integration-coverage workflow
+
+Priority: P1 quality evidence  \
+Date: 2026-09-27
+
+### Problem
+
+The complete backend suite had already passed through `dotnet-coverage` with real disposable PostgreSQL and MinIO, but the command depended on an untracked global tool and ad hoc runtime setup. That made the resulting coverage evidence difficult to reproduce safely.
+
+### Changes
+
+- Added backend `.config/dotnet-tools.json`, pinning `dotnet-coverage` 18.11.2.
+- Added `tools/collect-coverage.ps1`, which requires the five runtime-only PostgreSQL/MinIO integration variables and fails fast if any are absent.
+- Documented the exact non-secret workflow in the backend README. The ignored default output remains under `TestResults/coverage`.
+
+### Validation
+
+- `dotnet tool restore` through the committed manifest: PASS.
+- Runner guard with missing variables: PASS; it did not read repository files or fall back to a credential.
+- Prior direct complete collection using the same tool/runtime: **213 passed, 0 failed, 0 skipped**, with a valid Cobertura report.
+- The follow-up full script invocation stalled in MSBuild before a test host started; it was stopped after repeated idle-process observations and is deliberately **not** represented as a successful rerun.
+- The prior report measured **17,228/33,561 authored lines (51.33%)** after excluding only generated EF migration designer and snapshot source. This remains below the 80% requested backend target.
+
+### Result
+
+Backend coverage collection is now reproducible without source-controlled credentials. Full Sonar ingestion of the new report remains blocked by the independently observed local analyzer-build stall; no production or staging system was changed.
+
 ## AUTO-0024 — Complete current-head browser regression
 
 Priority: P1 release evidence  \
