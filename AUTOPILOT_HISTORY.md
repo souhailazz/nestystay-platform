@@ -322,6 +322,8 @@ Evidence:
 
 The next Sonar refresh is still required at `e195e8b`; the latest exported Sonar metrics remain the scan at `6277a95` and are not silently re-labeled as current.
 
+Backend PR #9 check run `36314132207` subsequently passed restore, build, and test. Its staging and production deploy jobs were skipped because the commit is on the protected certification branch.
+
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
 Priority: P0 business-rule integrity  \\

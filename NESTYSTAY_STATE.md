@@ -24,6 +24,7 @@ AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-r
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 - Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
 - Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips. The prior Sonar scan at `6277a95` remains the latest server-side result because the disposable Sonar admin session was not available for a post-refactor refresh.
+- GitHub Actions backend PR check `36314132207` passed restore, build, and test for PR #9 at `e195e8b`; staging and production deploy jobs were skipped as expected on the protected feature branch.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
