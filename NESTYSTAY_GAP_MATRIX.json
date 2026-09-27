@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "d2a3ac3",
+      "sha": "094b539",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -42,8 +42,8 @@
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
     "stagingShaParity": "UNKNOWN",
     "freshSonarAtAuditedShas": "NOT_RUN",
-    "lastImplementationUpdate": "Legacy Gate Guard staff invitations are rejected unless they use the scoped P0 lifecycle; standard guest fee remains corrected to approved 10%.",
-    "backendRemediationCommit": "d2a3ac3",
+    "lastImplementationUpdate": "Integration health now reports actual storage readiness; legacy Gate Guard staff invitations remain routed through the scoped P0 lifecycle.",
+    "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "e9fde6e"
   },
   "domains": [

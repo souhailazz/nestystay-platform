@@ -92,3 +92,21 @@ The historical `/api/property-manager/staff` endpoint accepted arbitrary role te
 - Backend commit: `d2a3ac3`.
 - Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
 - Focused Property Manager authorization tests: 5 passed, 0 failed, 0 skipped.
+
+## AUTO-0004 — Make integration health report actual storage readiness
+
+Priority: P1 operational correctness  \\
+Date: 2026-09-27
+
+### Changes
+
+- Health integration status now uses `IStorageProvider.CheckReadinessAsync`.
+- The response reports the configured provider name, actual readiness status, and a safe provider detail.
+- Provider exceptions are converted to an explicit `UNAVAILABLE` result rather than an unconditional success claim.
+- Added health regression assertions.
+
+### Evidence
+
+- Backend commit: `094b539`.
+- Health tests: 14 passed, 0 failed, 0 skipped.
+- Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.

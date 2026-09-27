@@ -20,7 +20,7 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
 | Root/orchestration | `codex/final-release-certification` | `9c6815e` (prior state revision) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
-| Backend | `codex/final-release-certification` | `d2a3ac3` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
+| Backend | `codex/final-release-certification` | `094b539` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
 | Frontend | `codex/final-release-certification` | `e9fde6e` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
@@ -205,6 +205,7 @@ Stored coordinates, OpenStreetMap embeds, public map/list UI, property detail ma
 - Solution test run with disposable local PostgreSQL and MinIO enabled: **212 passed, 0 failed, 0 skipped**.
 - Project split from the completed run: Domain 5, Application 24, Infrastructure 32, API 151.
 - This is local deterministic/provider-backed evidence. It is not live Stripe, Brevo, InsuraGuest, or staging evidence.
+- The integration-health endpoint now reports the selected storage provider's readiness rather than assuming every provider is configured; this is local code evidence, not staging storage configuration evidence.
 
 ### Frontend
 

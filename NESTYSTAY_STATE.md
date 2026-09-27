@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0003 — Harden the legacy staff endpoint against unscoped Gate Guard assignments.
+AUTO-0004 — Make integration health report actual storage readiness.
 
 ## Validation Result
 
@@ -22,6 +22,7 @@ AUTO-0003 — Harden the legacy staff endpoint against unscoped Gate Guard assig
 - Gate Guard invitation, acceptance, property scope, authenticated QR validation, PM-workspace denial, and revocation are locally covered by the API authorization matrix.
 - Gate Guard is exposed in the frontend role model, navigation, workspace label, and authenticated QR validator.
 - The historical `/api/property-manager/staff` endpoint now rejects `GATE_GUARD` instead of creating a membership that cannot grant the real scoped role; the supported `/api/property-manager/p0/members` lifecycle remains covered.
+- The admin integration-health endpoint now reports the selected storage provider's actual readiness status and safe detail instead of unconditionally reporting `CONFIGURED`.
 
 ## Partial
 
@@ -104,6 +105,19 @@ Evidence:
 - Backend commit: `d2a3ac3`.
 - Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
 - Focused Property Manager authorization tests: 5 passed, 0 failed, 0 skipped.
+
+## AUTO-0004 — Make integration health report actual storage readiness
+
+Priority: P1 operational correctness  \\
+Date: 2026-09-27
+
+The admin integration-health response now calls the configured `IStorageProvider` readiness check, reports its provider name and status, and returns a safe `UNAVAILABLE` result if the provider check throws. This prevents dashboards and deployment checks from presenting unavailable storage as configured.
+
+Evidence:
+
+- Backend commit: `094b539`.
+- Health endpoint tests: 14 passed, 0 failed, 0 skipped.
+- Full backend solution with local MinIO: 212 passed, 0 failed, 0 skipped.
 
 ## Loop Status
 
