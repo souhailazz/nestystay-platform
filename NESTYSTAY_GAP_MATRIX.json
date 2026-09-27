@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb",
+      "sha": "393edd1e20269350ed565fff8dda53b997792e39",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -31,8 +31,8 @@
     }
   },
   "evidence": {
-    "backendTests": { "passed": 213, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
-    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 213, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "PASS: Cobertura plus four per-project TRX files; stale local Roslyn compiler lock cleared before final runner validation" },
+    "backendTests": { "passed": 222, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
+    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 222, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "PASS: current-head disposable PostgreSQL/MinIO run; 222/222 passed with zero failures/skips; current-head Sonar XML imported successfully" },
     "frontendTests": { "passed": 146, "files": 34 },
     "frontendCoverage": { "linePercent": 61.16, "statementPercent": 57.12, "branchPercent": 48.76, "functionPercent": 53.49 },
     "frontendTypecheck": "PASS",
@@ -41,7 +41,7 @@
     "npmAuditHigh": "0 known vulnerabilities",
     "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0, "skipNote": "Latest complete local run. Explicit guards cover browser MinIO opt-in, deployment smoke credentials, and mobile-only project scope; all admin-token-gated checks passed." },
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },
-    "authorizationIdorFocusedRerun": { "passed": 13, "failed": 0, "skipped": 0, "backendSha": "0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb", "scope": "Cross-resource messages/attachments, wellness/officer documents, provider privacy, owner/manager/staff portfolio isolation, Gate Guard invite/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership and session invalidation", "stagingRequired": true },
+    "authorizationIdorFocusedRerun": { "passed": 13, "failed": 0, "skipped": 0, "backendSha": "393edd1e20269350ed565fff8dda53b997792e39", "scope": "Cross-resource messages/attachments, wellness/officer documents, provider privacy, owner/manager/staff portfolio isolation, Gate Guard invite/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership and session invalidation", "stagingRequired": true },
     "postgresConcurrency": { "configuredPassed": 1, "configuredFailed": 0, "configuredSkipped": 0, "unconfiguredSkipped": 1, "test": "IndependentApiInstancesSerializeAvailabilityApprovalAndLedgerReversal" },
     "minioFocusedTests": { "passed": 2, "failed": 0, "skipped": 0, "endpoint": "private disposable local container; credentials not recorded" },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
@@ -50,11 +50,11 @@
     "freshSonarAtAuditedShas": {
       "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 72.4, "branchCoverage": null, "codeSmells": 995, "duplication": 20.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "b760aced-a487-4ff8-a17e-d73552448e28", "analysisId": "ac5023e8-3f63-43b1-9a5f-2ad2f6c2f0d3", "coverageNote": "Fresh begin/build/end analysis imported the XML output of the complete disposable PostgreSQL/MinIO runner. The runner passed 213/213 with zero failures/skips. Sonar line coverage is 72.4%, below the requested 80%; the direct authored-line report is 51.33% after excluding only EF-generated migration designer/snapshot source. The open maintainability backlog remains." },
+      "backend": { "sha": "393edd1e20269350ed565fff8dda53b997792e39", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 62.1, "nonMigrationFileMeasureCoverage": 72.8, "branchCoverage": null, "codeSmells": 996, "duplication": 20.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "4372dd91-c62e-4cba-a4c0-7c50baee7d16", "analysisId": "602b498c-16c8-4fc4-9515-50fe238c6abd", "coverageNote": "Fresh current-head begin/build/end analysis imported the XML output of the complete disposable PostgreSQL/MinIO runner. The runner passed 222/222 with zero failures/skips. Raw Sonar line coverage is 62.1%; excluding all EF migration files in the file-measure calculation reaches 72.8%, still below the requested 80%. The open maintainability backlog remains." },
       "frontend": { "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "7e06d0bd-3027-4f56-a7d1-2c38f131bb84", "analysisId": "cb921fa4-45b3-482c-802a-e589f2919315", "coverageNote": "Fresh refresh after the traveler reservation filter refactor with current lcov; V8 summary is 61.16% lines, 57.12% statements, 48.76% branches, and 53.49% functions. Branch coverage was not exported by this Sonar refresh." },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
-    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; the local authorization/IDOR matrix rerun passed 13/13; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
+    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; the local authorization/IDOR matrix rerun passed 13/13; storage/platform controller regression coverage was added in backend commit 393edd1 and the current configured suite passed 222/222; fresh current-head backend Sonar coverage is 62.1% raw and 72.8% excluding migration files, below the requested 80%; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "352f2f8"
   },

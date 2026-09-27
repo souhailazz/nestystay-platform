@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0028 — Add behavioral coverage for storage and platform controllers
+
+Priority: P1 quality evidence  \
+Date: 2026-09-27
+
+The current Sonar file report identified the storage download boundary and platform metadata controller as untested. Added focused behavioral tests for malformed/unsigned object URLs, content-type mapping, missing-object handling, and all platform blueprint payloads.
+
+Evidence:
+
+- Backend commit: `393edd1e20269350ed565fff8dda53b997792e39`, pushed to the existing certification PR branch.
+- Focused tests: **9 passed, 0 failed, 0 skipped**.
+- Full configured backend suite: Domain 6, Application 24, Infrastructure 32, API 160; **222 passed, 0 failed, 0 skipped**.
+- Current-head server-side Sonar analysis completed successfully: 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication, 62.1% raw line coverage. File measures excluding all EF migration files reach 72.8%, still below the requested 80%.
+- No production/staging system or migration history was changed.
+
 ## AUTO-0027 — Re-run the local authorization and IDOR regression matrix
 
 Priority: P1 security evidence  \
