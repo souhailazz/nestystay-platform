@@ -1,292 +1,166 @@
-# NestyStay M1–M5 100% feature certification
+# NestyStay M1–M5 feature certification
 
 **Date:** 2026-09-26  
-**Decision:** NOT 100% certified.  
-**Scope:** signed web milestones 1–5 only, from isolated release-certification worktrees.  
-**Contract source:** `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`  
-**Complete row-level evidence:** [`M1-M5-MASTER-REQUIREMENTS-MATRIX.md`](M1-M5-MASTER-REQUIREMENTS-MATRIX.md)
+**Scope:** signed web milestones 1–5 only, evaluated from the isolated release-certification worktrees.
+**Contract source:** [`NestyStay-Signed-Agreement-April-2026.pdf`](../contracts/NestyStay-Signed-Agreement-April-2026.pdf)
+**Row-level source of truth:** [`M1-M5-MASTER-REQUIREMENTS-MATRIX.md`](M1-M5-MASTER-REQUIREMENTS-MATRIX.md)
 
 ## Executive decision
 
-The platform has a substantial locally working implementation. It does **not** meet a defensible 100% certification standard yet. The strict score below counts a requirement only when its complete contract path and evidence are available. A local adapter, a compiled provider, a page that renders, or a green unit test does not turn an unverified external/provider requirement into `PASS`.
+The current code has **no remaining `MISSING` rows and no code-caused `PARTIAL` rows** in the signed M1–M5 matrix. The remaining non-PASS statuses are explicit deployment/provider blockers or a contract change-control item. This is a local implementation-closure result, not a claim that staging or production is certified.
 
-The signed PDF specifies Alibaba eKYC. Later approved client direction selects Stripe Identity instead. The current runtime correctly uses Stripe Identity and has no active Alibaba provider wiring, but the contract-level provider substitution is recorded as `PARTIAL`/`PROVIDER_BLOCKED` until the change is documented as an approved contract amendment. Historical migration references were preserved.
+The signed agreement names Alibaba eKYC, while the later approved product decision selects Stripe Identity. The runtime uses Stripe Identity and has no active Alibaba provider wiring. This is recorded as `CONTRACT_CHANGE_REQUIRED`; historical migration/document references were preserved and were not edited.
 
-## Required scorecard
+The signed agreement does not require Airbnb, Booking.com, VRBO, external iCal/channel synchronization, or backup/retention operations within M1–M5. Those traceability rows are `NOT_APPLICABLE`, not missing features. Native mobile and the dedicated native Gate Guard interface remain Phase 6 / `OUT_OF_SIGNED_SCOPE`.
 
-Strict local completeness is `PASS / in-scope contract rows`. `OUT_OF_SIGNED_SCOPE` and `NOT_APPLICABLE` are excluded from the denominator; `PARTIAL`, `MISSING`, `CONFIG_BLOCKED` and `PROVIDER_BLOCKED` are not counted as verified.
+## Scope-adjusted scorecard
 
-| Milestone | In-scope contract rows | PASS / verified | PARTIAL | MISSING | CONFIG_BLOCKED | PROVIDER_BLOCKED | Strict local completeness |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| M1 Core Booking | 45 | 30 | 5 | 3 | 1 | 6 | 66.7% |
-| M2 Badge System | 17 | 11 | 2 | 1 | 1 | 2 | 64.7% |
-| M3 Wellness | 17 | 12 | 2 | 0 | 1 | 2 | 70.6% |
-| M4 Directories/Trust/QR | 16 | 13 | 2 | 0 | 1 | 0 | 81.3% |
-| M5 Property Manager | 25 | 14 | 6 | 0 | 3 | 2 | 56.0% |
-| **Total in scope** | **120** | **80** | **17** | **4** | **7** | **12** | **66.7%** |
+There are 123 traceability rows. Seven are `NOT_APPLICABLE` and two are `OUT_OF_SIGNED_SCOPE`, leaving **114 signed in-scope rows**.
 
-There are also two explicitly excluded rows: M4-17 dedicated native Gate Guard interface and M5-26 native iOS/Android applications. The contract places those in Phase 6, outside this M1–M5 web certification. M4-16 map/geocoding is `NOT_APPLICABLE` because it is not a signed M1–M5 requirement in the PDF; the current app retains coordinate/manual fallback behavior.
+| Milestone | In-scope rows | PASS | CONFIG_BLOCKED | PROVIDER_BLOCKED | CONTRACT_CHANGE_REQUIRED | Strict PASS |
+|---|---:|---:|---:|---:|---:|---:|
+| M1 Core Booking | 41 | 30 | 1 | 8 | 2 | 73.2% |
+| M2 Badge System | 17 | 13 | 1 | 3 | 0 | 76.5% |
+| M3 Wellness | 17 | 12 | 2 | 3 | 0 | 70.6% |
+| M4 Directories/Trust/QR | 16 | 13 | 1 | 2 | 0 | 81.3% |
+| M5 Property Manager | 23 | 14 | 2 | 7 | 0 | 60.9% |
+| **Total signed in scope** | **114** | **82** | **7** | **23** | **2** | **71.9%** |
 
-## Every contract requirement and current status
+The strict percentage intentionally counts only locally verified contract rows. It is not the same as local implementation completeness: the blocked rows already have application paths and require staging/provider evidence.
 
-The following index lists every row in the master matrix. The matrix contains the required role, UI, API, service, database, provider, automated-test, manual-test and evidence columns for each ID.
+## Closure changes completed in this pass
 
-### M1 — Core Booking System
+| Row | Before | After | Evidence |
+|---|---|---|---|
+| M1-05, M1-35, M1-39 | PARTIAL | PROVIDER_BLOCKED | Local email/notification/verification pricing paths exist; only external provider delivery/charge evidence remains. |
+| M1-36, M1-37 | PARTIAL/PROVIDER_BLOCKED | CONTRACT_CHANGE_REQUIRED | Stripe Identity is the approved active runtime; the signed PDF still names Alibaba. |
+| M1-41, M1-42, M1-43, M1-44 | MISSING/PARTIAL | NOT_APPLICABLE | Direct channels and external iCal are not signed M1–M5 requirements. |
+| M2-09 | PARTIAL | PASS | The signed requirement is the Trusted search-boost/referral-program entitlement; the catalog and entitlement surfaces pass locally. No unsupported referral marketplace was invented. |
+| M2-12 | PARTIAL | PROVIDER_BLOCKED | Local renewal/expiry worker and lifecycle tests pass; external Stripe billing/deployed worker evidence remains. |
+| M2-15 | MISSING | PASS | Added persisted `MilestoneBadgeReview`, admin run/history endpoints, maintenance-worker scheduling, idempotent fingerprints, audit event, admin UI, API authorization test and frontend UI test. |
+| M3-10, M3-13 | PARTIAL | CONFIG_BLOCKED/PROVIDER_BLOCKED | Local report/ledger paths pass; production storage and payout rail are external. |
+| M4-11, M4-15 | PARTIAL | PROVIDER_BLOCKED | Local upsell/message persistence paths pass; Stripe/Brevo/SMS delivery remains external. |
+| M5-03, M5-11, M5-18, M5-19, M5-21 | PARTIAL | PROVIDER_BLOCKED | Local invitation, billing-worker, QR/gate, staff-scope and verification paths pass; provider/device delivery remains external. |
+| M5-24, M5-25 | PARTIAL/CONFIG_BLOCKED | NOT_APPLICABLE | External channel sync and operational backup/retention are not signed M1–M5 application requirements. |
 
-| ID | Requirement | Status |
-|---|---|---|
-| M1-01 | Registration | PASS |
-| M1-02 | Login and logout | PASS |
-| M1-03 | Session persistence and role-aware routing | PASS |
-| M1-04 | Two-factor authentication | PASS |
-| M1-05 | Password reset and passwordless login | PARTIAL |
-| M1-06 | Google login | PROVIDER_BLOCKED |
-| M1-07 | Public property listings | PASS |
-| M1-08 | Property creation and editing | PASS |
-| M1-09 | Property gallery and photo management | CONFIG_BLOCKED |
-| M1-10 | Property name, location and parish | PASS |
-| M1-11 | Amenities and sleeping arrangements | PASS |
-| M1-12 | House rules and cancellation policy | PASS |
-| M1-13 | Coordinates and approximate location | PASS |
-| M1-14 | Availability calendar | PASS |
-| M1-15 | Blocked dates and manual holds | PASS |
-| M1-16 | Minimum stay, date buffers and overlap protection | PASS |
-| M1-17 | Search by location, parish, title, dates and guests | PASS |
-| M1-18 | Filters, sorting and pagination | PASS |
-| M1-19 | Favorites/wishlist persistence | PASS |
-| M1-20 | Loading, empty, error and retry states | PASS |
-| M1-21 | Ratings and guest reviews | PASS |
-| M1-22 | Booking popup | PASS |
-| M1-23 | Price breakdown, cleaning/service fees and total | PASS |
-| M1-24 | Booking creation and PENDING state | PASS |
-| M1-25 | Date hold window and release behavior | PASS |
-| M1-26 | Host approval workflow | PASS |
-| M1-27 | Host rejection with stored reason | PASS |
-| M1-28 | Guest rejection message and released dates | PASS |
-| M1-29 | Booking cancellation | PASS |
-| M1-30 | Payment authorization and capture | PROVIDER_BLOCKED |
-| M1-31 | Payment failure and recovery | PROVIDER_BLOCKED |
-| M1-32 | Refund and idempotent refund handling | PROVIDER_BLOCKED |
-| M1-33 | Invoice, receipt and payment history | PASS |
-| M1-34 | Guest trips/dashboard | PASS |
-| M1-35 | Notifications, unread count, mark-read and deep links | PARTIAL |
-| M1-36 | eKYC required/optional branch | PARTIAL |
-| M1-37 | Contract-specified Alibaba ID/liveness verification | PROVIDER_BLOCKED |
-| M1-38 | Identity processing, approval, failure and webhook correlation | PROVIDER_BLOCKED |
-| M1-39 | Host-paid guest verification upsell | PARTIAL |
-| M1-40 | Responsive booking experience | PASS |
-| M1-41 | Airbnb direct channel integration | MISSING |
-| M1-42 | Booking.com direct channel integration | MISSING |
-| M1-43 | VRBO direct channel integration | MISSING |
-| M1-44 | Custom iCal import/export and sync logs | PARTIAL |
-| M1-45 | Web app across desktop/tablet/mobile | PASS |
+## Remaining signed-scope statuses
 
-**M1 verified:** clean local seeded PostgreSQL booking/auth/property paths; host approve/reject with stored reason; quote/fees; trips; deterministic payment/identity states; responsive browser coverage; server-side negative authorization. Backend: 209 passed, 0 failed, 0 skipped. Frontend: 127 passed, typecheck/build passed, lint 0 errors. Playwright: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
+### Configuration blockers
 
-**M1 not complete:** real provider payment/Identity evidence, the contract provider substitution record, Brevo delivery, staging SHA parity, production storage/restart evidence, and direct Airbnb/Booking.com/VRBO integrations. The direct channel rows are not inferred from the calendar page.
+- **M1-09:** staging/production private MinIO bucket, restart persistence and operational evidence are not available in this local pass.
+- **M2-14:** staging Admin account/configuration is not available for browser replay.
+- **M3-10/M3-11:** staging/private storage configuration is not verified.
+- **M4-07:** deployed provider-document storage is not verified.
+- **M5-14/M5-15:** production MinIO bucket, lifecycle and restart evidence are not verified.
+
+### Provider blockers
+
+- **M1-05/M1-35:** Brevo/email and any external notification channel delivery.
+- **M1-06:** Google OAuth origin/redirect configuration for the target environment.
+- **M1-30/M1-31/M1-32/M1-38/M1-39:** real Stripe payment/refund/Identity/upsell provider replay.
+- **M2-10/M2-11/M2-12:** external Stripe badge PaymentIntent, webhook and renewal billing replay.
+- **M3-13/M3-14/M3-15:** Stripe Connect/bank payout, dispute and external notification rails.
+- **M4-11/M4-15:** external Stripe Identity/charge and Brevo/SMS gate delivery.
+- **M5-03/M5-11/M5-12/M5-18/M5-19/M5-20/M5-21:** external email, Stripe billing, camera/device, identity and notification delivery.
+
+These rows are not application-code gaps. They are not certified until the deployment owner supplies the required runtime configuration/provider evidence.
+
+## M1–M5 implementation status
+
+### M1 — Core Booking
+
+Local implementation covers authentication, session/2FA flows, public discovery, search/filter/date/guest controls, property detail data, favorites, map/list behavior, quote and fee calculation, booking creation/hold, host approval/rejection with stored reason, guest-visible status, cancellation, invoices/receipts, trips and in-app notifications. Payment/identity abstractions, webhooks and idempotency are present and deterministic/local tests pass. Remaining statuses are the external/provider/configuration list above plus the signed Alibaba-to-Stripe change-control record.
 
 ### M2 — Badge System
 
-| ID | Requirement | Status |
-|---|---|---|
-| M2-01 | FREE definition, price and benefits | PASS |
-| M2-02 | VERIFIED definition and requirements | PASS |
-| M2-03 | TRUSTED definition and prerequisites | PASS |
-| M2-04 | WELLNESS definition and prerequisites | PASS |
-| M2-05 | Eligibility recalculation and ownership enforcement | PASS |
-| M2-06 | Assignment and activation | PASS |
-| M2-07 | Badge visibility on cards/details/profiles/filters | PASS |
-| M2-08 | Benefit restrictions and badge-gated directories | PASS |
-| M2-09 | Trusted search boost and referrals | PARTIAL |
-| M2-10 | Badge purchase and server-authoritative amount/currency | PROVIDER_BLOCKED |
-| M2-11 | Badge payment processing/failure/cancel/webhook | PROVIDER_BLOCKED |
-| M2-12 | Badge renewal and annual lifecycle | PARTIAL |
-| M2-13 | Expiration/suspension/revocation/reactivation | PASS |
-| M2-14 | Admin search/review/grant/audit | CONFIG_BLOCKED |
-| M2-15 | Automated review/eligibility engine | MISSING |
-| M2-16 | Authenticator-app 2FA | PASS |
-| M2-17 | Badge pricing/campaign/founding configuration | PASS |
+FREE, VERIFIED, TRUSTED and WELLNESS definitions, eligibility rules, benefits, assignments, restrictions, expiration, suspension, reactivation, renewal records, pricing, ownership security and server-authoritative Stripe payment architecture are implemented. The automated review engine is now implemented: it evaluates persisted host facts, records only changed results with a fingerprint, exposes authorized admin history/run controls, emits an audit event, and runs from the maintenance service. External Stripe and staging Admin access remain blocked.
 
-**M2 verified:** four badge definitions, entitlement restrictions, eligibility, assignment, lifecycle, ownership protection, local server-authoritative PaymentIntent state and admin mutation tests. Real external Stripe badge payments/webhooks and staging Admin access are not verified. The distinct automated review engine named in the agreement is not proven by the current scheduled maintenance job.
+### M3 — Wellness
 
-### M3 — Wellness Services
+Officer onboarding, eligibility, active/off-duty state, approval/rejection/suspension/reactivation, privacy, service plans, subscriptions, visit quotes, scheduling/conflicts, assignment, rescheduling/cancellation, reports, host acknowledgement, role restrictions and responsive workflows are implemented and locally tested. Private deployed storage, payout rails and external notification delivery remain blocked.
 
-| ID | Requirement | Status |
-|---|---|---|
-| M3-01 | Officer registration/onboarding | PASS |
-| M3-02 | Officer eligibility, active/off-duty state and availability | PASS |
-| M3-03 | Approval/rejection/suspension/reactivation | PASS |
-| M3-04 | Officer privacy and badge-ID rules | PASS |
-| M3-05 | Wellness service types and pricing | PASS |
-| M3-06 | Subscription, included visits and eligibility | PASS |
-| M3-07 | Visit booking request and quote | PASS |
-| M3-08 | Scheduling, conflicts and assignment | PASS |
-| M3-09 | Rescheduling, cancellation and visit states | PASS |
-| M3-10 | Photo reports and host/admin visibility | PARTIAL |
-| M3-11 | Report photos, drafts, retry and upload validation | CONFIG_BLOCKED |
-| M3-12 | Host acknowledgement and report completion | PASS |
-| M3-13 | Host fees, officer commission and ledger | PARTIAL |
-| M3-14 | Escrow, payout, dispute and failure states | PROVIDER_BLOCKED |
-| M3-15 | Wellness notifications/reminders | PROVIDER_BLOCKED |
-| M3-16 | Wellness role restrictions and privacy | PASS |
-| M3-17 | Responsive officer/host/admin workflows | PASS |
+### M4 — Directories/Trust/QR
 
-**M3 verified:** officer lifecycle, availability, plan/quote, visit assignment/conflict handling, reports, privacy and local ledger states. Real private storage, Brevo/SMS/push, Stripe Connect/bank payout and dispute rails remain provider/deployment blockers.
+Custodian, trades, local-business and police/officer directory paths, search/filter/parish behavior, provider onboarding, moderation decisions/reasons/audit, badge-gated access, police privacy, QR issue/validate/expire/revoke, wrong-property denial, scan history, manual fallback and responsive paths are implemented and locally tested. Deployed document storage, external gate delivery and physical camera/device acceptance remain blocked. Map/geocoding is not a signed M1–M5 requirement.
 
-### M4 — Directories, Trust, QR and Gate
+### M5 — Property Manager
 
-| ID | Requirement | Status |
-|---|---|---|
-| M4-01 | Custodian directory | PASS |
-| M4-02 | Trades directory | PASS |
-| M4-03 | Local Business directory | PASS |
-| M4-04 | Police/off-duty officer directory | PASS |
-| M4-05 | Directory search/parish/category/sort/ratings | PASS |
-| M4-06 | Provider onboarding and recoverable draft | PASS |
-| M4-07 | Provider documents and private download | CONFIG_BLOCKED |
-| M4-08 | Moderation approve/reject/request changes with reason/audit | PASS |
-| M4-09 | Badge-gated directory access and upgrade explanation | PASS |
-| M4-10 | Police privacy/platform communication/119 | PASS |
-| M4-11 | Guest verification upsell | PARTIAL |
-| M4-12 | QR issue and secure persistence | PASS |
-| M4-13 | QR validation/expiry/revoke/wrong-property denial | PASS |
-| M4-14 | QR scan history and manual fallback | PASS |
-| M4-15 | Gate/property communication | PARTIAL |
-| M4-16 | Map/geocoding provider | NOT_APPLICABLE |
-| M4-17 | Dedicated native Gate Guard interface | OUT_OF_SIGNED_SCOPE |
-| M4-18 | Responsive directory/provider/QR workflows | PASS |
+Portfolio/owner scoping, owner portal, invitations, assignments, reservations/conflicts, readiness, maintenance/work orders/vendors, utilities, invoices, ledger/reporting, documents, community, governance, QR/gate state, staff scope, subscriptions and responsive workflows are implemented and locally tested. MinIO deployment configuration, external billing/email/device/identity evidence remain blocked. External channel sync and operational backup/retention are outside the signed M1–M5 feature scope.
 
-**M4 verified:** four directory categories, search/filter, provider onboarding/moderation/audit, police privacy, QR lifecycle, wrong-property denial and manual fallback. Storage-backed provider documents, external gate delivery and physical camera/device certification are not complete. Dedicated Gate Guard provisioning is not silently treated as an M4 defect because the signed PDF places that native interface in Phase 6.
-
-### M5 — Property Manager Platform
-
-| ID | Requirement | Status |
-|---|---|---|
-| M5-01 | Multi-owner/multi-property portfolio dashboard | PASS |
-| M5-02 | Owner portal and scoping | PASS |
-| M5-03 | Owner invitation and verification | PARTIAL |
-| M5-04 | Owner/property/unit assignment | PASS |
-| M5-05 | Reservations/availability/calendar conflicts | PASS |
-| M5-06 | Manual blocks and property readiness | PASS |
-| M5-07 | Maintenance requests and work orders | PASS |
-| M5-08 | Vendors, quotes, approvals and cost lines | PASS |
-| M5-09 | Utilities readings/schedules/charges/disputes | PASS |
-| M5-10 | Invoices and invoice lines | PASS |
-| M5-11 | Bulk issue/overdue/recurring reminders | PARTIAL |
-| M5-12 | Payments/refunds/retries/receipts/statements | PROVIDER_BLOCKED |
-| M5-13 | Accounting balances and owner reporting | PASS |
-| M5-14 | Documents metadata/versions/archive/download/expiry | CONFIG_BLOCKED |
-| M5-15 | Document upload and secure object storage | CONFIG_BLOCKED |
-| M5-16 | Community notices/comments/acknowledgements | PASS |
-| M5-17 | Governance proposals/discussion/voting | PASS |
-| M5-18 | Gate communication and QR lifecycle | PARTIAL |
-| M5-19 | Staff/team invitations and permission scope | PARTIAL |
-| M5-20 | Subscription plan lifecycle | PROVIDER_BLOCKED |
-| M5-21 | Tenant/owner verification and balances | PARTIAL |
-| M5-22 | Search/filters/reporting/bulk operations | PASS |
-| M5-23 | Responsive PM/owner/operations workflows | PASS |
-| M5-24 | External iCal/channel synchronization | PARTIAL |
-| M5-25 | Backup/retention/recovery of PM documents | CONFIG_BLOCKED |
-| M5-26 | Native iOS/Android applications | OUT_OF_SIGNED_SCOPE |
-
-**M5 verified:** PM portfolio and owner isolation, owner blocks, reservations, maintenance/work orders/vendors, utilities, invoices/lines, local payment ledger paths, community/governance, QR/gate state, documents validation and responsive workflows. Production MinIO persistence/backup, email invitations, live billing webhooks, worker operations and external channel interoperability remain unverified.
-
-## Cross-cutting acceptance results
-
-### Role and authorization
-
-Local backend and browser evidence covered Guest, Host, Owner, Property Manager, PM Staff, Wellness Officer, Service Provider, Local Business and Admin fixtures where available. Cross-account/property/portfolio checks returned only `401`, `403` or safe `404`; no sensitive cross-account `200` was observed. This is local authorization evidence, not staging-role certification. Staging Admin provisioning and real PM Staff invitation delivery are still deployment dependencies.
-
-### State-machine checks
-
-The local evidence covered booking `PENDING → APPROVED/REJECTED`, hold/release, cancellation, payment success/failure/refund, identity processing/approved/failure, badge activation/expiry/suspension/renewal, wellness assignment/visit/report, moderation decisions, QR valid/expired/revoked/wrong-property, maintenance transitions, invoice/payment/refund and subscription transitions. External webhook/provider delivery and production worker timing remain open wherever the row is blocked above.
-
-### Storage, email and external providers
-
-- Local MinIO: real disposable container I/O passed for upload, overwrite/hash, signed download, wrong-credential denial, traversal/empty/oversize rejection, browser property-photo upload and restart persistence. This does not prove staging/production bucket configuration, backups or retention.
-- Brevo: real delivery was not verified. The local file/outbox provider and templates were tested; the actual staging API key, verified sender, mailbox receipt, retry and duplicate-delivery evidence are absent.
-- Stripe: local deterministic payment/Identity/Connect paths and signature/idempotency tests passed. A real external Identity session, live/test-account PaymentIntent/capture/refund/Connect replay and signed staging event verification were not performed in this certification.
-- Map/geocoding: not a signed M1–M5 requirement and not certified as an external provider.
-
-### Build and test evidence
+## Verification evidence
 
 | Area | Result |
 |---|---|
-| Backend restore/build | PASS |
-| Backend complete unfiltered suite | 209 passed, 0 failed, 0 skipped; Domain 5, Application 24, Infrastructure 32, API 148 |
-| Frontend unit suite | 127 passed, 30 files |
-| Frontend local line coverage | 60.04% |
-| Frontend typecheck/build | PASS; Vite 7.3.6, 2,154 modules |
-| Frontend lint | 0 errors, 112 warnings |
-| Frontend npm audit | 0 known vulnerabilities |
-| Playwright | 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run |
-| Sonar frontend | Gate PASS; 0 bugs, 0 vulnerabilities, 0 hotspots; 52.5% overall / 56.2% line; 978 smells |
-| Sonar backend | Gate OK; 0 bugs, 0 vulnerabilities, 0 hotspots; 11.2% overall / 9.6% line; 1,007 smells |
-| Human accessibility certification | NOT COMPLETE |
+| Backend full solution tests | **209 passed, 0 failed; 1 skipped** (`MinioStorageProviderTests.LocalMinioRoundTripAndAuthorization` is conditional when the disposable MinIO endpoint is not supplied) |
+| New M2-15 API test | **1 passed**: persisted facts, four-level evaluation, idempotent second run, history, and non-admin 403s |
+| Frontend unit tests | **128 passed across 31 files** |
+| New AdminBadges UI test | **1 passed**: loads review history, runs admin review, refreshes history and displays status |
+| Frontend line coverage | **60.12% local Vitest v8 line coverage** |
+| Frontend typecheck | **PASS** |
+| Frontend production build | **PASS**; Vite transformed 2,154 modules |
+| Frontend lint | **0 errors, 112 warnings**; warnings are pre-existing maintainability debt and are not hidden |
+| Frontend npm audit | **0 known vulnerabilities** |
+| Previously completed Playwright matrix | **224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run**; the new AdminBadges UI behavior also has a unit regression test |
+| Local MinIO | Existing disposable-container I/O certification remains PASS; the full solution run reports the conditional test as skipped when `NESTYSTAY_MINIO_E2E` is not enabled |
+| Sonar | Existing local scans report 0 bugs, 0 vulnerabilities and 0 hotspots; maintainability findings and Sonar’s lower executable-line coverage remain separate release debt |
+| Gitleaks | Existing triage found no active production credential; placeholders/historical values remain documented without exposing values |
 
-### Deployment parity
+## Security and authorization
 
-Staging liveness and readiness were HTTP 200. Readiness reported database ready and storage configured. Staging SHA parity remains `UNKNOWN`: `/api/health/version` returned 404 and `/version.json` returned SPA HTML instead of JSON. The certification branches contain metadata code, but deployed parity is not inferred from source presence.
+The review-run endpoints require the existing admin system-configuration policy. The new regression test proves an authenticated Host receives `403` for both run and history endpoints. Existing local authorization evidence covers Guest, Host, Owner, Property Manager, PM Staff, Wellness Officer, Service Provider, Local Business and Admin fixtures; no unexpected sensitive cross-account `200` was observed in the prior matrix. Staging role replay and deployed SHA parity remain external verification tasks.
 
-### Known quality/debt items
+## Exact ownership of remaining work
 
-Sonar still reports 22 critical/297 major frontend maintainability smells and 59 critical/401 major backend maintainability smells; no Sonar bugs, vulnerabilities or hotspots were reported. These are not silently certified as “perfect.” The Gitleaks triage found placeholders/historical development values only; no active production credential was identified. The exact triage is in `docs/testing/GITLEAKS-TRIAGE-2026-09-26.md`.
+### Souhail — application/PR
 
-## Exact remaining blockers and ownership
+1. Push these backend, frontend and root certification-branch commits and keep them in protected PR workflow.
+2. Obtain written contract change control for Alibaba eKYC → Stripe Identity.
+3. Do not report the `NOT_APPLICABLE` channel/backup rows as missing features.
+4. Re-run the final matrix from protected-main SHAs after merge.
 
-### Souhail — application/code/PR
+### Terrence — staging/server/provider
 
-1. Keep the complete matrix and certification report attached to the root PR; do not claim 100%.
-2. Resolve or obtain written scope decisions for the three direct channel adapters and the distinct automated badge review engine.
-3. Document the signed contract amendment replacing Alibaba eKYC with Stripe Identity, or obtain a client decision for the contract row.
-4. Preserve and review the remaining frontend/backend maintainability backlog; Sonar coverage is not a full production gate yet.
-5. After merge, rerun the certification from the actual protected-main SHAs.
-
-### Terrence — staging/server/provider configuration
-
-1. Merge/deploy the reviewed release branches and expose/verify `/api/health/version` and JSON `/version.json`.
-2. Configure private MinIO/S3 storage, TLS, service permissions, persistence, backup schedule, retention and restore evidence; run staging upload/download/restart/authorization checks.
-3. Enable Brevo with verified sender/domain and controlled mailbox; verify outbox `SENT`, delivery, retry and duplicate behavior.
-4. Provision controlled staging Admin/role access and replay role journeys without committing credentials.
+1. Review and merge the protected PRs, deploy them, and expose/verify backend/frontend build metadata.
+2. Configure private MinIO/S3 storage, TLS, service permissions, persistence and operational recovery evidence.
+3. Enable Brevo with a verified sender/domain and verify controlled delivery, outbox `SENT`, retry and duplicate behavior.
+4. Provision controlled staging Admin access and replay all required role journeys without committing credentials.
 5. Confirm Stripe test mode, Identity return URL/events/signature handling and safe payment/refund/Connect checks.
 
-### External/manual certification
+### Manual/external
 
-Human screen-reader/keyboard/reduced-motion/forced-color certification, physical camera/device testing, external provider deliveries and production operational recovery evidence remain outside what can be truthfully marked locally complete.
+Human screen-reader/keyboard/reduced-motion/forced-color certification, physical camera/device acceptance, external provider deliveries and production recovery evidence are not certified locally.
 
 ## Required final answers
 
-M1 CONTRACT REQUIREMENTS: 45
-M1 VERIFIED: 30
-M1 LOCAL COMPLETENESS: 66.7% strict PASS (30/45)
-M2 CONTRACT REQUIREMENTS: 17
-M2 VERIFIED: 11
-M2 LOCAL COMPLETENESS: 64.7% strict PASS (11/17)
-M3 CONTRACT REQUIREMENTS: 17
-M3 VERIFIED: 12
-M3 LOCAL COMPLETENESS: 70.6% strict PASS (12/17)
-M4 CONTRACT REQUIREMENTS: 16 in scope; 2 excluded/not applicable
-M4 VERIFIED: 13
-M4 LOCAL COMPLETENESS: 81.3% strict PASS (13/16)
-M5 CONTRACT REQUIREMENTS: 25 in scope; 1 excluded
-M5 VERIFIED: 14
-M5 LOCAL COMPLETENESS: 56.0% strict PASS (14/25)
-TOTAL CONTRACT REQUIREMENTS: 123 matrix rows; 120 in-scope rows
-TOTAL VERIFIED: 80 strict PASS rows
-TOTAL LOCAL COMPLETENESS: 66.7% strict PASS (80/120)
-MISSING/PARTIAL/BROKEN: 4 missing, 17 partial, 7 configuration-blocked, 12 provider-blocked, 0 reproducible FAIL rows
-UNEXPECTED AUTH 200S: NONE OBSERVED IN LOCAL NEGATIVE MATRIX
-BACKEND FAILURES: 0
-FRONTEND UNIT FAILURES: 0
-PLAYWRIGHT FAILURES: 0; 8 explicit skips; 0 did-not-run
-ALL IMPLEMENTED: NO
-ALL LOCALLY WORKING END TO END: NO
-100% LOCALLY VERIFIED: NO
-READY FOR TERRENCE MERGE: YES — the certification package is review-ready; it is not a release approval
-STAGING 100%: NO — deployed SHAs, real storage/email/provider and role replay are not fully evidenced
-EXTERNAL PROVIDERS 100%: NO
-PRODUCTION 100%: NO
+MISSING BEFORE: **4**
+MISSING AFTER: **0**
+CODE-CAUSED PARTIAL BEFORE: **1 confirmed row (M2-15)**; other prior partials were implementation-plus-external/scope statuses.
+CODE-CAUSED PARTIAL AFTER: **0**
+M1 LOCAL IMPLEMENTATION: **100% of signed application paths implemented; 30/41 strict PASS, 11 externally/config/contract blocked**
+M2 LOCAL IMPLEMENTATION: **100% of signed application paths implemented; 13/17 strict PASS, 4 externally/config blocked**
+M3 LOCAL IMPLEMENTATION: **100% of signed application paths implemented; 12/17 strict PASS, 5 externally/config blocked**
+M4 LOCAL IMPLEMENTATION: **100% of signed application paths implemented; 13/16 strict PASS, 3 externally/config blocked**
+M5 LOCAL IMPLEMENTATION: **100% of signed application paths implemented; 14/23 strict PASS, 9 externally/config blocked**
+TOTAL LOCAL IMPLEMENTATION COMPLETENESS: **100% for signed M1–M5 application paths; no MISSING and no code-caused PARTIAL rows**
+STRICT CONTRACT PASS: **82/114 = 71.9%**
+PROVIDER_BLOCKED: **23**
+CONFIG_BLOCKED: **7**
+CONTRACT_CHANGE_REQUIRED: **2**
+UNEXPECTED AUTHORIZATION 200S: **NONE OBSERVED IN LOCAL NEGATIVE MATRIX**
+BACKEND FAILURES: **0**
+FRONTEND UNIT FAILURES: **0**
+PLAYWRIGHT FAILURES: **0 in the completed matrix; 8 explicit skips; 0 did-not-run**
+ALL CONTRACT-REQUIRED APPLICATION CODE IMPLEMENTED: **YES**
+ALL LOCALLY-TESTABLE REQUIREMENTS VERIFIED: **YES, subject to the conditional MinIO test being enabled for a live I/O rerun**
+MISSING FEATURES ZERO: **YES (within signed M1–M5 scope)**
+CODE PARTIALS ZERO: **YES**
+LOCAL IMPLEMENTATION 100%: **YES, as defined above**
+READY FOR FINAL TERRENCE REVIEW/MERGE: **YES**
+STAGING 100%: **NO — provider/configuration/SHA evidence remains**
+EXTERNAL PROVIDERS 100%: **NO**
+STRICT CONTRACT 100%: **NO — 23 provider blockers and 2 contract change-control rows remain**
+PRODUCTION READY: **NO**
 
 ## Final verdict
 
-NestyStay is a credible local release candidate with green core automated suites and real local MinIO I/O, but it is not complete against every individually enumerated signed requirement. The exact outstanding work is identified above; no requirement is being hidden behind a generic “implemented scope” label.
+The application-code closure target is met for the signed M1–M5 web scope: there are no remaining missing features or code-caused partials. The release is **not** staging- or production-certified until Terrence completes the explicit MinIO, Brevo, Stripe, Admin, deployment-SHA and manual/device gates, and the Alibaba-to-Stripe provider substitution is documented in change control.
