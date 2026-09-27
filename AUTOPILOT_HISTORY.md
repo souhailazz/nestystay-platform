@@ -306,6 +306,22 @@ Evidence:
 
 The server-side Sonar refresh still requires valid local authentication; no new Sonar result is claimed yet.
 
+## AUTO-0019 — Refactor badge review maintainability without behavior change
+
+Priority: P1 quality debt  \\
+Date: 2026-09-27
+
+The badge review engine contained a cognitive-complexity violation and a nested conditional in the result action. The evaluation behavior was preserved while extracting named helpers for Verified, Trusted, and Wellness requirements and making the approval action branch explicit.
+
+Evidence:
+
+- Backend commit: `e195e8b1720157cbe1c172a30e658b6dc6be7215`, pushed to `codex/final-release-certification`.
+- Focused phase-two tests: 7 passed, 0 failed, 0 skipped.
+- Complete backend suite after the change: 211 passed, 0 failed, 2 explicit integration skips when the local integration variables are absent; the MinIO/PostgreSQL scenarios are covered in the configured runs already recorded in `NESTYSTAY_STATE.md`.
+- No schema, migration, provider, authorization, or business rule was changed.
+
+The next Sonar refresh is still required at `e195e8b`; the latest exported Sonar metrics remain the scan at `6277a95` and are not silently re-labeled as current.
+
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
 Priority: P0 business-rule integrity  \\

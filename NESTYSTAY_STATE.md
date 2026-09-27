@@ -16,13 +16,14 @@ AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-r
 - Latest browser regression: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses completed and processed at the current certification heads on isolated server port 9001. Backend: 52.2% line / 51.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication. Frontend: 63.3% line / 48.8% branch coverage, 0 bugs, 0 vulnerabilities, 0 hotspots, 977 code smells, 1.4% duplication. Root/platform scope: 0 current issues. The isolated projects report Quality Gate OK because their configured condition is new violations only; this is not a production-readiness pass for coverage or maintainability.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`. Backend task `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend task `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root task `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root source `20e6d9e411f112e263f4fbe9ee3c1012cfd82546` with current evidence commits on the certification branch, backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a2`.
+- Pushed certification source revisions: root runtime source `8a601436eff1044c1c05d43cc8ad35fba56555c5` with current evidence commits on the certification branch, backend `e195e8b1720157cbe1c172a30e658b6dc6be7215`, frontend `3b350a2`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 - Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
+- Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips. The prior Sonar scan at `6277a95` remains the latest server-side result because the disposable Sonar admin session was not available for a post-refactor refresh.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
@@ -41,6 +42,22 @@ Confirmed current behavior:
 The current audit evidence describes a later handwritten amendment with time-limited founding memberships, tier-specific host percentages, and additional commercial values. The repository does not contain a machine-readable source that establishes every exact amended price, term, commission, or per-booking value with sufficient certainty. The signed-rule interpretation therefore classifies the existing model as `WRONG_LOGIC`, while the unreadable mandatory sub-values are `NEEDS_EXACT_VALUE`.
 
 No pricing code, schema, seed, migration, or test was changed. Inventing the missing values would create a new commercial rule and could make production pricing incorrect. This is the exact human business-input blocker for the founding-tier remediation.
+
+## AUTO-0019 — Refactor badge review maintainability without behavior change
+
+Priority: P1 quality debt  \\
+Date: 2026-09-27
+
+The badge review engine contained a cognitive-complexity violation and a nested conditional in the result action. The evaluation behavior was preserved while extracting named helpers for Verified, Trusted, and Wellness requirements and making the approval action branch explicit.
+
+Evidence:
+
+- Backend commit: `e195e8b1720157cbe1c172a30e658b6dc6be7215`, pushed to `codex/final-release-certification`.
+- Focused phase-two tests: 7 passed, 0 failed, 0 skipped.
+- Complete backend suite after the change: 211 passed, 0 failed, 2 explicit integration skips when the local integration variables are absent; the MinIO/PostgreSQL scenarios are covered in the configured runs already recorded above.
+- No schema, migration, provider, authorization, or business rule was changed.
+
+The next Sonar refresh is still required at `e195e8b`; the latest exported Sonar metrics remain the scan at `6277a95` and are not silently re-labeled as current.
 
 ## AUTO-0013 — Complete local Playwright regression
 

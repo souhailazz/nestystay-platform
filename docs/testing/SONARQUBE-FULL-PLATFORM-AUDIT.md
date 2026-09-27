@@ -6,7 +6,7 @@ The temporary analysis token was not committed or included in this report.
 
 ## Current local scan summary — 2026-09-27
 
-These are fresh analyses submitted and processed by the isolated local SonarQube server from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. Current analyzed revisions are backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`.
+These are fresh analyses submitted and processed by the isolated local SonarQube server from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. The latest completed scan revisions are backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`. Backend source then advanced to `e195e8b1720157cbe1c172a30e658b6dc6be7215` for a behavior-preserving badge-review refactor; no post-refactor Sonar result is claimed until a new server-side analysis is processed.
 
 | Project | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | New-code coverage | New violations | Duplication | Quality Gate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|

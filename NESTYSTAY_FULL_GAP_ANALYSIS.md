@@ -20,12 +20,12 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
 | Root/orchestration | `codex/final-release-certification` | `20e6d9e` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
-| Backend | `codex/final-release-certification` | `094b539` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
+| Backend | `codex/final-release-certification` | `e195e8b` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
 | Frontend | `codex/final-release-certification` | `e9fde6e` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root `7e450b8d881d2d396f9d1d8a85a03f4816f6ab78`, backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, and updated regression evidence. The backend revision additionally makes the PostgreSQL concurrency integration test explicit about its configuration requirement and locks the approved fee in a domain test. Fresh Sonar results for these current heads are recorded in `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json`; backend coverage was imported from four fresh OpenCover reports covering 211 source files.
+Certification branch revisions at this refresh: root runtime `8a601436eff1044c1c05d43cc8ad35fba56555c5`, backend `e195e8b1720157cbe1c172a30e658b6dc6be7215`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`. The root revisions include the forward seed migration, source parity fixes, the final root domain-fee correction, Gate Guard lifecycle parity, fresh Sonar evidence, and updated regression evidence. The backend revision additionally includes the behavior-preserving badge-review maintainability refactor. The exported Sonar results were scanned immediately before `e195e8b` at backend `6277a95`; a post-refactor server-side refresh is still required and is not claimed here.
 
 ### Root monorepo parity follow-up
 
