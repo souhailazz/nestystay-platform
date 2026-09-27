@@ -21,12 +21,12 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "2c998e5daff353a31c0c961a07606cbf48d8ee60",
+      "sha": "dfec3e9",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
       "branch": "codex/final-release-certification",
-      "sha": "cc29b963b6f95392b557831a186cfd2a9841b636",
+      "sha": "db2fbbc",
       "mainReference": "510512375b613eb0ce5bf9ae39bf5d3f7042e008"
     }
   },
@@ -41,7 +41,10 @@
     "playwright": { "discovered": 224, "started": 224, "passed": 213, "failed": 0, "skipped": 11, "didNotRun": 0 },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
     "stagingShaParity": "UNKNOWN",
-    "freshSonarAtAuditedShas": "NOT_RUN"
+    "freshSonarAtAuditedShas": "NOT_RUN",
+    "lastImplementationUpdate": "Standard guest fee corrected from 9% to approved 10%; historical migrations were preserved and a forward migration was added.",
+    "backendRemediationCommit": "dfec3e9",
+    "frontendRemediationCommit": "db2fbbc"
   },
   "domains": [
     { "phase": "M1", "area": "Authentication", "requirement": "Registration and password login", "status": "COMPLETE", "evidence": "EfPhaseOneStore registration/login and backend/browser tests." },
@@ -64,7 +67,7 @@
     { "phase": "M1", "area": "Booking", "requirement": "Guest trips, booking details, invoice and receipt", "status": "COMPLETE", "evidence": "Traveler screens, document endpoints and browser tests." },
     { "phase": "M1", "area": "Booking", "requirement": "Cancellation and refund states", "status": "PARTIAL", "evidence": "State/provider code and tests exist; real external refund delivery was not verified." },
     { "phase": "M1", "area": "Pricing", "requirement": "Host standard commission 3%", "status": "COMPLETE", "evidence": "PricebookService and seed use 3%." },
-    { "phase": "M1", "area": "Pricing", "requirement": "Standard guest fee current amendment 10%", "status": "WRONG_LOGIC", "evidence": "BusinessRules.cs, PricebookService.cs, seed and tests still use 9%." },
+    { "phase": "M1", "area": "Pricing", "requirement": "Standard guest fee current amendment 10%", "status": "COMPLETE", "evidence": "BusinessRules.cs, PricebookService.cs, seed, forward migration, frontend estimate/copy, and regression tests now use 10%; historical migrations remain unchanged." },
     { "phase": "M1", "area": "Identity", "requirement": "Stripe Identity provider active", "status": "COMPLETE", "evidence": "StripeIdentityProvider and default EKYC_PROVIDER=stripe_identity." },
     { "phase": "M1", "area": "Identity", "requirement": "Real external Stripe Identity session", "status": "PARTIAL", "evidence": "Local deterministic path is tested; external configured session was not run." },
     { "phase": "M1", "area": "Identity", "requirement": "Historical Alibaba references preserved without active adapter", "status": "COMPLETE", "evidence": "Current non-migration scan found no active Alibaba adapter; historical migrations remain." },

@@ -3,13 +3,13 @@
 **Audit date:** 2026-09-27  
 **Audit type:** forensic requirements-completeness audit only  
 **Scope:** current approved NestyStay business rules, current source code, current tests, local runtime evidence, deployment/configuration evidence available in the repositories  
-**Implementation policy:** no product fixes were made during this audit. The only files created by this pass are this report and the machine-readable gap matrix.
+**Implementation policy:** the forensic baseline was audit-only; the subsequent autonomous remediation iteration corrected the confirmed standard-fee drift. No production/staging changes, historical migration rewrites, secrets, or protected-main bypasses were made.
 
 ## Executive conclusion
 
 NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The clean local verification evidence is strong: the backend suite passed 210/210 with local MinIO enabled, the frontend unit suite passed 128 tests, the frontend typecheck and production build passed, lint had zero errors, npm audit reported zero known vulnerabilities, and the complete local Playwright inventory started all 224 discovered tests with 213 passes, zero failures, and 11 explicit skips.
 
-That evidence does not support a production-ready or requirements-complete verdict yet. The most important current gap is business-rule drift: the application actively calculates a 9% standard guest platform fee while the later approved handwritten amendment says 10%. The founding Gold/Platinum model also currently behaves as a lifetime flat-fee feature, while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
+That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, and regression expectations. The remaining commercial-rule gap is the founding Gold/Platinum model, which still behaves as a lifetime flat-fee feature while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
 
 The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; current Sonar results are historical rather than a fresh scan at these audit SHAs; the browser suite has 11 explicit scope/configuration skips; and Gate Guard has an enum and QR UI but no complete invitation, assignment, authenticated role boundary, or revocation lifecycle.
 
@@ -20,10 +20,10 @@ The audit used isolated clean worktrees so the user's dirty working workspace wa
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
 | Root/orchestration | `codex/final-release-certification` | `3526b9508e7a09d6a32c369903a87b9c71573518` | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
-| Backend | `codex/final-release-certification` | `2c998e5daff353a31c0c961a07606cbf48d8ee60` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
-| Frontend | `codex/final-release-certification` | `cc29b963b6f95392b557831a186cfd2a9841b636` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
+| Backend | `codex/final-release-certification` | `dfec3e9` (`fix(pricing): apply approved ten percent guest fee`) | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
+| Frontend | `codex/final-release-certification` | `db2fbbc` (`fix(booking): align guest fee display with approved pricing`) | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
-The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms.
+The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
 ## Architecture inventory
 
@@ -58,7 +58,7 @@ Each row in `NESTYSTAY_GAP_MATRIX.json` has exactly one status:
 - `WRONG_LOGIC`: current behavior is implemented but conflicts with the current approved business rule.
 - `NEEDS_EXACT_VALUE`: the implementation cannot be classified correctly until an unclear handwritten value/text is confirmed.
 
-The matrix contains **87 audited requirement rows**: **49 COMPLETE**, **23 PARTIAL**, **1 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **8 MISSING**, **1 BROKEN**, **2 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
+The matrix contains **87 audited requirement rows**: **50 COMPLETE**, **23 PARTIAL**, **1 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **8 MISSING**, **1 BROKEN**, **1 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
 
 ## Current business-rule audit
 
@@ -67,7 +67,7 @@ The matrix contains **87 audited requirement rows**: **49 COMPLETE**, **23 PARTI
 | Rule | Current code | Current approved rule | Finding |
 |---|---|---|---|
 | Host standard commission | 3% in `PricebookService.cs` and seed | 3% | COMPLETE |
-| Standard guest platform fee | 9% in `BusinessRules.cs`, `PricebookService.cs`, seed, and tests | 10% in the later handwritten amendment | WRONG_LOGIC |
+| Standard guest platform fee | 10% in active `BusinessRules.cs`, `PricebookService.cs`, seed, forward migration, frontend estimate, and tests | 10% in the later handwritten amendment | COMPLETE |
 | Standard booking hold | 60 minutes in `BusinessRules.cs` | The signed text gives 30 minutes as an example; the exact current operational value is not unambiguous | NEEDS_EXACT_VALUE |
 | Trusted host fee | $49 one-time with annual-renewal capability in the current pricebook | Current source material supports a $49 Trusted commercial item | COMPLETE at current source value |
 | Wellness subscription | $19 monthly in the current pricebook and seed | Current source material supports $19/month | COMPLETE at current source value |
@@ -95,14 +95,14 @@ Stripe Identity is the active provider in current configuration defaults and pro
 
 ### Gaps and qualifications
 
-- Standard guest fee is still 9% and conflicts with the current 10% amendment.
+- The standard guest fee correction is implemented and locally tested; historical migrations and historical audit documents still contain the old typed 9% value by design and were not rewritten.
 - Real staging/live Stripe, Stripe Identity, Brevo, object-storage, payout, and InsuraGuest delivery were not verified in this audit.
 - The full browser run had an explicit MinIO UI skip and a production authenticated-smoke skip; upload UI and live provider flows therefore remain externally/configuration-qualified.
 - There is no geocoding service. Coordinates can be entered/stored and rendered on a map, but addresses are not geocoded by the application.
 - SMS and push paths use local/development behavior in the audited configuration; external delivery was not proven.
 - Hold duration is 60 minutes in code while the signed document mentions 30 minutes as an example. The required production value needs exact confirmation before it can be called correct.
 
-**M1 status:** PARTIAL — locally implemented and strongly automated-test verified, but wrong current pricing logic and unverified external/runtime gates remain.
+**M1 status:** PARTIAL — locally implemented and strongly automated-test verified; the approved 10% guest fee is corrected, while external/runtime gates remain unverified.
 
 ## Milestone 2 — Badge and membership system
 
@@ -239,11 +239,10 @@ The audited local revisions and repository main references are recorded above. T
 
 ### P0 — do not certify production
 
-1. Correct or formally approve the commercial-rule mismatch: standard guest fee is active at 9% but the current amendment says 10%.
-2. Resolve the Gold/Platinum founding model mismatch and confirm any unreadable handwritten values before implementation; current lifetime flat-fee behavior is not the amended model.
-3. Verify staging/live SHA parity for frontend and backend against the intended merged main revisions.
-4. Configure and verify private production MinIO with TLS, least-privilege credentials, persistence, backup/retention, and application upload journeys.
-5. Enable and verify Brevo with a controlled mailbox, including outbox `SENT`, receipt, retry, and duplicate behavior.
+1. Resolve the Gold/Platinum founding model mismatch and confirm any unreadable handwritten values before implementation; current lifetime flat-fee behavior is not the amended model.
+2. Verify staging/live SHA parity for frontend and backend against the intended merged main revisions.
+3. Configure and verify private production MinIO with TLS, least-privilege credentials, persistence, backup/retention, and application upload journeys.
+4. Enable and verify Brevo with a controlled mailbox, including outbox `SENT`, receipt, retry, and duplicate behavior.
 
 ### P1 — release qualification
 
@@ -264,7 +263,7 @@ The audited local revisions and repository main references are recorded above. T
 
 | Phase | Status | Basis |
 |---|---|---|
-| M1 Core Booking | PARTIAL | Local implementation and automated/browser evidence are strong; current 9% guest fee is wrong against the amendment; real provider/staging parity remains unverified. |
+| M1 Core Booking | PARTIAL | Local implementation and automated/browser evidence are strong; the approved 10% guest fee is now implemented and tested; real provider/staging parity remains unverified. |
 | M2 Badges/Membership | PARTIAL | Four badges, eligibility, management, payments, renewals, and local tests exist; Gold/Platinum commercial logic is outdated and external payment lifecycle is unverified. |
 | M3 Wellness | PARTIAL | Broad officer/visit/report/payout implementation and local tests exist; storage, email, external payment/insurance, and operational certification remain. |
 | M4 Directories/Trust/QR | PARTIAL | Directory and QR flows exist; Gate Guard account lifecycle/auth boundary and geocoding are incomplete. |
@@ -274,7 +273,7 @@ The audited local revisions and repository main references are recorded above. T
 
 - **Local source implementation:** broad and materially functional.
 - **Local automated verification:** strong; backend and frontend listed above are green, and the full browser inventory had no failures.
-- **Current business-rule correctness:** NOT COMPLETE because active 9% guest pricing and founding-tier behavior conflict with the current amendment.
+- **Current business-rule correctness:** NOT COMPLETE because founding-tier behavior still conflicts with the current amendment. The standard 10% guest fee is corrected.
 - **External integration readiness:** NOT COMPLETE; Brevo, staging/live MinIO, real Stripe/Identity/Connect/insurance, and exact deployment SHA parity were not proven.
 - **Professional QA readiness:** NO — provider/storage configuration and exact current commercial logic are still blockers.
 - **Production readiness:** NO — do not promote based on local tests alone.
