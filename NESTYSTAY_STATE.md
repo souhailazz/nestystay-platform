@@ -13,7 +13,7 @@ AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
 - Frontend lint: 0 errors, 112 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
 - Browser baseline: 224 started, 216 passed, 0 failed, 8 explicit skips, 0 did-not-run.
-- Fresh local SonarQube analyses completed for backend, frontend, and root/platform scopes. Backend and frontend Quality Gates failed on coverage/new-code debt; the platform orchestration scope passed its new-code gate.
+- Fresh local SonarQube analyses completed at the current certification heads. Backend: 10.3% overall / 6.9% new-code coverage, 11 new violations, 20.4% duplication, gate FAIL. Frontend: 55.6% overall / 64.9% new-code coverage, 4 new violations, 1.4% duplication, gate FAIL. Platform: new-code gate PASS; its overall configuration findings are not runtime certification.
 - Pushed certification source revisions: root current `20e6d9e411f112e263f4fbe9ee3c1012cfd82546`, backend current `6277a950d563ce32e01a51223776fac9981529dd`, frontend `96cbac8209f87381508bcebf0de13b8bb716ff07`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
@@ -39,8 +39,8 @@ AUTO-0012 — Align root monorepo Gate Guard lifecycle with the split backend.
 - M3: external provider, storage, payout and operational certification remain.
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
-- Backend Sonar: 14.4% overall coverage, 7.5% new-code coverage, 11 new violations; gate FAIL.
-- Frontend Sonar: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations; gate FAIL.
+- Backend Sonar: 10.3% overall coverage, 6.9% new-code coverage, 11 new violations, 20.4% duplication; gate FAIL.
+- Frontend Sonar: 55.6% overall coverage, 64.9% new-code coverage, 4 new violations, 1.4% duplication; gate FAIL.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.

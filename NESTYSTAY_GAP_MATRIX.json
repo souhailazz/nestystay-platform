@@ -46,11 +46,11 @@
     "stagingShaParity": "BLOCKED_VERSION_SURFACES_NOT_DEPLOYED",
     "stagingPublicHealth": { "live": 200, "ready": 200, "database": "ready", "storage": "CONFIGURED", "versionApi": 404, "frontendVersionJson": "SPA_HTML_FALLBACK" },
     "freshSonarAtAuditedShas": {
-      "status": "COMPLETE_SCAN_FAILED_GATES",
+      "status": "CURRENT_SCAN_PROCESSED_GATE_FAILURES",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "094b539f5d1b7abb2fb6724a8c77d47c68bebf3f", "qualityGate": "FAIL", "coverage": 14.4, "newCoverage": 7.5, "newViolations": 11, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
-      "frontend": { "sha": "e9fde6e353120712a7c5f9b0e8fa51e6044191dc", "qualityGate": "FAIL", "coverage": 55.6, "newCoverage": 64.9, "newViolations": 4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
-      "platform": { "sha": "36c3ccbe627bbe6dbf6029e806c042b961611f3c", "qualityGate": "PASS", "newViolations": 0 }
+      "backend": { "sha": "6277a950d563ce32e01a51223776fac9981529dd", "qualityGate": "FAIL", "coverage": 10.3, "newCoverage": 6.9, "newViolations": 11, "duplication": 20.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
+      "frontend": { "sha": "96cbac8209f87381508bcebf0de13b8bb716ff07", "qualityGate": "FAIL", "coverage": 55.6, "newCoverage": 64.9, "newViolations": 4, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0 },
+      "platform": { "sha": "437804636b944d0e5c348185f0a2b76912e8c9f5", "qualityGate": "PASS", "newViolations": 0 }
     },
     "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
     "backendRemediationCommit": "094b539",

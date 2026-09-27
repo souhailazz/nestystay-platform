@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-09-27",
+  "server": "http://localhost:9000",
+  "note": "Current server-side API summary. Temporary scanner credentials are not recorded.",
+  "projects": [
+    {
+      "key": "nestystay-backend",
+      "sha": "6277a950d563ce32e01a51223776fac9981529dd",
+      "qualityGate": "ERROR",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 996,
+      "coverage": 10.3,
+      "newCoverage": 6.9,
+      "newViolations": 11,
+      "duplication": 20.4,
+      "gateConditions": {
+        "newCoverage": 6.9,
+        "newDuplication": 3.00926,
+        "newViolations": 11
+      },
+      "analysisTask": "33abb618-39f6-4d93-9096-69a72415adff"
+    },
+    {
+      "key": "nestystay-frontend",
+      "sha": "96cbac8209f87381508bcebf0de13b8bb716ff07",
+      "qualityGate": "ERROR",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 973,
+      "coverage": 55.6,
+      "newCoverage": 64.9,
+      "newViolations": 4,
+      "duplication": 1.4,
+      "gateConditions": {
+        "newCoverage": 64.9,
+        "newDuplication": 1.15702,
+        "newViolations": 4
+      },
+      "analysisTask": "56b34941-9268-4bbc-9634-cf4f5ff54d34"
+    },
+    {
+      "key": "nestystay-platform",
+      "sha": "437804636b944d0e5c348185f0a2b76912e8c9f5",
+      "qualityGate": "OK",
+      "bugs": 120,
+      "vulnerabilities": 6,
+      "securityHotspots": 0,
+      "codeSmells": 199,
+      "coverage": 0.0,
+      "duplication": 8.4,
+      "newViolations": 0,
+      "analysisTask": "995131a6-5af6-4105-8c40-24313fa8f93c",
+      "scopeNote": "Orchestration/configuration scope; not runtime application certification."
+    }
+  ],
+  "frontendVitest": {
+    "tests": 128,
+    "files": 31,
+    "lineCoverage": 60.11
+  },
+  "backendCoverageNote": "The all-project Coverlet run was stopped after instrumentation exceeded the normal-suite runtime; the backend Sonar result imported the available OpenCover reports and is explicitly not treated as complete backend coverage."
+}
