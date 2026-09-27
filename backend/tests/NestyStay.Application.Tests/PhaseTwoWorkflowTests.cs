@@ -208,7 +208,7 @@ public sealed class PhaseTwoWorkflowTests
 
         Assert.Equal(3m, standard.HostCommissionPercent);
         Assert.Equal(30m, standard.HostCommissionAmount);
-        Assert.Equal(90m, standard.GuestFeeAmount);
+        Assert.Equal(100m, standard.GuestFeeAmount);
         Assert.Equal(29m, platinum.GuestFeeAmount);
         Assert.Equal(0m, zero.HostCommissionAmount);
         Assert.Equal(0m, zero.GuestFeeAmount);

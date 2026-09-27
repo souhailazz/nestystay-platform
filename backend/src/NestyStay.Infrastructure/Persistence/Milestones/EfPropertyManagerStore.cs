@@ -623,6 +623,27 @@ public sealed class EfPropertyManagerStore(
     public async Task<QrValidationDto> ValidateQrAsync(string token, Guid? propertyId, Guid? gateGuardUserId, CancellationToken cancellationToken)
     { if (string.IsNullOrWhiteSpace(token)) return new QrValidationDto("INVALID", "Invalid", null, "", null, null, "QR token is required."); var item = await db.MilestoneManagerQrAccesses.SingleOrDefaultAsync(x => x.TokenHash == HashToken(token) && !x.IsDeleted, cancellationToken); var now = timeProvider.GetUtcNow(); var result = item is null ? "INVALID" : item.IsRevoked ? "REVOKED" : item.ValidFrom > now ? "NOT_YET_VALID" : item.ValidUntil <= now ? "EXPIRED" : propertyId is not null && item.PropertyId != propertyId ? "WRONG_PROPERTY" : "VALID"; if (item is not null) { item.ValidationCount++; item.LastValidatedAt = now; db.MilestoneManagerQrScans.Add(new MilestoneManagerQrScan { QrAccessId = item.Id, GateGuardUserId = gateGuardUserId, PropertyId = propertyId, Result = result }); await db.SaveChangesAsync(cancellationToken); } return new QrValidationDto(result, result.Replace('_', ' '), item?.PropertyId, item?.SubjectType ?? "", item?.ValidUntil, item?.Id, result == "VALID" ? "Access approved." : "Access denied."); }
 
+    public async Task<QrValidationDto> ValidateQrForGateGuardAsync(string token, Guid propertyId, Guid gateGuardUserId, CancellationToken cancellationToken)
+    {
+        if (propertyId == Guid.Empty || gateGuardUserId == Guid.Empty)
+            throw new InvalidOperationException("A gate guard and property are required.");
+
+        var membership = await db.MilestoneP0StaffMemberships.AsNoTracking().SingleOrDefaultAsync(
+            x => x.StaffUserId == gateGuardUserId &&
+                 x.Role == "GATE_GUARD" &&
+                 (x.Status == "ACCEPTED" || x.Status == "ACTIVE") &&
+                 !x.IsDeleted,
+            cancellationToken);
+        if (membership is null)
+            throw new UnauthorizedAccessException("An active Gate Guard assignment is required.");
+
+        var assignedProperties = ParseGuidList(membership.PropertyScopeJson);
+        if (assignedProperties.Count == 0 || !assignedProperties.Contains(propertyId))
+            throw new UnauthorizedAccessException("This Gate Guard is not assigned to the requested property.");
+
+        return await ValidateQrAsync(token, propertyId, gateGuardUserId, cancellationToken);
+    }
+
     public async Task<QrValidationDto> RevokeQrAsync(Guid managerUserId, Guid qrId, string? reason, CancellationToken cancellationToken)
     { await EnsureManagerAsync(managerUserId, cancellationToken); var item = await db.MilestoneManagerQrAccesses.SingleOrDefaultAsync(x => x.Id == qrId && x.ManagerUserId == managerUserId && !x.IsDeleted, cancellationToken); if (item is null) throw new InvalidOperationException("QR access code not found."); item.IsRevoked = true; item.RevokeReason = string.IsNullOrWhiteSpace(reason) ? "Manager initiated revoke" : reason.Trim(); await AuditAsync(managerUserId, "QrRevoked", "ManagerQr", item.Id, cancellationToken); await db.SaveChangesAsync(cancellationToken); return new QrValidationDto("REVOKED", "Revoked", item.PropertyId, item.SubjectType, item.ValidUntil, item.Id, "Access revoked."); }
 
@@ -1184,7 +1205,27 @@ public sealed class EfPropertyManagerStore(
     }
 
     public async Task<StaffDto> InviteStaffAsync(Guid managerUserId, InviteStaffRequest request, CancellationToken cancellationToken)
-    { await EnsureManagerAsync(managerUserId, cancellationToken); if (request.Role is null || string.IsNullOrWhiteSpace(request.Role)) throw new InvalidOperationException("Staff role is required."); var item = new MilestoneManagerStaff { ManagerUserId = managerUserId, StaffUserId = request.StaffUserId, Role = request.Role.Trim().ToUpperInvariant(), PropertyScopeJson = JsonSerializer.Serialize(request.PropertyIds ?? []), OwnerScopeJson = JsonSerializer.Serialize(request.OwnerIds ?? []), CanManageFinance = request.CanManageFinance, ApprovalLimit = request.ApprovalLimit, Status = "INVITED" }; db.MilestoneManagerStaff.Add(item); await db.SaveChangesAsync(cancellationToken); return ToDto(item); }
+    {
+        await EnsureManagerAsync(managerUserId, cancellationToken);
+        if (request.Role is null || string.IsNullOrWhiteSpace(request.Role)) throw new InvalidOperationException("Staff role is required.");
+        var role = request.Role.Trim().ToUpperInvariant();
+        if (role == "GATE_GUARD")
+            throw new InvalidOperationException("Gate Guard invitations must use the scoped /api/property-manager/p0/members workflow.");
+        var item = new MilestoneManagerStaff
+        {
+            ManagerUserId = managerUserId,
+            StaffUserId = request.StaffUserId,
+            Role = role,
+            PropertyScopeJson = JsonSerializer.Serialize(request.PropertyIds ?? []),
+            OwnerScopeJson = JsonSerializer.Serialize(request.OwnerIds ?? []),
+            CanManageFinance = request.CanManageFinance,
+            ApprovalLimit = request.ApprovalLimit,
+            Status = "INVITED"
+        };
+        db.MilestoneManagerStaff.Add(item);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(item);
+    }
 
     public async Task<IReadOnlyList<StaffDto>> ListStaffAsync(Guid managerUserId, CancellationToken cancellationToken)
     { await EnsureManagerAsync(managerUserId, cancellationToken); return (await db.MilestoneManagerStaff.AsNoTracking().Where(x => x.ManagerUserId == managerUserId && !x.IsDeleted).ToListAsync(cancellationToken)).Select(ToDto).ToList(); }

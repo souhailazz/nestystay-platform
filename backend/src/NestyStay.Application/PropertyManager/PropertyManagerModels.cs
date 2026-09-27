@@ -66,6 +66,7 @@ public interface IPropertyManagerStore
     Task<IReadOnlyList<QrAccessRecordDto>> ListQrAsync(Guid managerUserId, CancellationToken cancellationToken);
     Task<IReadOnlyList<QrScanDto>> ListQrHistoryAsync(Guid managerUserId, Guid qrId, CancellationToken cancellationToken);
     Task<QrValidationDto> ValidateQrAsync(string token, Guid? propertyId, Guid? gateGuardUserId, CancellationToken cancellationToken);
+    Task<QrValidationDto> ValidateQrForGateGuardAsync(string token, Guid propertyId, Guid gateGuardUserId, CancellationToken cancellationToken);
     Task<QrValidationDto> RevokeQrAsync(Guid managerUserId, Guid qrId, string? reason, CancellationToken cancellationToken);
     Task<ManagerProfileDto> ChangeSubscriptionAsync(Guid managerUserId, ChangeSubscriptionRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<SubscriptionEventDto>> ListSubscriptionEventsAsync(Guid managerUserId, CancellationToken cancellationToken);

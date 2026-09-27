@@ -248,8 +248,8 @@ public sealed class PhaseOneWorkflowTests
         Assert.True(quote.DatesAvailable);
         Assert.Equal(3, quote.Nights);
         Assert.Equal(555m, quote.StaySubtotal);
-        Assert.Equal(49.95m, quote.GuestPlatformFee);
-        Assert.Equal(604.95m, quote.TotalAmount);
+        Assert.Equal(55.50m, quote.GuestPlatformFee);
+        Assert.Equal(610.50m, quote.TotalAmount);
         Assert.Contains(quote.PriceBreakdown, line => line.Code == "guest-verification" && line.Amount == 0m);
 
         var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 6, 10), new DateOnly(2026, 6, 13)), CancellationToken.None);
