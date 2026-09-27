@@ -172,3 +172,21 @@ Evidence:
 Result:
 
 The local authorization and MinIO evidence is stronger and current. It still does not certify staging credentials, production storage persistence/backups, real Brevo delivery, or deployment SHA parity.
+
+## AUTO-0009 — Verify public staging health and build metadata
+
+Priority: P1 deployment verification  \\
+Date: 2026-09-27
+
+A read-only probe was run against `https://staging.nestystay.net`.
+
+Evidence:
+
+- `/api/health/live`: HTTP 200, `status=ok`.
+- `/api/health/ready`: HTTP 200, database `ready`, storage `CONFIGURED`.
+- `/api/health/version`: HTTP 404, so the deployed backend revision is not publicly observable.
+- `/version.json`: HTTP 200 but content type/body is the SPA HTML fallback, not JSON. The deployed frontend revision is therefore not publicly observable.
+
+Result:
+
+Staging liveness/readiness is healthy, but exact SHA parity is **BLOCKED_EXTERNAL** until Terrence deploys the current branches and configures nginx/static serving for the version surfaces. Readiness `CONFIGURED` is not treated as proof of real MinIO I/O, backup durability, or upload authorization.

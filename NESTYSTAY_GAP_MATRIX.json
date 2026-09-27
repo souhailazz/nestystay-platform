@@ -42,7 +42,8 @@
     "securityMatrix": { "passed": 28, "failed": 0, "skipped": 0, "scope": "Cross-resource, Property Manager, cookie/session, signed-token, webhook-security filters" },
     "minioFocusedTests": { "passed": 2, "failed": 0, "skipped": 0, "endpoint": "private disposable local container; credentials not recorded" },
     "brevoRealDelivery": "NOT_RUN_EXTERNAL_CONFIG_UNAVAILABLE",
-    "stagingShaParity": "UNKNOWN",
+    "stagingShaParity": "BLOCKED_VERSION_SURFACES_NOT_DEPLOYED",
+    "stagingPublicHealth": { "live": 200, "ready": 200, "database": "ready", "storage": "CONFIGURED", "versionApi": 404, "frontendVersionJson": "SPA_HTML_FALLBACK" },
     "freshSonarAtAuditedShas": {
       "status": "COMPLETE_SCAN_FAILED_GATES",
       "server": "local SonarQube Community Build 26.9.0.129388",
