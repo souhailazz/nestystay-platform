@@ -306,3 +306,18 @@ Evidence:
 
 The server-side Sonar refresh still requires valid local authentication; no new Sonar result is claimed yet.
 
+## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
+
+Priority: P0 business-rule integrity  \\
+Date: 2026-09-27
+
+Audited the phase-two pricebook, domain rules, in-memory and EF stores, API contracts, frontend admin surface, seed data, and regression tests for Gold/Platinum founding memberships.
+
+Result:
+
+- The implementation is confirmed to use lifetime per-booking guest flat fees (`$36` Gold and `$29` Platinum), with the shared host commission and no term/expiry or membership purchase amount.
+- The current amendment describes a different time-limited, tier-specific model, so this is a confirmed `WRONG_LOGIC` finding.
+- The repository does not preserve every handwritten amended commercial value in machine-readable form. The missing exact price/term/commission/per-booking sub-values are therefore `NEEDS_EXACT_VALUE`; they must not be guessed.
+
+No source code, migrations, seed data, or tests were changed. The next implementation step is blocked only on the exact approved commercial values; local certification work continues on other unblocked release gates.
+

@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0017 — Run fresh isolated SonarQube certification scans with current coverage reports.
+AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle against signed-rule evidence.
 
 ## Validation Result
 
@@ -23,6 +23,24 @@ AUTO-0017 — Run fresh isolated SonarQube certification scans with current cove
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
 - Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
+
+## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
+
+Priority: P0 business-rule integrity  \\
+Date: 2026-09-27
+
+The active founding-tier implementation was inspected in both the in-memory and EF-backed phase-two stores, the domain business rules, pricebook/seed data, API DTOs, frontend admin surface, and the existing phase-two regression tests.
+
+Confirmed current behavior:
+
+- Gold and Platinum are stored as founding tiers with lifetime per-booking guest flat fees (`$36` and `$29` respectively).
+- Founding tiers use the shared host commission pricebook percentage rather than a tier-specific percentage.
+- Founding records expose `IsLifetimeGuestFee` and have no term/expiry or membership purchase amount.
+- The same behavior is asserted by `PhaseTwoWorkflowTests` and persisted by `MilestonePersistenceTests`.
+
+The current audit evidence describes a later handwritten amendment with time-limited founding memberships, tier-specific host percentages, and additional commercial values. The repository does not contain a machine-readable source that establishes every exact amended price, term, commission, or per-booking value with sufficient certainty. The signed-rule interpretation therefore classifies the existing model as `WRONG_LOGIC`, while the unreadable mandatory sub-values are `NEEDS_EXACT_VALUE`.
+
+No pricing code, schema, seed, migration, or test was changed. Inventing the missing values would create a new commercial rule and could make production pricing incorrect. This is the exact human business-input blocker for the founding-tier remediation.
 
 ## AUTO-0013 — Complete local Playwright regression
 

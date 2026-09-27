@@ -16,7 +16,7 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "20e6d9e411f112e263f4fbe9ee3c1012cfd82546",
+      "sha": "8a601436eff1044c1c05d43cc8ad35fba56555c5",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
@@ -52,7 +52,7 @@
       "frontend": { "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb", "qualityGate": "OK_NEW_VIOLATIONS_ONLY", "lineCoverage": 63.3, "branchCoverage": 48.8, "codeSmells": 977, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "60b5e8ed-0014-4772-be00-7e6feb5d035d" },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
-    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness and legacy Gate Guard invitations remain routed through the scoped P0 lifecycle.",
+    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; founding Gold/Platinum commercial logic was audited and remains blocked on exact amended business values.",
     "backendRemediationCommit": "094b539",
     "frontendRemediationCommit": "3b350a2"
   },
