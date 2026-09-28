@@ -6,7 +6,7 @@
 - Frontend `f6253bc1b1fa0e6a2e02bdaa2e3afaa3c5c05e54`: **129/129** tracked Vitest tests across 35 files passed. Reproducible tracked-test V8 coverage remains 32.81% lines, 30.98% statements, 24.37% branches, and 32.11% functions. Typecheck and production build remain passing.
 - The founding commercial slice now implements the legible signed values: Gold `$150`, 18 months, `$36` guest fee per booking, 2.9% host commission; Platinum `$150`, 36 months, `$24` guest fee per booking, 2% host commission. Gold/Platinum are no longer modeled as lifetime guest-fee tiers. The handwritten `150+150` allocation remains intentionally unimplemented pending explicit business clarification; no extra payment semantics were invented.
 - Existing browser evidence remains valid at runtime-equivalent frontend `20f199f`: **224/224** started, 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run. The later frontend revisions did not alter the tested runtime source.
-- Root certification documentation is being refreshed from these exact heads. Protected `main`, staging, and production remain untouched.
+- Root certification documentation is refreshed from these exact heads. Protected `main`, staging, and production remain untouched.
 
 ## Historical prior refresh (superseded by AUTO-0044)
 

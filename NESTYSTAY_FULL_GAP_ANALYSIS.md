@@ -35,7 +35,7 @@ The focused local matrix was rerun at backend `393edd1e20269350ed565fff8dda53b99
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `fe3f1a6` (prior certification evidence refresh; current docs pending commit) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Root/orchestration | `codex/final-release-certification` | current branch tip reported in final status | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
 | Backend | `codex/final-release-certification` | `d2c8436` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
 | Frontend | `codex/final-release-certification` | `f6253bc` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
