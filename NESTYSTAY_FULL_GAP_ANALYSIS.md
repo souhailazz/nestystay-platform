@@ -80,7 +80,7 @@ Each row in `NESTYSTAY_GAP_MATRIX.json` has exactly one status:
 - `WRONG_LOGIC`: current behavior is implemented but conflicts with the current approved business rule.
 - `NEEDS_EXACT_VALUE`: the implementation cannot be classified correctly until an unclear handwritten value/text is confirmed.
 
-The matrix contains **87 audited requirement rows**: **52 COMPLETE**, **25 PARTIAL**, **0 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **6 MISSING**, **0 BROKEN**, **1 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
+The matrix contains **87 audited requirement rows**: **52 COMPLETE**, **26 PARTIAL**, **0 FRONTEND_ONLY**, **0 BACKEND_ONLY**, **1 MOCK**, **6 MISSING**, **0 BROKEN**, **0 WRONG_LOGIC**, and **2 NEEDS_EXACT_VALUE**. These are requirement-row counts, not milestone percentages; a row marked PARTIAL may contain substantial working code with one important unverified or incomplete boundary.
 
 ## Current business-rule audit
 

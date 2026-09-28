@@ -1,5 +1,17 @@
 # Current State
 
+## Authoritative refresh — AUTO-0047 — 2026-09-28
+
+- Re-audited the current certification heads against the autonomous requirements. The active standard guest platform fee is already aligned to the approved 10% rule across non-historical runtime source, seed/pricebook, forward migration, frontend estimate/copy, and tests; a focused pricing run passed **6/6**.
+- The current Gate Guard lifecycle and authenticated boundary remain locally implemented; the focused API authorization run passed **5/5** with zero failures/skips. This does not replace staging role/device qualification.
+- Confirmed the integration-health storage entry uses `storageProvider.ProviderName`, so MinIO/S3 is reported as the configured provider rather than being mislabeled as server-local storage. No source change was necessary for this finding.
+- Corrected stale matrix metadata: current root certification head is `719710b`, the requirement counts are **52 COMPLETE / 26 PARTIAL / 1 MOCK / 6 MISSING / 0 WRONG_LOGIC / 2 NEEDS_EXACT_VALUE**, and historical migrations remain unchanged.
+- No protected `main`, staging, production, external provider, secret, or dirty user workspace was modified.
+
+## Next Best Action
+
+Continue with unblocked local backend coverage/maintainability work only where it can be tested without inventing business rules; keep external delivery, staging SHA parity, provider durability, human certification, and ambiguous Gold/Platinum allocation explicitly blocked rather than guessed.
+
 ## Authoritative refresh — AUTO-0046 — 2026-09-28
 
 - Backend `eeab0d2e97a18fc8ec0f909bba8944e54fc542ab`: the configured disposable-service suite passed **303/303** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 167), after applying migration `20260928174138_ApplyFoundingMembershipTerms` to disposable PostgreSQL. The migration adds the current Gold/Platinum membership terms without editing historical migrations. The badge-review workflow was refactored into named helpers without changing fingerprint/idempotency behavior.

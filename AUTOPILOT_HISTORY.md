@@ -1,5 +1,22 @@
 # Autopilot History
 
+## AUTO-0047 — Reconcile active pricing, Gate Guard, and integration-health evidence
+
+Priority: P0/P1 evidence integrity  \
+Date: 2026-09-28
+
+Re-audited the current certification heads against the autonomous requirements. The approved standard guest platform fee is already 10% throughout active runtime source, pricebook/seed, forward migration, frontend estimate/copy, and regression expectations; only historical migration snapshots retain older values. The current Gate Guard invitation/scope/authentication boundary remains locally implemented. The integration-health endpoint already reports the injected storage provider’s real `ProviderName`, including MinIO/S3, rather than hardcoding server-local storage.
+
+Evidence:
+
+- Backend focused pricing tests: **6 passed, 0 failed, 0 skipped**.
+- Backend focused Gate Guard authorization tests: **5 passed, 0 failed, 0 skipped**.
+- Backend current full configured evidence remains **303 passed, 0 failed, 0 skipped** at `eeab0d2`.
+- Matrix counts corrected to **52 COMPLETE / 26 PARTIAL / 1 MOCK / 6 MISSING / 0 WRONG_LOGIC / 2 NEEDS_EXACT_VALUE**.
+- No historical migration, staging/production environment, protected `main`, secret, or dirty user workspace was changed.
+
+Remaining follow-ups are external/staging verification, backend coverage below 80%, maintainability backlog, and the exact handwritten Gold/Platinum `150+150` business allocation.
+
 ## AUTO-0044 — Implement legible Gold/Platinum founding membership terms
 
 Priority: P0 commercial-rule integrity  \\
