@@ -585,6 +585,22 @@ Evidence:
 
 The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
 
+## AUTO-0034 — Split production integration validation by provider
+
+Priority: P1 deployment safety / maintainability  \\
+Date: 2026-09-28
+
+The production integration validator combined identity-provider, secret, Stripe, email, storage, PostgreSQL, and administrator-bootstrap checks in one high-complexity method. The validation is now split into named helpers while preserving validation order, provider selectors, placeholder rejection, production test-key opt-in behavior, storage path protections, and existing error messages.
+
+Evidence:
+
+- Backend commit: `ef562f0`, pushed to `codex/final-release-certification`.
+- Dedicated production configuration tests: **6 passed, 0 failed, 0 skipped**.
+- Complete non-container backend solution: **225 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- `git diff --check`: PASS; no migrations, provider configuration, secrets, staging, production, or protected `main` were changed.
+
+The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
+
 ## AUTO-0033 — Split Property Manager manager-resolution authorization flow
 
 Priority: P1 authorization maintainability  \\
