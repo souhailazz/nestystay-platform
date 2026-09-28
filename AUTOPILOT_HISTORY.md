@@ -1,5 +1,16 @@
 # Autopilot History
 
+## AUTO-0043 — Correct tracked-test evidence and cover booking/payment state machine
+
+Priority: P1 evidence integrity and backend behavioral coverage  \
+Date: 2026-09-28
+
+The certification records were refreshed against the exact pushed heads. Backend `e215b895dcb64e43e792362eba4940898d7e6936` adds behavioral booking/payment state-machine coverage; the focused run passed 61/61, and the configured disposable-service suite passed **303/303** with zero failures/skips (Domain 6, Application 98, Infrastructure 32, API 167). Exact-head Sonar processing reports 73.4% line coverage, 988 code smells, 20.4% duplication, zero bugs/vulnerabilities/hotspots, and zero new violations.
+
+Frontend `e47ace79cc1c31cb19ca047e491cb27c118b45b2` adds tracked public search-state coverage. The reproducible tracked-only Vitest run passed **129/129 across 35 files** with V8 coverage of 32.81% lines, 30.98% statements, 24.38% branches, and 32.11% functions. Exact-head Sonar reports 32.7% line coverage, 972 code smells, and 1.4% duplication. Ignored `src/coverage` helper tests were excluded; earlier inflated local metrics were corrected rather than carried forward.
+
+No runtime application, staging, production, migration, or protected-main changes were made by this refresh. The existing browser evidence at runtime-equivalent frontend `20f199f` remains 224/224 started, 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run.
+
 ## AUTO-0042 — Expand frontend behavioral coverage and refresh exact-commit Sonar evidence
 
 Priority: P1 release-quality evidence  \

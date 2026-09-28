@@ -16,25 +16,25 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "8566b0c",
+      "sha": "73ba865",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "ff31270",
+      "sha": "e215b89",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
       "branch": "codex/final-release-certification",
-      "sha": "14455cc",
+      "sha": "e47ace7",
       "mainReference": "510512375b613eb0ce5bf9ae39bf5d3f7042e008"
     }
   },
   "evidence": {
-    "backendTests": { "passed": 229, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186, "currentHeadNonContainerPassed": 229, "currentHeadNonContainerSkipped": 0, "currentHeadContainerStatus": "CURRENT_HEAD_DISPOSABLE_SERVICES_CONFIGURED" },
-    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 229, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "coverageFile": "backend/TestResults/coverage/backend.vscoverage.xml", "rerunStatus": "Current head ff31270 completed the full disposable-service suite 229/229 with zero failures/skips. The VS coverage artifact was generated successfully; the earlier XPlat collector stalled during instrumentation and is not used as the Sonar evidence." },
-    "frontendTests": { "passed": 162, "files": 40, "failed": 0, "head": "14455cc" },
-    "frontendCoverage": { "linePercent": 63.99, "statementPercent": 60.16, "branchPercent": 51.61, "functionPercent": 56.77, "source": "Vitest V8 local run" },
+    "backendTests": { "passed": 303, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186, "currentHeadNonContainerPassed": 303, "currentHeadNonContainerSkipped": 0, "currentHeadContainerStatus": "CURRENT_HEAD_DISPOSABLE_SERVICES_CONFIGURED" },
+    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 303, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "coverageFile": "backend/TestResults/coverage/backend-current.xml", "rerunStatus": "Current head e215b89 completed the full disposable-service suite 303/303 with zero failures/skips. Sonar processed 73.4% line coverage, 988 code smells, 20.4% duplication, 0 bugs/vulnerabilities/hotspots, and 0 new violations." },
+    "frontendTests": { "passed": 129, "files": 35, "failed": 0, "head": "e47ace7" },
+    "frontendCoverage": { "linePercent": 32.81, "statementPercent": 30.98, "branchPercent": 24.38, "functionPercent": 32.11, "source": "Vitest V8 tracked-test run; ignored src/coverage helpers excluded" },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
     "frontendLint": { "errors": 0, "warnings": 111 },
@@ -50,13 +50,13 @@
     "freshSonarAtAuditedShas": {
       "status": "CURRENT_SCAN_PROCESSED_WITH_OPEN_COVERAGE_AND_MAINTAINABILITY_GAPS",
       "server": "local SonarQube Community Build 26.9.0.129388",
-      "backend": { "sha": "ff31270f134c599fadb7dd7058f361fb45cc55ff", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 73.2, "branchCoverage": null, "codeSmells": 798, "duplication": 6.9, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "processed", "analysisId": "abba376b-fd73-4ce7-bebf-9654c6c34b8b", "coverageNote": "Current-head Sonar analysis completed after the full 229/229 disposable-service suite. Coverage is 73.2%; the requested 80% target and maintainability backlog remain open. The disposable server has no configured acceptance conditions, so OK is not a release gate." },
-      "frontend": { "sha": "14455cc69c96bd97917a35bc8ab4a66b030c645e", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 59.3, "localV8LineCoverage": 63.99, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "processed", "coverageNote": "Current-head Sonar analysis completed at the exact committed frontend head with the 162/162 Vitest suite and explicit test-file patterns. Sonar executable-line coverage is 59.3%; local V8 line coverage is 63.99%. The requested Sonar 60% threshold is not yet met." },
+      "backend": { "sha": "e215b895dcb64e43e792362eba4940898d7e6936", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 73.4, "branchCoverage": null, "codeSmells": 988, "duplication": 20.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "processed", "analysisId": "8a5f6e51-015a-47b5-9bc8-d702a5103890", "coverageNote": "Current-head Sonar analysis completed after the full 303/303 disposable-service suite. Coverage is 73.4%; the requested 80% target and maintainability backlog remain open. The disposable server has no configured acceptance conditions, so OK is not a release gate." },
+      "frontend": { "sha": "e47ace79cc1c31cb19ca047e491cb27c118b45b2", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "lineCoverage": 32.7, "localV8LineCoverage": 32.81, "branchCoverage": 24.4, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "processed", "analysisId": "103ae7a2-821b-4602-b204-06a254446886", "coverageNote": "Current-head Sonar analysis completed at the exact committed frontend head with the 129/129 tracked Vitest suite. Sonar line coverage is 32.7%; local V8 line coverage is 32.81%. Ignored src/coverage helper tests were excluded because they are not in the pushed branch. The requested Sonar 60% threshold is not met." },
       "platform": { "sha": "233443236eaab2486c05a0896b286c10ae1759c5", "qualityGate": "OK_NO_CONDITIONS_ON_DISPOSABLE_SERVER", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "processed", "coverageNote": "Runtime/orchestration scope only: scripts, deploy and GitHub workflows. Design handoff prototypes were not counted as runtime platform code." }
     },
-    "lastImplementationUpdate": "Current-head Docker-backed verification is now active: backend ff31270 completed 229/229 with zero failures/skips, current-head MinIO object round-trip/authorization passed, and a two-instance PostgreSQL concurrency test passed. Fresh local Sonar analyses completed for backend ff31270 (73.2% line coverage, 798 smells), frontend 14455cc (59.3% Sonar executable-line coverage, 972 smells) and root 2334432 (runtime scope has zero findings); the disposable server has no acceptance conditions. Frontend test-only coverage additions raise the local V8 line result to 63.99% (162/162 tests across 40 files). The full current-head Playwright matrix remains valid at 224/224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. External Brevo delivery, staging/production MinIO durability/backups, external Stripe/Identity/Connect/InsuraGuest, staging SHA parity, human accessibility/legal review, and exact Gold/Platinum amended values remain open.",
-    "backendRemediationCommit": "ff31270",
-    "frontendRemediationCommit": "14455cc"
+    "lastImplementationUpdate": "Authoritative AUTO-0043 refresh: backend e215b895 completed the configured disposable-service suite 303/303 with zero failures/skips, including MinIO and PostgreSQL integration paths. Exact-head Sonar reports 73.4% line coverage, 988 code smells, 20.4% duplication, and zero bugs/vulnerabilities/hotspots/new violations. Frontend e47ace7 completed 129/129 tracked Vitest tests across 35 files; tracked-only V8 coverage is 32.81% lines and exact-head Sonar coverage is 32.7% with 972 code smells. Earlier local metrics using ignored src/coverage helpers are superseded. The full current-head Playwright matrix remains valid at 224/224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run. External Brevo delivery, staging/production MinIO durability/backups, external Stripe/Identity/Connect/InsuraGuest, staging SHA parity, human accessibility/legal review, and exact Gold/Platinum amended values remain open.",
+    "backendRemediationCommit": "e215b895",
+    "frontendRemediationCommit": "e47ace7"
   },
   "domains": [
     { "phase": "M1", "area": "Authentication", "requirement": "Registration and password login", "status": "COMPLETE", "evidence": "EfPhaseOneStore registration/login and backend/browser tests." },

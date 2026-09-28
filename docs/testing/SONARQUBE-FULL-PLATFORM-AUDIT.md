@@ -10,17 +10,17 @@ All three current isolated scopes were scanned and processed server-side by a di
 
 | Project | SHA | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | Duplication | Processing |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| Backend | `ff31270f` | 0 | 0 | 0 | 798 | 73.2% | 6.9% | SUCCESS |
-| Frontend | `14455cc` | 0 | 0 | 0 | 972 | 59.3% Sonar executable lines; 63.99% local V8 lines | 1.4% | SUCCESS |
+| Backend | `e215b895` | 0 | 0 | 0 | 988 | 73.4% | 20.4% | SUCCESS |
+| Frontend | `e47ace7` | 0 | 0 | 0 | 972 | 32.7% Sonar executable lines; 32.81% tracked-test V8 lines | 1.4% | SUCCESS |
 | Platform runtime | `2334432` | 0 | 0 | 0 | 0 | n/a | 0.0% | SUCCESS |
 
 The disposable instance reported `OK` for each project because no quality-gate conditions were configured. This is not a claim that the requested backend 80% target, frontend 60% Sonar target, maintainability backlog, or staging/production release gates have passed. The first platform scan included design-handoff prototype HTML/JS and surfaced 325 prototype findings; it was re-run with the meaningful runtime/orchestration scope (`scripts`, `deploy`, `.github`) and the runtime scope has zero current issues. Design prototypes remain outside runtime certification.
 
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Backend commit `ff31270` adds bounded, strict input handling and regression coverage for signed storage downloads; the preceding backend commit `732c710` bounded the legacy Property Manager QR token. The current-head disposable-service backend suite passes **229/229** with **0 failures and 0 skips**; MinIO and PostgreSQL concurrency were exercised against loopback-only containers, and the current-head backend Sonar upload is now processed.
+Backend exact head `e215b895` adds behavioral booking/payment state-machine coverage and retains the bounded storage/QR input protections. The current-head disposable-service backend suite passes **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167); MinIO and PostgreSQL concurrency were exercised against loopback-only containers, and the current-head backend Sonar upload is processed. Coverage is 73.4%, with 988 open code smells and 20.4% duplication, so the requested 80% and maintainability gates remain open.
 
-Frontend commits `f1f935b`, `9ccfb75`, and `e74c701` added behavioral tests for the landing SearchBar, Property Manager modules, booking identity-verification handoff, and invoice/receipt workflows; `14455cc` adds behavioral coverage for the shared Modal, root recovery boundary, and complete landing page. The complete local Vitest suite at `14455cc` passes **162/162 across 40 files** and the current V8 run reports **63.99% line, 60.16% statement, 51.61% branch, and 56.77% function coverage**. A fresh Sonar analysis also processed at `14455cc` and reports **59.3% executable-line coverage**. These two coverage calculations are recorded separately.
+Frontend exact head `e47ace7` adds behavioral tests for public search loading, empty, error, and clear-filter states. The reproducible tracked-only Vitest suite passes **129/129 across 35 files** and reports **32.81% line, 30.98% statement, 24.38% branch, and 32.11% function coverage**. A fresh Sonar analysis also processed at `e47ace7` and reports **32.7% line coverage**. Ignored `src/coverage` helper tests are excluded because they are not part of the pushed branch; the requested frontend coverage threshold remains open.
 
 ## Current local scan summary — 2026-09-27
 

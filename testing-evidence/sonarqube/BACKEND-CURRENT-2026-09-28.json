@@ -1,25 +1,25 @@
 {
   "projectKey": "nestystay-backend-current",
-  "sha": "ff31270f134c599fadb7dd7058f361fb45cc55ff",
+  "sha": "e215b895dcb64e43e792362eba4940898d7e6936",
   "server": "local disposable SonarQube 26.9.0.129388",
-  "analysisId": "abba376b-fd73-4ce7-bebf-9654c6c34b8b",
+  "analysisId": "8a5f6e51-015a-47b5-9bc8-d702a5103890",
   "qualityGate": "OK (disposable instance has no configured conditions)",
   "metrics": {
     "bugs": 0,
     "vulnerabilities": 0,
     "securityHotspots": 0,
-    "codeSmells": 798,
-    "coveragePercent": 73.2,
+    "codeSmells": 988,
+    "coveragePercent": 73.4,
     "linesToCover": 14177,
     "uncoveredLines": 3794,
-    "duplicationPercent": 6.9
+    "duplicationPercent": 20.4
   },
   "testEvidence": {
     "domain": { "passed": 6, "failed": 0, "skipped": 0 },
-    "application": { "passed": 24, "failed": 0, "skipped": 0 },
+    "application": { "passed": 98, "failed": 0, "skipped": 0 },
     "infrastructure": { "passed": 32, "failed": 0, "skipped": 0 },
     "api": { "passed": 167, "failed": 0, "skipped": 0 },
-    "total": { "passed": 229, "failed": 0, "skipped": 0 }
+    "total": { "passed": 303, "failed": 0, "skipped": 0 }
   },
   "integrationEvidence": {
     "minioRoundTripAndAuthorization": "PASS",
@@ -27,7 +27,8 @@
   },
   "limitations": [
     "This is a local disposable SonarQube result, not staging or production verification.",
-    "The requested backend 80% coverage target is not met.",
+    "The requested backend 80% coverage target is not met; current Sonar line coverage is 73.4%.",
+    "The current scan has 988 open maintainability findings and 20.4% duplication; the 0 new-violation result is not a clean total backlog.",
     "The quality-gate status is not a production acceptance gate because this disposable instance has no conditions configured."
   ]
 }

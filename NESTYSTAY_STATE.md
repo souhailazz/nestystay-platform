@@ -1,6 +1,13 @@
 # Current State
 
-## Last Completed Task
+## Authoritative refresh — AUTO-0043 — 2026-09-28
+
+- Backend `e215b895dcb64e43e792362eba4940898d7e6936`: the configured disposable-service suite passed **303/303** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 167), including real local MinIO and PostgreSQL integration paths. Exact-head Sonar processing reports 73.4% line coverage, 988 code smells, 20.4% duplication, 0 bugs/vulnerabilities/hotspots, and 0 new violations. The requested 80% coverage and maintainability gates remain open.
+- Frontend `e47ace79cc1c31cb19ca047e491cb27c118b45b2`: **129/129** tracked Vitest tests across 35 files passed. Reproducible tracked-test V8 coverage is 32.81% lines, 30.98% statements, 24.38% branches, and 32.11% functions. Exact-head Sonar reports 32.7% line coverage, 972 code smells, 1.4% duplication, and 0 bugs/vulnerabilities/hotspots. Ignored `src/coverage` helper tests are excluded because they are not pushed source evidence.
+- Existing browser evidence remains valid at runtime-equivalent frontend `20f199f`: **224/224** started, 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run. The later frontend revision is test-only and did not alter runtime source.
+- Root certification documentation is being refreshed from these exact heads. Protected `main`, staging, and production remain untouched.
+
+## Historical prior refresh (superseded by AUTO-0043)
 
 AUTO-0042 — Expand frontend behavioral coverage and refresh exact-commit Sonar evidence.
 
