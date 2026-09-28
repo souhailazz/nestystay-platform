@@ -6,7 +6,7 @@ The temporary analysis token was not committed or included in this report.
 
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Frontend commit `f1f935b` added behavioral tests for the landing SearchBar and Property Manager modules. The complete local Vitest suite passes **153/153 across 36 files** and V8 reports **62.84% line, 59.21% statement, 50.80% branch, and 55.93% function coverage**. This is local test-run evidence only; a new Sonar analysis has not been run for `f1f935b`, so the Sonar metrics below remain attributed to the prior scanned frontend SHA and are not silently relabeled.
+Frontend commits `f1f935b` and `9ccfb75` added behavioral tests for the landing SearchBar, Property Manager modules, and the booking identity-verification handoff. The complete local Vitest suite at `9ccfb75` passes **155/155 across 37 files** and V8 reports **63.10% line, 59.44% statement, 51.04% branch, and 56.14% function coverage**. This is local test-run evidence only; a new Sonar analysis has not been run for `9ccfb75`, so the Sonar metrics below remain attributed to the prior scanned frontend SHA and are not silently relabeled.
 
 ## Current local scan summary — 2026-09-27
 

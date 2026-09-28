@@ -4,7 +4,7 @@ Date: 2026-09-23
 
 ## Current certification refresh — 2026-09-28
 
-The latest isolated frontend certification branch is `f1f935b`. Its complete local Vitest suite passes **153/153 across 36 files** with V8 coverage of **62.84% lines, 59.21% statements, 50.80% branches, and 55.93% functions**. Typecheck and production build pass; lint remains **0 errors / 107 warnings**. This exceeds the local 60% frontend line target. No new Sonar analysis is claimed for this test-only commit, so the existing Sonar findings, 80% new-code requirement, staging/provider checks, and deployed SHA parity remain open.
+The latest isolated frontend certification branch is `9ccfb75`. Its complete local Vitest suite passes **155/155 across 37 files** with V8 coverage of **63.10% lines, 59.44% statements, 51.04% branches, and 56.14% functions**. Typecheck and production build pass; lint remains **0 errors / 107 warnings**. This exceeds the local 60% frontend line target. No new Sonar analysis is claimed for this test-only commit, so the existing Sonar findings, 80% new-code requirement, staging/provider checks, and deployed SHA parity remain open.
 
 The production verdict remains **NOT READY for promotion**. The remaining release gates are unchanged: current-head Sonar/maintainability and backend coverage acceptance, real Brevo delivery, MinIO production configuration/durability and upload verification, staging role/IDOR verification, and exact frontend/backend deployed-SHA parity.
 

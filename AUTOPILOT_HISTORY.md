@@ -602,6 +602,23 @@ Evidence:
 
 This closes the local frontend 60% line threshold. It does not claim a new Sonar scan, the separate Sonar 80% new-code condition, real provider delivery, staging role/IDOR proof, MinIO durability, or deployed-SHA parity.
 
+## AUTO-0036 — Cover the booking identity-verification handoff
+
+Priority: P0 identity-flow evidence  \\
+Date: 2026-09-28
+
+Added behavioral frontend coverage for the booking identity page: Stripe Identity provider messaging, document selection, the hosted verification-session handoff, pending navigation, and the provider-error loading path.
+
+Evidence:
+
+- Frontend commit: `9ccfb75`, pushed to `codex/final-release-certification`.
+- Full Vitest suite: **155 passed across 37 files, 0 failed**.
+- V8 coverage: **63.10% lines, 59.44% statements, 51.04% branches, 56.14% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 107 existing warnings**.
+- No production code, provider configuration, migrations, staging, production, secrets, or protected `main` were changed.
+
+This improves local M1 identity evidence only. It does not claim a real external Stripe Identity session, staging role/IDOR proof, provider delivery, MinIO durability, or deployed-SHA parity.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\
