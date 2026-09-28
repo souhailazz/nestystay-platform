@@ -1,15 +1,15 @@
 # Current State
 
-## Authoritative refresh — AUTO-0045 — 2026-09-28
+## Authoritative refresh — AUTO-0046 — 2026-09-28
 
-- Backend `d2c84365c7c11d738f28c7d6cbcfdb7b814ea0e3`: the configured disposable-service suite passed **303/303** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 167), after applying migration `20260928174138_ApplyFoundingMembershipTerms` to disposable PostgreSQL. The migration adds the current Gold/Platinum membership terms without editing historical migrations.
+- Backend `eeab0d2e97a18fc8ec0f909bba8944e54fc542ab`: the configured disposable-service suite passed **303/303** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 167), after applying migration `20260928174138_ApplyFoundingMembershipTerms` to disposable PostgreSQL. The migration adds the current Gold/Platinum membership terms without editing historical migrations. The badge-review workflow was refactored into named helpers without changing fingerprint/idempotency behavior.
 - Frontend `fe01b881b5afa40b9a2c173cd20c83ab38f5bf35`: **177/177** tracked Vitest tests across 45 files passed. Reproducible tracked-test V8 coverage is 64.41% lines, 60.79% statements, 52.67% branches, and 57.24% functions. Typecheck and production build remain passing; lint remains 0 errors with 111 warnings.
-- Fresh exact-head Sonar scans on disposable local SonarQube processed backend `d2c8436` at 62.7% line coverage, 996 code smells, 20.3% duplication, and zero bugs/vulnerabilities/hotspots; frontend `fe01b88` at 60.0% line coverage, 972 code smells, 1.4% duplication, and zero bugs/vulnerabilities/hotspots; platform orchestration `ad2735e` at zero current issues. The frontend overall 60% local Sonar threshold is met; backend 80%, new-code, maintainability, and external/staging release conditions remain open. These local instances have no configured production release-gate conditions.
+- Fresh exact-head Sonar scans on disposable local SonarQube processed backend `eeab0d2` at 73.4% line coverage, 994 code smells, 20.3% duplication, and zero bugs/vulnerabilities/hotspots; frontend `fe01b88` at 60.0% line coverage, 972 code smells, 1.4% duplication, and zero bugs/vulnerabilities/hotspots; platform orchestration `ad2735e` at zero current issues. The frontend overall 60% local Sonar threshold is met; backend 80%, new-code, maintainability, and external/staging release conditions remain open. These local instances have no configured production release-gate conditions.
 - The founding commercial slice now implements the legible signed values: Gold `$150`, 18 months, `$36` guest fee per booking, 2.9% host commission; Platinum `$150`, 36 months, `$24` guest fee per booking, 2% host commission. Gold/Platinum are no longer modeled as lifetime guest-fee tiers. The handwritten `150+150` allocation remains intentionally unimplemented pending explicit business clarification; no extra payment semantics were invented.
 - Existing browser evidence remains valid at runtime-equivalent frontend `20f199f`: **224/224** started, 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run. The later frontend revisions did not alter the tested runtime source.
 - Root certification documentation is refreshed from these exact heads. Protected `main`, staging, and production remain untouched.
 
-## Historical prior refresh (superseded by AUTO-0045)
+## Historical prior refresh (superseded by AUTO-0046)
 
 ## Authoritative refresh — AUTO-0043 — 2026-09-28
 

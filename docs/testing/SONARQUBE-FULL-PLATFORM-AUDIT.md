@@ -10,7 +10,7 @@ All three current isolated scopes were scanned and processed server-side by a fr
 
 | Project | SHA | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | Duplication | Processing |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| Backend | `d2c8436` | 0 | 0 | 0 | 996 | 62.7% | 20.3% | SUCCESS |
+| Backend | `eeab0d2` | 0 | 0 | 0 | 994 | 73.4% | 20.3% | SUCCESS |
 | Frontend | `fe01b88` | 0 | 0 | 0 | 972 | 60.0% Sonar executable lines; 64.41% tracked-test V8 lines | 1.4% | SUCCESS |
 | Platform orchestration | `ad2735e` | 0 | 0 | 0 | 0 | n/a | 0.0% | SUCCESS |
 
@@ -18,7 +18,7 @@ The disposable instance reported `OK` for each project because no quality-gate c
 
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Backend current head `d2c8436` passes the configured disposable-service suite **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167); MinIO and PostgreSQL concurrency were exercised against loopback-only containers. Exact-head Sonar reports 62.7% coverage, 996 code smells, 20.3% duplication, and zero bugs/vulnerabilities/hotspots. The requested 80% and maintainability gates remain open.
+Backend current head `eeab0d2` passes the configured disposable-service suite **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167); MinIO and PostgreSQL concurrency were exercised against loopback-only containers. Exact-head Sonar reports 73.4% coverage, 994 code smells, 20.3% duplication, and zero bugs/vulnerabilities/hotspots. The requested 80% and maintainability gates remain open.
 
 Frontend current head `fe01b88` passes the reproducible tracked Vitest suite **177/177 across 45 files** and reports **64.41% line, 60.79% statement, 52.67% branch, and 57.24% function coverage**. Exact-head Sonar reports 60.0% line coverage, 972 code smells, 1.4% duplication, and zero bugs/vulnerabilities/hotspots. The requested 60% overall frontend coverage threshold is met in this local scan; new-code coverage and maintainability acceptance remain open. The promoted `src/coverage` helpers are tracked behavioral tests included in this run.
 

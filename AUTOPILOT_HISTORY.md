@@ -807,3 +807,13 @@ Date: 2026-09-28
 - Exact-head local Sonar analysis `459288fb-d9aa-4067-900a-17309969122e` processed successfully: **60.0% line coverage**, 972 code smells, 1.4% duplication, and 0 bugs/vulnerabilities/hotspots. The disposable instance has no configured production gate conditions.
 - Root evidence was refreshed without secrets. The frontend 60% overall local Sonar threshold is met; new-code coverage, maintainability, deployment parity, external provider delivery, and staging/production gates remain open.
 
+## AUTO-0046 — Refactor badge review workflow and refresh backend certification
+
+Date: 2026-09-28
+
+- Backend certification branch commit: `eeab0d2e97a18fc8ec0f909bba8944e54fc542ab`, pushed to `codex/final-release-certification`.
+- Behavior-preserving change: extracted host loading, per-host review evaluation, and idempotent change recording from `EfBadgeReviewEngine.RunAsync` into named helpers.
+- Complete configured backend suite: **303 passed, 0 failed, 0 skipped** (Domain 6, Application 98, Infrastructure 32, API 167), including real local MinIO and PostgreSQL two-instance checks.
+- Exact-head local Sonar analysis `40d152f5-b0d1-4ab8-9891-6341e5e67b5e` processed successfully: **73.4% line coverage**, 994 code smells, 20.3% duplication, and 0 bugs/vulnerabilities/hotspots. The disposable instance has no configured production gate conditions.
+- Root evidence is being refreshed to the exact backend/frontend heads. Backend 80% coverage, maintainability, new-code, deployment parity, and external provider gates remain open.
+

@@ -1,15 +1,15 @@
 {
   "projectKey": "nestystay-backend-current-final",
-  "sha": "d2c8436cb2bcd05ec4a63006bc465aed3ebaecee",
+  "sha": "eeab0d2e97a18fc8ec0f909bba8944e54fc542ab",
   "server": "local disposable SonarQube 26.9.0.129388",
-  "analysisId": "26ebb762-faa1-4032-bb80-a1678c78aa8c",
+  "analysisId": "40d152f5-b0d1-4ab8-9891-6341e5e67b5e",
   "qualityGate": "OK (disposable instance has no configured conditions)",
   "metrics": {
     "bugs": 0,
     "vulnerabilities": 0,
     "securityHotspots": 0,
-    "codeSmells": 996,
-    "coveragePercent": 62.7,
+    "codeSmells": 994,
+    "coveragePercent": 73.4,
     "duplicationPercent": 20.3
   },
   "testEvidence": {
@@ -26,7 +26,7 @@
   "limitations": [
     "This is a local disposable SonarQube result, not staging or production verification.",
     "The requested backend 80% coverage target is not met; current Sonar line coverage is 73.4%.",
-    "The current scan has 996 open maintainability findings and 20.3% duplication; the 0 new-violation result is not a clean total backlog.",
+    "The current scan has 994 open maintainability findings and 20.3% duplication; the 0 new-violation result is not a clean total backlog.",
     "The quality-gate status is not a production acceptance gate because this disposable instance has no conditions configured."
   ]
 }
