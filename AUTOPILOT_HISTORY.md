@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0048 — Add production-configuration guards and refresh backend Sonar evidence
+
+Priority: P1 certification evidence  \\
+Date: 2026-09-28
+
+Added five backend tests covering production integration safety guards: complete MinIO credential requirements, HTTPS MinIO acceptance, explicit Stripe test-key opt-in, and two-factor Admin bootstrap credentials. No production runtime behavior, migration, provider architecture, staging/production environment, or secret was changed.
+
+Evidence:
+
+- Backend commit: `9ea182ca014ba97e8346bc6ee9ca8fde31d1c8cc`.
+- Configured disposable PostgreSQL/MinIO suite: **308 passed, 0 failed, 0 skipped** (Domain 6, Application 98, Infrastructure 32, API 172).
+- Exact-head server-side local Sonar analysis: **73.5% line coverage, 994 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, 0 security hotspots**; task `e14a593b-dcc1-48fc-9ff6-6d5d24f80d0f`, analysis `18a3215d-e5ee-49ca-a6aa-58cc1fe05690`.
+- Local Quality Gate is `OK` only because the disposable Sonar server has no configured acceptance conditions; backend 80% coverage and maintainability targets remain open.
+- Backend PR #9 remains open and protected-branch CI is pending. No main merge or staging deployment was performed.
+
 ## AUTO-0047 — Reconcile active pricing, Gate Guard, and integration-health evidence
 
 Priority: P0/P1 evidence integrity  \

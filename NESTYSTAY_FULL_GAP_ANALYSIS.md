@@ -1,5 +1,11 @@
 # NestyStay Full Gap Analysis
 
+## Latest certification refresh — AUTO-0048 — 2026-09-28
+
+The current backend certification branch is `9ea182ca014ba97e8346bc6ee9ca8fde31d1c8cc`. Its configured disposable PostgreSQL/MinIO suite passes **308/308** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 172). A real local SonarQube analysis completed server-side at this exact head: **73.5% line coverage, 994 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, and 0 security hotspots**. The local Quality Gate is `OK`, but this disposable server has no configured acceptance conditions; the requested 80% backend target and maintainability remediation remain open. Evidence: `testing-evidence/sonarqube/BACKEND-AUTO-0048-2026-09-28.*`.
+
+This refresh does not change the external or deployment conclusions: Brevo delivery, staging/production storage durability and upload proof, deployed SHA parity, staging role/IDOR evidence, human accessibility/legal review, and the ambiguous Gold/Platinum `150+150` allocation remain unresolved or externally blocked. No staging/production system, historical migration, protected `main`, or secret was modified.
+
 **Audit date:** 2026-09-28
 **Audit type:** forensic requirements-completeness audit only  
 **Scope:** current approved NestyStay business rules, current source code, current tests, local runtime evidence, deployment/configuration evidence available in the repositories  
