@@ -209,6 +209,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - The historical `/api/property-manager/staff` endpoint now rejects `GATE_GUARD` instead of creating a membership that cannot grant the real scoped role; the supported `/api/property-manager/p0/members` lifecycle remains covered.
 - The root monorepo now matches the split backend for Gate Guard invitation constraints, role synchronization, authenticated property-scoped QR validation, revocation, and PM-workspace denial.
 - The admin integration-health endpoint now reports the selected storage provider's actual readiness status and safe detail instead of unconditionally reporting `CONFIGURED`.
+- The anonymous signed-storage download endpoint now bounds encoded keys, decoded key bytes, access-token length, and UTF-8 decoding before provider validation; malformed input cannot reach object access.
 
 ## Partial
 
@@ -222,6 +223,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.
+- Signed storage download input hardening is locally verified at backend `ff31270`; real MinIO I/O and deployed storage durability remain external/runtime blockers.
 
 ## Missing
 
@@ -274,6 +276,7 @@ The local browser gate is therefore green for executed journeys, and the separat
 - The root monorepo copies of the split backend/frontend sources still contained active 9% guest-fee logic after the split repositories had been corrected. This was a repository-alignment defect, not a new business-rule decision.
 - A deeper cross-repository pricing scan found the root domain constant `ContractGuestPlatformFeePercent = 9m`; it is now 10m with a root and split-backend regression assertion. Active 9% pricing logic is now absent from root and split runtime source; historical migrations and unrelated CSS ratios remain excluded by design.
 - The .NET XPlat Code Coverage collector stalls on the API test host in both the working checkout and a clean detached checkout, while the exact API tests pass without coverage; Sonar coverage evidence therefore cannot yet be refreshed from a complete API run.
+- The anonymous signed-storage download route accepted unbounded base64 key and token input before provider validation; this is fixed and covered by backend `ff31270`.
 
 ## AUTO-0012 — Align root monorepo Gate Guard lifecycle
 
@@ -345,7 +348,7 @@ Current release blockers are external/staging proof and quality debt: real Brevo
 
 ## Next Best Action
 
-Resolve the Gold/Platinum model only after exact mandatory values are confirmed; otherwise remediate the fresh backend/frontend Sonar findings and continue local security/IDOR hardening while external providers remain blocked.
+Keep the exact Gold/Platinum values blocked on human business input; while Docker and external providers remain unavailable, continue local P1 security/authorization hardening and prepare the current-head Docker-backed MinIO/PostgreSQL and Sonar rerun for when the environment is restored.
 
 ## AUTO-0005 — Fresh local SonarQube certification
 
