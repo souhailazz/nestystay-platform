@@ -16,7 +16,7 @@
   "repositories": {
     "root": {
       "branch": "codex/final-release-certification",
-      "sha": "db5fc83",
+      "sha": "f35eeeb",
       "mainReference": "76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301"
     },
     "backend": {

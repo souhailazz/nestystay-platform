@@ -18,7 +18,7 @@ The production verdict remains **NOT READY for promotion**. The remaining releas
 
 | Gate | Result | Evidence / blocker |
 |---|---|---|
-| Backend restore/build/tests | PASS | 229 passed, 0 failed, 0 skipped at current head with disposable PostgreSQL/MinIO configured |
+| Backend restore/build/tests | PASS | 303 passed, 0 failed, 0 skipped at current head with disposable PostgreSQL/MinIO configured |
 | Frontend typecheck/build | PASS | Both completed successfully |
 | Frontend lint/audit | PASS with warnings | 0 errors, 107 warnings, 0 npm vulnerabilities |
 | Browser regression | PASS with explicit skips | Current head 20f199f: 224 started; 213 passed; 11 explicit skips; 0 failures; 0 did-not-run |
