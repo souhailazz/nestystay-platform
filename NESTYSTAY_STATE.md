@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0029 — Cover passkey ownership and revocation lifecycle.
+AUTO-0030 — Centralize Property Manager staff lifecycle validation.
 
 ## Validation Result
 
@@ -38,6 +38,7 @@ AUTO-0029 — Cover passkey ownership and revocation lifecycle.
 - After adding behavioral coverage for signed storage downloads and platform metadata endpoints, the current backend head `393edd1e20269350ed565fff8dda53b997792e39` passed the full configured suite **222/222** with zero failures/skips. A fresh server-side Sonar refresh processed successfully: 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication, and raw line coverage **62.1%**. The same server’s file measures calculate **72.8%** when all EF migration files are excluded; neither reaches the requested 80%. Evidence: `testing-evidence/sonarqube/BACKEND-CURRENT-HEAD-2026-09-27.md`.
 - The local authorization/IDOR regression matrix was rerun at current backend `393edd1e20269350ed565fff8dda53b997792e39`: **13 passed, 0 failed, 0 skipped**. It covered cross-resource message/attachment, wellness/officer, provider, owner/manager/staff portfolio, Gate Guard invitation/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership, and session invalidation. Evidence: `testing-evidence/final-hardening/04-authorization/LOCAL-AUTHORIZATION-MATRIX-2026-09-27.md`. This strengthens local authorization evidence but does not replace staging role/IDOR verification.
 - Current backend head `4ece56f` adds passkey credential ownership/lifecycle coverage: list isolation, persisted revocation, inactive lifecycle visibility, repeat-delete behavior, and cross-user delete denial. Focused tests passed **3/3** and the full configured suite passed **225/225** (Domain 6, Application 24, Infrastructure 32, API 163). The current XML coverage artifact was generated, but the local Docker daemon stopped before the fresh disposable Sonar server could process it; the latest verified server-side Sonar metrics therefore remain at `393edd1` and must not be treated as current-head measurements. Evidence: `testing-evidence/15-coverage/PASSKEY-OWNERSHIP-LIFECYCLE-2026-09-28.md`.
+- Current backend head `b726d6d` centralizes Property Manager staff roles/statuses plus Gate Guard and finance validation shared by invitation and update paths. Focused Property Manager P0, authorization, and passkey tests passed **21/21**. The complete non-container suite passed **225/225** with **2 explicit integration skips** (MinIO and two-instance PostgreSQL); a current-head Docker-backed rerun is pending local Docker recovery. The exported Sonar issue inventory is triaged by rule/severity and runtime risk in `testing-evidence/sonarqube/BACKEND-MAINTAINABILITY-TRIAGE-2026-09-28.md`.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

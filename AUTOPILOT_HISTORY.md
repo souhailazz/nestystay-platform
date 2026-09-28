@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0030 — Centralize Property Manager staff lifecycle validation
+
+Priority: P0 multi-owner/Gate Guard maintainability  \
+Date: 2026-09-28
+
+Triaged the exported backend Sonar inventory and selected the highest-risk non-migration concentration: Property Manager staff invitation/update lifecycle logic. Centralized staff role/status normalization and shared Gate Guard/finance configuration validation while preserving existing business rules and messages.
+
+Evidence:
+
+- Backend commit: `b726d6d5e58d4604b6fe7d85ab793ffd9f40cbcf`, pushed to the existing certification PR branch.
+- Focused Property Manager P0, authorization, and passkey regression: **21 passed, 0 failed, 0 skipped**.
+- Complete non-container suite: **225 passed, 0 failed, 2 explicit integration skips** (MinIO and two-instance PostgreSQL).
+- The preceding container-enabled 225/225 result remains valid for the unchanged test infrastructure; current-head container verification awaits Docker recovery and is not inferred.
+- Maintainability classification: `testing-evidence/sonarqube/BACKEND-MAINTAINABILITY-TRIAGE-2026-09-28.md`.
+
 ## AUTO-0029 — Cover passkey ownership and revocation lifecycle
 
 Priority: P0 authentication/ownership coverage  \
