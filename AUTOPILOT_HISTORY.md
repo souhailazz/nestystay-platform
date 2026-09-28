@@ -1,5 +1,21 @@
 # Autopilot History
 
+## AUTO-0044 — Implement legible Gold/Platinum founding membership terms
+
+Priority: P0 commercial-rule integrity  \\
+Date: 2026-09-28
+
+Inspected the signed agreement page 4 and implemented only the legible founding values: Gold `$150` for 18 months with a `$36` guest fee per booking and 2.9% host commission; Platinum `$150` for 36 months with a `$24` guest fee per booking and 2% host commission. Added membership price, duration, and expiry fields to the founding-benefit model and a forward EF migration; historical migrations were not edited. Updated pricebook/seed data, in-memory and EF-backed stores, API DTOs, frontend admin display, and regression tests. The visibly ambiguous/scratched `150+150` allocation was left pending human business clarification rather than assigned invented payment semantics.
+
+Evidence:
+
+- Backend commit: `d2c84365c7c11d738f28c7d6cbcfdb7b814ea0e3`.
+- Frontend commit: `f6253bc1b1fa0e6a2e02bdaa2e3afaa3c5c05e54`.
+- EF migration `20260928174138_ApplyFoundingMembershipTerms` applied successfully to disposable PostgreSQL.
+- Configured backend suite after the migration: **303 passed, 0 failed, 0 skipped**.
+- Tracked frontend suite after the display update: **129 passed across 35 files, 0 failed**; tracked-only V8 line coverage remains **32.81%**.
+- Protected `main`, staging, and production were not modified.
+
 ## AUTO-0043 — Correct tracked-test evidence and cover booking/payment state machine
 
 Priority: P1 evidence integrity and backend behavioral coverage  \

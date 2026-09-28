@@ -7,11 +7,11 @@
 
 ## Executive conclusion
 
-NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The current isolated certification heads have now been exercised with disposable services: backend `e215b895` passed the complete unfiltered suite **303/303 with 0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167), including current-head MinIO object I/O and PostgreSQL concurrency checks. The behavioral booking/payment state-machine coverage is included, along with bounded legacy QR and signed-storage inputs. The frontend tracked-test suite passes **129 tests across 35 files** at `e47ace7`, with **32.81% local V8 line coverage**; the current frontend head remains typecheck/build clean, and the current-head Playwright matrix started all 224 discovered tests with 213 passes, zero failures, 11 explicit skips, and zero did-not-run across desktop/tablet/mobile Chromium plus configured Firefox/WebKit smoke.
+NestyStay is a substantial, working ASP.NET/React platform with broad M1–M5 coverage. The current isolated certification heads have now been exercised with disposable services: backend `d2c8436` passed the complete unfiltered suite **303/303 with 0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167), including the current-head MinIO object I/O and PostgreSQL migration/concurrency checks. The frontend tracked-test suite passes **129 tests across 35 files** at `f6253bc`, with **32.81% local V8 line coverage**; typecheck/build remain clean, and the current-head Playwright matrix started all 224 discovered tests with 213 passes, zero failures, 11 explicit skips, and zero did-not-run across desktop/tablet/mobile Chromium plus configured Firefox/WebKit smoke.
 
-That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, regression expectations, and the root monorepo copies of those sources. The remaining commercial-rule gap is the founding Gold/Platinum model, which still behaves as a lifetime flat-fee feature while the current amendment describes time-limited founding memberships, different host percentages, and additional commercial values that are not represented in the current pricebook. This is a wrong/outdated business-logic finding, not a missing-test finding.
+That evidence does not support a production-ready or requirements-complete verdict yet. The standard post-launch guest fee has now been corrected to the approved 10% rule across active backend logic, seeded pricebooks, the forward migration, frontend estimates/copy, regression expectations, and the root monorepo copies of those sources. The legible Gold/Platinum founding values are now implemented in backend `d2c8436`: Gold is `$150` for 18 months with a `$36` guest fee per booking and 2.9% host commission; Platinum is `$150` for 36 months with a `$24` guest fee per booking and 2% host commission. The ambiguous handwritten `150+150` allocation remains intentionally unresolved pending human business clarification. This is now a bounded commercial-clarification gap, not the former lifetime-fee implementation defect.
 
-The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; a fresh current-head server-side Sonar analysis at backend `e215b895` reports 73.4% line coverage, 988 open maintainability issues, 20.4% duplication, and zero bugs/vulnerabilities/hotspots. The requested 80% backend coverage and maintainability target remains open. Frontend `e47ace7` has 32.7% Sonar line coverage and 972 open maintainability issues (local tracked-test V8 line coverage is 32.81%), and root runtime/orchestration scope is clean; the browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are implemented.
+The other material gaps are external or operational: Brevo delivery was not verified with a real configured transport; production/staging provider configuration and deployed SHA parity were not verified; real Stripe/Stripe Identity/Connect/InsuraGuest delivery was not proven; the last server-side Sonar analysis was run at backend `e215b895` and frontend `e47ace7` before the current commercial-term commits, reporting 73.4%/32.7% line coverage and 988/972 open maintainability issues respectively, with zero bugs/vulnerabilities/hotspots. Those metrics are retained as prior evidence and are not claimed as exact-head metrics for `d2c8436`/`f6253bc` until rescanned. The requested 80% backend and 60% frontend coverage targets and maintainability target remain open. The browser suite has 11 explicit scope/configuration skips; and Gate Guard still requires staging/browser/device qualification even though its local invitation, assignment, authenticated role boundary, revocation lifecycle, and legacy-route guard are implemented.
 
 ### Latest frontend coverage expansion — 2026-09-28
 
@@ -35,13 +35,13 @@ The focused local matrix was rerun at backend `393edd1e20269350ed565fff8dda53b99
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `72fbe02` (current certification evidence refresh) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
-| Backend | `codex/final-release-certification` | `e215b895` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
-| Frontend | `codex/final-release-certification` | `e47ace7` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
+| Root/orchestration | `codex/final-release-certification` | `fe3f1a6` (prior certification evidence refresh; current docs pending commit) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Backend | `codex/final-release-certification` | `d2c8436` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
+| Frontend | `codex/final-release-certification` | `f6253bc` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root `72fbe02`, backend `e215b895`, frontend `e47ace7`. The backend revision includes the prior security/authorization hardening plus booking/payment state-machine tests; the configured Docker-backed suite is 303/303 and the exact-head Sonar result is 73.4% coverage with 988 code smells and 20.4% duplication. The frontend revision contains tracked public search-state tests; its exact tracked-test suite is 129/129 and Sonar coverage is 32.7% with 972 code smells. The full-coverage and maintainability gates remain open.
+Certification branch revisions at this refresh: root `fe3f1a6` before the pending documentation commit, backend `d2c8436`, frontend `f6253bc`. The backend configured Docker-backed suite is 303/303; the frontend tracked-test suite is 129/129. The last Sonar results are prior-head evidence (`e215b895`/`e47ace7`) and must be rescanned for the new exact heads. The full-coverage and maintainability gates remain open.
 
 ### Root monorepo parity follow-up
 
@@ -97,7 +97,7 @@ The matrix contains **87 audited requirement rows**: **52 COMPLETE**, **25 PARTI
 
 ### Founding Gold/Platinum logic
 
-The current code treats Gold and Platinum as `FoundingTier` values with a lifetime guest flat fee. `ResolveFoundingGuestFlatFee` returns Platinum `$29`, Gold `$36`, and Silver `$45`; `EfPhaseTwoStore` marks all non-Standard tiers as lifetime and transferable. The current amendment describes approximately `$150` founding membership values, approximately 18 months for Gold and 36 months for Platinum, approximately 2.9% and 2% host percentages, and booking references of `$36` and `$24`. The exact handwritten text is not represented as a machine-readable source in the repository, so any unclear sub-value remains `NEEDS_EXACT_VALUE`. The broad model mismatch is definitely `WRONG_LOGIC`: the current implementation does not model the stated term, membership price, tier-specific host commission, or expiry lifecycle.
+The current code now models the legible signed values: Gold `$150`, 18 months, `$36` guest fee per booking, 2.9% host commission; Platinum `$150`, 36 months, `$24` guest fee per booking, 2% host commission. The forward migration `20260928174138_ApplyFoundingMembershipTerms` adds the membership fields and pricebook rows without editing historical migrations. The handwritten `150+150` property-and-guest allocation is visibly ambiguous/scratched, so it remains `NEEDS_EXACT_VALUE`; no additional payment meaning was invented. The former lifetime-fee mismatch is fixed locally and covered by focused workflow, persistence, and API tests.
 
 ### Identity provider
 
@@ -138,12 +138,12 @@ Stripe Identity is the active provider in current configuration defaults and pro
 
 ### Gaps and qualifications
 
-- Gold/Platinum founding behavior is materially outdated versus the current amendment: lifetime flat guest fees replace the stated term-based membership model; current `$29/$36/$45` values are not the current amended commercial model; tier-specific host percentages and term expiry are not represented.
+- The ambiguous handwritten `150+150` Gold/Platinum allocation still needs explicit business confirmation before any additional payment semantics are added. The legible membership values and term-based expiry model are implemented and locally tested.
 - External Stripe payment, renewal, refund-to-suspension, and real webhook delivery were not tested against a real configured account in this audit.
 - All four badge states were seeded and exercised in local browser tests, but staging/live seeded records and admin access were not independently verified here.
 - Historical/spec badge screens remain in the frontend repository and require consolidation before they can be considered removed technical debt.
 
-**M2 status:** PARTIAL — core levels and local workflow are present; founding commercial logic is wrong/outdated and external financial lifecycle remains unverified.
+**M2 status:** PARTIAL — core levels and local workflow are present; the legible founding terms are implemented and locally tested, while the ambiguous allocation and external financial lifecycle remain unverified.
 
 ## Milestone 3 — Wellness and officer services
 
@@ -262,7 +262,7 @@ The audited local revisions and repository main references are recorded above. T
 
 ### P0 — do not certify production
 
-1. Resolve the Gold/Platinum founding model mismatch and confirm any unreadable handwritten values before implementation; current lifetime flat-fee behavior is not the amended model.
+1. Confirm the ambiguous Gold/Platinum `150+150` allocation and whether it has any additional payment meaning; do not implement it without written business clarification.
 2. Verify staging/live SHA parity for frontend and backend against the intended merged main revisions.
 3. Configure and verify private production MinIO with TLS, least-privilege credentials, persistence, backup/retention, and application upload journeys.
 4. Enable and verify Brevo with a controlled mailbox, including outbox `SENT`, receipt, retry, and duplicate behavior.
@@ -287,7 +287,7 @@ The audited local revisions and repository main references are recorded above. T
 | Phase | Status | Basis |
 |---|---|---|
 | M1 Core Booking | PARTIAL | Local implementation and automated/browser evidence are strong; the approved 10% guest fee is now implemented and tested; real provider/staging parity remains unverified. |
-| M2 Badges/Membership | PARTIAL | Four badges, eligibility, management, payments, renewals, and local tests exist; Gold/Platinum commercial logic is outdated and external payment lifecycle is unverified. |
+| M2 Badges/Membership | PARTIAL | Four badges, eligibility, management, payments, renewals, and local tests exist; legible Gold/Platinum founding terms are implemented, while the ambiguous allocation and external payment lifecycle remain unverified. |
 | M3 Wellness | PARTIAL | Broad officer/visit/report/payout implementation and local tests exist; storage, email, external payment/insurance, and operational certification remain. |
 | M4 Directories/Trust/QR | PARTIAL | Directory, QR, and scoped Gate Guard lifecycle/auth boundary are locally verified; staging/browser/device qualification and geocoding remain. |
 | M5 Property Manager | PARTIAL | Broad PM backend/UI and local persistence tests exist; real storage/email/billing/payout/deployment and full manual responsive certification remain. |
@@ -296,7 +296,7 @@ The audited local revisions and repository main references are recorded above. T
 
 - **Local source implementation:** broad and materially functional.
 - **Local automated verification:** strong; backend and frontend listed above are green, and the full browser inventory had no failures.
-- **Current business-rule correctness:** NOT COMPLETE because founding-tier behavior still conflicts with the current amendment. The standard 10% guest fee is corrected.
+- **Current business-rule correctness:** NOT COMPLETE because the ambiguous founding allocation still needs business confirmation. The standard 10% guest fee and legible Gold/Platinum terms are corrected.
 - **External integration readiness:** NOT COMPLETE; Brevo, staging/live MinIO, real Stripe/Identity/Connect/insurance, and exact deployment SHA parity were not proven.
 - **Professional QA readiness:** NO — provider/storage configuration and exact current commercial logic are still blockers.
 - **Production readiness:** NO — do not promote based on local tests alone.
