@@ -1,6 +1,6 @@
 # NestyStay Full Gap Analysis
 
-**Audit date:** 2026-09-28  
+**Audit date:** 2026-09-28
 **Audit type:** forensic requirements-completeness audit only  
 **Scope:** current approved NestyStay business rules, current source code, current tests, local runtime evidence, deployment/configuration evidence available in the repositories  
 **Implementation policy:** the forensic baseline was audit-only; the subsequent autonomous remediation iteration corrected the confirmed standard-fee drift. No production/staging changes, historical migration rewrites, secrets, or protected-main bypasses were made.
