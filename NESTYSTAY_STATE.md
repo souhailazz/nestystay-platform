@@ -2,13 +2,13 @@
 
 ## Last Completed Task
 
-AUTO-0034 — Split production integration validation by provider.
+AUTO-0035 — Expand frontend behavioral coverage for landing search and Property Manager modules.
 
 ## Validation Result
 
 - Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `ef562f0` has a fresh non-container run of 225 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
-- Frontend unit suite: 146 passed across 34 files.
-- Fresh frontend V8 coverage: 61.16% lines (4,634/7,576), 57.12% statements, 48.76% branches, 53.49% functions.
+- Frontend unit suite: 153 passed across 36 files at frontend `f1f935b`.
+- Fresh frontend V8 coverage at `f1f935b`: 62.84% lines (4,761/7,576), 59.21% statements, 50.80% branches, 55.93% functions. This exceeds the local 60% line target; no Sonar refresh is claimed for this test-only commit.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 107 warnings.
@@ -16,7 +16,7 @@ AUTO-0034 — Split production integration validation by provider.
 - Latest browser regression at frontend `352f2f8`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 27.7 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the local PostgreSQL-backed application. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses were completed for earlier certification heads, not the current backend head. The latest server-side backend metrics remain the scan at `393edd1` (0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 62.1% raw line coverage, 20.4% duplication); no current-head Sonar result is claimed after `36c9c78`. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root evidence branch `2569a9ef66ebc73b9127e84103b9fff80158c274`, backend `0631b112195be3d4f3df1064b6c4cee31dc3aae2`, frontend `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0`.
+- Pushed certification source revisions before this documentation refresh: root evidence branch `426d96d93eaca99d02d7ea679d6bbe354d1c7144`, backend `ef562f0d26b3892397e9f185ddc0fc9df6150920`, frontend `f1f935b`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -43,6 +43,25 @@ AUTO-0034 — Split production integration validation by provider.
 - Current backend head `ece2fb0` extracts approval-decision normalization, actor/portfolio authorization, and expiry persistence from the PM finance decision endpoint. The status/reason/idempotency rules, owner/admin boundary, expiry event, concurrency checks, and response behavior are preserved. Focused PM P0/authorization/professional tests passed **24/24**; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
 - Current backend head `966aead` splits manager resolution into owner-manager selection, active staff lookup, staff-scope validation, and direct-manager authorization helpers. Gate Guard denial, finance/payout capability checks, owner/property scope checks, owner portfolio selection, and direct manager/admin behavior are preserved. Focused Property Manager tests passed **45/45** with no failures and one explicit PostgreSQL multi-instance skip; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
 - Current backend head `ef562f0` splits production integration validation into identity, required-secret, legacy-admin, Stripe, Brevo, storage, PostgreSQL, and bootstrap helpers. Existing production safety behavior and messages are preserved; the dedicated validator tests passed **6/6**, and the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
+
+## AUTO-0035 — Expand frontend behavioral coverage for landing search and Property Manager modules
+
+Priority: P1 quality evidence
+Date: 2026-09-28
+
+The frontend certification branch added behavioral tests for the landing SearchBar and the Property Manager module dispatcher/content. The tests exercise destination filtering and empty states, date/guest controls, keyboard and dismissal behavior, submit URL construction, and Property Manager invoice, payment, utility, maintenance, calendar, report, subscription, gate/QR, insurance, vendor, document, governance, and community actions.
+
+Evidence:
+
+- Frontend commit: `f1f935b`, pushed to `codex/final-release-certification`.
+- Full Vitest suite: **153 passed across 36 files, 0 failed**.
+- V8 coverage: **62.84% lines**, **59.21% statements**, **50.80% branches**, **55.93% functions**.
+- Typecheck: PASS.
+- Production build: PASS.
+- Lint: **0 errors / 107 existing warnings**.
+- No production code, provider configuration, migration, staging or production environment was changed.
+
+This closes the local frontend line-coverage threshold of 60% but does not claim the separate Sonar 80% new-code gate, current Sonar refresh, staging role/IDOR verification, real Brevo delivery, MinIO production durability, or deployed SHA parity.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

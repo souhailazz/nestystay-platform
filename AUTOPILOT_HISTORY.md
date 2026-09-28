@@ -585,6 +585,23 @@ Evidence:
 
 The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
 
+## AUTO-0035 — Expand frontend behavioral coverage for landing search and Property Manager modules
+
+Priority: P1 quality evidence  \\
+Date: 2026-09-28
+
+The frontend certification branch adds behavioral tests for the landing SearchBar and the Property Manager module dispatcher/content. The coverage exercises search destination filtering and empty states, date and guest controls, keyboard/Escape/outside-click behavior, submit URL construction, and the invoice, payment, utility, maintenance, calendar, reporting, subscription, gate/QR, insurance, vendor, document, governance, and community module actions.
+
+Evidence:
+
+- Frontend commit: `f1f935b`, pushed to `codex/final-release-certification`.
+- Full Vitest suite: **153 passed across 36 files, 0 failed**.
+- V8 coverage: **62.84% lines, 59.21% statements, 50.80% branches, 55.93% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 107 existing warnings**.
+- No production code, provider configuration, migrations, staging, production, secrets, or protected `main` were changed.
+
+This closes the local frontend 60% line threshold. It does not claim a new Sonar scan, the separate Sonar 80% new-code condition, real provider delivery, staging role/IDOR proof, MinIO durability, or deployed-SHA parity.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\

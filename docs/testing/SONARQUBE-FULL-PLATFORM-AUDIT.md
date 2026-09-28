@@ -4,6 +4,10 @@ Date: 2026-09-27
 Servers: local SonarQube Community Build at `http://localhost:9001` (prior baseline) and disposable refresh at `http://localhost:9002`
 The temporary analysis token was not committed or included in this report.
 
+## Post-scan frontend test coverage update — 2026-09-28
+
+Frontend commit `f1f935b` added behavioral tests for the landing SearchBar and Property Manager modules. The complete local Vitest suite passes **153/153 across 36 files** and V8 reports **62.84% line, 59.21% statement, 50.80% branch, and 55.93% function coverage**. This is local test-run evidence only; a new Sonar analysis has not been run for `f1f935b`, so the Sonar metrics below remain attributed to the prior scanned frontend SHA and are not silently relabeled.
+
 ## Current local scan summary — 2026-09-27
 
 These are fresh analyses submitted and processed by isolated local SonarQube servers from the certification worktrees. A scanner exit code of zero is not treated as a production Quality Gate pass. The prior baseline remains backend `6277a950d563ce32e01a51223776fac9981529dd`, frontend `3b350a28a06f8e3f8b38d8c2448af60b6145becb`, and platform/root evidence `b5d06dba3fe855f36e41c6b3123f249ee86f7b10`. A post-refactor backend refresh was subsequently uploaded and processed at `e195e8b1720157cbe1c172a30e658b6dc6be7215`; see [`BACKEND-POST-REFACTOR-2026-09-27.md`](../../testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.md) and the JSON evidence beside it.
