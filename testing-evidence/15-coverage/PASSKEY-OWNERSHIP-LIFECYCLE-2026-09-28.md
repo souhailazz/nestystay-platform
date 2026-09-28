@@ -17,7 +17,7 @@ The passkey controller was an uncovered security-sensitive surface. This focused
 | Item | Result |
 |---|---|
 | Backend commit | `4ece56f` |
-| Focused `PasskeysEndpointTests` | 3 passed, 0 failed, 0 skipped |
+| Focused `PasskeysEndpointTests` | 5 passed, 0 failed, 0 skipped |
 | Complete configured backend suite | 225 passed, 0 failed, 0 skipped |
 | Totals | Domain 6; Application 24; Infrastructure 32; API 163 |
 | Coverage artifact | `backend/TestResults/sonar-certification/coverage-current-4ece.xml` generated successfully with the full suite |

@@ -553,3 +553,19 @@ The full configured regression is now deterministic without hiding or skipping t
 
 The XPlat coverage collector still stalls after the API test host starts, including a single PostgreSQL API test from a clean detached checkout. The exact test passes without coverage; this remains a tooling/coverage evidence blocker and is not being reported as a test failure. A fresh Sonar upload at the new test-only SHA is still appropriate after the coverage evidence decision.
 
+## AUTO-0031 — Share Property Manager owner-approval enforcement
+
+Priority: P1 maintainability / financial authorization  \\
+Date: 2026-09-28
+
+The professional Property Manager store duplicated the full owner-approval lookup and validation in both maintenance and work-order financial paths. The shared helper now preserves each path's source type, property/owner scope, amount/currency checks, expiry rules, threshold bypass, and user-facing error text while reducing drift risk between the two financial workflows.
+
+Evidence:
+
+- Backend commit: `36c9c78`, pushed to `codex/final-release-certification`.
+- Focused Property Manager workflow/P0 tests: **19 passed, 0 failed, 0 skipped**.
+- Complete non-container backend solution: **225 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- `git diff --check`: PASS; no migrations, provider configuration, secrets, staging, production, or protected `main` were changed.
+
+The Docker engine remained unresponsive during a single controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
+
