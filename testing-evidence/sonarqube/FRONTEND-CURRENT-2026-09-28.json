@@ -1,6 +1,6 @@
 {
   "projectKey": "nestystay-frontend-current",
-  "sha": "20f199f80bea89e58b3632a4e828e04c488c9652",
+  "sha": "14455cc69c96bd97917a35bc8ab4a66b030c645e",
   "server": "local disposable SonarQube 26.9.0.129388",
   "qualityGate": "OK (disposable instance has no configured conditions)",
   "metrics": {
@@ -8,20 +8,20 @@
     "vulnerabilities": 0,
     "securityHotspots": 0,
     "codeSmells": 972,
-    "coveragePercent": 58.8,
+    "coveragePercent": 59.3,
     "duplicationPercent": 1.4
   },
   "localVitestEvidence": {
-    "testFiles": 37,
-    "passed": 157,
+    "testFiles": 40,
+    "passed": 162,
     "failed": 0,
-    "lineCoveragePercent": 63.41,
-    "statementCoveragePercent": 59.69,
-    "branchCoveragePercent": 51.2,
-    "functionCoveragePercent": 56.3
+    "lineCoveragePercent": 63.99,
+    "statementCoveragePercent": 60.16,
+    "branchCoveragePercent": 51.61,
+    "functionCoveragePercent": 56.77
   },
   "limitations": [
-    "Sonar executable-line coverage is below the requested 60% threshold even though the local V8 line report is 63.41%; the two calculations are not interchangeable.",
+    "Sonar executable-line coverage is below the requested 60% threshold even though the local V8 line report is 63.99%; the two calculations are not interchangeable.",
     "The quality-gate status is not a production acceptance gate because this disposable instance has no conditions configured.",
     "The scanner emitted non-fatal source-highlighting warnings for long CSS lines in src/index.css; no source change was made for that analyzer warning."
   ]

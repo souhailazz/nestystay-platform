@@ -1,5 +1,23 @@
 # Autopilot History
 
+## AUTO-0042 — Expand frontend behavioral coverage and refresh exact-commit Sonar evidence
+
+Priority: P1 release-quality evidence  \
+Date: 2026-09-28
+
+Added behavioral coverage for the shared Modal (focus trapping, Escape, overlay close, sheet/fullscreen behavior and focus restoration), the root error boundary, and the complete public LandingPage scene. The tests are committed and pushed on the protected feature branch; no production runtime code, provider configuration, migrations, staging, production or main branch was changed.
+
+Evidence:
+
+- Frontend commit: `14455cc69c96bd97917a35bc8ab4a66b030c645e`.
+- Complete Vitest suite: **162 passed across 40 files, 0 failed**.
+- V8 coverage: **63.99% lines, 60.16% statements, 51.61% branches, 56.77% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 111 warnings**.
+- Exact-commit Sonar analysis processed server-side: **0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 59.3% executable-line coverage, 1.4% duplication**. The disposable server has no configured acceptance conditions, and the requested Sonar 60% threshold remains open.
+- Existing current-head browser evidence remains valid: **224 discovered/started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run**; the new commit changes tests only.
+
+Persistent state and evidence were updated in the root certification branch. Remaining blockers are unchanged: backend Sonar coverage/maintainability, frontend Sonar coverage/maintainability, real Brevo delivery, staging/production MinIO durability and upload proof, external provider proof, deployed-SHA parity, complete staging role/IDOR evidence, human accessibility/legal review, and exact Gold/Platinum commercial values.
+
 ## AUTO-0030 — Centralize Property Manager staff lifecycle validation
 
 Priority: P0 multi-owner/Gate Guard maintainability  \

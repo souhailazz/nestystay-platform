@@ -2,21 +2,21 @@
 
 ## Last Completed Task
 
-AUTO-0041 — Re-run current-head disposable integration services and Sonar certification.
+AUTO-0042 — Expand frontend behavioral coverage and refresh exact-commit Sonar evidence.
 
 ## Validation Result
 
 - Current backend head `ff31270` was rerun with disposable local PostgreSQL and MinIO: Domain 6, Application 24, Infrastructure 32, and API 167; **229 passed, 0 failed, 0 skipped**. The real MinIO round-trip/overwrite/signed-download/invalid-credential test passed 1/1, and the PostgreSQL two-instance concurrency test passed 1/1.
-- Frontend unit suite: 157 passed across 37 files at frontend `20f199f`.
-- Fresh frontend V8 coverage baseline at `e74c701`: 63.41% lines (4,804/7,576), 59.68% statements, 51.20% branches, 56.27% functions. The follow-up `20f199f` changes test typing only and preserves this measurement; no Sonar refresh is claimed for these test-only commits.
+- Frontend unit suite: **162 passed across 40 files** at frontend `14455cc`.
+- Fresh frontend V8 coverage at `14455cc`: **63.99% lines (4,848/7,576), 60.16% statements, 51.61% branches, 56.77% functions**. The exact-commit Sonar refresh reports **59.3% executable-line coverage**, so the requested Sonar 60% threshold remains open.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
-- Frontend lint: 0 errors, 107 warnings.
+- Frontend lint: 0 errors, 111 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
-- Latest current-head browser regression at frontend `20f199f`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 26.5 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the disposable PostgreSQL-backed application with the local Admin fixture. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-28-CURRENT.md`.
-- Fresh current-head SonarQube analyses were processed server-side on a disposable local instance. Backend `ff31270`: 0 bugs, 0 vulnerabilities, 0 hotspots, 798 code smells, 73.2% coverage, 6.9% duplication. Frontend `20f199f`: 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 58.8% Sonar executable-line coverage, 1.4% duplication; the local V8 line report remains 63.41%. Root runtime/orchestration `2334432`: 0 bugs, 0 vulnerabilities, 0 hotspots, 0 code smells. These disposable Quality Gate `OK` results have no configured conditions and do not close the requested coverage gates. Evidence: `testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md` and the three JSON exports.
+- Latest current-head browser regression at frontend `20f199f` (runtime-equivalent before the test-only `14455cc` commit): 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 26.5 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the disposable PostgreSQL-backed application with the local Admin fixture. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-28-CURRENT.md`.
+- Fresh current-head SonarQube analyses were processed server-side on a disposable local instance. Backend `ff31270`: 0 bugs, 0 vulnerabilities, 0 hotspots, 798 code smells, 73.2% coverage, 6.9% duplication. Frontend `14455cc`: 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 59.3% Sonar executable-line coverage, 1.4% duplication; the local V8 line report is 63.99%. Root runtime/orchestration `2334432`: 0 bugs, 0 vulnerabilities, 0 hotspots, 0 code smells. These disposable Quality Gate `OK` results have no configured conditions and do not close the requested coverage gates. Evidence: `testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md` and the three JSON exports.
 - Sonar evidence for this refresh is committed under `testing-evidence/sonarqube/BACKEND-CURRENT-2026-09-28.json`, `FRONTEND-CURRENT-2026-09-28.json`, `PLATFORM-CURRENT-2026-09-28.json`, and `CURRENT-LOCAL-SCAN-2026-09-28.md`. Backend analysis ID: `abba376b-fd73-4ce7-bebf-9654c6c34b8b`. The frontend scanner emitted non-fatal highlight warnings for long CSS lines; no application source was changed for that analyzer warning.
-- Pushed certification source revisions: root evidence branch prior to this documentation refresh `c44a334953c6f1901e0b592b085ff9a37111f1c2`, backend `ff31270f134c599fadb7dd7058f361fb45cc55ff`, frontend `20f199f80bea89e58b3632a4e828e04c488c9652`.
+- Pushed certification source revisions: root evidence branch `8566b0cfee71c7ac507a8f7cad4726825409f686`, backend `ff31270f134c599fadb7dd7058f361fb45cc55ff`, frontend `14455cc69c96bd97917a35bc8ab4a66b030c645e`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -348,7 +348,7 @@ Current release blockers are external/staging proof and quality debt: real Brevo
 
 ## Next Best Action
 
-Keep the exact Gold/Platinum values blocked on human business input; next execute the current frontend browser matrix at `20f199f` and then update the staging-dependent blockers only after Terrence deploys/verifies the corresponding SHAs and provider configuration. Do not treat the disposable Sonar `OK` status as a release gate.
+Keep the exact Gold/Platinum values blocked on human business input; the current frontend browser matrix is already complete for the runtime-equivalent `20f199f` head, and the test-only `14455cc` commit is pushed. Update staging-dependent blockers only after Terrence deploys/verifies the corresponding SHAs and provider configuration. Do not treat the disposable Sonar `OK` status as a release gate.
 
 ## AUTO-0041 — Re-run current-head disposable integration services and Sonar certification
 
