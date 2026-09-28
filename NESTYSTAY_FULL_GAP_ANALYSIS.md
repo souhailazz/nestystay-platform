@@ -35,13 +35,13 @@ The focused local matrix was rerun at backend `393edd1e20269350ed565fff8dda53b99
 
 | Repository | Audited branch | Audited SHA | Remote | Main reference |
 |---|---|---|---|---|
-| Root/orchestration | `codex/final-release-certification` | `2334432` (current evidence refresh; docs changes pending this commit) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
+| Root/orchestration | `codex/final-release-certification` | `ba16230` (current certification evidence refresh) | `https://github.com/souhailazz/nestystay-platform.git` | `76dfee9a4f25f3b83a8bdb2db3a0177ccdb73301` |
 | Backend | `codex/final-release-certification` | `e215b895` | `https://github.com/NestyStayJamaica/NESTY-STAY_Backend.git` | `9d13748a6fe60934ffcf51c02522b1a52794e2e8` |
 | Frontend | `codex/final-release-certification` | `e47ace7` | `https://github.com/NestyStayJamaica/NESTY-STAY_Frontend.git` | `510512375b613eb0ce5bf9ae39bf5d3f7042e008` |
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root documentation update pending, backend `e215b895`, frontend `e47ace7`. The backend revision includes the prior security/authorization hardening plus booking/payment state-machine tests; the configured Docker-backed suite is 303/303 and the exact-head Sonar result is 73.4% coverage with 988 code smells and 20.4% duplication. The frontend revision contains tracked public search-state tests; its exact tracked-test suite is 129/129 and Sonar coverage is 32.7% with 972 code smells. The full-coverage and maintainability gates remain open.
+Certification branch revisions at this refresh: root `ba16230`, backend `e215b895`, frontend `e47ace7`. The backend revision includes the prior security/authorization hardening plus booking/payment state-machine tests; the configured Docker-backed suite is 303/303 and the exact-head Sonar result is 73.4% coverage with 988 code smells and 20.4% duplication. The frontend revision contains tracked public search-state tests; its exact tracked-test suite is 129/129 and Sonar coverage is 32.7% with 972 code smells. The full-coverage and maintainability gates remain open.
 
 ### Root monorepo parity follow-up
 
