@@ -6,7 +6,7 @@
 - Targeted API tests passed **16/16**, followed by the complete configured PostgreSQL/MinIO suite at **308/308** with zero failures and zero skips.
 - Exact-head local SonarQube analysis completed server-side: **73.5% line coverage, 992 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, 0 security hotspots**. The two safe cleanups removed two code smells; the backend 80% coverage and wider maintainability targets remain open.
 - Sonar task `8c321cbb-8de6-4d11-a1f2-981fae80afc5` and analysis `2d3fd7a9-2468-4fc4-877b-aedd77d1ac56` completed successfully. Evidence is recorded in `testing-evidence/sonarqube/BACKEND-AUTO-0049-2026-09-28.*`.
-- The commit is pushed to backend PR #9; the new protected CI run must complete before merge. No staging/production, migrations, secrets, or protected `main` were changed.
+- The commit is pushed to backend PR #9; protected CI run `36466781573` passed restore/build/test, while deploy jobs correctly skipped on the protected feature branch. No staging/production, migrations, secrets, or protected `main` were changed.
 
 ## Authoritative refresh — AUTO-0048 — 2026-09-28
 

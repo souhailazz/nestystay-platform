@@ -14,6 +14,7 @@ Evidence:
 - Configured disposable PostgreSQL/MinIO suite: **308 passed, 0 failed, 0 skipped**.
 - Exact-head server-side local Sonar analysis: **73.5% line coverage, 992 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, 0 security hotspots**; task `8c321cbb-8de6-4d11-a1f2-981fae80afc5`, analysis `2d3fd7a9-2468-4fc4-877b-aedd77d1ac56`.
 - The local Quality Gate is `OK` only because the disposable server has no configured acceptance conditions. Backend 80% coverage and maintainability targets remain open.
+- Protected backend CI run `36466781573` passed restore/build/test; production and staging deploy jobs were skipped as expected for the feature branch.
 
 ## AUTO-0048 — Add production-configuration guards and refresh backend Sonar evidence
 
