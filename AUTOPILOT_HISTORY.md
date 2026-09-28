@@ -636,6 +636,24 @@ Evidence:
 
 This improves local M1 booking evidence only. It does not claim a real payment/receipt provider transaction, staging role/IDOR proof, provider delivery, MinIO durability, Sonar refresh, or deployed-SHA parity.
 
+## AUTO-0038 — Re-verify the frontend certification head after test typing fix
+
+Priority: P1 release evidence integrity  \\
+Date: 2026-09-28
+
+Corrected the invoice/receipt test mocks to use an explicit intentional double-cast to the existing `AuthController` contract. This is test-only and does not change application behavior.
+
+Evidence:
+
+- Frontend commit: `20f199f`, pushed to `codex/final-release-certification`.
+- Full Vitest suite at the corrected head: **157 passed across 37 files, 0 failed**.
+- Focused invoice/receipt suite: **14 passed, 0 failed**.
+- Typecheck: PASS.
+- Production build: PASS.
+- Lint: **0 errors / 107 warnings**.
+
+The V8 coverage measurement remains the preceding `e74c701` run at **63.41% lines, 59.68% statements, 51.20% branches, and 56.27% functions** because the follow-up only changed TypeScript test casting. No new Sonar analysis is claimed.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\
