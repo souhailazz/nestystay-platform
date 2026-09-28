@@ -6,7 +6,7 @@
 - The configured disposable PostgreSQL/MinIO backend suite now passes **308/308** with zero failures and zero skips: Domain 6, Application 98, Infrastructure 32, API 172. The additional API tests cover MinIO credential completeness/HTTPS acceptance, explicit Stripe test-key opt-in, and two-factor Admin bootstrap credentials.
 - A fresh exact-head local SonarQube analysis completed server-side for backend `9ea182c`: **73.5% line coverage, 994 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, 0 security hotspots**. Local Quality Gate is `OK`, but the disposable Sonar instance has no configured production acceptance conditions; the requested 80% backend coverage and maintainability targets remain open.
 - Sonar analysis task `e14a593b-dcc1-48fc-9ff6-6d5d24f80d0f` completed successfully with analysis `18a3215d-e5ee-49ca-a6aa-58cc1fe05690`. Evidence is recorded in `testing-evidence/sonarqube/BACKEND-AUTO-0048-2026-09-28.*`.
-- Backend PR #9 remains open and protected-branch CI is still running for `9ea182c`; no merge, staging deployment, production change, migration rewrite, or secret change was performed.
+- Backend PR #9 remains open; protected-branch CI run `36465759427` for `9ea182c` completed successfully. No merge, staging deployment, production change, migration rewrite, or secret change was performed.
 
 ## Authoritative refresh — AUTO-0047 — 2026-09-28
 
