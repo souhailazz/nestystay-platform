@@ -164,6 +164,8 @@ public sealed class EfPropertyManagerProfessionalCompletionStore(NestyStayDbCont
         if (managerId is null || (expectedManagerId is { } expected && expected != managerId)) throw new UnauthorizedAccessException("You are not an active member of this manager portfolio.");
         if (staff is not null)
         {
+            if (staff.Role.Equals("GATE_GUARD", StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Gate Guards may only use the authenticated gate workflow.");
             if (requireMutation && staff.Role.Equals("READONLY", StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("Read-only staff cannot change portfolio records.");
             if (FinanceAreas.Contains(area) && !staff.CanManageFinance) throw new UnauthorizedAccessException("Finance capability is required for this workflow.");
             if (propertyId is { } property && !ParseIds(staff.PropertyScopeJson).Contains(property)) throw new UnauthorizedAccessException("Property is outside your assigned scope.");

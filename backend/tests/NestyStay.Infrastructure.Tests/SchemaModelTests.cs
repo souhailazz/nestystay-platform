@@ -37,7 +37,7 @@ public sealed class SchemaModelTests
 
         Assert.Contains(pricebook, item => item.Key == "trusted-host-pdf-campaign" && item.Amount == 49m && item.IsConfigurable);
         Assert.Contains(pricebook, item => item.Key == "verified-host-standard-annual" && item.Amount == 0m && item.IsConfigurable);
-        Assert.Contains(pricebook, item => item.Key == "guest-fee-large-long" && item.Amount == 9m && item.IsConfigurable);
+        Assert.Contains(pricebook, item => item.Key == "guest-fee-large-long" && item.Amount == 10m && item.IsConfigurable);
         Assert.Contains(pricebook, item => item.Key == "guest-ekyc-first-html" && item.Amount == 9.99m && item.IsConfigurable);
         Assert.Contains(pricebook, item => item.Key == "guest-ekyc-host-paid-pdf" && item.Amount == 0.14m && item.IsConfigurable);
     }

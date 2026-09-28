@@ -13,6 +13,13 @@ public sealed class BusinessRulesTests
     }
 
     [Fact]
+    public void StandardGuestPlatformFeeUsesApprovedTenPercentRule()
+    {
+        Assert.Equal(10m, NestyStayBusinessRules.ContractGuestPlatformFeePercent);
+        Assert.Equal(10m, NestyStayBusinessRules.ResolveStandardGuestFeePercent(100m, 2));
+    }
+
+    [Fact]
     public void FoundingTransferRequiresGoodStandingAndReceipt()
     {
         Assert.True(NestyStayBusinessRules.CanTransferFoundingBenefit(

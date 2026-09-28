@@ -281,7 +281,22 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     [AllowAnonymous]
     [HttpPost("qr/validate")]
     [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
-    public async Task<IActionResult> ValidateQr(ValidateQrRequest request, CancellationToken cancellationToken) => Ok(await store.ValidateQrAsync(request.Token, request.PropertyId, authorization.TryGetSignedInUser(), cancellationToken));
+    public async Task<IActionResult> ValidateQr(ValidateQrRequest request, CancellationToken cancellationToken) => Ok(await store.ValidateQrAsync(request.Token, request.PropertyId, null, cancellationToken));
+
+    [Authorize(Roles = "GateGuard")]
+    [HttpPost("qr/validate-authenticated")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
+    public async Task<IActionResult> ValidateQrAsGateGuard(ValidateQrRequest request, CancellationToken cancellationToken)
+    {
+        if (!request.PropertyId.HasValue)
+            return BadRequest("A property is required for authenticated gate validation.");
+
+        return Ok(await store.ValidateQrForGateGuardAsync(
+            request.Token,
+            request.PropertyId.Value,
+            authorization.RequireSignedInUser(),
+            cancellationToken));
+    }
 
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("qr/{qrId:guid}/revoke")]

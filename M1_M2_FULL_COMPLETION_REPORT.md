@@ -1,7 +1,7 @@
 # NestyStay M1/M2 Full Completion Report
 
-Date: 2026-07-22  
-Reference: `C:\Users\Administrator\Downloads\NestyStay_Complete_Figma_Spec_v2.docx`  
+Date: 2026-07-22
+Reference: `C:\Users\Administrator\Downloads\NestyStay_Complete_Figma_Spec_v2.docx`
 Scope: Milestones 1 and 2, local full-stack completion against the DOCX/Figma screen specification.
 
 ## Summary
@@ -290,8 +290,8 @@ Additional manual checks:
 These are not local M1/M2 screen gaps; they are production launch requirements:
 
 - Configure real Stripe live keys and webhook validation.
-- Configure real Alibaba Cloud eKYC credentials and provider webhook signatures.
-- Configure Cloudflare R2 credentials/upload signing for real file storage.
+- Configure Stripe Identity credentials and provider webhook signatures.
+- Configure MinIO credentials, persistent storage, TLS, backups, and upload signing for real file storage.
 - Configure InsuraGuest credentials/integration.
 - Set production `NESTYSTAY_ADMIN_TOKEN_SHA256`.
 - Set production `NESTYSTAY_WEBHOOK_SHARED_SECRET`.

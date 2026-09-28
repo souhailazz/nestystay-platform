@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-09-27T11:40:55Z",
+  "server": "http://localhost:9002",
+  "projectKey": "nestystay-backend-refresh",
+  "sourceSha": "e195e8b1720157cbe1c172a30e658b6dc6be7215",
+  "analysisTask": "34d63bc6-ff30-460e-928c-385ae056a704",
+  "analysisId": "27be95cc-5a7e-4c96-a922-030a244843fe",
+  "analysisStatus": "SUCCESS",
+  "qualityGate": {
+    "status": "OK",
+    "scope": "new violations only",
+    "newViolations": 0
+  },
+  "measures": {
+    "bugs": 0,
+    "vulnerabilities": 0,
+    "securityHotspots": 0,
+    "codeSmells": 805,
+    "coveragePercent": 15.1,
+    "branchCoveragePercent": 48.7,
+    "duplicationPercent": 6.9,
+    "linesToCover": 18342,
+    "uncoveredLines": 16025
+  },
+  "issueFacets": {
+    "total": 995,
+    "blocker": 0,
+    "critical": 61,
+    "major": 382,
+    "minor": 239,
+    "info": 313
+  },
+  "coverageImport": {
+    "reportsImported": 6,
+    "mainFilesWithCoverage": 48,
+    "note": "This post-refactor scan has valid server-side coverage import, but the imported reports cover only part of the backend source tree; the 15.1% overall Sonar coverage is not a production-readiness pass."
+  },
+  "credentials": "Temporary local scanner credentials were generated at runtime and are not recorded."
+}

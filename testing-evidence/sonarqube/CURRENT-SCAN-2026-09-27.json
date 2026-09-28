@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-09-27",
+  "server": "http://localhost:9001",
+  "note": "Current server-side API summary. Temporary scanner credentials are not recorded.",
+  "projects": [
+    {
+      "key": "nestystay-backend-certification",
+      "sha": "6277a950d563ce32e01a51223776fac9981529dd",
+      "qualityGate": "OK_NEW_VIOLATIONS_ONLY",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 996,
+      "coverage": 52.1,
+      "lineCoverage": 52.2,
+      "branchCoverage": 51.8,
+      "newCoverage": null,
+      "newViolations": 0,
+      "duplication": 20.4,
+      "gateConditions": {
+        "newCoverage": 6.9,
+        "newDuplication": 3.00926,
+        "newViolations": 11
+      },
+      "analysisTask": "21416d9c-313c-4d75-a8fc-59d9a4ae0575"
+    },
+    {
+      "key": "nestystay-frontend-certification",
+      "sha": "3b350a28a06f8e3f8b38d8c2448af60b6145becb",
+      "qualityGate": "OK_NEW_VIOLATIONS_ONLY",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 977,
+      "coverage": 56.6,
+      "lineCoverage": 63.3,
+      "branchCoverage": 48.8,
+      "newCoverage": null,
+      "newViolations": 0,
+      "duplication": 1.4,
+      "gateConditions": {
+        "newCoverage": 64.9,
+        "newDuplication": 1.15702,
+        "newViolations": 4
+      },
+      "analysisTask": "60b5e8ed-0014-4772-be00-7e6feb5d035d"
+    },
+    {
+      "key": "nestystay-platform-certification",
+      "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10",
+      "qualityGate": "OK",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "securityHotspots": 0,
+      "codeSmells": 0,
+      "coverage": 0.0,
+      "duplication": null,
+      "newViolations": 0,
+      "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205",
+      "scopeNote": "Orchestration/configuration scope; not runtime application certification."
+    }
+  ],
+  "frontendVitest": {
+    "tests": 128,
+    "files": 31,
+    "lineCoverage": 60.11
+  },
+  "backendCoverageNote": "The all-project Coverlet run was stopped after instrumentation exceeded the normal-suite runtime; the backend Sonar result imported the available OpenCover reports and is explicitly not treated as complete backend coverage."
+}

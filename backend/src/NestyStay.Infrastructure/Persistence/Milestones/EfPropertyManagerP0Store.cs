@@ -69,6 +69,8 @@ public sealed class EfPropertyManagerP0Store(
 
         if (membership is not null)
         {
+            if (membership.Role == "GATE_GUARD")
+                throw new UnauthorizedAccessException("Gate Guards may only use the authenticated gate workflow.");
             if (finance && !membership.CanManageFinance)
                 throw new UnauthorizedAccessException("This team member is not authorised for finance operations.");
             if (payoutApprover && !membership.CanApprovePayouts)
@@ -1193,7 +1195,37 @@ public sealed class EfPropertyManagerP0Store(
     {
         var managerId = await ResolveManagerAsync(actor, cancellationToken: cancellationToken);
         RequireManagerMutation(actor, managerId);
-        var staff = await db.MilestoneUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.StaffUserId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Staff user was not found."); if (request.StaffUserId == managerId) throw new InvalidOperationException("Manager cannot invite itself as staff."); var existing = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.ManagerUserId == managerId && x.StaffUserId == request.StaffUserId && !x.IsDeleted, cancellationToken); if (existing is not null && existing.Status is "ACCEPTED" or "ACTIVE") throw new InvalidOperationException("Staff member is already active."); var role = string.IsNullOrWhiteSpace(request.Role) ? "OPERATIONS" : request.Role.Trim().ToUpperInvariant(); if (role is not ("OPERATIONS" or "FINANCE" or "APPROVER")) throw new InvalidOperationException("Staff role is invalid."); await ValidateStaffScopesAsync(managerId, request.OwnerIds, request.PropertyIds, cancellationToken); var approvalLimit = Positive(request.ApprovalLimit); if ((request.CanManageFinance || request.CanApprovePayouts) && approvalLimit <= 0) throw new InvalidOperationException("A positive approval limit is required when finance or payout permissions are enabled."); var item = existing ?? new MilestoneP0StaffMembership { ManagerUserId = managerId, StaffUserId = request.StaffUserId }; if (existing is null) db.MilestoneP0StaffMemberships.Add(item); item.Role = role; item.PropertyScopeJson = JsonSerializer.Serialize((request.PropertyIds ?? []).Distinct()); item.OwnerScopeJson = JsonSerializer.Serialize((request.OwnerIds ?? []).Distinct()); item.CanManageFinance = request.CanManageFinance; item.CanApprovePayouts = request.CanApprovePayouts; item.ApprovalLimit = approvalLimit; item.Status = "INVITED"; item.RowVersion++; db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "INVITED", FromStatus = existing?.Status ?? "", ToStatus = "INVITED", Reason = "Team invitation" }); await AuditAsync(actor.UserId, "P0StaffInvited", "StaffMembership", item.Id, "Team invitation", new { request.StaffUserId }, cancellationToken); await db.SaveChangesAsync(cancellationToken); await QueueNotificationAsync(staff.Id, "NestyStay team invitation", "You have been invited to the property management team.", $"p0-staff:{item.Id}:invite", cancellationToken); await db.SaveChangesAsync(cancellationToken); return await StaffToDtoAsync(item, cancellationToken);
+        var staff = await db.MilestoneUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.StaffUserId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Staff user was not found.");
+        if (request.StaffUserId == managerId) throw new InvalidOperationException("Manager cannot invite itself as staff.");
+        var existing = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.ManagerUserId == managerId && x.StaffUserId == request.StaffUserId && !x.IsDeleted, cancellationToken);
+        if (existing is not null && existing.Status is "ACCEPTED" or "ACTIVE") throw new InvalidOperationException("Staff member is already active.");
+        var role = string.IsNullOrWhiteSpace(request.Role) ? "OPERATIONS" : request.Role.Trim().ToUpperInvariant();
+        if (role is not ("OPERATIONS" or "FINANCE" or "APPROVER" or "GATE_GUARD")) throw new InvalidOperationException("Staff role is invalid.");
+        var propertyIds = (request.PropertyIds ?? []).Distinct().ToArray();
+        var ownerIds = (request.OwnerIds ?? []).Distinct().ToArray();
+        await ValidateStaffScopesAsync(managerId, ownerIds, propertyIds, cancellationToken);
+        if (role == "GATE_GUARD" && (propertyIds.Length == 0 || ownerIds.Length > 0 || request.CanManageFinance || request.CanApprovePayouts || request.ApprovalLimit > 0))
+            throw new InvalidOperationException("Gate Guard invitations require one or more assigned properties and no finance permissions.");
+        var approvalLimit = Positive(request.ApprovalLimit);
+        if ((request.CanManageFinance || request.CanApprovePayouts) && approvalLimit <= 0) throw new InvalidOperationException("A positive approval limit is required when finance or payout permissions are enabled.");
+        var item = existing ?? new MilestoneP0StaffMembership { ManagerUserId = managerId, StaffUserId = request.StaffUserId };
+        if (existing is null) db.MilestoneP0StaffMemberships.Add(item);
+        item.Role = role;
+        item.PropertyScopeJson = JsonSerializer.Serialize(propertyIds);
+        item.OwnerScopeJson = JsonSerializer.Serialize(ownerIds);
+        item.CanManageFinance = request.CanManageFinance;
+        item.CanApprovePayouts = request.CanApprovePayouts;
+        item.ApprovalLimit = approvalLimit;
+        item.Status = "INVITED";
+        item.RowVersion++;
+        db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "INVITED", FromStatus = existing?.Status ?? "", ToStatus = "INVITED", Reason = "Team invitation" });
+        await AuditAsync(actor.UserId, "P0StaffInvited", "StaffMembership", item.Id, "Team invitation", new { request.StaffUserId, role }, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await SyncGateGuardRoleAsync(item.StaffUserId, cancellationToken);
+        await QueueNotificationAsync(staff.Id, "NestyStay team invitation", "You have been invited to the property management team.", $"p0-staff:{item.Id}:invite", cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return await StaffToDtoAsync(item, cancellationToken);
     }
 
     public async Task<IReadOnlyList<P0StaffMembershipDto>> ListStaffAsync(P0Actor actor, CancellationToken cancellationToken)
@@ -1242,20 +1274,98 @@ public sealed class EfPropertyManagerP0Store(
 
     public async Task<P0StaffMembershipDto?> AcceptStaffAsync(P0Actor actor, Guid membershipId, CancellationToken cancellationToken)
     {
-        var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.StaffUserId == actor.UserId && !x.IsDeleted, cancellationToken); if (item is null) return null; if (item.Status != "INVITED") throw new InvalidOperationException("Invitation is no longer pending."); var from = item.Status; item.Status = "ACCEPTED"; item.AcceptedAt = Now; item.RowVersion++; db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "ACCEPTED", FromStatus = from, ToStatus = item.Status, Reason = "Invitation accepted" }); await AuditAsync(actor.UserId, "P0StaffAccepted", "StaffMembership", item.Id, "Invitation accepted", null, cancellationToken); await db.SaveChangesAsync(cancellationToken); return await StaffToDtoAsync(item, cancellationToken);
+        var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.StaffUserId == actor.UserId && !x.IsDeleted, cancellationToken);
+        if (item is null) return null;
+        if (item.Status != "INVITED") throw new InvalidOperationException("Invitation is no longer pending.");
+        var from = item.Status;
+        item.Status = "ACCEPTED";
+        item.AcceptedAt = Now;
+        item.RowVersion++;
+        db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "ACCEPTED", FromStatus = from, ToStatus = item.Status, Reason = "Invitation accepted" });
+        await AuditAsync(actor.UserId, "P0StaffAccepted", "StaffMembership", item.Id, "Invitation accepted", null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await SyncGateGuardRoleAsync(item.StaffUserId, cancellationToken);
+        return await StaffToDtoAsync(item, cancellationToken);
     }
 
     public async Task<P0StaffMembershipDto?> UpdateStaffAsync(P0Actor actor, Guid membershipId, P0UpdateStaffRequest request, CancellationToken cancellationToken)
     {
-        var managerId = await ResolveManagerAsync(actor, cancellationToken: cancellationToken); RequireManagerMutation(actor, managerId); var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.ManagerUserId == managerId && !x.IsDeleted, cancellationToken); if (item is null) return null; if (item.RowVersion != request.RowVersion) throw new DbUpdateConcurrencyException("Staff membership changed; reload before editing."); if (string.IsNullOrWhiteSpace(request.Role) || string.IsNullOrWhiteSpace(request.Status)) throw new InvalidOperationException("Team role and status are required."); var status = request.Status.Trim().ToUpperInvariant(); if (status is not ("INVITED" or "ACCEPTED" or "ACTIVE" or "SUSPENDED" or "REVOKED")) throw new InvalidOperationException("Invalid team-member status."); if (status is "ACCEPTED" or "ACTIVE" && item.Status == "INVITED") throw new InvalidOperationException("The invitee must accept the invitation before activation."); var role = request.Role.Trim().ToUpperInvariant(); if (role is not ("OPERATIONS" or "FINANCE" or "APPROVER")) throw new InvalidOperationException("Staff role is invalid."); await ValidateStaffScopesAsync(managerId, request.OwnerIds, request.PropertyIds, cancellationToken); var approvalLimit = Positive(request.ApprovalLimit); if ((request.CanManageFinance || request.CanApprovePayouts) && approvalLimit <= 0) throw new InvalidOperationException("A positive approval limit is required when finance or payout permissions are enabled."); var from = item.Status; item.Role = role; item.PropertyScopeJson = JsonSerializer.Serialize((request.PropertyIds ?? []).Distinct()); item.OwnerScopeJson = JsonSerializer.Serialize((request.OwnerIds ?? []).Distinct()); item.CanManageFinance = request.CanManageFinance; item.CanApprovePayouts = request.CanApprovePayouts; item.ApprovalLimit = approvalLimit; item.Status = status; if (status == "SUSPENDED") item.SuspendedAt = Now; if (status == "REVOKED") item.RevokedAt = Now; item.RowVersion++; db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "UPDATED", FromStatus = from, ToStatus = status, Reason = "Team membership updated" }); await AuditAsync(actor.UserId, "P0StaffUpdated", "StaffMembership", item.Id, "Team membership updated", null, cancellationToken); await db.SaveChangesAsync(cancellationToken); return await StaffToDtoAsync(item, cancellationToken);
+        var managerId = await ResolveManagerAsync(actor, cancellationToken: cancellationToken);
+        RequireManagerMutation(actor, managerId);
+        var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.ManagerUserId == managerId && !x.IsDeleted, cancellationToken);
+        if (item is null) return null;
+        if (item.RowVersion != request.RowVersion) throw new DbUpdateConcurrencyException("Staff membership changed; reload before editing.");
+        if (string.IsNullOrWhiteSpace(request.Role) || string.IsNullOrWhiteSpace(request.Status)) throw new InvalidOperationException("Team role and status are required.");
+        var status = request.Status.Trim().ToUpperInvariant();
+        if (status is not ("INVITED" or "ACCEPTED" or "ACTIVE" or "SUSPENDED" or "REVOKED")) throw new InvalidOperationException("Invalid team-member status.");
+        if (status is "ACCEPTED" or "ACTIVE" && item.Status == "INVITED") throw new InvalidOperationException("The invitee must accept the invitation before activation.");
+        var role = request.Role.Trim().ToUpperInvariant();
+        if (role is not ("OPERATIONS" or "FINANCE" or "APPROVER" or "GATE_GUARD")) throw new InvalidOperationException("Staff role is invalid.");
+        var propertyIds = (request.PropertyIds ?? []).Distinct().ToArray();
+        var ownerIds = (request.OwnerIds ?? []).Distinct().ToArray();
+        await ValidateStaffScopesAsync(managerId, ownerIds, propertyIds, cancellationToken);
+        if (role == "GATE_GUARD" && (propertyIds.Length == 0 || ownerIds.Length > 0 || request.CanManageFinance || request.CanApprovePayouts || request.ApprovalLimit > 0))
+            throw new InvalidOperationException("Gate Guard assignments require one or more assigned properties and no finance permissions.");
+        var approvalLimit = Positive(request.ApprovalLimit);
+        if ((request.CanManageFinance || request.CanApprovePayouts) && approvalLimit <= 0) throw new InvalidOperationException("A positive approval limit is required when finance or payout permissions are enabled.");
+        var from = item.Status;
+        item.Role = role;
+        item.PropertyScopeJson = JsonSerializer.Serialize(propertyIds);
+        item.OwnerScopeJson = JsonSerializer.Serialize(ownerIds);
+        item.CanManageFinance = request.CanManageFinance;
+        item.CanApprovePayouts = request.CanApprovePayouts;
+        item.ApprovalLimit = approvalLimit;
+        item.Status = status;
+        if (status == "SUSPENDED") item.SuspendedAt = Now;
+        if (status == "REVOKED") item.RevokedAt = Now;
+        item.RowVersion++;
+        db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "UPDATED", FromStatus = from, ToStatus = status, Reason = "Team membership updated" });
+        await AuditAsync(actor.UserId, "P0StaffUpdated", "StaffMembership", item.Id, "Team membership updated", null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await SyncGateGuardRoleAsync(item.StaffUserId, cancellationToken);
+        return await StaffToDtoAsync(item, cancellationToken);
     }
 
     public async Task<P0StaffMembershipDto?> RevokeStaffAsync(P0Actor actor, Guid membershipId, P0StatusChangeRequest request, CancellationToken cancellationToken)
     {
-        var managerId = await ResolveManagerAsync(actor, cancellationToken: cancellationToken); RequireManagerMutation(actor, managerId); var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.ManagerUserId == managerId && !x.IsDeleted, cancellationToken); if (item is null) return null; if (string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A revocation reason is required."); var from = item.Status; item.Status = "REVOKED"; item.RevokedAt = Now; item.RowVersion++; db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "REVOKED", FromStatus = from, ToStatus = "REVOKED", Reason = request.Reason.Trim() }); await AuditAsync(actor.UserId, "P0StaffRevoked", "StaffMembership", item.Id, request.Reason.Trim(), null, cancellationToken); await db.SaveChangesAsync(cancellationToken); return await StaffToDtoAsync(item, cancellationToken);
+        var managerId = await ResolveManagerAsync(actor, cancellationToken: cancellationToken);
+        RequireManagerMutation(actor, managerId);
+        var item = await db.MilestoneP0StaffMemberships.SingleOrDefaultAsync(x => x.Id == membershipId && x.ManagerUserId == managerId && !x.IsDeleted, cancellationToken);
+        if (item is null) return null;
+        if (string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A revocation reason is required.");
+        var from = item.Status;
+        item.Status = "REVOKED";
+        item.RevokedAt = Now;
+        item.RowVersion++;
+        db.MilestoneP0StaffEvents.Add(new MilestoneP0StaffEvent { MembershipId = item.Id, ActorUserId = actor.UserId, EventType = "REVOKED", FromStatus = from, ToStatus = "REVOKED", Reason = request.Reason.Trim() });
+        await AuditAsync(actor.UserId, "P0StaffRevoked", "StaffMembership", item.Id, request.Reason.Trim(), null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await SyncGateGuardRoleAsync(item.StaffUserId, cancellationToken);
+        return await StaffToDtoAsync(item, cancellationToken);
     }
 
     private async Task<P0StaffMembershipDto> StaffToDtoAsync(MilestoneP0StaffMembership item, CancellationToken cancellationToken) => new(item.Id, item.ManagerUserId, item.StaffUserId, item.Role, ParseIds(item.PropertyScopeJson), ParseIds(item.OwnerScopeJson), item.CanManageFinance, item.CanApprovePayouts, item.ApprovalLimit, item.Status, item.AcceptedAt, item.SuspendedAt, item.RevokedAt, item.RowVersion);
+
+    private async Task SyncGateGuardRoleAsync(Guid staffUserId, CancellationToken cancellationToken)
+    {
+        var user = await db.MilestoneUsers.SingleOrDefaultAsync(x => x.Id == staffUserId && !x.IsDeleted, cancellationToken);
+        if (user is null) return;
+
+        var hasActiveGateAssignment = await db.MilestoneP0StaffMemberships.AnyAsync(
+            x => x.StaffUserId == staffUserId && x.Role == "GATE_GUARD" &&
+                 (x.Status == "ACCEPTED" || x.Status == "ACTIVE") && !x.IsDeleted,
+            cancellationToken);
+        var roles = MilestoneJson.DeserializeList<UserRole>(user.RolesJson);
+        var hasRole = roles.Contains(UserRole.GateGuard);
+        if (hasActiveGateAssignment == hasRole) return;
+
+        if (hasActiveGateAssignment) roles.Add(UserRole.GateGuard);
+        else roles.RemoveAll(role => role == UserRole.GateGuard);
+        user.RolesJson = MilestoneJson.Serialize(roles.Distinct().ToArray());
+        if (!hasActiveGateAssignment) user.SessionInvalidatedAt = Now;
+        user.UpdatedAt = Now;
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     public async Task<P0PayoutAvailabilityDto> GetPayoutAvailabilityAsync(P0Actor actor, Guid ownerUserId, string currency, DateOnly from, DateOnly to, CancellationToken cancellationToken)
     {

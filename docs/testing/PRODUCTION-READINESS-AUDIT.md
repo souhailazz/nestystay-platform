@@ -1,0 +1,42 @@
+# NestyStay Production Readiness Audit
+
+Date: 2026-09-23
+
+## Current certification refresh — 2026-09-28 (latest local evidence)
+
+The latest isolated backend certification head is `eeab0d2`. It retains the booking/payment state-machine and bounded input hardening, adds the legible Gold/Platinum founding membership terms through forward migration `20260928174138_ApplyFoundingMembershipTerms`, and simplifies the badge-review workflow without changing its idempotent result behavior. With disposable loopback PostgreSQL and MinIO configured, the complete unfiltered suite passes **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167). The real MinIO round-trip/authorization test and PostgreSQL two-instance concurrency test pass. Exact-head Sonar reports 0 bugs, 0 vulnerabilities, 0 hotspots, 994 code smells, 73.4% line coverage, and 20.3% duplication; the requested 80% coverage and maintainability targets remain open. The disposable Sonar instance has no configured acceptance conditions, so its `OK` status is evidence of processing, not production readiness.
+
+The latest isolated frontend certification branch is `fe01b88`. Its reproducible tracked Vitest suite passes **177/177 across 45 files**; V8 coverage is **64.41% lines, 60.79% statements, 52.67% branches, and 57.24% functions**. Typecheck and production build remain passing; lint remains 0 errors with warnings. Exact-head Sonar reports 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 60.0% line coverage, and 1.4% duplication. The requested 60% overall frontend coverage gate is met in this local scan; new-code coverage, maintainability, and external/staging gates remain open.
+
+The production verdict remains **NOT READY for promotion**. The remaining release gates are: coverage/maintainability acceptance, real Brevo delivery, MinIO production configuration/durability/backups and upload verification, real external payment/identity verification, staging role/IDOR verification, human accessibility certification, explicit clarification of the handwritten Gold/Platinum `150+150` allocation, and frontend/backend deployed-SHA parity. The legible Gold/Platinum values are implemented and locally tested in backend `d2c8436`; the previous lifetime-fee mismatch is no longer an open implementation defect.
+
+## Verdict
+
+**NOT READY for production promotion.** The local application is substantially exercised, but the required release gates are not all green.
+
+## Gate matrix
+
+| Gate | Result | Evidence / blocker |
+|---|---|---|
+| Backend restore/build/tests | PASS | 303 passed, 0 failed, 0 skipped at current head with disposable PostgreSQL/MinIO configured |
+| Frontend typecheck/build | PASS | Both completed successfully |
+| Frontend lint/audit | PASS with warnings | 0 errors, 107 warnings, 0 npm vulnerabilities |
+| Browser regression | PASS with explicit skips | Current head 20f199f: 224 started; 213 passed; 11 explicit skips; 0 failures; 0 did-not-run |
+| Local MinIO I/O | PASS | Real disposable private MinIO exercised |
+| Brevo delivery | BLOCKED_EXTERNAL_CONFIG | No controlled staging key/mailbox available locally |
+| Frontend coverage | PASS / LOCAL | Tracked-test V8 reports 64.41% lines; current exact-head Sonar line coverage is 60.0%, meeting the requested 60% overall threshold. New-code coverage and production gate conditions remain unverified. |
+| Backend coverage | FAIL / OPEN | Current Sonar line coverage is 73.4%, below the requested 80% target; 994 code smells remain |
+| Sonar Quality Gates | NOT CERTIFIED | Disposable local instance processed all three scans but has no configured acceptance conditions; bugs/vulnerabilities/hotspots are 0, coverage/maintainability gates remain open |
+| Staging SHA parity | UNKNOWN | Existing staging returns 404 for `/api/health/version`; `/version.json` is currently SPA HTML |
+| Production safety | PASS | Production not touched; no secrets committed |
+
+## Required next actions
+
+1. Review and merge the certification PRs through the protected workflow.
+2. Deploy them to staging and verify the new metadata endpoints return the exact GitHub main SHAs.
+3. Configure and test staging MinIO with private storage, persistence and backup policy.
+4. Enable Brevo with a verified sender and controlled QA mailbox, then verify outbox delivery and retry behavior.
+5. Raise frontend coverage honestly, raise backend new-code coverage to the gate, review Sonar bugs/vulnerabilities and reduce the new-violation count to zero.
+6. Re-run staging browser role/IDOR checks after deployment.
+
+Production must remain unchanged until these gates are green and reviewed.

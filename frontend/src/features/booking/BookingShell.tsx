@@ -157,7 +157,7 @@ export function PropertyMiniHeader({
 }
 
 export const DEGRESSIVE_NOTE =
-  "Contract guest platform fee: 9% per booking. The server-authoritative quote is shown before confirmation.";
+  "Contract guest platform fee: 10% per booking. The server-authoritative quote is shown before confirmation.";
 
 export function BookingScaffold({
   stepper,

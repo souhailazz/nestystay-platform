@@ -1,0 +1,20 @@
+{
+  "projectKey": "nestystay-platform-current-final",
+  "sha": "ad2735e88f50891a8d1cbd29823a8999535db336",
+  "analysisId": "fcd83c8e-837d-4d82-a41a-d81d15f20fbf",
+  "server": "local disposable SonarQube 26.9.0.129388",
+  "scope": ["scripts", "deploy", ".github"],
+  "qualityGate": "OK (disposable instance has no configured conditions)",
+  "metrics": {
+    "bugs": 0,
+    "vulnerabilities": 0,
+    "securityHotspots": 0,
+    "codeSmells": 0,
+    "duplicationPercent": 0.0,
+    "coveragePercent": null
+  },
+  "limitations": [
+    "This is orchestration/configuration analysis only; it is not runtime application certification.",
+    "Design-system handoff prototypes were intentionally excluded from this runtime/platform scan."
+  ]
+}

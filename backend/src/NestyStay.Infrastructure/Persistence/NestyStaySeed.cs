@@ -37,9 +37,9 @@ public static class NestyStaySeed
     [
         Price("host-listing", 0m, "USD", "Always", "Hosts"),
         Price("host-commission-standard", 3m, "PERCENT", "Per booking", "Hosts"),
-        Price("guest-fee-large-long", 9m, "PERCENT", "Per booking", "Guests"),
-        Price("guest-fee-mid", 9m, "PERCENT", "Per booking", "Guests"),
-        Price("guest-fee-single-night", 9m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-large-long", 10m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-mid", 10m, "PERCENT", "Per booking", "Guests"),
+        Price("guest-fee-single-night", 10m, "PERCENT", "Per booking", "Guests"),
         Price("guest-ekyc-first-html", 9.99m, "USD", "Per first check", "Guests"),
         Price("guest-ekyc-return-html", 4.99m, "USD", "Per return check", "Guests"),
         Price("guest-ekyc-host-paid-pdf", 0.14m, "USD", "Per booking", "Hosts"),
