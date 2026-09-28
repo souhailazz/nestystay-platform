@@ -2,11 +2,11 @@
 
 ## Last Completed Task
 
-AUTO-0027 — Re-run the local authorization and IDOR regression matrix.
+AUTO-0029 — Cover passkey ownership and revocation lifecycle.
 
 ## Validation Result
 
-- Backend full solution with local PostgreSQL and MinIO enabled: 213 passed, 0 failed, 0 skipped.
+- Backend full solution with local PostgreSQL and MinIO enabled: 225 passed, 0 failed, 0 skipped.
 - Frontend unit suite: 146 passed across 34 files.
 - Fresh frontend V8 coverage: 61.16% lines (4,634/7,576), 57.12% statements, 48.76% branches, 53.49% functions.
 - Frontend typecheck: PASS.
@@ -37,6 +37,7 @@ AUTO-0027 — Re-run the local authorization and IDOR regression matrix.
 - A fresh disposable SonarQube server-side backend analysis now succeeded at `0e58c1f8b490a4ac3f9a905d4d8a14d44de845eb`: 213/213 coverage-runner tests passed, 0 bugs, 0 vulnerabilities, 0 hotspots, 995 open code smells, 20.4% duplication, and 72.4% line coverage. The server reported `OK` with no conditions configured on that disposable instance; the requested 80% coverage target is still unmet. Evidence: `testing-evidence/sonarqube/BACKEND-FRESH-CERTIFICATION-2026-09-27.md`.
 - After adding behavioral coverage for signed storage downloads and platform metadata endpoints, the current backend head `393edd1e20269350ed565fff8dda53b997792e39` passed the full configured suite **222/222** with zero failures/skips. A fresh server-side Sonar refresh processed successfully: 0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 20.4% duplication, and raw line coverage **62.1%**. The same server’s file measures calculate **72.8%** when all EF migration files are excluded; neither reaches the requested 80%. Evidence: `testing-evidence/sonarqube/BACKEND-CURRENT-HEAD-2026-09-27.md`.
 - The local authorization/IDOR regression matrix was rerun at current backend `393edd1e20269350ed565fff8dda53b997792e39`: **13 passed, 0 failed, 0 skipped**. It covered cross-resource message/attachment, wellness/officer, provider, owner/manager/staff portfolio, Gate Guard invitation/scope/revocation, admin-only endpoint rejection, Property Manager policy rejection, badge ownership, and session invalidation. Evidence: `testing-evidence/final-hardening/04-authorization/LOCAL-AUTHORIZATION-MATRIX-2026-09-27.md`. This strengthens local authorization evidence but does not replace staging role/IDOR verification.
+- Current backend head `4ece56f` adds passkey credential ownership/lifecycle coverage: list isolation, persisted revocation, inactive lifecycle visibility, repeat-delete behavior, and cross-user delete denial. Focused tests passed **3/3** and the full configured suite passed **225/225** (Domain 6, Application 24, Infrastructure 32, API 163). The current XML coverage artifact was generated, but the local Docker daemon stopped before the fresh disposable Sonar server could process it; the latest verified server-side Sonar metrics therefore remain at `393edd1` and must not be treated as current-head measurements. Evidence: `testing-evidence/15-coverage/PASSKEY-OWNERSHIP-LIFECYCLE-2026-09-28.md`.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

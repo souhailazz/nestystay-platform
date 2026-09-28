@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0029 — Cover passkey ownership and revocation lifecycle
+
+Priority: P0 authentication/ownership coverage  \
+Date: 2026-09-28
+
+Added behavioral API integration tests for a security-sensitive controller that previously had no direct coverage. The tests exercise authenticated listing, own-credential revocation, inactive lifecycle visibility, repeated-delete handling, and cross-user revocation denial.
+
+Evidence:
+
+- Backend commit: `4ece56f`, pushed to the existing certification PR branch.
+- Focused passkey suite: **3 passed, 0 failed, 0 skipped**.
+- Full configured backend suite: Domain 6, Application 24, Infrastructure 32, API 163; **225 passed, 0 failed, 0 skipped**.
+- A full coverage artifact was generated. The disposable Docker daemon stopped before a new server-side Sonar upload could run, so the last verified Sonar percentage remains the earlier `393edd1` scan and is not overstated.
+- No production/staging system, migration history, or secret was changed.
+
 ## AUTO-0028 — Add behavioral coverage for storage and platform controllers
 
 Priority: P1 quality evidence  \

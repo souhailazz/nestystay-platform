@@ -21,7 +21,7 @@
     },
     "backend": {
       "branch": "codex/final-release-certification",
-      "sha": "393edd1e20269350ed565fff8dda53b997792e39",
+      "sha": "4ece56f",
       "mainReference": "9d13748a6fe60934ffcf51c02522b1a52794e2e8"
     },
     "frontend": {
@@ -31,8 +31,8 @@
     }
   },
   "evidence": {
-    "backendTests": { "passed": 222, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
-    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 222, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "PASS: current-head disposable PostgreSQL/MinIO run; 222/222 passed with zero failures/skips; current-head Sonar XML imported successfully" },
+    "backendTests": { "passed": 225, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186 },
+    "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 225, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "PASS: current-head disposable PostgreSQL/MinIO run; 225/225 passed with zero failures/skips; XML artifact generated but fresh Sonar upload is pending because the local Docker daemon became unavailable" },
     "frontendTests": { "passed": 146, "files": 34 },
     "frontendCoverage": { "linePercent": 61.16, "statementPercent": 57.12, "branchPercent": 48.76, "functionPercent": 53.49 },
     "frontendTypecheck": "PASS",
@@ -54,8 +54,8 @@
       "frontend": { "sha": "352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0", "qualityGate": "OK", "lineCoverage": 56.6, "branchCoverage": null, "codeSmells": 972, "duplication": 1.4, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "7e06d0bd-3027-4f56-a7d1-2c38f131bb84", "analysisId": "cb921fa4-45b3-482c-802a-e589f2919315", "coverageNote": "Fresh refresh after the traveler reservation filter refactor with current lcov; V8 summary is 61.16% lines, 57.12% statements, 48.76% branches, and 53.49% functions. Branch coverage was not exported by this Sonar refresh." },
       "platform": { "sha": "b5d06dba3fe855f36e41c6b3123f249ee86f7b10", "qualityGate": "OK", "codeSmells": 0, "bugs": 0, "vulnerabilities": 0, "hotspots": 0, "analysisTask": "6686f78b-6ceb-4ddf-87c0-fc0c0c13a205" }
     },
-    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; the local authorization/IDOR matrix rerun passed 13/13; storage/platform controller regression coverage was added in backend commit 393edd1 and the current configured suite passed 222/222; fresh current-head backend Sonar coverage is 62.1% raw and 72.8% excluding migration files, below the requested 80%; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
-    "backendRemediationCommit": "393edd1",
+    "lastImplementationUpdate": "Root monorepo pricing parity and Gate Guard lifecycle parity are corrected; integration health reports actual storage readiness; the badge review engine received a behavior-preserving maintainability refactor; backend coverage collection is now committed and requires runtime-only disposable PostgreSQL/MinIO settings; the local authorization/IDOR matrix rerun passed 13/13; storage/platform controller regression coverage was added in backend commit 393edd1; passkey ownership/revocation coverage was added in backend commit 4ece56f and the current configured suite passed 225/225; a current-head coverage artifact exists but the latest verified Sonar metrics remain 62.1% raw and 72.8% excluding migrations at 393edd1 because Docker stopped before upload; founding Gold/Platinum commercial logic remains blocked on exact amended business values.",
+    "backendRemediationCommit": "4ece56f",
     "frontendRemediationCommit": "352f2f8"
   },
   "domains": [
