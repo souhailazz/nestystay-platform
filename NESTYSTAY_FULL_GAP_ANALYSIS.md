@@ -1,5 +1,9 @@
 # NestyStay Full Gap Analysis
 
+## Latest backend hardening refresh — AUTO-0049 — 2026-09-28
+
+Backend commit `f860706c0fa3e6587ec0a3cafe1bfa573dd91667` applies two low-risk analyzer cleanups. Targeted API tests passed **16/16**, and the complete configured PostgreSQL/MinIO suite passed **308/308** with zero failures/skips. Exact-head local SonarQube processing reports **73.5% line coverage, 992 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, and 0 security hotspots**. This is a server-side local analysis; its Quality Gate is `OK` with no configured production conditions. Backend 80% coverage, maintainability, and external/staging release gates remain open. Evidence: `testing-evidence/sonarqube/BACKEND-AUTO-0049-2026-09-28.*`.
+
 ## Latest certification refresh — AUTO-0048 — 2026-09-28
 
 The current backend certification branch is `9ea182ca014ba97e8346bc6ee9ca8fde31d1c8cc`. Its configured disposable PostgreSQL/MinIO suite passes **308/308** with zero failures and zero skips (Domain 6, Application 98, Infrastructure 32, API 172). A real local SonarQube analysis completed server-side at this exact head: **73.5% line coverage, 994 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, and 0 security hotspots**. The local Quality Gate is `OK`, but this disposable server has no configured acceptance conditions; the requested 80% backend target and maintainability remediation remain open. Evidence: `testing-evidence/sonarqube/BACKEND-AUTO-0048-2026-09-28.*`.

@@ -1,5 +1,20 @@
 # Autopilot History
 
+## AUTO-0049 — Apply two safe analyzer cleanups and refresh exact-head evidence
+
+Priority: P2 maintainability  \\
+Date: 2026-09-28
+
+Applied two behavior-preserving cleanups on the backend certification branch: matched the passkey metadata method’s interface default parameter and rewrote document-export unique-name generation to an explicit loop. No runtime feature, migration, provider, staging/production environment, secret, or protected main branch was changed.
+
+Evidence:
+
+- Backend commit: `f860706c0fa3e6587ec0a3cafe1bfa573dd91667`.
+- Targeted API tests: **16 passed, 0 failed, 0 skipped**.
+- Configured disposable PostgreSQL/MinIO suite: **308 passed, 0 failed, 0 skipped**.
+- Exact-head server-side local Sonar analysis: **73.5% line coverage, 992 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, 0 security hotspots**; task `8c321cbb-8de6-4d11-a1f2-981fae80afc5`, analysis `2d3fd7a9-2468-4fc4-877b-aedd77d1ac56`.
+- The local Quality Gate is `OK` only because the disposable server has no configured acceptance conditions. Backend 80% coverage and maintainability targets remain open.
+
 ## AUTO-0048 — Add production-configuration guards and refresh backend Sonar evidence
 
 Priority: P1 certification evidence  \\
