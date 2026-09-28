@@ -619,6 +619,23 @@ Evidence:
 
 This improves local M1 identity evidence only. It does not claim a real external Stripe Identity session, staging role/IDOR proof, provider delivery, MinIO durability, or deployed-SHA parity.
 
+## AUTO-0037 — Cover booking invoice and receipt workflows
+
+Priority: P1 booking evidence  \\
+Date: 2026-09-28
+
+Added behavioral frontend coverage for the booking invoice and receipt screens. The tests verify invoice rendering, print behavior, authenticated download requests, receipt download success/failure handling, and the user-facing error path without creating a download link when the receipt request fails.
+
+Evidence:
+
+- Frontend commit: `e74c701`, pushed to `codex/final-release-certification`.
+- Full Vitest suite: **157 passed across 37 files, 0 failed**.
+- V8 coverage: **63.41% lines, 59.68% statements, 51.20% branches, 56.27% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 107 existing warnings**.
+- No production code, provider configuration, migrations, staging, production, secrets, or protected `main` were changed.
+
+This improves local M1 booking evidence only. It does not claim a real payment/receipt provider transaction, staging role/IDOR proof, provider delivery, MinIO durability, Sonar refresh, or deployed-SHA parity.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\

@@ -2,13 +2,13 @@
 
 ## Last Completed Task
 
-AUTO-0036 — Cover the booking identity-verification handoff.
+AUTO-0037 — Cover booking invoice and receipt workflows.
 
 ## Validation Result
 
 - Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `ef562f0` has a fresh non-container run of 225 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
-- Frontend unit suite: 155 passed across 37 files at frontend `9ccfb75`.
-- Fresh frontend V8 coverage at `9ccfb75`: 63.10% lines (4,781/7,576), 59.44% statements, 51.04% branches, 56.14% functions. This exceeds the local 60% line target; no Sonar refresh is claimed for this test-only commit.
+- Frontend unit suite: 157 passed across 37 files at frontend `e74c701`.
+- Fresh frontend V8 coverage at `e74c701`: 63.41% lines (4,804/7,576), 59.68% statements, 51.20% branches, 56.27% functions. This exceeds the local 60% line target; no Sonar refresh is claimed for this test-only commit.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 107 warnings.
@@ -16,7 +16,7 @@ AUTO-0036 — Cover the booking identity-verification handoff.
 - Latest browser regression at frontend `352f2f8`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 27.7 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the local PostgreSQL-backed application. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses were completed for earlier certification heads, not the current backend head. The latest server-side backend metrics remain the scan at `393edd1` (0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 62.1% raw line coverage, 20.4% duplication); no current-head Sonar result is claimed after `36c9c78`. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root evidence branch `feebff6`, backend `ef562f0d26b3892397e9f185ddc0fc9df6150920`, frontend `9ccfb75`.
+- Pushed certification source revisions: root evidence branch `06b5654`, backend `ef562f0d26b3892397e9f185ddc0fc9df6150920`, frontend `e74c701`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -79,6 +79,23 @@ Evidence:
 - No application production code, provider configuration, migration, staging, production, secret, or protected `main` was changed.
 
 This improves local evidence for M1 identity UX but does not prove an external Stripe Identity session, staging deployment parity, or any other external release gate.
+
+## AUTO-0037 — Cover booking invoice and receipt workflows
+
+Priority: P1 booking evidence
+Date: 2026-09-28
+
+Added behavioral frontend coverage for the booking invoice and receipt screens. The tests verify invoice rendering, print behavior, authenticated download requests, receipt download success/failure handling, and the user-facing error path without creating a download link when the receipt request fails.
+
+Evidence:
+
+- Frontend commit: `e74c701`, pushed to `codex/final-release-certification`.
+- Full Vitest suite: **157 passed across 37 files, 0 failed**.
+- V8 coverage: **63.41% lines**, **59.68% statements**, **51.20% branches**, **56.27% functions**.
+- Typecheck: PASS; production build: PASS; lint: **0 errors / 107 existing warnings**.
+- No application production code, provider configuration, migrations, staging, production, secrets, or protected `main` were changed.
+
+This improves local M1 booking evidence only. It does not claim a real payment/receipt provider transaction, staging role/IDOR proof, provider delivery, MinIO durability, Sonar refresh, or deployed-SHA parity.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

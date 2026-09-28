@@ -26,15 +26,15 @@
     },
     "frontend": {
       "branch": "codex/final-release-certification",
-      "sha": "9ccfb75",
+      "sha": "e74c701",
       "mainReference": "510512375b613eb0ce5bf9ae39bf5d3f7042e008"
     }
   },
   "evidence": {
     "backendTests": { "passed": 225, "failed": 0, "skipped": 0, "minioEnabled": true, "rootMonorepoPassed": 186, "currentHeadNonContainerPassed": 225, "currentHeadNonContainerSkipped": 2, "currentHeadContainerStatus": "PENDING_LOCAL_DOCKER_RECOVERY" },
     "backendCoverage": { "collector": "dotnet-coverage 18.11.2", "fullSuitePassed": 225, "fullSuiteFailed": 0, "fullSuiteSkipped": 0, "authoredLinesCovered": 17228, "authoredLinesTotal": 33561, "authoredLinePercent": 51.33, "excludedOnly": ["EF migration *.Designer.cs", "NestyStayDbContextModelSnapshot.cs"], "rerunStatus": "Configured 225/225 passed at test-only commit 4ece56f; current refactor head 966aead passed 225 with two explicit local-container skips; current-head container/coverage refresh is pending local Docker recovery" },
-    "frontendTests": { "passed": 155, "files": 37, "failed": 0, "head": "9ccfb75" },
-    "frontendCoverage": { "linePercent": 63.10, "statementPercent": 59.44, "branchPercent": 51.04, "functionPercent": 56.14, "source": "Vitest V8 local run" },
+    "frontendTests": { "passed": 157, "files": 37, "failed": 0, "head": "e74c701" },
+    "frontendCoverage": { "linePercent": 63.41, "statementPercent": 59.68, "branchPercent": 51.20, "functionPercent": 56.27, "source": "Vitest V8 local run" },
     "frontendTypecheck": "PASS",
     "frontendBuild": "PASS",
     "frontendLint": { "errors": 0, "warnings": 107 },
