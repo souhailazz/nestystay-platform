@@ -42,8 +42,7 @@ Base path: `/api`. Frontend proxy: Vite forwards `/api` to `http://localhost:501
 | GET | `/bookings` | Public/local dashboards | Optional filters | Booking/admin read views |
 | GET | `/bookings/{id}` | Public/local dashboards | None | Booking detail |
 | POST | `/bookings/{id}/capture-payment` | Workflow/admin surface | None | Capture authorized payment only after approval |
-| POST | `/webhooks/alibaba-ekyc` | Shared secret required in production | booking id, transaction id, pass/fail | eKYC pass/reject webhook |
-| POST | `/webhooks/stripe` | Shared secret required in production | provider event | Stripe-style payment webhook |
+| POST | `/webhooks/stripe/raw` | Stripe signature required in production | Stripe payment or Identity event | Payment state and Stripe Identity verification updates |
 
 ## Badge, Pricing, Campaign, Founding Benefit
 
@@ -141,4 +140,4 @@ Base path: `/api`. Frontend proxy: Vite forwards `/api` to `http://localhost:501
 - Admin mutation endpoints use `NESTYSTAY_ADMIN_TOKEN_SHA256` in real environments. Local development uses the configured dev token.
 - Operator tokens authenticate but are forbidden on admin-only endpoints.
 - User protected endpoints require signed `nsty.v1.*` session tokens and enforce owner id matching.
-- Production startup guards still require real Stripe, Alibaba Cloud eKYC, R2, InsuraGuest, webhook, admin, and session-token secrets before launch.
+- Production startup guards still require real Stripe/Stripe Identity, MinIO, InsuraGuest, webhook, admin, and session-token secrets before launch.

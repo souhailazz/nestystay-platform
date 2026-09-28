@@ -13,6 +13,7 @@ Evidence:
 - Backend focused Gate Guard authorization tests: **5 passed, 0 failed, 0 skipped**.
 - Backend current full configured evidence remains **303 passed, 0 failed, 0 skipped** at `eeab0d2`.
 - Matrix counts corrected to **52 COMPLETE / 26 PARTIAL / 1 MOCK / 6 MISSING / 0 WRONG_LOGIC / 2 NEEDS_EXACT_VALUE**.
+- Removed stale Alibaba variables from `.env.production.example` and both production Compose API/worker blocks; active runtime/config scan is clean while historical migrations and the reference inventory remain unchanged.
 - No historical migration, staging/production environment, protected `main`, secret, or dirty user workspace was changed.
 
 Remaining follow-ups are external/staging verification, backend coverage below 80%, maintainability backlog, and the exact handwritten Gold/Platinum `150+150` business allocation.
@@ -230,7 +231,7 @@ Remaining release gates are unchanged: real Brevo delivery, staging MinIO/upload
 
 ## AUTO-0001 — Apply approved 10 percent guest platform fee
 
-Priority: P0 pricing integrity  
+Priority: P0 pricing integrity
 Date: 2026-09-27
 
 ### Problem

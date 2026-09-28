@@ -269,9 +269,8 @@ Development OpenAPI JSON is exposed by the backend at `/openapi/v1.json`.
 
 - [ ] Configure real Stripe live keys.
 - [ ] Configure real Stripe webhook validation.
-- [ ] Configure real Alibaba Cloud eKYC credentials.
-- [ ] Configure real eKYC webhook/provider signatures.
-- [ ] Configure the self-hosted persistent object-storage volume (MinIO adapter is optional).
+- [ ] Configure Stripe Identity credentials and webhook/provider signatures.
+- [ ] Configure the self-hosted persistent MinIO object-storage volume.
 - [ ] Configure InsuraGuest API credentials and integration details.
 - [ ] Set production `NESTYSTAY_ADMIN_TOKEN_SHA256`.
 - [ ] Set production `NESTYSTAY_WEBHOOK_SHARED_SECRET`.
