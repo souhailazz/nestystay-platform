@@ -1,6 +1,7 @@
 {
-  "projectKey": "nestystay-platform-current",
-  "sha": "233443236eaab2486c05a0896b286c10ae1759c5",
+  "projectKey": "nestystay-platform-current-final",
+  "sha": "ad2735e88f50891a8d1cbd29823a8999535db336",
+  "analysisId": "fcd83c8e-837d-4d82-a41a-d81d15f20fbf",
   "server": "local disposable SonarQube 26.9.0.129388",
   "scope": ["scripts", "deploy", ".github"],
   "qualityGate": "OK (disposable instance has no configured conditions)",

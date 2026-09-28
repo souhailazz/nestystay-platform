@@ -14,6 +14,7 @@ Evidence:
 - EF migration `20260928174138_ApplyFoundingMembershipTerms` applied successfully to disposable PostgreSQL.
 - Configured backend suite after the migration: **303 passed, 0 failed, 0 skipped**.
 - Tracked frontend suite after the display update: **129 passed across 35 files, 0 failed**; tracked-only V8 line coverage remains **32.81%**.
+- Fresh exact-head disposable Sonar scans processed all three scopes: backend **62.7%** line coverage / **996** code smells / **20.3%** duplication; frontend **28.9%** / **972** / **1.4%**; platform orchestration zero current issues. All reported zero bugs, vulnerabilities, and security hotspots; the disposable quality gates have no configured acceptance conditions.
 - Protected `main`, staging, and production were not modified.
 
 ## AUTO-0043 — Correct tracked-test evidence and cover booking/payment state machine

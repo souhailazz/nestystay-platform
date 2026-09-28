@@ -6,21 +6,21 @@ The temporary analysis token was not committed or included in this report.
 
 ## Current-head refresh — 2026-09-28
 
-All three isolated scopes were scanned and processed server-side by a disposable local SonarQube Community Build `26.9.0.129388`. The latest recorded scan predates the current founding-terms commits; those metrics therefore remain prior-head evidence until the new heads are rescanned. The scan inputs and limitations are recorded in [`CURRENT-LOCAL-SCAN-2026-09-28.md`](../../testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md).
+All three current isolated scopes were scanned and processed server-side by a fresh disposable local SonarQube Community Build `26.9.0.129388`. The scan inputs and limitations are recorded in [`CURRENT-LOCAL-SCAN-2026-09-28.md`](../../testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md).
 
 | Project | SHA | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | Duplication | Processing |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| Backend (last scan) | `e215b895` | 0 | 0 | 0 | 988 | 73.4% | 20.4% | SUCCESS |
-| Frontend (last scan) | `e47ace7` | 0 | 0 | 0 | 972 | 32.7% Sonar executable lines; 32.81% tracked-test V8 lines | 1.4% | SUCCESS |
-| Platform runtime | `2334432` | 0 | 0 | 0 | 0 | n/a | 0.0% | SUCCESS |
+| Backend | `d2c8436` | 0 | 0 | 0 | 996 | 62.7% | 20.3% | SUCCESS |
+| Frontend | `f6253bc` | 0 | 0 | 0 | 972 | 28.9% Sonar executable lines; 32.81% tracked-test V8 lines | 1.4% | SUCCESS |
+| Platform orchestration | `ad2735e` | 0 | 0 | 0 | 0 | n/a | 0.0% | SUCCESS |
 
 The disposable instance reported `OK` for each project because no quality-gate conditions were configured. This is not a claim that the requested backend 80% target, frontend 60% Sonar target, maintainability backlog, or staging/production release gates have passed. The first platform scan included design-handoff prototype HTML/JS and surfaced 325 prototype findings; it was re-run with the meaningful runtime/orchestration scope (`scripts`, `deploy`, `.github`) and the runtime scope has zero current issues. Design prototypes remain outside runtime certification.
 
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Backend prior scan head `e215b895` adds behavioral booking/payment state-machine coverage and retains the bounded storage/QR input protections. Current backend head `d2c8436` passes the configured disposable-service suite **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167); MinIO and PostgreSQL concurrency were exercised against loopback-only containers. The requested 80% and maintainability gates remain open; the current head requires a fresh Sonar scan before prior metrics can be reused as exact-head evidence.
+Backend current head `d2c8436` passes the configured disposable-service suite **303/303** with **0 failures and 0 skips** (Domain 6, Application 98, Infrastructure 32, API 167); MinIO and PostgreSQL concurrency were exercised against loopback-only containers. Exact-head Sonar reports 62.7% coverage, 996 code smells, 20.3% duplication, and zero bugs/vulnerabilities/hotspots. The requested 80% and maintainability gates remain open.
 
-Frontend prior scan head `e47ace7` adds behavioral tests for public search loading, empty, error, and clear-filter states. Current frontend head `f6253bc` passes the reproducible tracked-only Vitest suite **129/129 across 35 files** and reports **32.81% line, 30.98% statement, 24.37% branch, and 32.11% function coverage**. The requested frontend coverage threshold remains open; the current head requires a fresh Sonar scan before prior metrics can be reused as exact-head evidence. Ignored `src/coverage` helper tests are excluded because they are not part of the pushed branch.
+Frontend current head `f6253bc` passes the reproducible tracked-only Vitest suite **129/129 across 35 files** and reports **32.81% line, 30.98% statement, 24.37% branch, and 32.11% function coverage**. Exact-head Sonar reports 28.9% line coverage, 972 code smells, 1.4% duplication, and zero bugs/vulnerabilities/hotspots. The requested frontend coverage threshold remains open. Ignored `src/coverage` helper tests are excluded because they are not part of the pushed branch.
 
 ## Current local scan summary — 2026-09-27
 

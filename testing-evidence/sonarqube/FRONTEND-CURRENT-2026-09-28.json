@@ -1,6 +1,7 @@
 {
-  "projectKey": "nestystay-frontend-current",
-  "sha": "e47ace79cc1c31cb19ca047e491cb27c118b45b2",
+  "projectKey": "nestystay-frontend-current-final",
+  "sha": "f6253bc507668e8ee5f7a96726d3cb1eb5db4086",
+  "analysisId": "90504c78-2b0c-483a-96fe-4b377c5a036e",
   "server": "local disposable SonarQube 26.9.0.129388",
   "qualityGate": "OK (disposable instance has no configured conditions)",
   "metrics": {
@@ -8,7 +9,7 @@
     "vulnerabilities": 0,
     "securityHotspots": 0,
     "codeSmells": 972,
-    "coveragePercent": 32.7,
+    "coveragePercent": 28.9,
     "duplicationPercent": 1.4
   },
   "localVitestEvidence": {
@@ -21,7 +22,7 @@
     "functionCoveragePercent": 32.11
   },
   "limitations": [
-    "The reproducible tracked-test V8 line report is 32.81% and Sonar line coverage is 32.7%; the requested 60% Sonar threshold is not met.",
+    "The reproducible tracked-test V8 line report is 32.81% and current exact-head Sonar line coverage is 28.9%; the requested 60% Sonar threshold is not met.",
     "Ignored local helper tests under src/coverage were excluded from this certification; they are not part of the pushed branch and were not counted.",
     "The quality-gate status is not a production acceptance gate because this disposable instance has no conditions configured.",
     "The scanner emitted non-fatal source-highlighting warnings for long CSS lines in src/index.css; no source change was made for that analyzer warning."
