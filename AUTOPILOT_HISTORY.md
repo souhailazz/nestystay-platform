@@ -654,6 +654,23 @@ Evidence:
 
 The V8 coverage measurement remains the preceding `e74c701` run at **63.41% lines, 59.68% statements, 51.20% branches, and 56.27% functions** because the follow-up only changed TypeScript test casting. No new Sonar analysis is claimed.
 
+## AUTO-0039 — Bound legacy Property Manager QR validation input
+
+Priority: P1 security hardening  \
+Date: 2026-09-28
+
+The legacy Property Manager QR validation path now rejects blank or oversized tokens before hashing or database lookup. The existing 256-character bound used by the primary QR validation path is now enforced consistently by `EfPropertyManagerStore.ValidateQrAsync`, with a safe invalid-result response for malformed input.
+
+Evidence:
+
+- Backend commit: `732c71058a37c3d7a7691e898182da1f33382c5c`, pushed to `codex/final-release-certification`.
+- Focused oversized-token regression: **1 passed, 0 failed**.
+- Full `PropertyManagerEndpointTests`: **11 passed, 0 failed**.
+- Complete current-head non-container backend solution: **226 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- Current-head Docker-backed MinIO/PostgreSQL rerun and Sonar refresh remain blocked by local Docker recovery; no current-head container or Sonar result is inferred.
+
+No migration, provider configuration, staging, production, secret, or protected `main` was changed.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\
