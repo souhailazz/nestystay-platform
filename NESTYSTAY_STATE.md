@@ -2,11 +2,11 @@
 
 ## Last Completed Task
 
-AUTO-0039 — Bound legacy Property Manager QR validation input.
+AUTO-0040 — Bound signed storage download inputs.
 
 ## Validation Result
 
-- Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `732c710` has a fresh non-container run of 226 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
+- Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `ff31270` has a fresh non-container run of 227 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
 - Frontend unit suite: 157 passed across 37 files at frontend `20f199f`.
 - Fresh frontend V8 coverage baseline at `e74c701`: 63.41% lines (4,804/7,576), 59.68% statements, 51.20% branches, 56.27% functions. The follow-up `20f199f` changes test typing only and preserves this measurement; no Sonar refresh is claimed for these test-only commits.
 - Frontend typecheck: PASS.
@@ -16,7 +16,7 @@ AUTO-0039 — Bound legacy Property Manager QR validation input.
 - Latest browser regression at frontend `352f2f8`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 27.7 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the local PostgreSQL-backed application. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
 - Fresh local SonarQube analyses were completed for earlier certification heads, not the current backend head. The latest server-side backend metrics remain the scan at `393edd1` (0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 62.1% raw line coverage, 20.4% duplication); no current-head Sonar result is claimed after `36c9c78`. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
 - Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
-- Pushed certification source revisions: root evidence branch prior to this documentation refresh `4860241391a6325bd7b07a3ba4d3fd0195ec762c`, backend `732c71058a37c3d7a7691e898182da1f33382c5c`, frontend `20f199f80bea89e58b3632a4e828e04c488c9652`.
+- Pushed certification source revisions: root evidence branch prior to this documentation refresh `c44a334953c6f1901e0b592b085ff9a37111f1c2`, backend `ff31270f134c599fadb7dd7058f361fb45cc55ff`, frontend `20f199f80bea89e58b3632a4e828e04c488c9652`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
@@ -131,6 +131,22 @@ Evidence:
 - Current-head Docker-backed MinIO/PostgreSQL rerun and Sonar refresh remain blocked by local Docker recovery; no current-head container or Sonar result is inferred.
 
 Detailed evidence: `testing-evidence/final-hardening/04-authorization/LEGACY-MANAGER-QR-INPUT-2026-09-28.md`.
+
+## AUTO-0040 — Bound signed storage download inputs
+
+Priority: P1 security hardening  \
+Date: 2026-09-28
+
+The anonymous signed-storage download endpoint now rejects missing, oversized, or invalid UTF-8 object-key payloads and oversized access-token input before provider validation or object access. Encoded keys are bounded at 2,048 characters, decoded key bytes at 1,024, and access tokens at 512 characters. Existing signed URL behavior and provider authorization are unchanged.
+
+Evidence:
+
+- Backend commit: `ff31270f134c599fadb7dd7058f361fb45cc55ff`, pushed to `codex/final-release-certification`.
+- Focused `StorageAndPlatformControllerTests`: **10 passed, 0 failed**.
+- Complete current-head non-container backend solution: **227 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- Current-head Docker-backed MinIO/PostgreSQL rerun and Sonar refresh remain blocked by local Docker recovery; no current-head container or Sonar result is inferred.
+
+No migration, provider configuration, staging, production, secret, or protected `main` was changed.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

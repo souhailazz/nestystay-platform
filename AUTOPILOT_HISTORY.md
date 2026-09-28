@@ -671,6 +671,22 @@ Evidence:
 
 No migration, provider configuration, staging, production, secret, or protected `main` was changed.
 
+## AUTO-0040 — Bound signed storage download inputs
+
+Priority: P1 security hardening  \
+Date: 2026-09-28
+
+The anonymous signed-storage download endpoint now rejects missing, oversized, or invalid UTF-8 object-key payloads and oversized access-token input before provider validation or object access. Encoded keys are bounded at 2,048 characters, decoded key bytes at 1,024, and access tokens at 512 characters. Existing signed URL behavior and provider authorization are unchanged.
+
+Evidence:
+
+- Backend commit: `ff31270f134c599fadb7dd7058f361fb45cc55ff`, pushed to `codex/final-release-certification`.
+- Focused `StorageAndPlatformControllerTests`: **10 passed, 0 failed**.
+- Complete current-head non-container backend solution: **227 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- Current-head Docker-backed MinIO/PostgreSQL rerun and Sonar refresh remain blocked by local Docker recovery; no current-head container or Sonar result is inferred.
+
+No migration, provider configuration, staging, production, secret, or protected `main` was changed.
+
 ## AUTO-0034 — Split production integration validation by provider
 
 Priority: P1 deployment safety / maintainability  \\

@@ -4,7 +4,7 @@ Date: 2026-09-23
 
 ## Current certification refresh — 2026-09-28
 
-The latest isolated backend certification head is `732c710`. It adds a 256-character bound to the legacy Property Manager QR validation path before hashing/database lookup. The complete current-head non-container backend suite passes **226/226** with **0 failures and 2 explicit environment skips** for MinIO and two-instance PostgreSQL when local Docker is unavailable. No current-head Docker-backed or Sonar result is claimed.
+The latest isolated backend certification head is `ff31270`. It adds bounded, strict input handling to the anonymous signed-storage download path, following the 256-character bound already added to legacy Property Manager QR validation. The complete current-head non-container backend suite passes **227/227** with **0 failures and 2 explicit environment skips** for MinIO and two-instance PostgreSQL when local Docker is unavailable. No current-head Docker-backed or Sonar result is claimed.
 
 The latest isolated frontend certification branch is `20f199f`. Its complete local Vitest suite passes **157/157 across 37 files**; the preceding coverage run at `e74c701` reports **63.41% lines, 59.68% statements, 51.20% branches, and 56.27% functions**. Typecheck and production build pass; lint remains **0 errors / 107 warnings**. This exceeds the local 60% frontend line target. No new Sonar analysis is claimed for these test-only commits, so the existing Sonar findings, 80% new-code requirement, staging/provider checks, and deployed SHA parity remain open.
 

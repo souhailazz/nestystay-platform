@@ -6,7 +6,7 @@ The temporary analysis token was not committed or included in this report.
 
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Backend commit `732c710` adds a regression test for the legacy Property Manager QR token bound. The current-head non-container backend suite passes **226/226** with **0 failures and 2 explicit environment skips**; local Docker recovery is still required before a current-head MinIO/PostgreSQL coverage run or new backend Sonar upload can be claimed.
+Backend commit `ff31270` adds bounded, strict input handling and regression coverage for signed storage downloads; the preceding backend commit `732c710` bounded the legacy Property Manager QR token. The current-head non-container backend suite passes **227/227** with **0 failures and 2 explicit environment skips**; local Docker recovery is still required before a current-head MinIO/PostgreSQL coverage run or new backend Sonar upload can be claimed.
 
 Frontend commits `f1f935b`, `9ccfb75`, and `e74c701` added behavioral tests for the landing SearchBar, Property Manager modules, booking identity-verification handoff, and invoice/receipt workflows; `20f199f` corrected test typing. The complete local Vitest suite at `20f199f` passes **157/157 across 37 files** and the preceding V8 run at `e74c701` reports **63.41% line, 59.68% statement, 51.20% branch, and 56.27% function coverage**. This is local test-run evidence only; a new Sonar analysis has not been run for these test-only commits, so the Sonar metrics below remain attributed to the prior scanned frontend SHA and are not silently relabeled.
 
