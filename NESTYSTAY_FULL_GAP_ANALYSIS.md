@@ -41,7 +41,7 @@ The focused local matrix was rerun at backend `393edd1e20269350ed565fff8dda53b99
 
 The signed agreement was read from `docs/contracts/NestyStay-Signed-Agreement-April-2026.pdf`. Its recorded SHA is `0C4AAD0B1A2D015433C0875107DD171C93C4191281D7CCCBBE748B37DB4FD28`. The later handwritten business amendment takes precedence over conflicting typed values for this audit. The audit intentionally ignores developer/client milestone payment terms. Root audit artifacts were initially committed at `a44e664`; remediation state/history is committed separately after the backend/frontend pricing commits.
 
-Certification branch revisions at this refresh: root `db5fc83`, backend `d2c8436`, frontend `fe01b88`. The backend configured Docker-backed suite is 303/303; the frontend tracked-test suite is 177/177 across 45 files. Exact-head Sonar is now recorded for these revisions: backend 62.7% line coverage / 996 smells and frontend 60.0% / 972 smells. The backend 80% target, maintainability acceptance, new-code conditions, and external/staging gates remain open.
+Certification branch revisions at this refresh: root `f54e4e0`, backend `d2c8436`, frontend `fe01b88`. The backend configured Docker-backed suite is 303/303; the frontend tracked-test suite is 177/177 across 45 files. Exact-head Sonar is now recorded for these revisions: backend 62.7% line coverage / 996 smells and frontend 60.0% / 972 smells. The backend 80% target, maintainability acceptance, new-code conditions, and external/staging gates remain open.
 
 ### Root monorepo parity follow-up
 
