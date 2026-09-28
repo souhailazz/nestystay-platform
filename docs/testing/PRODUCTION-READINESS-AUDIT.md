@@ -2,13 +2,13 @@
 
 Date: 2026-09-23
 
-## Current certification refresh — 2026-09-28
+## Current certification refresh — 2026-09-28 (latest local evidence)
 
-The latest isolated backend certification head is `ff31270`. It adds bounded, strict input handling to the anonymous signed-storage download path, following the 256-character bound already added to legacy Property Manager QR validation. The complete current-head non-container backend suite passes **227/227** with **0 failures and 2 explicit environment skips** for MinIO and two-instance PostgreSQL when local Docker is unavailable. No current-head Docker-backed or Sonar result is claimed.
+The latest isolated backend certification head is `ff31270`. It adds bounded, strict input handling to the anonymous signed-storage download path, following the 256-character bound already added to legacy Property Manager QR validation. With disposable loopback PostgreSQL and MinIO configured, the complete unfiltered suite passes **229/229** with **0 failures and 0 skips** (Domain 6, Application 24, Infrastructure 32, API 167). The real MinIO round-trip/authorization test passes 1/1 and the PostgreSQL two-instance concurrency test passes 1/1. A current-head Sonar analysis also processed: 0 bugs, 0 vulnerabilities, 0 hotspots, 798 code smells, 73.2% imported line coverage, and 6.9% duplication. The disposable Sonar instance has no configured acceptance conditions, so its `OK` status is evidence of processing, not production readiness.
 
-The latest isolated frontend certification branch is `20f199f`. Its complete local Vitest suite passes **157/157 across 37 files**; the preceding coverage run at `e74c701` reports **63.41% lines, 59.68% statements, 51.20% branches, and 56.27% functions**. Typecheck and production build pass; lint remains **0 errors / 107 warnings**. This exceeds the local 60% frontend line target. No new Sonar analysis is claimed for these test-only commits, so the existing Sonar findings, 80% new-code requirement, staging/provider checks, and deployed SHA parity remain open.
+The latest isolated frontend certification branch is `20f199f`. Its current complete local Vitest suite passes **157/157 across 37 files**; the current V8 coverage run reports **63.41% lines, 59.69% statements, 51.20% branches, and 56.30% functions**. Typecheck and production build pass; lint remains **0 errors / 107 warnings**. A current-head Sonar analysis processed with 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 58.8% executable-line coverage, and 1.4% duplication. The local V8 line target is met, but Sonar's executable-line calculation is below 60%; the coverage gate remains open.
 
-The production verdict remains **NOT READY for promotion**. The remaining release gates are unchanged: current-head Sonar/maintainability and backend coverage acceptance, real Brevo delivery, MinIO production configuration/durability and upload verification, staging role/IDOR verification, and exact frontend/backend deployed-SHA parity.
+The production verdict remains **NOT READY for promotion**. The remaining release gates are: coverage/maintainability acceptance, real Brevo delivery, MinIO production configuration/durability/backups and upload verification, real external payment/identity verification, staging role/IDOR verification, human accessibility certification, exact Gold/Platinum business values, and frontend/backend deployed-SHA parity.
 
 ## Verdict
 
@@ -18,15 +18,15 @@ The production verdict remains **NOT READY for promotion**. The remaining releas
 
 | Gate | Result | Evidence / blocker |
 |---|---|---|
-| Backend restore/build/tests | PASS | 202 passed, 0 failed, 0 skipped |
+| Backend restore/build/tests | PASS | 229 passed, 0 failed, 0 skipped at current head with disposable PostgreSQL/MinIO configured |
 | Frontend typecheck/build | PASS | Both completed successfully |
-| Frontend lint/audit | PASS with warnings | 0 errors, 85 warnings, 0 npm vulnerabilities |
-| Browser regression | PASS with explicit skips | 224 started; 213 passed; 11 provider/privileged skips; 0 failures |
+| Frontend lint/audit | PASS with warnings | 0 errors, 107 warnings, 0 npm vulnerabilities |
+| Browser regression | PASS with explicit skips | Current head 20f199f: 224 started; 213 passed; 11 explicit skips; 0 failures; 0 did-not-run |
 | Local MinIO I/O | PASS | Real disposable private MinIO exercised |
 | Brevo delivery | BLOCKED_EXTERNAL_CONFIG | No controlled staging key/mailbox available locally |
-| Frontend coverage | FAIL | 25.13% honest all-source line coverage; Sonar reports 25.8% line / 21.4% combined coverage |
-| Backend coverage | FAIL | OpenCover is now imported correctly: 51.2% overall / 50.9% line / 52.1% branch; new-code coverage remains 45.6% |
-| Sonar Quality Gates | FAIL | Backend and frontend gates fail; root gate has no new violation but overall legacy findings remain |
+| Frontend coverage | FAIL / OPEN | Local V8 reports 63.41% lines; current Sonar executable-line coverage is 58.8%, below the requested 60% threshold |
+| Backend coverage | FAIL / OPEN | Current Sonar imported coverage is 73.2%, below the requested 80% target; 798 code smells remain |
+| Sonar Quality Gates | NOT CERTIFIED | Disposable local instance processed all three scans but has no configured acceptance conditions; bugs/vulnerabilities/hotspots are 0, coverage/maintainability gates remain open |
 | Staging SHA parity | UNKNOWN | Existing staging returns 404 for `/api/health/version`; `/version.json` is currently SPA HTML |
 | Production safety | PASS | Production not touched; no secrets committed |
 

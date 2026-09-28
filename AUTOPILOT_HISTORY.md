@@ -585,6 +585,24 @@ Evidence:
 
 The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
 
+## AUTO-0041 — Re-run current-head disposable integration services and Sonar certification
+
+Priority: P1 release evidence  \
+Date: 2026-09-28
+
+Docker recovered sufficiently to run isolated loopback-only PostgreSQL and MinIO containers. The current backend head was tested with both runtime services configured, and fresh current-head backend, frontend, and root runtime/orchestration Sonar analyses were submitted and processed server-side.
+
+Evidence:
+
+- Backend `ff31270`: **229 passed, 0 failed, 0 skipped**; MinIO I/O **1/1**; PostgreSQL two-instance concurrency **1/1**.
+- Frontend `20f199f`: **157 passed, 0 failed**; V8 line coverage **63.41%**.
+- Sonar backend: **0 bugs, 0 vulnerabilities, 0 hotspots, 798 smells, 73.2% coverage, 6.9% duplication**.
+- Sonar frontend: **0 bugs, 0 vulnerabilities, 0 hotspots, 972 smells, 58.8% executable-line coverage, 1.4% duplication**.
+- Sonar root runtime/orchestration: **0 bugs, 0 vulnerabilities, 0 hotspots, 0 smells**.
+- Evidence: `testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md` and its three JSON exports.
+
+The disposable Sonar instance had no configured acceptance conditions, so its `OK` status is not a production-ready verdict. Staging/production provider delivery, backups, role/IDOR proof, human accessibility, exact Gold/Platinum values, and deployed SHA parity remain open.
+
 ## AUTO-0035 — Expand frontend behavioral coverage for landing search and Property Manager modules
 
 Priority: P1 quality evidence  \\
@@ -718,4 +736,17 @@ Evidence:
 - `git diff --check`: PASS; no migrations, provider configuration, secrets, staging, production, or protected `main` were changed.
 
 The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
+
+## AUTO-0041 — Re-run disposable integrations and current-head Sonar analyses
+
+Priority: P0 release evidence  \\
+Date: 2026-09-28
+
+Re-ran the current certification heads with disposable local services after Docker recovered. The backend full solution passed **229/229 with 0 failures and 0 skips** using disposable PostgreSQL and MinIO. Current-head MinIO round-trip/overwrite/signed-download/invalid-credential checks passed **1/1**, and the two-instance PostgreSQL availability/approval/ledger-reversal concurrency test passed **1/1**.
+
+Fresh local Sonar analyses completed server-side for backend `ff31270`, frontend `20f199f`, and root `2334432`. Results are recorded in `testing-evidence/sonarqube/`; the disposable instance has no configured quality-gate conditions. Backend coverage is 73.2% with 798 smells; frontend Sonar executable-line coverage is 58.8% with 972 smells; platform runtime/orchestration scope has zero findings.
+
+The complete current-head Playwright matrix then completed **224/224 started, 213 passed, 0 failed, 11 explicit skips, and 0 did-not-run** in 26.5 minutes across desktop/tablet/mobile Chromium plus configured Firefox/WebKit smoke. External Brevo delivery, staging/production storage durability and backup proof, real provider verification, deployment SHA parity, human accessibility/legal certification, and exact amended Gold/Platinum values remain blocked or open.
+
+No migration, provider configuration, staging, production, secret, or protected `main` was changed.
 

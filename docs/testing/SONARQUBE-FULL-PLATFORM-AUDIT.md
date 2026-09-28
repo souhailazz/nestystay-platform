@@ -4,11 +4,23 @@ Date: 2026-09-27
 Servers: local SonarQube Community Build at `http://localhost:9001` (prior baseline) and disposable refresh at `http://localhost:9002`
 The temporary analysis token was not committed or included in this report.
 
+## Current-head refresh — 2026-09-28
+
+All three current isolated scopes were scanned and processed server-side by a disposable local SonarQube Community Build `26.9.0.129388`. The scan inputs and limitations are recorded in [`CURRENT-LOCAL-SCAN-2026-09-28.md`](../../testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md).
+
+| Project | SHA | Bugs | Vulnerabilities | Hotspots | Code smells | Coverage | Duplication | Processing |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| Backend | `ff31270f` | 0 | 0 | 0 | 798 | 73.2% | 6.9% | SUCCESS |
+| Frontend | `20f199f` | 0 | 0 | 0 | 972 | 58.8% Sonar executable lines; 63.41% local V8 lines | 1.4% | SUCCESS |
+| Platform runtime | `2334432` | 0 | 0 | 0 | 0 | n/a | 0.0% | SUCCESS |
+
+The disposable instance reported `OK` for each project because no quality-gate conditions were configured. This is not a claim that the requested backend 80% target, frontend 60% Sonar target, maintainability backlog, or staging/production release gates have passed. The first platform scan included design-handoff prototype HTML/JS and surfaced 325 prototype findings; it was re-run with the meaningful runtime/orchestration scope (`scripts`, `deploy`, `.github`) and the runtime scope has zero current issues. Design prototypes remain outside runtime certification.
+
 ## Post-scan frontend test coverage update — 2026-09-28
 
-Backend commit `ff31270` adds bounded, strict input handling and regression coverage for signed storage downloads; the preceding backend commit `732c710` bounded the legacy Property Manager QR token. The current-head non-container backend suite passes **227/227** with **0 failures and 2 explicit environment skips**; local Docker recovery is still required before a current-head MinIO/PostgreSQL coverage run or new backend Sonar upload can be claimed.
+Backend commit `ff31270` adds bounded, strict input handling and regression coverage for signed storage downloads; the preceding backend commit `732c710` bounded the legacy Property Manager QR token. The current-head disposable-service backend suite passes **229/229** with **0 failures and 0 skips**; MinIO and PostgreSQL concurrency were exercised against loopback-only containers, and the current-head backend Sonar upload is now processed.
 
-Frontend commits `f1f935b`, `9ccfb75`, and `e74c701` added behavioral tests for the landing SearchBar, Property Manager modules, booking identity-verification handoff, and invoice/receipt workflows; `20f199f` corrected test typing. The complete local Vitest suite at `20f199f` passes **157/157 across 37 files** and the preceding V8 run at `e74c701` reports **63.41% line, 59.68% statement, 51.20% branch, and 56.27% function coverage**. This is local test-run evidence only; a new Sonar analysis has not been run for these test-only commits, so the Sonar metrics below remain attributed to the prior scanned frontend SHA and are not silently relabeled.
+Frontend commits `f1f935b`, `9ccfb75`, and `e74c701` added behavioral tests for the landing SearchBar, Property Manager modules, booking identity-verification handoff, and invoice/receipt workflows; `20f199f` corrected test typing. The complete local Vitest suite at `20f199f` passes **157/157 across 37 files** and the current V8 run reports **63.41% line, 59.69% statement, 51.20% branch, and 56.30% function coverage**. A new Sonar analysis also processed at `20f199f` and reports **58.8% executable-line coverage**. These two coverage calculations are recorded separately.
 
 ## Current local scan summary — 2026-09-27
 

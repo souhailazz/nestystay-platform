@@ -2,27 +2,27 @@
 
 ## Last Completed Task
 
-AUTO-0040 — Bound signed storage download inputs.
+AUTO-0041 — Re-run current-head disposable integration services and Sonar certification.
 
 ## Validation Result
 
-- Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `ff31270` has a fresh non-container run of 227 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
+- Current backend head `ff31270` was rerun with disposable local PostgreSQL and MinIO: Domain 6, Application 24, Infrastructure 32, and API 167; **229 passed, 0 failed, 0 skipped**. The real MinIO round-trip/overwrite/signed-download/invalid-credential test passed 1/1, and the PostgreSQL two-instance concurrency test passed 1/1.
 - Frontend unit suite: 157 passed across 37 files at frontend `20f199f`.
 - Fresh frontend V8 coverage baseline at `e74c701`: 63.41% lines (4,804/7,576), 59.68% statements, 51.20% branches, 56.27% functions. The follow-up `20f199f` changes test typing only and preserves this measurement; no Sonar refresh is claimed for these test-only commits.
 - Frontend typecheck: PASS.
 - Frontend production build: PASS.
 - Frontend lint: 0 errors, 107 warnings.
 - Frontend npm audit at high severity: 0 known vulnerabilities.
-- Latest browser regression at frontend `352f2f8`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 27.7 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the local PostgreSQL-backed application. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-27.md`.
-- Fresh local SonarQube analyses were completed for earlier certification heads, not the current backend head. The latest server-side backend metrics remain the scan at `393edd1` (0 bugs, 0 vulnerabilities, 0 hotspots, 996 code smells, 62.1% raw line coverage, 20.4% duplication); no current-head Sonar result is claimed after `36c9c78`. Frontend refresh at `352f2f8` completed server-side: Quality Gate `OK`, 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 56.6% Sonar-imported line coverage, and 1.4% duplication. Root/platform scope remains 0 current issues.
-- Sonar evidence: `testing-evidence/sonarqube/CERTIFICATION-SUMMARY-2026-09-27.json` and `.md`, plus `BACKEND-POST-REFACTOR-2026-09-27.*`. The post-refactor backend task is `34d63bc6-ff30-460e-928c-385ae056a704`; prior baseline tasks remain backend `21416d9c-313c-4d75-a8fc-59d9a4ae0575`, frontend `60b5e8ed-0014-4772-be00-7e6feb5d035d`, root `6686f78b-6ceb-4ddf-87c0-fc0c0c13a205`.
+- Latest current-head browser regression at frontend `20f199f`: 224 discovered, 224 started, 213 passed, 0 failed, 11 explicit skips, 0 did-not-run in 26.5 minutes. Desktop Chromium, tablet Chromium, mobile Chromium, Firefox, and WebKit configured scopes ran against the disposable PostgreSQL-backed application with the local Admin fixture. Evidence: `testing-evidence/final-hardening/07-browser/LOCAL-PLAYWRIGHT-2026-09-28-CURRENT.md`.
+- Fresh current-head SonarQube analyses were processed server-side on a disposable local instance. Backend `ff31270`: 0 bugs, 0 vulnerabilities, 0 hotspots, 798 code smells, 73.2% coverage, 6.9% duplication. Frontend `20f199f`: 0 bugs, 0 vulnerabilities, 0 hotspots, 972 code smells, 58.8% Sonar executable-line coverage, 1.4% duplication; the local V8 line report remains 63.41%. Root runtime/orchestration `2334432`: 0 bugs, 0 vulnerabilities, 0 hotspots, 0 code smells. These disposable Quality Gate `OK` results have no configured conditions and do not close the requested coverage gates. Evidence: `testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md` and the three JSON exports.
+- Sonar evidence for this refresh is committed under `testing-evidence/sonarqube/BACKEND-CURRENT-2026-09-28.json`, `FRONTEND-CURRENT-2026-09-28.json`, `PLATFORM-CURRENT-2026-09-28.json`, and `CURRENT-LOCAL-SCAN-2026-09-28.md`. Backend analysis ID: `abba376b-fd73-4ce7-bebf-9654c6c34b8b`. The frontend scanner emitted non-fatal highlight warnings for long CSS lines; no application source was changed for that analyzer warning.
 - Pushed certification source revisions: root evidence branch prior to this documentation refresh `c44a334953c6f1901e0b592b085ff9a37111f1c2`, backend `ff31270f134c599fadb7dd7058f361fb45cc55ff`, frontend `20f199f80bea89e58b3632a4e828e04c488c9652`.
 - Root monorepo validation after Gate Guard parity and pricing alignment: backend release tests 186 passed, 0 failed, 0 skipped; focused Gate Guard API tests 2 passed; frontend typecheck/build passed; lint 0 errors / 84 warnings; npm audit 0 known vulnerabilities.
 - Follow-up split-backend security matrix: 28 passed, 0 failed, 0 skipped across cross-resource authorization, Property Manager scope, cookie/session, signed-token, and webhook-security tests.
 - Follow-up disposable MinIO I/O run: 2 passed, 0 failed, 0 skipped with `MINIO_TEST_ENDPOINT` configured; full backend solution rerun: 212 passed, 0 failed, 0 skipped.
 - Read-only staging probe: `/api/health/live` 200; `/api/health/ready` 200 with database `ready` and storage `CONFIGURED`; `/api/health/version` 404; `/version.json` returns the SPA HTML fallback instead of JSON. Deployed SHA parity therefore remains unverified.
 - The PostgreSQL multi-instance integration test no longer silently passes when its connection string is absent: it now reports an explicit skip, and it passed 1/1 against the disposable local PostgreSQL container when configured.
-- Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: 3 passed, 0 failed, 0 skipped across desktop/tablet/mobile Chromium, including upload, reload, signed download, and byte equality.
+- Browser MinIO opt-in rerun with `OBJECT_STORAGE_PROVIDER=minio`: the current full browser matrix includes the MinIO UI journey in desktop, tablet, and mobile Chromium; standalone current-head MinIO object I/O passed 1/1 with the disposable private container.
 - Backend maintainability refactor at `e195e8b`: badge-review evaluation was split into named requirement helpers and the nested `NextAction` conditional was made explicit. Focused phase-two tests passed 7/7; the complete unconfigured backend run passed 211 with 2 explicit integration skips; the configured PostgreSQL/MinIO integration evidence passes when run against the disposable services. A fresh post-refactor Sonar upload and server-side processing also completed successfully; its evidence is under `testing-evidence/sonarqube/BACKEND-POST-REFACTOR-2026-09-27.*`.
 - The configured API regression was initially decomposed to diagnose the all-at-once test-host hang: 105 non-Property-Manager tests passed, 45 in-memory Property Manager tests passed, and the PostgreSQL two-instance test passed 1/1. That diagnostic result is superseded by the dedicated non-parallel xUnit collection fix and the subsequent complete 151-test API run recorded below.
 - The API integration test is now isolated in a non-parallel xUnit collection. The complete configured solution then passed 213/213 with no skips; the test-only fix is backend commit `0631b11`.
@@ -128,7 +128,7 @@ Evidence:
 - Focused oversized-token regression: **1 passed, 0 failed**.
 - Full `PropertyManagerEndpointTests`: **11 passed, 0 failed**.
 - Complete current-head non-container backend solution: **226 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
-- Current-head Docker-backed MinIO/PostgreSQL rerun and Sonar refresh remain blocked by local Docker recovery; no current-head container or Sonar result is inferred.
+- Current-head disposable MinIO/PostgreSQL and Sonar reruns are complete. Production/staging storage durability, backups, Brevo delivery, role/IDOR evidence, and deployed SHA parity remain unverified.
 
 Detailed evidence: `testing-evidence/final-hardening/04-authorization/LEGACY-MANAGER-QR-INPUT-2026-09-28.md`.
 
@@ -218,8 +218,8 @@ The local browser gate is therefore green for executed journeys, and the separat
 - M3: external provider, storage, payout and operational certification remain.
 - M4: Gate Guard lifecycle/authentication is locally implemented; staging/browser certification, physical gate hardware, and geocoding remain unverified or out of current scope.
 - M5: production storage/email/billing and complete manual responsive certification remain.
-- Backend Sonar: the latest current-head scan at `393edd1e20269350ed565fff8dda53b997792e39` reports 62.1% raw line coverage, 996 code smells, 20.4% duplication, 0 bugs, 0 vulnerabilities, and 0 hotspots. File measures reach 72.8% only when all EF migration files are excluded; this remains below 80%. The direct authored-line collector previously measured 51.33% after excluding only EF-generated migration designer/snapshot source. The requested coverage and maintainability target is not complete.
-- Frontend Sonar: fresh scan at `352f2f8c8e131c8f1fd2800a697cb6b4c5a364a0` reports 56.6% Sonar-imported line coverage and 972 maintainability issues. The local V8 run is 61.16% lines, above the requested 60% local threshold, but the 80% new-code requirement is not claimed as passed.
+- Backend Sonar: the current-head scan at `ff31270f134c599fadb7dd7058f361fb45cc55ff` reports 73.2% line coverage, 798 code smells, 6.9% duplication, 0 bugs, 0 vulnerabilities, and 0 hotspots. The requested 80% coverage and maintainability target is not complete.
+- Frontend Sonar: current-head scan at `20f199f80bea89e58b3632a4e828e04c488c9652` reports 58.8% executable-line coverage and 972 maintainability issues. The local V8 run is 63.41% lines, but Sonar's executable-line calculation remains below the requested 60% threshold and the 80% new-code requirement is not claimed as passed.
 - Platform Sonar: gate PASS for new-code scope; overall scanned orchestration findings remain separate from runtime certification.
 - Full staging role/IDOR certification remains.
 - Brevo real transport/mailbox delivery remains blocked by external configuration.
@@ -348,7 +348,23 @@ Current release blockers are external/staging proof and quality debt: real Brevo
 
 ## Next Best Action
 
-Keep the exact Gold/Platinum values blocked on human business input; while Docker and external providers remain unavailable, continue local P1 security/authorization hardening and prepare the current-head Docker-backed MinIO/PostgreSQL and Sonar rerun for when the environment is restored.
+Keep the exact Gold/Platinum values blocked on human business input; next execute the current frontend browser matrix at `20f199f` and then update the staging-dependent blockers only after Terrence deploys/verifies the corresponding SHAs and provider configuration. Do not treat the disposable Sonar `OK` status as a release gate.
+
+## AUTO-0041 — Re-run current-head disposable integration services and Sonar certification
+
+Priority: P1 release evidence  \
+Date: 2026-09-28
+
+Docker recovered sufficiently to start isolated loopback-only PostgreSQL and MinIO containers. The current backend head was tested with both runtime services configured, removing the two previous environment skips from the full suite. A fresh local SonarQube instance processed current backend, frontend, and root runtime/orchestration scans.
+
+Evidence:
+
+- Backend `ff31270`: **229 passed, 0 failed, 0 skipped**; MinIO I/O **1/1**; PostgreSQL two-instance concurrency **1/1**.
+- Frontend `20f199f`: **157 passed, 0 failed**; V8 line coverage **63.41%**.
+- Current local Sonar metrics: backend **73.2%** coverage / 798 smells / 0 bugs-vulnerabilities-hotspots; frontend **58.8%** Sonar coverage / 972 smells / 0 bugs-vulnerabilities-hotspots; root runtime scope **0** issues.
+- Full evidence is under `testing-evidence/sonarqube/CURRENT-LOCAL-SCAN-2026-09-28.md` and the three JSON exports.
+
+This closes the local Docker execution blocker only. It does not verify production/staging MinIO backups, Brevo delivery, real Stripe flows, staging authorization, human accessibility, exact Gold/Platinum values, or deployed SHA parity.
 
 ## AUTO-0005 — Fresh local SonarQube certification
 
