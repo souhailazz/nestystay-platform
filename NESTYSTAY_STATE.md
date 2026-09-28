@@ -2,7 +2,7 @@
 
 ## Last Completed Task
 
-AUTO-0031 — Share Property Manager owner-approval enforcement.
+AUTO-0032 — Simplify Property Manager approval decision flow.
 
 ## Validation Result
 
@@ -40,6 +40,7 @@ AUTO-0031 — Share Property Manager owner-approval enforcement.
 - Current backend head `4ece56f` adds passkey credential ownership/lifecycle coverage: list isolation, persisted revocation, inactive lifecycle visibility, repeat-delete behavior, and cross-user delete denial. Focused tests passed **3/3** and the full configured suite passed **225/225** (Domain 6, Application 24, Infrastructure 32, API 163). The current XML coverage artifact was generated, but the local Docker daemon stopped before the fresh disposable Sonar server could process it; the latest verified server-side Sonar metrics therefore remain at `393edd1` and must not be treated as current-head measurements. Evidence: `testing-evidence/15-coverage/PASSKEY-OWNERSHIP-LIFECYCLE-2026-09-28.md`.
 - Current backend head `b726d6d` centralizes Property Manager staff roles/statuses plus Gate Guard and finance validation shared by invitation and update paths. Focused Property Manager P0, authorization, and passkey tests passed **21/21**. The complete non-container suite passed **225/225** with **2 explicit integration skips** (MinIO and two-instance PostgreSQL); a current-head Docker-backed rerun is pending local Docker recovery. The exported Sonar issue inventory is triaged by rule/severity and runtime risk in `testing-evidence/sonarqube/BACKEND-MAINTAINABILITY-TRIAGE-2026-09-28.md`.
 - Current backend head `36c9c78` centralizes the duplicated owner-approval query/validation used by maintenance and work-order financial workflows. This is behavior-preserving: source-specific scope and the existing error messages remain unchanged. Focused Property Manager workflow/P0 tests passed **19/19**; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
+- Current backend head `ece2fb0` extracts approval-decision normalization, actor/portfolio authorization, and expiry persistence from the PM finance decision endpoint. The status/reason/idempotency rules, owner/admin boundary, expiry event, concurrency checks, and response behavior are preserved. Focused PM P0/authorization/professional tests passed **24/24**; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 

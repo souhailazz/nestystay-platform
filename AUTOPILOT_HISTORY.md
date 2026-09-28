@@ -569,3 +569,19 @@ Evidence:
 
 The Docker engine remained unresponsive during a single controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
 
+## AUTO-0032 — Simplify Property Manager approval decision flow
+
+Priority: P1 authorization / financial lifecycle  \\
+Date: 2026-09-28
+
+The PM finance approval-decision endpoint had validation, portfolio authorization, idempotency replay, expiry persistence, concurrency checks, and final decision mutation in one high-complexity method. The decision normalization, actor authorization, and expiry persistence are now isolated helpers. Existing status/reason/idempotency rules, owner/admin boundaries, expiry event behavior, concurrency handling, notification keys, and response mapping are preserved.
+
+Evidence:
+
+- Backend commit: `ece2fb0`, pushed to `codex/final-release-certification`.
+- Focused PM P0/authorization/professional tests: **24 passed, 0 failed, 0 skipped**.
+- Complete non-container backend solution: **225 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- `git diff --check`: PASS; no migrations, provider configuration, secrets, staging, production, or protected `main` were changed.
+
+The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
+
