@@ -585,3 +585,19 @@ Evidence:
 
 The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
 
+## AUTO-0033 — Split Property Manager manager-resolution authorization flow
+
+Priority: P1 authorization maintainability  \\
+Date: 2026-09-28
+
+The central Property Manager manager resolver combined owner portfolio selection, staff lookup, Gate Guard denial, finance/payout capability checks, owner/property scope checks, and direct manager authorization. These rules were extracted into named helpers without changing their query predicates, authorization boundaries, exception messages, or manager-selection behavior.
+
+Evidence:
+
+- Backend commit: `966aead`, pushed to `codex/final-release-certification`.
+- Focused Property Manager suite: **45 passed, 0 failed, 1 explicit PostgreSQL multi-instance skip**.
+- Complete non-container backend solution: **225 passed, 0 failed, 2 explicit environment skips** (MinIO and two-instance PostgreSQL).
+- `git diff --check`: PASS; no migrations, provider configuration, secrets, staging, production, or protected `main` were changed.
+
+The Docker engine remained unresponsive during the controlled readiness check, so the post-refactor Docker-backed MinIO/PostgreSQL rerun and fresh Sonar upload remain pending. No current-head container or Sonar result is inferred from the passing non-container run.
+

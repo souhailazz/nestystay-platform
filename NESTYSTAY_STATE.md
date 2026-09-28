@@ -2,11 +2,11 @@
 
 ## Last Completed Task
 
-AUTO-0032 — Simplify Property Manager approval decision flow.
+AUTO-0033 — Split Property Manager manager-resolution authorization flow.
 
 ## Validation Result
 
-- Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `36c9c78` has a fresh non-container run of 225 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
+- Last Docker-enabled backend run (at `4ece56f`, immediately before the current refactors): 225 passed, 0 failed, 0 skipped. The current head `966aead` has a fresh non-container run of 225 passed, 0 failed, and 2 explicit environment skips; the post-refactor Docker-backed rerun is pending Docker recovery.
 - Frontend unit suite: 146 passed across 34 files.
 - Fresh frontend V8 coverage: 61.16% lines (4,634/7,576), 57.12% statements, 48.76% branches, 53.49% functions.
 - Frontend typecheck: PASS.
@@ -41,6 +41,7 @@ AUTO-0032 — Simplify Property Manager approval decision flow.
 - Current backend head `b726d6d` centralizes Property Manager staff roles/statuses plus Gate Guard and finance validation shared by invitation and update paths. Focused Property Manager P0, authorization, and passkey tests passed **21/21**. The complete non-container suite passed **225/225** with **2 explicit integration skips** (MinIO and two-instance PostgreSQL); a current-head Docker-backed rerun is pending local Docker recovery. The exported Sonar issue inventory is triaged by rule/severity and runtime risk in `testing-evidence/sonarqube/BACKEND-MAINTAINABILITY-TRIAGE-2026-09-28.md`.
 - Current backend head `36c9c78` centralizes the duplicated owner-approval query/validation used by maintenance and work-order financial workflows. This is behavior-preserving: source-specific scope and the existing error messages remain unchanged. Focused Property Manager workflow/P0 tests passed **19/19**; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
 - Current backend head `ece2fb0` extracts approval-decision normalization, actor/portfolio authorization, and expiry persistence from the PM finance decision endpoint. The status/reason/idempotency rules, owner/admin boundary, expiry event, concurrency checks, and response behavior are preserved. Focused PM P0/authorization/professional tests passed **24/24**; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
+- Current backend head `966aead` splits manager resolution into owner-manager selection, active staff lookup, staff-scope validation, and direct-manager authorization helpers. Gate Guard denial, finance/payout capability checks, owner/property scope checks, owner portfolio selection, and direct manager/admin behavior are preserved. Focused Property Manager tests passed **45/45** with no failures and one explicit PostgreSQL multi-instance skip; the complete non-container solution passed **225/225** with **2 explicit integration skips**. Docker remains unavailable for the post-refactor MinIO/PostgreSQL rerun, and no fresh Sonar upload is claimed.
 
 ## AUTO-0018 — Audit founding Gold/Platinum commercial lifecycle
 
