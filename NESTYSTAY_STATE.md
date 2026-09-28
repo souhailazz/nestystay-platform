@@ -6,7 +6,7 @@
 - The current Gate Guard lifecycle and authenticated boundary remain locally implemented; the focused API authorization run passed **5/5** with zero failures/skips. This does not replace staging role/device qualification.
 - Confirmed the integration-health storage entry uses `storageProvider.ProviderName`, so MinIO/S3 is reported as the configured provider rather than being mislabeled as server-local storage. No source change was necessary for this finding.
 - Removed stale Alibaba environment mappings from the production example and both API/worker Compose service blocks. Active-scope scans now find no Alibaba runtime/config mapping; historical migrations, design references, and the explicit inventory remain preserved.
-- Corrected stale matrix metadata: current root certification head is `719710b`, the requirement counts are **52 COMPLETE / 26 PARTIAL / 1 MOCK / 6 MISSING / 0 WRONG_LOGIC / 2 NEEDS_EXACT_VALUE**, and historical migrations remain unchanged.
+- Corrected stale matrix metadata: current root certification head is `9585777`, the backend branch head is `7540428` (documentation-only inventory refresh over tested runtime `eeab0d2`), and the requirement counts are **52 COMPLETE / 26 PARTIAL / 1 MOCK / 6 MISSING / 0 WRONG_LOGIC / 2 NEEDS_EXACT_VALUE**; historical migrations remain unchanged.
 - No protected `main`, staging, production, external provider, secret, or dirty user workspace was modified.
 
 ## Next Best Action
