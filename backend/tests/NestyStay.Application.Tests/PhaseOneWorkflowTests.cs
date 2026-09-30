@@ -388,6 +388,7 @@ public sealed class PhaseOneWorkflowTests
             120m,
             "USD"),
             CancellationToken.None);
+        await ((IPropertyModerationStore)harness.Store).ModeratePropertyAsync(Guid.NewGuid(), property.Id, new PropertyModerationRequest("Approved"), CancellationToken.None);
 
         var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 3)), CancellationToken.None);
 
@@ -414,6 +415,7 @@ public sealed class PhaseOneWorkflowTests
             150m,
             "USD"),
             CancellationToken.None);
+        await ((IPropertyModerationStore)harness.Store).ModeratePropertyAsync(Guid.NewGuid(), property.Id, new PropertyModerationRequest("Approved"), CancellationToken.None);
 
         var booking = await harness.Store.CreateBookingAsync(
             new CreateBookingRequest(property.Id, user.UserId, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 3)),
@@ -442,6 +444,48 @@ public sealed class PhaseOneWorkflowTests
         Assert.NotNull(failedWebhook);
         Assert.Equal("CAPTURED", failedWebhook.PaymentStatus);
         Assert.Contains(failedWebhook.Timeline, entry => entry.Contains("ignored Failed", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task PendingPropertiesCannotBeQuotedBookedOrHeldUntilApproved()
+    {
+        var harness = CreateHarness();
+        var guest = await harness.Store.RegisterAsync(Registration("moderation-guard@test.local", "Moderation Guest"), CancellationToken.None);
+        var property = await harness.Store.CreatePropertyAsync(new CreatePropertyRequest(
+            Guid.NewGuid(), "Moderation Host", "moderation-host@test.local", "Pending Cottage", "Kingston", "Jamaica", 150m, "USD", BadgeLevel.Verified, GuestVerificationEnabled: false), CancellationToken.None);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Store.QuoteBookingAsync(new BookingQuoteRequest(property.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3)), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, guest.UserId, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3)), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ((IBookingDateHoldStore)harness.Store).HoldBookingDatesAsync(guest.UserId, new HoldBookingDatesRequest(property.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3)), CancellationToken.None));
+
+        await ((IPropertyModerationStore)harness.Store).ModeratePropertyAsync(Guid.NewGuid(), property.Id, new PropertyModerationRequest("Approved"), CancellationToken.None);
+        var hold = await ((IBookingDateHoldStore)harness.Store).HoldBookingDatesAsync(guest.UserId, new HoldBookingDatesRequest(property.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3)), CancellationToken.None);
+        Assert.True(hold.IsDateHold);
+        Assert.True(hold.DatesHeld);
+
+        var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, guest.UserId, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3), DateHoldId: hold.Id), CancellationToken.None);
+        Assert.False(booking.IsDateHold);
+        Assert.Equal("APPROVED", booking.Status);
+    }
+
+    [Fact]
+    public async Task HostRejectionVoidsAnAuthorizedPaymentBeforeReleasingDates()
+    {
+        var harness = CreateHarness();
+        var hostId = Guid.NewGuid();
+        var guest = await harness.Store.RegisterAsync(Registration("void-on-reject@test.local", "Void Guest"), CancellationToken.None);
+        var property = await harness.Store.CreatePropertyAsync(new CreatePropertyRequest(
+            hostId, "Void Host", "void-host@test.local", "Void Cottage", "Kingston", "Jamaica", 150m, "USD", BadgeLevel.Verified, GuestVerificationEnabled: false), CancellationToken.None);
+        await ((IPropertyModerationStore)harness.Store).ModeratePropertyAsync(Guid.NewGuid(), property.Id, new PropertyModerationRequest("Approved"), CancellationToken.None);
+
+        var booking = await harness.Store.CreateBookingAsync(new CreateBookingRequest(property.Id, guest.UserId, new DateOnly(2026, 12, 10), new DateOnly(2026, 12, 12)), CancellationToken.None);
+        Assert.Equal("AUTHORIZED", booking.PaymentStatus);
+        var rejected = await ((IBookingDecisionStore)harness.Store).RejectBookingAsync(hostId, booking.Id, new BookingDecisionRequest("Host unavailable"), CancellationToken.None);
+
+        Assert.NotNull(rejected);
+        Assert.Equal("REJECTED", rejected!.Status);
+        Assert.Equal("CANCELLED", rejected.PaymentStatus);
+        Assert.Contains(rejected.Timeline, item => item.Contains("voided", StringComparison.OrdinalIgnoreCase));
     }
 
     private static PhaseOneHarness CreateHarness(TimeProvider? timeProvider = null)

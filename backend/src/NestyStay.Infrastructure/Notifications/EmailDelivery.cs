@@ -89,7 +89,7 @@ public static class EmailTemplateCatalog
             ["booking-update"] = Build("booking-update", "Your NestyStay booking update", "YOUR STAY", "Booking status updated", "Your NestyStay booking status is now {{status}}.", "Keep this message for your records and open the booking for the full timeline.", "Hello,\n\nYour booking status is now {{status}}.\n\nOpen booking: {{actionUrl}}", Status("Booking status", "{{status}}"), "Open booking")
         };
 
-    public static IReadOnlyCollection<EmailTemplate> All => Templates.Values.ToArray();
+    public static IReadOnlyCollection<EmailTemplate> All { get; } = Templates.Values.ToArray();
 
     public static EmailTemplate? Find(string? key) =>
         key is not null && Templates.TryGetValue(key, out var template) ? template : null;

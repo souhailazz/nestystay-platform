@@ -26,10 +26,13 @@ process.env.Email__Brevo__Enabled = "false";
 process.env.BREVO_ENABLED = "false";
 process.env.NESTYSTAY_EMAIL_OUTBOX_ROOT ??= `${process.env.TEMP ?? process.env.TMP ?? "."}/nestystay-email-outbox`;
 
-// The backend accepts this legacy token only in Development. The hash is
-// derived here rather than storing a reusable secret in the repository.
-process.env.NESTYSTAY_E2E_ADMIN_TOKEN ??= "test-admin-token";
-process.env.NESTYSTAY_ADMIN_TOKEN_SHA256 ??= createHash("sha256").update(process.env.NESTYSTAY_E2E_ADMIN_TOKEN).digest("hex");
+// Do not synthesize a privileged browser credential. Admin browser journeys
+// require an explicitly supplied local/staging token or skip as
+// ADMIN_BROWSER=CONFIG_BLOCKED. The local backend still derives its own
+// development token hash in scripts/dev-common.ps1 for direct API tests.
+if (process.env.NESTYSTAY_E2E_ADMIN_TOKEN) {
+  process.env.NESTYSTAY_ADMIN_TOKEN_SHA256 ??= createHash("sha256").update(process.env.NESTYSTAY_E2E_ADMIN_TOKEN).digest("hex");
+}
 
 export default defineConfig({
   testDir: "./e2e",

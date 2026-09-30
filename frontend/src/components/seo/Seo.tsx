@@ -51,7 +51,8 @@ export function Seo({
   jsonLd?: unknown;
 }) {
   useEffect(() => {
-    const canonicalUrl = canonicalPath.startsWith("http") ? canonicalPath : `${SITE_URL}${canonicalPath === "/" ? "/" : canonicalPath.replace(/\/$/, "")}`;
+    const normalizedPath = canonicalPath === "/" ? "/" : canonicalPath.replace(/\/$/, "");
+    const canonicalUrl = canonicalPath.startsWith("http") ? canonicalPath : `${SITE_URL}${normalizedPath}`;
     document.title = `${title} · NestyStay`;
     upsertMeta("name", "description", description);
     upsertMeta("name", "robots", noindex ? "noindex,follow" : "index,follow,max-image-preview:large");

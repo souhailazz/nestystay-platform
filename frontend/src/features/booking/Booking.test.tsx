@@ -3,16 +3,22 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { PropsWithChildren } from 'react';
 import { BookingStateContainer } from './BookingStateContainer';
 import { BookingCheckoutPage } from './BookingCheckoutPage';
 import { BookingReviewPage } from './BookingReviewPage';
-import { api } from '../../lib/api';
+import { api, type Booking, type BookingQuote as ApiBookingQuote, type PropertyListing } from '../../lib/api';
+import type { AuthController } from '../../hooks/useAuth';
+import type { BookingQuote as ReviewBookingQuote } from './types';
+
+type PatoisMockProps = { phrase: string };
 
 vi.mock('../../lib/api', () => ({
   api: {
     getProperties: vi.fn(),
     getBookingQuote: vi.fn(),
     getBooking: vi.fn(),
+    holdBookingDates: vi.fn(),
     createBooking: vi.fn(),
     downloadBookingInvoice: vi.fn(),
     downloadBookingReceipt: vi.fn(),
@@ -21,12 +27,12 @@ vi.mock('../../lib/api', () => ({
 }));
 
 vi.mock('../../lib/patois', () => ({
-  PatoisPhrase: ({ phrase }: any) => <span data-testid="patois-mock">{phrase}</span>,
+  PatoisPhrase: ({ phrase }: PatoisMockProps) => <span data-testid="patois-mock">{phrase}</span>,
   usePatois: () => ({ t: (s: string) => s })
 }));
 
 vi.mock('@stripe/react-stripe-js', () => ({
-  Elements: ({ children }: any) => <div data-testid="stripe-elements">{children}</div>,
+  Elements: ({ children }: PropsWithChildren) => <div data-testid="stripe-elements">{children}</div>,
     PaymentElement: () => <div data-testid="payment-element" />,
     ExpressCheckoutElement: () => <div data-testid="express-checkout-element" />,
   useStripe: () => ({
@@ -65,6 +71,7 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_STRIPE_PUBLIC_KEY', 'pk_test_frontend_unit');
     vi.clearAllMocks();
+    vi.mocked(api.holdBookingDates).mockResolvedValue({ id: 'hold-1' } as unknown as Booking);
   });
 
   afterEach(() => {
@@ -81,10 +88,10 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
         datesAvailable: true, priceBreakdown: []
       };
 
-      vi.mocked(api.getProperties).mockResolvedValue([{ id: 'p1' } as any]);
-      vi.mocked(api.getBookingQuote).mockResolvedValue(mockQuote as any);
+      vi.mocked(api.getProperties).mockResolvedValue([{ id: 'p1' } as unknown as PropertyListing]);
+      vi.mocked(api.getBookingQuote).mockResolvedValue(mockQuote as unknown as ApiBookingQuote);
 
-      render(<BookingStateContainer state="review" auth={mockAuth as any} />);
+      render(<BookingStateContainer state="review" auth={mockAuth as unknown as AuthController} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('book-02-page')).toBeDefined();
@@ -109,9 +116,9 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
 
       const { container } = render(
         <BookingReviewPage
-          quote={mockQuote as any}
+          quote={mockQuote as unknown as ReviewBookingQuote}
           details={{ adults: 2, children: 0, accessibility: '', protection: 'insuraguest' }}
-          auth={mockAuth as any}
+          auth={mockAuth as unknown as AuthController}
           onBackToModal={vi.fn()}
           onProceedToCheckout={vi.fn()}
         />
@@ -132,9 +139,9 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
     it('renders secure stripe checkout if clientSecret is present', async () => {
       vi.mocked(api.getBooking).mockResolvedValue({
         id: 'b1', totalAmount: 440, currency: 'USD', paymentClientSecret: 'pi_secret', status: 'Approved'
-      } as any);
+      } as unknown as Booking);
 
-      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as any} onSuccess={vi.fn()} onFailure={vi.fn()} />);
+      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as unknown as AuthController} onSuccess={vi.fn()} onFailure={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('book-03-page')).toBeDefined();
@@ -148,9 +155,9 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
       vi.stubEnv('VITE_STRIPE_PUBLIC_KEY', '');
       vi.mocked(api.getBooking).mockResolvedValue({
         id: 'b1', totalAmount: 440, currency: 'USD', paymentClientSecret: 'pi_secret', status: 'Approved'
-      } as any);
+      } as unknown as Booking);
 
-      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as any} onSuccess={vi.fn()} onFailure={vi.fn()} />);
+      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as unknown as AuthController} onSuccess={vi.fn()} onFailure={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('book-03-stripe-config-missing')).toBeDefined();
@@ -163,9 +170,9 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
       vi.stubEnv('VITE_STRIPE_PUBLIC_KEY', '');
       vi.mocked(api.getBooking).mockResolvedValue({
         id: 'b1', totalAmount: 440, currency: 'USD', paymentClientSecret: 'local_client_secret_0123456789abcdef', status: 'Approved'
-      } as any);
+      } as unknown as Booking);
 
-      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as any} onSuccess={vi.fn()} onFailure={vi.fn()} />);
+      render(<BookingCheckoutPage bookingId="b1" auth={mockAuth as unknown as AuthController} onSuccess={vi.fn()} onFailure={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('book-03-page')).toBeDefined();
@@ -191,9 +198,9 @@ describe('Booking Screens (BOOK-01 to BOOK-10)', () => {
       it(`renders ${id} (${state}) correctly`, async () => {
         vi.mocked(api.getBooking).mockResolvedValue({
           id: 'b1', totalAmount: 440, currency: 'USD', status: 'mock', timeline: [], priceBreakdown: []
-        } as any);
+        } as unknown as Booking);
 
-        render(<BookingStateContainer state={state} bookingId="b1" auth={mockAuth as any} />);
+        render(<BookingStateContainer state={state} bookingId="b1" auth={mockAuth as unknown as AuthController} />);
 
         await waitFor(() => {
           expect(screen.getByTestId(`${id.toLowerCase()}-page`)).toBeDefined();

@@ -29,7 +29,10 @@ public sealed class PropertyManagerDocumentExportService(
         {
             try
             {
-                while (await ProcessOneAsync(stoppingToken)) { }
+                while (await ProcessOneAsync(stoppingToken))
+                {
+                    await Task.Yield();
+                }
             }
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
             {
@@ -77,7 +80,8 @@ public sealed class PropertyManagerDocumentExportService(
                     {
                         await using var source = await storageProvider.OpenReadAsync(document.StorageKey, cancellationToken);
                         var entryName = UniqueEntryName(Path.GetFileName(document.FileName), names);
-                        await using var target = archive.CreateEntry(entryName, CompressionLevel.Fastest).Open();
+                        // ZipArchiveEntry exposes Open(), not OpenAsync(); the actual document copy remains async.
+                        using var target = archive.CreateEntry(entryName, CompressionLevel.Fastest).Open(); // NOSONAR csharpsquid:S6966
                         await source.CopyToAsync(target, cancellationToken);
                     }
                 }
@@ -125,10 +129,15 @@ public sealed class PropertyManagerDocumentExportService(
         if (names.Add(safe)) return safe;
         var stem = Path.GetFileNameWithoutExtension(safe);
         var extension = Path.GetExtension(safe);
-        for (var suffix = 2; ; suffix++)
+        var suffix = 2;
+        string candidate;
+        do
         {
-            var candidate = $"{stem}-{suffix}{extension}";
-            if (names.Add(candidate)) return candidate;
+            candidate = $"{stem}-{suffix}{extension}";
+            suffix++;
         }
+        while (!names.Add(candidate));
+
+        return candidate;
     }
 }

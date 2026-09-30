@@ -146,6 +146,9 @@ if (builder.Configuration.GetValue<bool>("Worker:Enabled"))
     app.Urls.Add("http://127.0.0.1:0");
 }
 
-app.Run();
+await app.RunAsync();
 
-public partial class Program;
+// The generated top-level host type is intentionally non-static so the test
+// host can reference it. Sonar S1118 does not apply to this compiler-generated
+// entry-point type.
+public partial class Program; // NOSONAR

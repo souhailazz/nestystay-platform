@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, MapPin, QrCode, MessageSquare, Download, RotateCcw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, QrCode, MessageSquare, Download } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { api, formatMoney, type Booking, type QrAccess, type QrHistoryEvent, type QrIssueResult } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
@@ -124,21 +124,25 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
         </a>
       </div>
 
-      {loading ? (
+      {loading && (
         <div className="loading-shimmer p-6 text-center">Loading reservations...</div>
-      ) : filteredBookings.length === 0 ? (
+      )}
+      {!loading && filteredBookings.length === 0 && (
         <div className="card-box text-center py-8">
           <p className="text-lg font-medium">No {view.replace("reservations-", "")} reservations found.</p>
           <a href="/explore" className="btn btn-primary mt-3">Book a Stay</a>
         </div>
-      ) : (
+      )}
+      {!loading && filteredBookings.length > 0 && (
         <div className="layout-grid-2-1">
           {/* Booking Cards List */}
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
-              <div 
+              <button
+                type="button"
                 key={booking.id} 
-                className={`card-box cursor-pointer hover:border-sun transition ${selectedBooking?.id === booking.id ? "border-sun bg-sun-light" : ""}`}
+                aria-pressed={selectedBooking?.id === booking.id}
+                className={`card-box w-full cursor-pointer border text-left hover:border-sun transition ${selectedBooking?.id === booking.id ? "border-sun bg-sun-light" : ""}`}
                 onClick={() => setSelectedBooking(booking)}
               >
                 <div className="flex justify-between items-start mb-2">
@@ -149,8 +153,8 @@ export function TravelerReservations({ view, token }: TravelerReservationsProps)
                   </div>
                   <strong className="text-sun">{formatMoney(booking.totalAmount, booking.currency)}</strong>
                 </div>
-              </div>
-            ))}
+                </button>
+              ))}
           </div>
 
           {/* Reservation Detail View */}

@@ -92,7 +92,7 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     [Authorize]
     [HttpGet("owners/{ownerUserId:guid}/statement")]
     public async Task<IActionResult> Statement(Guid ownerUserId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken cancellationToken)
-    { if (!authorization.IsInRole(NestyStay.Domain.UserRole.Admin) && !authorization.IsInRole(NestyStay.Domain.UserRole.PropertyManager) && Actor() != ownerUserId) return Forbid(); return Ok(await store.GetStatementAsync(Actor(), authorization.IsInRole(NestyStay.Domain.UserRole.Admin), ownerUserId, from, to, cancellationToken)); }
+    { if (!authorization.IsInRole(NestyStay.Domain.UserRole.Admin) && !authorization.IsInRole(NestyStay.Domain.UserRole.PropertyManager) && Actor() != ownerUserId) { return Forbid(); } return Ok(await store.GetStatementAsync(Actor(), authorization.IsInRole(NestyStay.Domain.UserRole.Admin), ownerUserId, from, to, cancellationToken)); }
 
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPost("utilities")]
@@ -125,7 +125,8 @@ public sealed class PropertyManagerController(IPropertyManagerStore store, IReso
     [Authorize]
     [HttpPost("maintenance")]
     public async Task<IActionResult> CreateMaintenance(CreateMaintenanceRequest request, CancellationToken cancellationToken)
-    { var isAdmin = authorization.IsInRole(NestyStay.Domain.UserRole.Admin); var isManager = authorization.IsInRole(NestyStay.Domain.UserRole.PropertyManager); if (!isAdmin && !isManager && !authorization.IsInRole(NestyStay.Domain.UserRole.Owner)) return Forbid(); var effective = isManager || isAdmin ? request : request with { OwnerUserId = Actor() }; return Ok(await store.CreateMaintenanceAsync(Actor(), isAdmin, effective, cancellationToken)); }
+    { var isAdmin = authorization.IsInRole(NestyStay.Domain.UserRole.Admin); var isManager = authorization.IsInRole(NestyStay.Domain.UserRole.PropertyManager);
+        if (!isAdmin && !isManager && !authorization.IsInRole(NestyStay.Domain.UserRole.Owner)) { return Forbid(); } var effective = isManager || isAdmin ? request : request with { OwnerUserId = Actor() }; return Ok(await store.CreateMaintenanceAsync(Actor(), isAdmin, effective, cancellationToken)); }
 
     [Authorize(Roles = "PropertyManager,Admin")]
     [HttpPatch("maintenance/{maintenanceId:guid}")]

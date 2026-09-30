@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Download, FileText, FileSpreadsheet } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 
@@ -7,18 +6,18 @@ interface HostReportsExportsProps {
   token: string;
 }
 
-export function HostReportsExports({ view, token }: HostReportsExportsProps) {
-  const isExports = view === "exports";
+function downloadCSV(type: string) {
+  const csvData = "data:text/csv;charset=utf-8,ID,Property,Amount,Tax,Date\n1,Ocho Rios Villa,185.00,27.75,2026-07-20\n";
+  const link = document.createElement("a");
+  link.href = encodeURI(csvData);
+  link.download = `nesty-${type}-report-2026.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
 
-  function downloadCSV(type: string) {
-    const csvData = "data:text/csv;charset=utf-8,ID,Property,Amount,Tax,Date\n1,Ocho Rios Villa,185.00,27.75,2026-07-20\n";
-    const link = document.createElement("a");
-    link.href = encodeURI(csvData);
-    link.download = `nesty-${type}-report-2026.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
+export function HostReportsExports({ view }: HostReportsExportsProps) {
+  const isExports = view === "exports";
 
   return (
     <div className="page-container container py-6" data-testid={isExports ? "host-11-page" : "host-10-page"} id={isExports ? "HOST-11" : "HOST-10"}>

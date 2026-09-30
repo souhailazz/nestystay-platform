@@ -230,7 +230,7 @@ public sealed class PasskeysController(
 
     private sealed class EmptyMetadataService : IMetadataService
     {
-        public Task<MetadataBLOBPayloadEntry?> GetEntryAsync(Guid aaguid, CancellationToken cancellationToken) => Task.FromResult<MetadataBLOBPayloadEntry?>(null);
+        public Task<MetadataBLOBPayloadEntry?> GetEntryAsync(Guid aaguid, CancellationToken cancellationToken = default) => Task.FromResult<MetadataBLOBPayloadEntry?>(null);
         public bool ConformanceTesting() => false;
     }
 }

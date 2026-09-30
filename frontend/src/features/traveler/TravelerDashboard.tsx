@@ -3,7 +3,7 @@ import { AppLink } from "../../components/AppLink";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { StatusChip } from "../../components/ui/StatusChip";
-import { api, formatMoney, type Booking } from "../../lib/api";
+import { api, formatMoney, type Booking, type UserProfile } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 
 interface TravelerDashboardProps {
@@ -28,11 +28,13 @@ function needsVerification(booking: Booking) {
 
 /* TRAV-01 (DS v2) — traveler dashboard. GET /bookings (mine); every row shows
    the contractual TRIPLE status: booking / verification / payment, verbatim. */
-export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardProps) {
+export function TravelerDashboard({ token }: TravelerDashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -41,7 +43,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
     async function loadData() {
       try {
         const list = await api.getBookings(token);
-        if (active) setBookings(list);
+        if (active) { setBookings(list); setLastUpdatedAt(new Date().toISOString()); }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Could not load your trips.");
       } finally {
@@ -49,6 +51,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
       }
     }
     loadData();
+    void api.getProfile(token).then((result) => { if (active) setProfile(result); }).catch(() => undefined);
     return () => {
       active = false;
     };
@@ -77,6 +80,8 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
       <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
         Your <em className="italic text-deep-hover">trips</em>
       </h1>
+      {lastUpdatedAt && <p className="m-0 text-xs text-sand-500">Last updated {new Date(lastUpdatedAt).toLocaleString()}</p>}
+      {profile && <div className={`rounded-field px-4 py-3 text-sm ${profile.emailVerified === false ? "bg-amber-tint text-amber-text" : "bg-success-tint text-success-text"}`} role="status"><strong>{profile.emailVerified === false ? "Email verification needed" : "Email verified"}</strong><span className="ml-2">{profile.emailVerified === false ? "Verify your email to keep receiving booking updates." : "Your account email is verified."}</span></div>}
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(190px,1fr))] sm:gap-3.5">
@@ -158,6 +163,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
                     {booking.checkIn} → {booking.checkOut} · {booking.nights} night{booking.nights === 1 ? "" : "s"} ·{" "}
                     {formatMoney(booking.totalAmount, booking.currency)}
                   </div>
+                  <div className="text-[11px] text-sand-500">Last updated {booking.updatedAt ? new Date(booking.updatedAt).toLocaleString() : new Date(lastUpdatedAt ?? Date.now()).toLocaleString()}</div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <StatusChip label="Booking" value={booking.status} />
                     <StatusChip label="Verification" value={booking.verificationStatus} />
@@ -173,7 +179,7 @@ export function TravelerDashboard({ userId: _userId, token }: TravelerDashboardP
                   {timeline.map((item, i) => {
                     const last = i === timeline.length - 1;
                     return (
-                      <div className="grid grid-cols-[20px_1fr] gap-3.5" key={i}>
+                      <div className="grid grid-cols-[20px_1fr] gap-3.5" key={item}>
                         <div className="flex flex-col items-center">
                           <span className="mt-[3px] size-3 rounded-full bg-success" />
                           {!last && <span className="w-0.5 flex-1 bg-sand-border" />}

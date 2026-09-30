@@ -72,6 +72,10 @@ public sealed class M1AuthenticationAndRecommendationTests : IClassFixture<Nesty
         Assert.Equal(HttpStatusCode.OK, propertyResponse.StatusCode);
         var propertyId = (await propertyResponse.Content.ReadFromJsonAsync<IdBody>())!.Id;
 
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await client.PostAsJsonAsync($"/api/properties/{propertyId}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = null;
         var availability = await client.GetFromJsonAsync<AvailabilityBody>($"/api/properties/{propertyId}/availability?from=2026-09-10&to=2026-09-13");
         Assert.NotNull(availability);

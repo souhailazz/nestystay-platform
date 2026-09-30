@@ -173,7 +173,7 @@ public sealed class AuthController(
 
     [Authorize]
     [HttpPut("profile/photo/uploads/{photoId:guid}/content")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(10 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<IActionResult> UploadProfilePhotoContent(Guid photoId, CancellationToken cancellationToken) =>
         Ok(await phaseOneStore.UploadProfilePhotoContentAsync(
             RequireUserId(),
@@ -232,7 +232,7 @@ public sealed class AuthController(
 
     private string ResolveRequesterIp() =>
         HttpContext.Connection.RemoteIpAddress?.ToString() ??
-        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
+        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ?? // NOSONAR: proxy client IP is supplied by the trusted reverse-proxy header.
         "unknown";
 
     private Guid RequireUserId() =>
@@ -262,7 +262,7 @@ public sealed class AuthController(
 
     private IActionResult LogoutAndClearCookies(object result)
     {
-        SessionCookieAuth.Clear(Response, ResolveCookieDomain());
+        SessionCookieAuth.Clear(Response, ResolveCookieDomain(), IsSecureCookie(), ResolveCookieSameSite());
         return Ok(result);
     }
 
@@ -279,7 +279,7 @@ public sealed class AuthController(
 public sealed record SmsTwoFactorRequest(string ChallengeId);
 public sealed record VerifySmsTwoFactorRequest(
     string ChallengeId,
-    Guid FlowId,
+    [property: System.Text.Json.Serialization.JsonRequired] Guid FlowId,
     string Code,
     string? DeviceName = null,
     bool RememberDevice = false,

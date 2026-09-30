@@ -52,9 +52,9 @@ export default function SearchBar() {
   const [activePopup, setActivePopup] = useState<ActivePopup>(null);
 
   const searchBarRef = useRef<HTMLFormElement>(null);
-  const locFieldRef = useRef<HTMLDivElement>(null);
-  const dateFieldRef = useRef<HTMLDivElement>(null);
-  const guestFieldRef = useRef<HTMLDivElement>(null);
+  const locFieldRef = useRef<HTMLButtonElement>(null);
+  const dateFieldRef = useRef<HTMLButtonElement>(null);
+  const guestFieldRef = useRef<HTMLButtonElement>(null);
 
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number; width?: number }>({
     top: 0,
@@ -69,8 +69,16 @@ export default function SearchBar() {
   const [destQuery, setDestQuery] = useState("");
 
   const totalGuests = adults + children;
+  let dateValue = "Add dates";
+  if (checkIn) {
+    dateValue = `${formatShortDate(checkIn)} – Add check out`;
+    if (checkOut) dateValue = `${formatShortDate(checkIn)} – ${formatShortDate(checkOut)}`;
+  }
+  const guestValue = totalGuests === 1 ? "1 guest" : `${totalGuests} guests`;
+  let infantValue = "";
+  if (infants > 0) infantValue = `, ${infants} infant${infants === 1 ? "" : "s"}`;
 
-  function updatePosition(target: HTMLDivElement | null) {
+  function updatePosition(target: HTMLElement | null) {
     if (!target) return;
     const rect = target.getBoundingClientRect();
     const scrollY = window.scrollY;
@@ -250,22 +258,15 @@ export default function SearchBar() {
         aria-label="Find a stay"
       >
         {/* Where to? */}
-        <div
+        <button
           ref={locFieldRef}
           className={`reference-search__field reference-search__field--location ${
             activePopup === "location" ? "reference-search__field--active" : ""
           }`}
           onClick={() => openPopup("location")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openPopup("location");
-            }
-          }}
           aria-expanded={activePopup === "location"}
           aria-label="Where to?"
+          type="button"
         >
           <MapPin aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
@@ -274,67 +275,48 @@ export default function SearchBar() {
               {location || "e.g. Kingston, Ocho Rios"}
             </span>
           </span>
-        </div>
+        </button>
 
         {/* Check in — Check out */}
-        <div
+        <button
           ref={dateFieldRef}
           className={`reference-search__field reference-search__field--dates ${
             activePopup === "dates" ? "reference-search__field--active" : ""
           }`}
           onClick={() => openPopup("dates")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openPopup("dates");
-            }
-          }}
           aria-expanded={activePopup === "dates"}
           aria-label="Check in — Check out"
+          type="button"
         >
           <CalendarDays aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
             <strong>Check in — Check out</strong>
             <span aria-hidden="true" className="reference-search__value">
-              {checkIn && checkOut
-                ? `${formatShortDate(checkIn)} – ${formatShortDate(checkOut)}`
-                : checkIn
-                ? `${formatShortDate(checkIn)} – Add check out`
-                : "Add dates"}
+              {dateValue}
             </span>
           </span>
-        </div>
+        </button>
 
         {/* Guests */}
-        <div
+        <button
           ref={guestFieldRef}
           className={`reference-search__field reference-search__field--guests ${
             activePopup === "guests" ? "reference-search__field--active" : ""
           }`}
           onClick={() => openPopup("guests")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openPopup("guests");
-            }
-          }}
           aria-expanded={activePopup === "guests"}
           aria-label="Guests"
+          type="button"
         >
           <Users aria-hidden="true" size={21} strokeWidth={1.8} />
           <span>
             <strong>Guests</strong>
             <span aria-hidden="true" className="reference-search__value">
-              {totalGuests === 1 ? "1 guest" : `${totalGuests} guests`}
-              {infants > 0 ? `, ${infants} infant${infants > 1 ? "s" : ""}` : ""}
+              {guestValue}{infantValue}
             </span>
           </span>
           <ChevronDown aria-hidden="true" className="reference-search__chevron" size={16} />
-        </div>
+        </button>
 
         {/* Submit */}
         <button className="reference-search__submit" type="submit" aria-label="Search stays">

@@ -11,27 +11,30 @@ export const deepPatternBackground: CSSProperties = {
   backgroundSize: "100% 100%, 72px 72px",
 };
 
-/** Cream/sand roundel around the official emblem (brand rule: always in a roundel). */
+/** Compact rounded logo badge: visible artwork without the oversized circular treatment. */
 export function EmblemRoundel({
   size = 44,
   className,
+  alt = "NestyStay",
 }: {
   size?: number;
   className?: string;
+  alt?: string;
 }) {
   return (
     <span
-      className={cx("grid shrink-0 place-items-center overflow-hidden rounded-full bg-sand", className)}
+      className={cx("grid shrink-0 place-items-center overflow-hidden rounded-[10px] bg-sand p-1", className)}
       style={{ width: size, height: size }}
     >
       <img
-        alt=""
-        aria-hidden="true"
-        className="block h-[86%] w-[86%] rounded-full object-contain"
+        alt={alt}
+        aria-hidden={alt ? undefined : true}
+        className="block h-full w-full rounded-[6px] object-contain"
         decoding="async"
-        sizes="128px"
-        src="/assets/optimized/nestystay-emblem-128.webp"
-        srcSet="/assets/optimized/nestystay-emblem-64.webp 64w, /assets/optimized/nestystay-emblem-96.webp 96w, /assets/optimized/nestystay-emblem-128.webp 128w"
+        height={256}
+        sizes={`${size}px`}
+        src="/assets/reference/nestystay-logo.png"
+        width={248}
       />
     </span>
   );
@@ -58,9 +61,9 @@ export function PublicFooter({ variant = "deep" }: { variant?: "deep" | "night" 
   return (
     <footer className={variant === "night" ? "border-t border-on-dark-faint/30 bg-footer" : "bg-deep"}>
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-6 py-9">
-        <AppLink className="flex items-center gap-3" href="/">
-          <EmblemRoundel size={variant === "night" ? 56 : 44} className="bg-shell" />
-          <span className="font-sans text-sm font-bold tracking-[0.22em] text-shell">NESTY STAY</span>
+        <AppLink aria-label="NestyStay home" className="flex items-center gap-3" href="/">
+          <EmblemRoundel size={variant === "night" ? 64 : 56} />
+          <span aria-hidden="true" className="font-sans text-[17px] font-bold tracking-[0.18em] text-shell">NESTY STAY</span>
         </AppLink>
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 font-sans text-[13px] text-on-dark-muted">
           <span>nestystay.net · <a className="text-on-dark-muted transition-colors hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>{LEGAL_DETAILS.supportPhone}</a></span>

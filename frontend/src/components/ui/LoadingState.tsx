@@ -24,7 +24,7 @@ export function LoadingState({ label = "Loading Nesty Stay data" }: { label?: st
     <div
       aria-busy="true"
       className="grid gap-6 rounded-card border border-sand-border bg-cream p-6 shadow-card"
-      role="status"
+      aria-live="polite"
     >
       <div className="grid justify-items-center gap-1 text-center">
         {showPatois ? (

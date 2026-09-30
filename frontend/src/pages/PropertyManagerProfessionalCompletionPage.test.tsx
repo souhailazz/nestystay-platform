@@ -36,7 +36,7 @@ describe("professional completion workspace", () => {
     render(<PatoisProvider><PropertyManagerProfessionalCompletionPage auth={auth} /></PatoisProvider>);
     await screen.findByText("No records yet");
     fireEvent.click(screen.getByRole("button", { name: /Save workflow record/ }));
-    await screen.findByRole("status");
+    await screen.findByText("Record saved with an audit event and server-side scope checks.");
     expect(api.createPropertyManagerProfessionalRecord).toHaveBeenCalledWith("token", "utilities", expect.objectContaining({ resourceType: "WORKFLOW", status: "OPEN" }));
   });
 });

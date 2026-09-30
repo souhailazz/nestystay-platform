@@ -30,7 +30,10 @@ public sealed class PropertyManagerDocumentExpiryService(
             try
             {
                 var queued = await RunOnceAsync(stoppingToken);
-                if (queued > 0) logger.LogInformation("Queued {Count} property-manager document expiry reminders.", queued);
+                if (queued > 0)
+                {
+                    logger.LogInformation("Queued {Count} property-manager document expiry reminders.", queued);
+                }
             }
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
             {
@@ -53,44 +56,71 @@ public sealed class PropertyManagerDocumentExpiryService(
         var rows = await (from document in db.MilestoneManagerDocuments.AsNoTracking()
                           join manager in db.MilestoneUsers.AsNoTracking() on document.ManagerUserId equals manager.Id
                           where !document.IsDeleted && !document.IsArchived && document.ExpiresOn.HasValue && document.ExpiresOn.Value <= latest && document.ExpiresOn.Value >= today.AddDays(-1) && manager.Status == "Active" && manager.Email != ""
-                          select new { document.Id, document.Title, document.ExpiresOn, manager.Email })
+                          select new DocumentExpiryCandidate(document.Id, document.Title, document.ExpiresOn, manager.Email))
             .Take(500)
             .ToListAsync(cancellationToken);
 
         var queued = 0;
         foreach (var row in rows)
         {
-            if (row.ExpiresOn is not { } expiresOn) continue;
-            var days = expiresOn.DayNumber - today.DayNumber;
-            var window = days <= 0 ? 0 : days <= 1 ? 1 : days <= 7 ? 7 : days <= 30 ? 30 : -1;
-            if (window < 0) continue;
-            var windowKey = window == 0 ? "expired" : $"{window}d";
-            var expiryMessage = days < 0 ? $"expired {Math.Abs(days)} day(s) ago" : days == 0 ? "expires today" : $"expires in {days} day(s)";
-            var idempotencyKey = $"pm-document-expiry:{row.Id:N}:{expiresOn:yyyyMMdd}:{windowKey}";
-            if (await db.NotificationQueue.AsNoTracking().AnyAsync(item => item.Channel == "Email" && item.IdempotencyKey == idempotencyKey && !item.IsDeleted, cancellationToken)) continue;
-            try
-            {
-                await emailSender.QueueAsync(new EmailMessage(
-                    row.Email,
-                    "A NestyStay document needs attention",
-                    $"The document {row.Title} in your property-management workspace {expiryMessage}. Review it in NestyStay before the deadline.",
-                    CorrelationId: row.Id,
-                    TemplateKey: "document-expiry",
-                    IdempotencyKey: idempotencyKey,
-                    TemplateValues: new Dictionary<string, string>
-                    {
-                        ["documentTitle"] = row.Title,
-                        ["expiryMessage"] = expiryMessage
-                    }), cancellationToken);
-                queued++;
-            }
-            catch (ArgumentException)
-            {
-                // A malformed legacy address must not prevent reminders for
-                // the rest of the manager portfolio.
-            }
+            if (await QueueReminderAsync(db, row, today, cancellationToken)) queued++;
         }
 
         return queued;
     }
+
+    private async Task<bool> QueueReminderAsync(NestyStayDbContext db, DocumentExpiryCandidate row, DateOnly today, CancellationToken cancellationToken)
+    {
+        if (row.ExpiresOn is not { } expiresOn) return false;
+
+        var days = expiresOn.DayNumber - today.DayNumber;
+        var window = ReminderWindowFor(days);
+        if (window is null) return false;
+
+        var windowKey = window == 0 ? "expired" : $"{window}d";
+        var expiryMessage = ExpiryMessageFor(days);
+        var idempotencyKey = $"pm-document-expiry:{row.Id:N}:{expiresOn:yyyyMMdd}:{windowKey}";
+        if (await db.NotificationQueue.AsNoTracking().AnyAsync(item => item.Channel == "Email" && item.IdempotencyKey == idempotencyKey && !item.IsDeleted, cancellationToken)) return false;
+
+        try
+        {
+            await emailSender.QueueAsync(new EmailMessage(
+                row.Email,
+                "A NestyStay document needs attention",
+                $"The document {row.Title} in your property-management workspace {expiryMessage}. Review it in NestyStay before the deadline.",
+                CorrelationId: row.Id,
+                TemplateKey: "document-expiry",
+                IdempotencyKey: idempotencyKey,
+                TemplateValues: new Dictionary<string, string>
+                {
+                    ["documentTitle"] = row.Title,
+                    ["expiryMessage"] = expiryMessage
+                }), cancellationToken);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            // A malformed legacy address must not prevent reminders for
+            // the rest of the manager portfolio.
+            return false;
+        }
+    }
+
+    private static int? ReminderWindowFor(int days) => days switch
+    {
+        <= 0 => 0,
+        <= 1 => 1,
+        <= 7 => 7,
+        <= 30 => 30,
+        _ => null
+    };
+
+    private static string ExpiryMessageFor(int days) => days switch
+    {
+        < 0 => $"expired {Math.Abs(days)} day(s) ago",
+        0 => "expires today",
+        _ => $"expires in {days} day(s)"
+    };
+
+    private sealed record DocumentExpiryCandidate(Guid Id, string Title, DateOnly? ExpiresOn, string Email);
 }

@@ -893,6 +893,10 @@ public sealed class SpecCompletionEndpointTests : IClassFixture<NestyStayApiFact
         var property = await response.Content.ReadFromJsonAsync<PropertyResponse>();
         Assert.NotNull(property);
         Assert.Equal(hostId, property.HostUserId);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await client.PostAsJsonAsync($"/api/properties/{property.Id}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+        client.DefaultRequestHeaders.Authorization = LocalUser(hostId, UserRole.Host);
         return property.Id;
     }
 

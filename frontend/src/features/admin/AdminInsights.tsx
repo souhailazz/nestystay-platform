@@ -44,6 +44,33 @@ export function AdminInsights({ view, token }: { view: AdminInsightsView; token:
     announceFeedback("Report exported from the live admin dataset.");
   }
 
+  function renderMetrics() {
+    if (data?.metrics.length === 0) {
+      return <div className="sm:col-span-2 lg:col-span-4"><EmptyState title="No KPI data returned" copy="The admin operations API has not reported metrics for this session." icon={view === "kpis" ? <Gauge size={26} /> : <FileBarChart size={26} />} /></div>;
+    }
+    return data?.metrics.map((metric) => <Card className="space-y-2" key={metric.label}><span className="text-xs font-semibold uppercase tracking-wide text-sand-600">{metric.label}</span><strong className="block font-display text-3xl text-ink">{metric.value}</strong></Card>);
+  }
+
+  function renderInsightContent() {
+    if (error) return <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />;
+    if (!data) return <LoadingState label="Loading live admin insights" />;
+    return (
+      <div className="space-y-6">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{renderMetrics()}</section>
+        {view === "reports" && <>
+          <Card>
+            <h3 className="m-0 font-display text-2xl">Open operational cases</h3>
+            {data.cases.length === 0 ? <EmptyState title="No open cases" copy="Admin cases will appear here when a review requires follow-up." /> : <div className="mt-4 grid gap-2">{data.cases.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border p-3" key={item.id}><div><strong>{item.caseType}</strong><p className="m-0 text-xs text-sand-600">{item.subjectType} · {item.reason}</p></div><span className="badge badge-sun">{item.status}</span></div>)}</div>}
+          </Card>
+          <Card>
+            <h3 className="m-0 font-display text-2xl">Recent audit activity</h3>
+            {data.auditEvents.length === 0 ? <EmptyState title="No audit activity" copy="Privileged actions will appear here as the platform is used." /> : <div className="mt-4 responsive-table-cards"><table className="table-styled w-full"><thead><tr><th>Action</th><th>Subject</th><th>Reason</th><th>Created</th></tr></thead><tbody>{data.auditEvents.slice(0, 20).map((event) => <tr key={event.id}><td data-label="Action"><span className="badge badge-sun">{event.action}</span></td><td data-label="Subject">{event.subjectType}</td><td data-label="Reason">{event.reason}</td><td data-label="Created">{new Date(event.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}
+          </Card>
+        </>}
+      </div>
+    );
+  }
+
   return (
     <div className="page-container container py-6" data-testid={view === "kpis" ? "adm-kpi-page" : "adm-reports-page"}>
       <header className="page-header mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -55,23 +82,7 @@ export function AdminInsights({ view, token }: { view: AdminInsightsView; token:
         {view === "reports" && <Button disabled={!data} variant="outline" onClick={exportReport}><Download size={16} /> Export report</Button>}
       </header>
 
-      {error ? <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} /> : !data ? <LoadingState label="Loading live admin insights" /> : (
-        <div className="space-y-6">
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.metrics.length === 0 ? <div className="sm:col-span-2 lg:col-span-4"><EmptyState title="No KPI data returned" copy="The admin operations API has not reported metrics for this session." icon={view === "kpis" ? <Gauge size={26} /> : <FileBarChart size={26} />} /></div> : data.metrics.map((metric) => <Card className="space-y-2" key={metric.label}><span className="text-xs font-semibold uppercase tracking-wide text-sand-600">{metric.label}</span><strong className="block font-display text-3xl text-ink">{metric.value}</strong></Card>)}
-          </section>
-          {view === "reports" && <>
-            <Card>
-              <h3 className="m-0 font-display text-2xl">Open operational cases</h3>
-              {data.cases.length === 0 ? <EmptyState title="No open cases" copy="Admin cases will appear here when a review requires follow-up." /> : <div className="mt-4 grid gap-2">{data.cases.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border p-3" key={item.id}><div><strong>{item.caseType}</strong><p className="m-0 text-xs text-sand-600">{item.subjectType} · {item.reason}</p></div><span className="badge badge-sun">{item.status}</span></div>)}</div>}
-            </Card>
-            <Card>
-              <h3 className="m-0 font-display text-2xl">Recent audit activity</h3>
-              {data.auditEvents.length === 0 ? <EmptyState title="No audit activity" copy="Privileged actions will appear here as the platform is used." /> : <div className="mt-4 responsive-table-cards"><table className="table-styled w-full"><thead><tr><th>Action</th><th>Subject</th><th>Reason</th><th>Created</th></tr></thead><tbody>{data.auditEvents.slice(0, 20).map((event) => <tr key={event.id}><td data-label="Action"><span className="badge badge-sun">{event.action}</span></td><td data-label="Subject">{event.subjectType}</td><td data-label="Reason">{event.reason}</td><td data-label="Created">{new Date(event.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}
-            </Card>
-          </>}
-        </div>
-      )}
+      {renderInsightContent()}
     </div>
   );
 }

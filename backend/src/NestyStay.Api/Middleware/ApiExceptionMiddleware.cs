@@ -30,7 +30,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 status = context.Response.StatusCode,
                 code = exception.Code,
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (BookingStateConflictException exception)
         {
@@ -46,7 +46,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 currentBookingStatus = exception.CurrentBookingStatus?.ToString(),
                 currentPaymentStatus = exception.CurrentPaymentStatus?.ToString(),
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -59,7 +59,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 status = context.Response.StatusCode,
                 code = "CONCURRENCY_CONFLICT",
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (DbUpdateException exception)
         {
@@ -75,7 +75,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 status = context.Response.StatusCode,
                 code = "PERSISTENCE_CONFLICT",
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (InvalidOperationException exception)
         {
@@ -87,7 +87,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 title = exception.Message,
                 status = context.Response.StatusCode,
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -99,7 +99,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 title = exception.Message,
                 status = context.Response.StatusCode,
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (ForbiddenAccessException exception)
         {
@@ -111,7 +111,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 title = exception.Message,
                 status = context.Response.StatusCode,
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
         catch (Exception exception)
         {
@@ -123,7 +123,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 title = "Unexpected backend error",
                 status = context.Response.StatusCode,
                 traceId = context.TraceIdentifier
-            }));
+            }), context.RequestAborted);
         }
     }
 }

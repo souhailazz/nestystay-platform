@@ -12,6 +12,50 @@ interface HostPropertiesListProps {
   token: string;
 }
 
+function PropertyCard({
+  prop,
+  isArchivedView,
+  selected,
+  onSelect,
+  onArchive,
+  onDuplicate,
+  onPublish,
+  onHistory,
+}: {
+  prop: PropertyListing;
+  isArchivedView: boolean;
+  selected: boolean;
+  onSelect: () => void;
+  onArchive: () => void;
+  onDuplicate: () => void;
+  onPublish: () => void;
+  onHistory: () => void;
+}) {
+  const badgeClass = prop.isDraft ? "badge-sun" : "badge-green";
+  const archiveClass = prop.isArchived ? "text-green" : "text-coral";
+  return (
+    <div className="card-box flex flex-col justify-between">
+      <div>
+        {!isArchivedView && <label className="mb-3 inline-flex items-center gap-2 text-xs font-semibold"><input aria-label={`Select ${prop.title}`} checked={selected} onChange={onSelect} type="checkbox" /> Select property</label>}
+        <div className="flex justify-between items-start mb-2"><span className={`badge ${badgeClass}`}>{prop.isDraft ? "Draft" : `${prop.badgeLevel} Badge`}</span><span className="badge badge-sun">{prop.cancellationPolicy}</span></div>
+        <h3 className="font-bold text-xl">{prop.title}</h3>
+        <p className="subtext mt-1"><MapPin size={14} className="inline" /> {prop.location}, {prop.country}</p>
+        <div className="mt-3 text-lg font-bold text-sun">{formatMoney(prop.nightlyRate, prop.currency)} <span className="text-xs font-normal text-gray-500">/ night</span></div>
+      </div>
+      <div className="flex justify-between items-center mt-6 pt-3 border-t">
+        <div className="flex gap-2">
+          {!prop.isDraft && <a href={`/properties/${prop.id}`} className="btn btn-outline btn-sm"><Eye size={14} /> Preview</a>}
+          <a href={`/host/properties/edit?id=${prop.id}`} className="btn btn-outline btn-sm"><Edit size={14} /> Edit</a>
+          {prop.isDraft && <button className="btn btn-primary btn-sm" onClick={onPublish} type="button"><Upload size={14} /> Publish</button>}
+          {!prop.isDraft && <button className="btn btn-outline btn-sm" onClick={onDuplicate} type="button"><Copy size={14} /> Duplicate</button>}
+          <button className="btn btn-ghost btn-sm" onClick={onHistory} type="button"><History size={14} /> History</button>
+        </div>
+        <button type="button" className={`btn btn-ghost btn-sm ${archiveClass}`} onClick={onArchive}>{prop.isArchived ? <><RotateCcw size={14} /> Restore</> : <><Archive size={14} /> Archive</>}</button>
+      </div>
+    </div>
+  );
+}
+
 export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +194,44 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
     }
   }
 
+  function renderHistoryContent() {
+    if (historyLoading) return <div className="loading-shimmer p-5 text-center">Loading revision history…</div>;
+    if (historyRevisions.length === 0) return <p className="text-sm text-sand-600">No revisions have been recorded yet.</p>;
+    return <div className="grid gap-3">
+      <p className="m-0 text-sm text-sand-600">Every save, archive, publish and restore is preserved. Restoring always creates a new draft revision.</p>
+      {historyRevisions.map((revision) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border bg-white p-3" key={revision.id}>
+        <div><strong>Version {revision.version}</strong><div className="text-xs text-sand-600">{new Date(revision.createdAt).toLocaleString()}</div></div>
+        <button className="btn btn-outline btn-sm" onClick={() => void restoreRevision(revision)} type="button">Restore as draft</button>
+      </div>)}
+    </div>;
+  }
+
+  function renderMainContent() {
+    if (loading) return <div className="loading-shimmer p-6 text-center">Loading property listings...</div>;
+    if (filtered.length === 0) return <div className="card-box text-center py-8"><p className="text-lg font-medium">No {isArchivedView ? "archived" : "active"} properties found.</p>{!isArchivedView && <a href="/host/properties/new" className="btn btn-primary mt-3">Add First Property</a>}</div>;
+    return <>
+      <ListControls
+        className="mb-5"
+        allVisibleSelected={visible.length > 0 && visible.filter((property) => !property.isArchived).every((property) => selected.includes(property.id))}
+        label="Filter properties"
+        onExport={() => downloadCsv("nesty-properties.csv", ["Title", "Location", "Country", "Badge", "Nightly rate", "Archived"], filtered.map((prop) => [prop.title, prop.location, prop.country, prop.badgeLevel, prop.nightlyRate, prop.isArchived ? "Yes" : "No"]))}
+        onPageChange={setPage}
+        onQueryChange={setQuery}
+        onSortChange={setSort}
+        onToggleAllVisible={isArchivedView ? undefined : toggleAllVisible}
+        page={page}
+        pageSize={pageSize}
+        query={query}
+        selectable={!isArchivedView}
+        sort={sort}
+        sortOptions={[{ value: "name", label: "Name" }, { value: "price", label: "Nightly price" }]}
+        total={filtered.length}
+      />
+      {!isArchivedView && selected.length > 0 && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-field border border-sand-border bg-shell px-3 py-2 text-sm"><span>{selected.length} selected</span><button className="btn btn-outline btn-sm" onClick={() => void bulkArchive()} type="button"><Archive size={14} /> Archive selected</button></div>}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">{visible.map((prop) => <PropertyCard key={prop.id} isArchivedView={isArchivedView} prop={prop} selected={selected.includes(prop.id)} onArchive={() => void handleArchiveToggle(prop.id, !!prop.isArchived)} onDuplicate={() => void duplicateProperty(prop.id, prop.title)} onHistory={() => void openHistory(prop)} onPublish={() => void publishDraft(prop.id, prop.title)} onSelect={() => toggleSelected(prop.id)} />)}</div>
+    </>;
+  }
+
   return (
     <div className="page-container container py-6" data-testid={isArchivedView ? "host-04-page" : "host-03-page"} id={isArchivedView ? "HOST-04" : "HOST-03"}>
       <header className="page-header mb-6 flex justify-between items-center">
@@ -176,86 +258,12 @@ export function HostPropertiesList({ view, token }: HostPropertiesListProps) {
         </div>
       </header>
 
-      {notice && <div className="notice-panel mb-4 flex flex-wrap items-center justify-between gap-2" role="status"><span>{notice}</span>{undo && <button className="btn btn-outline btn-sm" onClick={() => void undoArchive()} type="button">Undo</button>}</div>}
+      {notice && <div className="notice-panel mb-4 flex flex-wrap items-center justify-between gap-2" aria-live="polite"><span>{notice}</span>{undo && <button className="btn btn-outline btn-sm" onClick={() => void undoArchive()} type="button">Undo</button>}</div>}
 
-      {loading ? (
-        <div className="loading-shimmer p-6 text-center">Loading property listings...</div>
-      ) : filtered.length === 0 ? (
-        <div className="card-box text-center py-8">
-          <p className="text-lg font-medium">No {isArchivedView ? "archived" : "active"} properties found.</p>
-          {!isArchivedView && <a href="/host/properties/new" className="btn btn-primary mt-3">Add First Property</a>}
-        </div>
-      ) : (
-        <>
-          <ListControls
-            className="mb-5"
-            allVisibleSelected={visible.length > 0 && visible.filter((property) => !property.isArchived).every((property) => selected.includes(property.id))}
-            label="Filter properties"
-            onExport={() => downloadCsv("nesty-properties.csv", ["Title", "Location", "Country", "Badge", "Nightly rate", "Archived"], filtered.map((prop) => [prop.title, prop.location, prop.country, prop.badgeLevel, prop.nightlyRate, prop.isArchived ? "Yes" : "No"]))}
-            onPageChange={setPage}
-            onQueryChange={setQuery}
-            onSortChange={setSort}
-            onToggleAllVisible={isArchivedView ? undefined : toggleAllVisible}
-            page={page}
-            pageSize={pageSize}
-            query={query}
-            selectable={!isArchivedView}
-            sort={sort}
-            sortOptions={[{ value: "name", label: "Name" }, { value: "price", label: "Nightly price" }]}
-            total={filtered.length}
-          />
-          {!isArchivedView && selected.length > 0 && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-field border border-sand-border bg-shell px-3 py-2 text-sm"><span>{selected.length} selected</span><button className="btn btn-outline btn-sm" onClick={() => void bulkArchive()} type="button"><Archive size={14} /> Archive selected</button></div>}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {visible.map((prop) => (
-            <div key={prop.id} className="card-box flex flex-col justify-between">
-              <div>
-                {!isArchivedView && <label className="mb-3 inline-flex items-center gap-2 text-xs font-semibold"><input aria-label={`Select ${prop.title}`} checked={selected.includes(prop.id)} onChange={() => toggleSelected(prop.id)} type="checkbox" /> Select property</label>}
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`badge ${prop.isDraft ? "badge-sun" : "badge-green"}`}>{prop.isDraft ? "Draft" : `${prop.badgeLevel} Badge`}</span>
-                  <span className="badge badge-sun">{prop.cancellationPolicy}</span>
-                </div>
-                <h3 className="font-bold text-xl">{prop.title}</h3>
-                <p className="subtext mt-1"><MapPin size={14} className="inline" /> {prop.location}, {prop.country}</p>
-                <div className="mt-3 text-lg font-bold text-sun">
-                  {formatMoney(prop.nightlyRate, prop.currency)} <span className="text-xs font-normal text-gray-500">/ night</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center mt-6 pt-3 border-t">
-                <div className="flex gap-2">
-                  {!prop.isDraft && <a href={`/properties/${prop.id}`} className="btn btn-outline btn-sm">
-                    <Eye size={14} /> Preview
-                  </a>}
-                  <a href={`/host/properties/edit?id=${prop.id}`} className="btn btn-outline btn-sm">
-                    <Edit size={14} /> Edit
-                  </a>
-                  {prop.isDraft && <button className="btn btn-primary btn-sm" onClick={() => void publishDraft(prop.id, prop.title)} type="button"><Upload size={14} /> Publish</button>}
-                  {!prop.isDraft && <button className="btn btn-outline btn-sm" onClick={() => void duplicateProperty(prop.id, prop.title)} type="button"><Copy size={14} /> Duplicate</button>}
-                  <button className="btn btn-ghost btn-sm" onClick={() => void openHistory(prop)} type="button"><History size={14} /> History</button>
-                </div>
-
-                <button 
-                  type="button" 
-                  className={`btn btn-ghost btn-sm ${prop.isArchived ? "text-green" : "text-coral"}`}
-                  onClick={() => handleArchiveToggle(prop.id, !!prop.isArchived)}
-                >
-                  {prop.isArchived ? <><RotateCcw size={14} /> Restore</> : <><Archive size={14} /> Archive</>}
-                </button>
-              </div>
-            </div>
-          ))}
-          </div>
-        </>
-      )}
+       {renderMainContent()}
 
       <Modal open={historyProperty !== null} onClose={() => setHistoryProperty(null)} title={historyProperty ? `${historyProperty.title} history` : "Property history"}>
-        {historyLoading ? <div className="loading-shimmer p-5 text-center">Loading revision history…</div> : historyRevisions.length === 0 ? <p className="text-sm text-sand-600">No revisions have been recorded yet.</p> : <div className="grid gap-3">
-          <p className="m-0 text-sm text-sand-600">Every save, archive, publish and restore is preserved. Restoring always creates a new draft revision.</p>
-          {historyRevisions.map((revision) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field border border-sand-border bg-white p-3" key={revision.id}>
-            <div><strong>Version {revision.version}</strong><div className="text-xs text-sand-600">{new Date(revision.createdAt).toLocaleString()}</div></div>
-            <button className="btn btn-outline btn-sm" onClick={() => void restoreRevision(revision)} type="button">Restore as draft</button>
-          </div>)}
-        </div>}
+         {renderHistoryContent()}
       </Modal>
     </div>
   );

@@ -25,7 +25,7 @@ public sealed class EfPhaseOneStore(
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
     ISecretProtector? secretProtector = null,
     IStorageProvider? storageProvider = null,
-    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore, ISessionActivityStore, IBookingDecisionStore, IHostVerificationStore, IPropertyModerationStore
+    IFileSafetyScanner? fileSafetyScanner = null) : IPhaseOneStore, IPropertyEnhancementStore, ISessionActivityStore, IBookingDecisionStore, IBookingDateHoldStore, IBookingPaymentOperationsStore, IHostVerificationStore, IPropertyModerationStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -35,11 +35,11 @@ public sealed class EfPhaseOneStore(
     private const string PaymentOperationCapture = "Capture";
     private const string PaymentOperationRefund = "Refund";
     private const string PaymentOperationWebhook = "Webhook";
-    private const string PasswordResetStatusPending = "Pending";
-    private const string PasswordResetStatusCompleted = "Completed";
-    private const string PasswordResetStatusExpired = "Expired";
-    private const string PasswordResetStatusFailed = "Failed";
-    private const string PasswordResetStatusInvalidated = "Invalidated";
+    private const string PasswordResetStatusPending = "Pending"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusCompleted = "Completed"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusExpired = "Expired"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusFailed = "Failed"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusInvalidated = "Invalidated"; // NOSONAR: this is a persisted workflow status, not a credential.
     private const string UploadStatusPending = "PendingUpload";
     private const string UploadStatusUploaded = "Uploaded";
     private const string UploadStatusExpired = "Expired";
@@ -690,12 +690,20 @@ public sealed class EfPhaseOneStore(
 
     public async Task RecordSessionAsync(Guid userId, string tokenId, DateTimeOffset issuedAt, DateTimeOffset expiresAt, string? deviceName, string? userAgent, string? ipAddress, bool trusted, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(tokenId)) return;
+        if (string.IsNullOrWhiteSpace(tokenId))
+        {
+            return;
+        }
+
         var now = timeProvider.GetUtcNow();
         var existing = await db.MilestoneUserSessions.SingleOrDefaultAsync(
             item => item.UserId == userId && item.TokenIdHash == HashOpaque(tokenId) && !item.IsDeleted,
             cancellationToken);
-        if (existing is not null) return;
+        if (existing is not null)
+        {
+            return;
+        }
+
         db.MilestoneUserSessions.Add(new MilestoneUserSession
         {
             Id = Guid.NewGuid(),
@@ -741,7 +749,11 @@ public sealed class EfPhaseOneStore(
     public async Task<UserSessionDto?> RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
     {
         var session = await db.MilestoneUserSessions.SingleOrDefaultAsync(item => item.Id == sessionId && item.UserId == userId && !item.IsDeleted, cancellationToken);
-        if (session is null) return null;
+        if (session is null)
+        {
+            return null;
+        }
+
         session.RevokedAt ??= timeProvider.GetUtcNow();
         session.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
@@ -760,7 +772,11 @@ public sealed class EfPhaseOneStore(
             session.RevokedAt = now;
             session.UpdatedAt = now;
         }
-        if (sessions.Count > 0) await db.SaveChangesAsync(cancellationToken);
+        if (sessions.Count > 0)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return sessions.Count;
     }
 
@@ -1130,43 +1146,83 @@ public sealed class EfPhaseOneStore(
             if (request.NightlyRate.HasValue)
             {
                 if (request.NightlyRate.Value <= 0 || request.NightlyRate.Value > 1_000_000)
+                {
                     throw new InvalidOperationException("Nightly rate must be greater than zero and less than 1,000,000.");
+                }
+
                 property.NightlyRate = decimal.Round(request.NightlyRate.Value, 2);
             }
             if (!string.IsNullOrWhiteSpace(request.CancellationPolicy))
             {
                 property.CancellationPolicy = request.CancellationPolicy.Trim()[..Math.Min(100, request.CancellationPolicy.Trim().Length)];
             }
-            if (request.GuestVerificationEnabled.HasValue) property.GuestVerificationEnabled = request.GuestVerificationEnabled.Value;
-            if (request.InsuraGuestEnabled.HasValue) property.InsuraGuestEnabled = request.InsuraGuestEnabled.Value;
+            if (request.GuestVerificationEnabled.HasValue)
+            {
+                property.GuestVerificationEnabled = request.GuestVerificationEnabled.Value;
+            }
+
+            if (request.InsuraGuestEnabled.HasValue)
+            {
+                property.InsuraGuestEnabled = request.InsuraGuestEnabled.Value;
+            }
+
             property.UpdatedAt = now;
             property.UpdatedByUserId = hostUserId;
             await AddPropertyRevisionAsync(property, hostUserId, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
         return properties.Select(ToListingDto).ToList();
     }
 
     private static Guid[] ValidateBulkEditRequest(BulkPropertyEditRequest request)
     {
         if (request.PropertyIds is null || request.PropertyIds.Count == 0 || request.PropertyIds.Count > 100)
+        {
             throw new ArgumentException("Select between 1 and 100 properties.", nameof(request));
+        }
+
         if (request.PropertyIds.Any(id => id == Guid.Empty) || request.PropertyIds.Distinct().Count() != request.PropertyIds.Count)
+        {
             throw new ArgumentException("Property ids must be unique and valid.", nameof(request));
+        }
+
         if (request.NightlyRate is null && string.IsNullOrWhiteSpace(request.CancellationPolicy) && !request.GuestVerificationEnabled.HasValue && !request.InsuraGuestEnabled.HasValue)
+        {
             throw new ArgumentException("At least one field must be changed.", nameof(request));
+        }
+
         return request.PropertyIds.ToArray();
     }
 
     private static IReadOnlyList<string> ChangedFields(BulkPropertyEditRequest request)
     {
         var fields = new List<string>();
-        if (request.NightlyRate.HasValue) fields.Add(nameof(request.NightlyRate));
-        if (!string.IsNullOrWhiteSpace(request.CancellationPolicy)) fields.Add(nameof(request.CancellationPolicy));
-        if (request.GuestVerificationEnabled.HasValue) fields.Add(nameof(request.GuestVerificationEnabled));
-        if (request.InsuraGuestEnabled.HasValue) fields.Add(nameof(request.InsuraGuestEnabled));
+        if (request.NightlyRate.HasValue)
+        {
+            fields.Add(nameof(request.NightlyRate));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CancellationPolicy))
+        {
+            fields.Add(nameof(request.CancellationPolicy));
+        }
+
+        if (request.GuestVerificationEnabled.HasValue)
+        {
+            fields.Add(nameof(request.GuestVerificationEnabled));
+        }
+
+        if (request.InsuraGuestEnabled.HasValue)
+        {
+            fields.Add(nameof(request.InsuraGuestEnabled));
+        }
+
         return fields;
     }
 
@@ -1484,7 +1540,7 @@ public sealed class EfPhaseOneStore(
     public async Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken)
     {
         await EnsurePhaseOneSeededAsync(cancellationToken);
-        var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
+        var property = await FindBookablePropertyAsync(request.PropertyId, cancellationToken);
         var quote = await BuildQuoteAsync(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children, cancellationToken);
         var now = timeProvider.GetUtcNow();
 
@@ -1564,6 +1620,78 @@ public sealed class EfPhaseOneStore(
         return ToDto(booking);
     }
 
+    public async Task<BookingDto> HoldBookingDatesAsync(Guid guestUserId, HoldBookingDatesRequest request, CancellationToken cancellationToken)
+    {
+        await EnsurePhaseOneSeededAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var property = await FindBookablePropertyAsync(request.PropertyId, cancellationToken);
+        var guest = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == guestUserId && !user.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Guest user must register before holding dates.");
+        var quote = await BuildQuoteAsync(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children, cancellationToken);
+
+        await ExpirePendingHoldsAsync(now, cancellationToken);
+        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
+        {
+            throw new InvalidOperationException("Requested dates are already held or approved for this property.");
+        }
+        if (await FindBlockingCalendarAsync(property.Id, request.CheckIn, request.CheckOut, cancellationToken))
+        {
+            throw new InvalidOperationException("Requested dates are blocked by the property calendar.");
+        }
+
+        var hold = new MilestoneBooking
+        {
+            Id = Guid.NewGuid(),
+            PropertyId = property.Id,
+            HostUserId = property.HostUserId,
+            HostName = property.HostName,
+            HostEmail = property.HostEmail,
+            GuestUserId = guest.Id,
+            GuestEmail = guest.Email,
+            GuestName = guest.DisplayName,
+            CheckIn = request.CheckIn,
+            CheckOut = request.CheckOut,
+            Status = BookingStatus.PendingVerification,
+            VerificationStatus = VerificationStatus.Pending,
+            PaymentStatus = PaymentStatus.Pending,
+            RequiresGuestVerification = false,
+            IsDateHold = true,
+            HoldExpiresAt = now.AddMinutes(NestyStayBusinessRules.DefaultBookingHoldMinutes),
+            Nights = quote.Nights,
+            NightlyRate = property.NightlyRate,
+            StaySubtotal = quote.StaySubtotal,
+            GuestPlatformFee = quote.GuestPlatformFee,
+            TotalAmount = quote.TotalAmount,
+            Currency = property.Currency,
+            PropertyTitle = property.Title,
+            PriceBreakdownJson = MilestoneJson.Serialize(quote.PriceBreakdown),
+            TimelineJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Dates held for checkout"])
+        };
+        db.MilestoneBookings.Add(hold);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(hold);
+    }
+
+    public async Task<BookingDto?> VoidPaymentAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var booking = await db.MilestoneBookings.SingleOrDefaultAsync(item => item.Id == bookingId && !item.IsDeleted, cancellationToken);
+        if (booking is null) return null;
+        if (booking.PaymentStatus != PaymentStatus.Authorized || string.IsNullOrWhiteSpace(booking.PaymentAuthorizationReference))
+        {
+            throw new InvalidOperationException("Only an authorized payment can be released.");
+        }
+
+        var result = await paymentGateway.VoidAuthorizationAsync(
+            new PaymentVoidRequest(booking.PaymentAuthorizationReference, booking.TotalAmount, booking.Currency, "Admin released payment authorization", $"booking:{booking.Id:N}:void"),
+            cancellationToken);
+        BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, result.Status, "void_payment", booking.Status);
+        booking.PaymentProvider = result.ProviderName;
+        booking.PaymentStatus = result.Status;
+        AddTimeline(booking, "Payment authorization voided and card hold released");
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDto(booking);
+    }
+
     private async Task<MilestoneBooking> PersistCreatedBookingAsync(
         CreateBookingRequest request,
         DateTimeOffset now,
@@ -1625,13 +1753,21 @@ public sealed class EfPhaseOneStore(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var property = await FindPropertyAsync(request.PropertyId, cancellationToken);
+        var property = await FindBookablePropertyAsync(request.PropertyId, cancellationToken);
         var guest = await db.MilestoneUsers.SingleOrDefaultAsync(user => user.Id == request.GuestUserId, cancellationToken)
             ?? throw new InvalidOperationException("Guest user must register before booking.");
         var quote = await BuildQuoteAsync(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children, cancellationToken);
 
         await ExpirePendingHoldsAsync(now, cancellationToken);
-        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken) is not null)
+        var existingHold = request.DateHoldId is { } holdId
+            ? await db.MilestoneBookings.SingleOrDefaultAsync(item => item.Id == holdId && item.IsDateHold && item.GuestUserId == guest.Id && item.PropertyId == property.Id && item.CheckIn == request.CheckIn && item.CheckOut == request.CheckOut && !item.IsDeleted, cancellationToken)
+            : null;
+        if (request.DateHoldId is not null && (existingHold is null || existingHold.HoldExpiresAt <= now))
+        {
+            throw new InvalidOperationException("The date hold is missing, expired, or belongs to another guest.");
+        }
+
+        if (await FindBlockingBookingAsync(property.Id, request.CheckIn, request.CheckOut, now, cancellationToken, existingHold?.Id) is not null)
         {
             throw new InvalidOperationException("Requested dates are already held or approved for this property.");
         }
@@ -1643,6 +1779,12 @@ public sealed class EfPhaseOneStore(
         await EnforceBookingCreationRateLimitAsync(guest.Id, now, cancellationToken);
 
         var requiresVerification = property.GuestVerificationEnabled;
+        if (existingHold is not null)
+        {
+            existingHold.IsDeleted = true;
+            existingHold.UpdatedAt = now;
+        }
+
         var booking = new MilestoneBooking
         {
             Id = Guid.NewGuid(),
@@ -1773,7 +1915,11 @@ public sealed class EfPhaseOneStore(
     public async Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken)
     {
         var booking = await db.MilestoneBookings.SingleOrDefaultAsync(item => item.Id == bookingId && !item.IsDeleted, cancellationToken);
-        if (booking is null) return null;
+        if (booking is null)
+        {
+            return null;
+        }
+
         if (booking.HostUserId != hostUserId)
         {
             throw new UnauthorizedAccessException("Booking is not available to this host.");
@@ -1790,12 +1936,23 @@ public sealed class EfPhaseOneStore(
         }
 
         var reason = NormalizeDecisionReason(request.Reason);
-        BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "host_reject_booking");
-        if (booking.PaymentStatus is PaymentStatus.Pending or PaymentStatus.Authorized)
+        if (booking.PaymentStatus == PaymentStatus.Authorized)
+        {
+            var voidResult = await paymentGateway.VoidAuthorizationAsync(
+                new PaymentVoidRequest(booking.PaymentAuthorizationReference ?? throw new InvalidOperationException("Authorized booking is missing its payment reference."), booking.TotalAmount, booking.Currency, "Host rejected booking", $"booking:{booking.Id:N}:void"),
+                cancellationToken);
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, voidResult.Status, "host_reject_booking", booking.Status);
+            booking.PaymentProvider = voidResult.ProviderName;
+            booking.PaymentStatus = voidResult.Status;
+            AddTimeline(booking, "Payment authorization voided and card hold released");
+        }
+        else if (booking.PaymentStatus == PaymentStatus.Pending)
         {
             BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "host_reject_booking", booking.Status);
             booking.PaymentStatus = PaymentStatus.Cancelled;
         }
+
+        BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "host_reject_booking");
 
         booking.Status = BookingStatus.Rejected;
         booking.HoldExpiresAt = null;
@@ -1804,6 +1961,11 @@ public sealed class EfPhaseOneStore(
         booking.RejectedByUserId = hostUserId;
         booking.RejectedAt = timeProvider.GetUtcNow();
         AddTimeline(booking, "Host rejected booking", $"Reason: {reason}", "Dates released");
+
+        // Persist the rejection and the provider-side authorization void before
+        // attempting notification delivery. A mail/outbox provider failure must
+        // never leave a rejected booking looking authorized in our database.
+        await db.SaveChangesAsync(cancellationToken);
         await QueueNotificationsAsync(booking, BuildHostRejectionNotifications(booking, reason), cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(booking);
@@ -1867,7 +2029,11 @@ public sealed class EfPhaseOneStore(
     {
         var status = NormalizeHostVerificationDecision(request.Status);
         var user = await db.MilestoneUsers.SingleOrDefaultAsync(item => item.Id == hostUserId && !item.IsDeleted, cancellationToken);
-        if (user is null) return null;
+        if (user is null)
+        {
+            return null;
+        }
+
         if (!MilestoneJson.DeserializeList<UserRole>(user.RolesJson).Contains(UserRole.Host))
         {
             throw new InvalidOperationException("Only host accounts can be reviewed here.");
@@ -1901,13 +2067,20 @@ public sealed class EfPhaseOneStore(
         var status = NormalizeModerationStatus(request.Status);
         var reason = status is "Rejected" or "ChangesRequested" ? NormalizeDecisionReason(request.Reason) : null;
         var property = await db.MilestoneProperties.SingleOrDefaultAsync(item => item.Id == propertyId && !item.IsDeleted, cancellationToken);
-        if (property is null) return null;
+        if (property is null)
+        {
+            return null;
+        }
 
         property.ModerationStatus = status;
         property.ModerationReason = reason;
         property.ModeratedAt = timeProvider.GetUtcNow();
         property.ModeratedByUserId = adminUserId;
-        if (status == "Approved") property.IsDraft = false;
+        if (status == "Approved")
+        {
+            property.IsDraft = false;
+        }
+
         property.UpdatedAt = timeProvider.GetUtcNow();
         property.UpdatedByUserId = adminUserId;
         db.MilestoneTravelerNotifications.Add(new MilestoneTravelerNotification
@@ -2309,9 +2482,14 @@ public sealed class EfPhaseOneStore(
         };
 
         if (pricingRules.Count > 0 && nightlyRates.Any(rate => rate != property.NightlyRate))
+        {
             lines.Insert(1, new("pricing-override", "Server-applied date range pricing", 0m, property.Currency, true));
+        }
+
         if (promotion is not null)
+        {
             lines.Insert(2, new("promotion-discount", $"{promotion.DiscountPercent:0.##}% discount · {promotion.Name}", -discountAmount, property.Currency, true));
+        }
 
         if (property.CleaningFee > 0)
         {
@@ -2351,6 +2529,17 @@ public sealed class EfPhaseOneStore(
     private async Task<MilestoneProperty> FindPropertyAsync(Guid propertyId, CancellationToken cancellationToken) =>
         await db.MilestoneProperties.SingleOrDefaultAsync(property => property.Id == propertyId && !property.IsDeleted && !property.IsArchived, cancellationToken)
         ?? throw new InvalidOperationException("Property not found.");
+
+    private async Task<MilestoneProperty> FindBookablePropertyAsync(Guid propertyId, CancellationToken cancellationToken)
+    {
+        var property = await FindPropertyAsync(propertyId, cancellationToken);
+        if (!string.Equals(property.ModerationStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Property is not approved for booking.");
+        }
+
+        return property;
+    }
 
     private async Task<MilestoneProperty> FindHostPropertyAsync(Guid hostUserId, Guid propertyId, CancellationToken cancellationToken)
     {
@@ -2496,8 +2685,10 @@ public sealed class EfPhaseOneStore(
         DateOnly checkIn,
         DateOnly checkOut,
         DateTimeOffset now,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        Guid? excludedBookingId = null) =>
         db.MilestoneBookings.FirstOrDefaultAsync(booking =>
+            booking.Id != excludedBookingId &&
             booking.PropertyId == propertyId &&
             (booking.Status == BookingStatus.Approved ||
              booking.Status == BookingStatus.PaymentCaptured ||
@@ -2642,7 +2833,11 @@ public sealed class EfPhaseOneStore(
                 changed = true;
                 continue;
             }
-            if (property.IsDeleted) continue;
+            if (property.IsDeleted)
+            {
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(property.ModerationStatus)) { property.ModerationStatus = "Approved"; changed = true; }
             if (string.IsNullOrWhiteSpace(property.Parish)) { property.Parish = seed.Parish; changed = true; }
             if (string.IsNullOrWhiteSpace(property.Description)) { property.Description = seed.Description; changed = true; }
@@ -2965,7 +3160,8 @@ public sealed class EfPhaseOneStore(
             booking.RejectionReason,
             booking.RejectionSource,
             booking.RejectedByUserId,
-            booking.RejectedAt);
+            booking.RejectedAt,
+            booking.IsDateHold);
 
     private static void ValidateRegistration(RegisterUserRequest request)
     {
@@ -3734,7 +3930,11 @@ public sealed class EfPhaseOneStore(
 
     private static string ResolveBrowser(string? userAgent)
     {
-        if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown browser";
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return "Unknown browser";
+        }
+
         var value = userAgent.Trim();
         var browser = value.Contains("Edg/", StringComparison.OrdinalIgnoreCase) ? "Microsoft Edge" :
             value.Contains("Chrome/", StringComparison.OrdinalIgnoreCase) ? "Google Chrome" :
@@ -3848,7 +4048,7 @@ public sealed class EfPhaseOneStore(
             Array.Reverse(counterBytes);
         }
 
-        using var hmac = new HMACSHA1(secret);
+        using var hmac = new HMACSHA1(secret); // NOSONAR: RFC 6238 TOTP compatibility requires the standard SHA-1 profile.
         var hash = hmac.ComputeHash(counterBytes);
         var offset = hash[^1] & 0x0f;
         var binaryCode =

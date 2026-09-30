@@ -187,7 +187,12 @@ export const SCREEN_MANIFEST = [
   publicDefinition(screen("BOOK-CONF", "/booking/:bookingId/success", ["/booking/:bookingId/success", "/booking/:bookingId/failure", "/booking/:bookingId/rejected", "/booking/:bookingId/cancelled", "/booking/:bookingId/invoice", "/booking/:bookingId/receipt"], (path, _, params) => ({ name: "booking-state", bookingId: params.bookingId, state: path.split("/").at(-1) ?? "success" }), { title: "Booking outcome", productArea: "Booking", componentKey: "booking-state", showPublicNav: true })),
   publicDefinition(screen("BOOK-FLOW", "/booking/:bookingId/:state", ["/booking/:bookingId/:state", "/booking/:bookingId"], (path, _, params) => ({ name: "booking-state", bookingId: params.bookingId, state: params.state ?? "review" }), { title: "Booking state", productArea: "Booking", componentKey: "booking-state", showPublicNav: true, screenType: "internal" })),
   authenticatedDefinition(screen("TRAV-01", "/guest-dashboard", ["/guest-dashboard"], () => ({ name: "guest-dashboard" }), { title: "Traveler dashboard", productArea: "Traveler", componentKey: "guest-dashboard", navigation: { label: "Trips", description: "Upcoming and past stays" }, mobileNavigation: { label: "Trips", priority: 2 } })),
-  authenticatedDefinition(screen("TRAV-RES", "/traveler/reservations", ["/traveler/reservations", "/traveler/reservations/upcoming", "/traveler/reservations/past", "/traveler/reservations/cancelled", "/traveler/reservations/:reservationId"], (path, _, params) => ({ name: "traveler-spec", view: path.endsWith("/past") ? "reservations-past" : path.endsWith("/cancelled") ? "reservations-cancelled" : path === "/traveler/reservations" || path.endsWith("/upcoming") ? "reservations-upcoming" : `reservation-detail:${params.reservationId ?? ""}` }), { title: "Traveler reservations", productArea: "Traveler", componentKey: "traveler-spec", navigation: { label: "Trips", description: "Reservations and gate passes" } })),
+  authenticatedDefinition(screen("TRAV-RES", "/traveler/reservations", ["/traveler/reservations", "/traveler/reservations/upcoming", "/traveler/reservations/past", "/traveler/reservations/cancelled", "/traveler/reservations/:reservationId"], (path, _, params) => {
+    if (path.endsWith("/past")) return { name: "traveler-spec", view: "reservations-past" };
+    if (path.endsWith("/cancelled")) return { name: "traveler-spec", view: "reservations-cancelled" };
+    if (path === "/traveler/reservations" || path.endsWith("/upcoming")) return { name: "traveler-spec", view: "reservations-upcoming" };
+    return { name: "traveler-spec", view: `reservation-detail:${params.reservationId ?? ""}` };
+  }, { title: "Traveler reservations", productArea: "Traveler", componentKey: "traveler-spec", navigation: { label: "Trips", description: "Reservations and gate passes" } })),
   authenticatedDefinition(screen("TRAV-QR", "/traveler/qr", ["/traveler/qr", "/traveler/qr/:bookingId"], () => ({ name: "traveler-spec", view: "qr" }), { title: "Traveler QR pass", productArea: "Traveler", componentKey: "traveler-spec" })),
   authenticatedDefinition(screen("TRAV-12", "/traveler/preferences", ["/traveler/preferences"], () => ({ name: "traveler-spec", view: "preferences" }), { title: "Traveler preferences", productArea: "Traveler", componentKey: "traveler-spec", navigation: { label: "Profile", description: "Profile, preferences, and security" }, mobileNavigation: { label: "Profile", priority: 5 } })),
   authenticatedDefinition(screen("TRAV-COL", "/traveler/favorites", ["/traveler/favorites", "/wishlist"], () => ({ name: "traveler-spec", view: "wishlist" }), { title: "Traveler collections", productArea: "Traveler", componentKey: "traveler-spec", navigation: { label: "Saved", description: "Saved stays and collections" }, mobileNavigation: { label: "Saved", priority: 3 } })),
@@ -275,7 +280,9 @@ export type ScreenId = typeof SCREEN_MANIFEST[number]["id"];
 const byId = new Map(SCREEN_MANIFEST.map((definition) => [definition.id, definition]));
 
 function normalizePath(path: string) {
-  return path.replace(/\/+$/, "") || "/";
+  let normalized = path;
+  while (normalized.endsWith("/")) normalized = normalized.slice(0, -1);
+  return normalized || "/";
 }
 
 function matchPattern(pattern: string, path: string): PathParams | null {
@@ -498,7 +505,7 @@ export const ROLE_NAVIGATION: Record<UserRole, { desktop: readonly NavigationIte
   Admin: {
     desktop: [
       navigationItem("ADM-ROOT", "Home", "/admin", ["Admin"]),
-      navigationItem("ADM-01", "Queues", "/admin/ops/disputes", ["Admin"]),
+      navigationItem("ADM-01", "Property moderation", "/admin/ops/properties", ["Admin"]),
       navigationItem("ADM-RPT", "Audit", "/admin/reports", ["Admin"]),
       navigationItem("ADM-BADGES", "Configuration", "/admin/ops/badges", ["Admin"]),
       navigationItem("TRAV-NOTIF", "Alerts", "/traveler/notifications", ["Admin"]),
@@ -506,7 +513,7 @@ export const ROLE_NAVIGATION: Record<UserRole, { desktop: readonly NavigationIte
     ],
     mobile: [
       navigationItem("ADM-ROOT", "Home", "/admin", ["Admin"], { mobile: true, mobilePriority: 1 }),
-      navigationItem("ADM-01", "Queues", "/admin/ops/disputes", ["Admin"], { mobile: true, mobilePriority: 2 }),
+      navigationItem("ADM-01", "Property moderation", "/admin/ops/properties", ["Admin"], { mobile: true, mobilePriority: 2 }),
       navigationItem("ADM-RPT", "Audit", "/admin/reports", ["Admin"], { mobile: true, mobilePriority: 3 }),
       navigationItem("TRAV-NOTIF", "Alerts", "/traveler/notifications", ["Admin"], { mobile: true, mobilePriority: 4 }),
       navigationItem("ADM-BADGES", "More", "/admin", ["Admin"], { mobile: true, mobilePriority: 5, more: true }),

@@ -177,7 +177,7 @@ export default function ScrollStory() {
 
         <div className="story-copy">
           <div className="section-tag section-tag--light">
-            <span />
+            <span />{" "}
             The Nesty vibe
           </div>
           <div className="story-panels">

@@ -18,7 +18,7 @@ export default function TrustSection() {
       </div>
       <div className="trust-copy">
         <div className="section-tag">
-          <span />
+          <span />{" "}
           Travel light
         </div>
         <h2>Good stays. Good people. No funny business.</h2>

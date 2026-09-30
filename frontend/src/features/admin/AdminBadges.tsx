@@ -159,7 +159,7 @@ export function AdminBadges({ token }: AdminBadgesProps) {
 
       {loading && <div className="grid gap-3 md:grid-cols-3" aria-label="Loading badge management" aria-busy="true">{[1, 2, 3].map((item) => <div className="h-24 animate-pulse rounded-card border border-sand-border bg-shell" key={item} />)}</div>}
       {error && <div className="rounded-card border border-coral bg-coral-tint p-4 text-[13px] text-coral-text" role="alert">{error}</div>}
-      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-[13px] text-mint-text" role="status">{notice}</div>}
+      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-[13px] text-mint-text" aria-live="polite">{notice}</div>}
 
       {!loading && (
         <>

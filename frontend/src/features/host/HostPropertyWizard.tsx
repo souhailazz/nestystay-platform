@@ -16,6 +16,12 @@ interface HostPropertyWizardProps {
 const DRAFT_KEY_PREFIX = "nesty.property-draft.";
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
+function wizardStepClass(isActive: boolean, isComplete: boolean) {
+  if (isActive) return "bg-sun text-white font-bold";
+  if (isComplete) return "bg-green-light text-green";
+  return "bg-gray-100 text-gray-500";
+}
+
 function getDraftKey(hostUserId: string) {
   return `${DRAFT_KEY_PREFIX}${hostUserId}`;
 }
@@ -268,7 +274,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         </div>
       </header>
 
-      {draftSavedToast && <div className="notice-panel mb-4" role="status">Draft saved on this device. You can safely return to it later.</div>}
+      {draftSavedToast && <div className="notice-panel mb-4" aria-live="polite" role="status">Draft saved on this device. You can safely return to it later.</div>}
       {error && <div className="alert-box alert-error mb-4">{error}</div>}
 
       <section className="card-box mb-6" aria-label="Listing completeness">
@@ -291,9 +297,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
               aria-current={isActive ? "step" : undefined}
               aria-label={`Step ${stepNum}: ${label}`}
               key={label} 
-              className={`stepper-pill flex items-center gap-1 text-xs px-3 py-2 rounded-full cursor-pointer transition ${
-                isActive ? "bg-sun text-white font-bold" : isComplete ? "bg-green-light text-green" : "bg-gray-100 text-gray-500"
-              }`}
+              className={`stepper-pill flex items-center gap-1 text-xs px-3 py-2 rounded-full cursor-pointer transition ${wizardStepClass(isActive, isComplete)}`}
               onClick={() => setCurrentStep(stepNum)}
             >
               <span>{isComplete ? <Check size={12} /> : stepNum}</span>
@@ -322,25 +326,25 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
               <label className="field-label" htmlFor="wizard-property-location">Location / Parish</label>
               <div className="relative">
                 <input id="wizard-property-location" type="text" autoComplete="address-level2" className="input-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} aria-autocomplete="list" aria-controls="wizard-location-suggestions" />
-                {locationSuggestions.length > 0 && <ul id="wizard-location-suggestions" className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-field border border-sand-border bg-white p-1 shadow-lg" role="listbox" aria-label="Location suggestions">
-                  {locationSuggestions.map((suggestion) => <li key={suggestion}><button className="w-full rounded-field px-3 py-2 text-left text-sm hover:bg-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deep-hover" onClick={() => { setFormData({ ...formData, location: suggestion }); setLocationSuggestions([]); }} role="option" type="button">{suggestion}</button></li>)}
+                {locationSuggestions.length > 0 && <ul id="wizard-location-suggestions" className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-field border border-sand-border bg-white p-1 shadow-lg" aria-label="Location suggestions">
+                  {locationSuggestions.map((suggestion) => <li key={suggestion}><button className="w-full rounded-field px-3 py-2 text-left text-sm hover:bg-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deep-hover" onClick={() => { setFormData({ ...formData, location: suggestion }); setLocationSuggestions([]); }} type="button">{suggestion}</button></li>)}
                 </ul>}
               </div>
               <small className="text-xs text-sand-600">Search suggestions use an OpenStreetMap-compatible geocoder. You can always enter the parish manually.</small>
             </div>
             <div className="field-group">
-              <label className="field-label">Country</label>
-              <input type="text" className="input-control" value={formData.country} readOnly />
+              <label className="field-label" htmlFor="wizard-country">Country</label>
+              <input id="wizard-country" type="text" className="input-control" value={formData.country} readOnly />
             </div>
-            <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label">Parish</label><input type="text" className="input-control" value={formData.parish ?? ""} onChange={(e) => setFormData({ ...formData, parish: e.target.value })} /></div><div className="field-group"><label className="field-label">Latitude / longitude</label><div className="grid grid-cols-2 gap-2"><input aria-label="Latitude" type="number" step="0.000001" className="input-control" value={formData.latitude ?? ""} onChange={(e) => setFormData({ ...formData, latitude: Number(e.target.value) })} /><input aria-label="Longitude" type="number" step="0.000001" className="input-control" value={formData.longitude ?? ""} onChange={(e) => setFormData({ ...formData, longitude: Number(e.target.value) })} /></div></div></div>
+            <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label" htmlFor="wizard-parish">Parish</label><input id="wizard-parish" type="text" className="input-control" value={formData.parish ?? ""} onChange={(e) => setFormData({ ...formData, parish: e.target.value })} /></div><div className="field-group"><span className="field-label">Latitude / longitude</span><div className="grid grid-cols-2 gap-2"><input id="wizard-latitude" aria-label="Latitude" type="number" step="0.000001" className="input-control" value={formData.latitude ?? ""} onChange={(e) => setFormData({ ...formData, latitude: Number(e.target.value) })} /><input id="wizard-longitude" aria-label="Longitude" type="number" step="0.000001" className="input-control" value={formData.longitude ?? ""} onChange={(e) => setFormData({ ...formData, longitude: Number(e.target.value) })} /></div></div></div>
           </div>
         )}
 
         {currentStep === 3 && (
           <div className="space-y-4">
             <div className="field-group">
-              <label className="field-label">Property Category</label>
-              <select className="input-control" value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
+              <label className="field-label" htmlFor="wizard-property-category">Property Category</label>
+              <select id="wizard-property-category" className="input-control" value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
                 <option value="Villa">Coastal Villa</option>
                 <option value="Apartment">City Apartment</option>
                 <option value="Cottage">Mountain Cottage</option>
@@ -353,19 +357,19 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         {currentStep === 4 && (
           <div className="grid grid-cols-2 gap-4">
             <div className="field-group">
-              <label className="field-label">Adults Capacity</label>
-              <input type="number" className="input-control" value={formData.capacityAdults} onChange={(e) => setFormData({ ...formData, capacityAdults: parseInt(e.target.value) || 1 })} />
+              <label className="field-label" htmlFor="wizard-adults-capacity">Adults Capacity</label>
+              <input id="wizard-adults-capacity" type="number" className="input-control" value={formData.capacityAdults} onChange={(e) => setFormData({ ...formData, capacityAdults: parseInt(e.target.value) || 1 })} />
             </div>
             <div className="field-group">
-              <label className="field-label">Bedrooms</label>
-              <input type="number" className="input-control" value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 1 })} />
+              <label className="field-label" htmlFor="wizard-bedrooms">Bedrooms</label>
+              <input id="wizard-bedrooms" type="number" className="input-control" value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 1 })} />
             </div>
           </div>
         )}
 
         {currentStep === 5 && (
           <div>
-            <label className="field-label mb-2">Amenities</label>
+            <p className="field-label mb-2">Amenities</p>
             <div className="grid grid-cols-2 gap-2">
               {["WiFi", "Swimming Pool", "Air Conditioning", "Security Gate", "Ocean View", "Kitchen"].map((a) => (
                 <label key={a} className="checkbox-card">
@@ -386,7 +390,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
 
         {currentStep === 6 && (
           <div>
-            <label className="field-label mb-2" htmlFor="property-photo-input">Property Photos & Cover Photo Selection</label>
+              <label className="field-label mb-2" htmlFor="property-photo-input">Property Photos & Cover Photo Selection</label>
             <div
               className="photo-upload-dropzone p-6 border-2 border-dashed rounded text-center mb-4"
               data-testid="photo-dropzone"
@@ -395,7 +399,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
             >
               <Camera size={32} className="mx-auto mb-2 text-sun" />
               <p className="mb-2">Drag and drop photos here, or choose files (JPG, PNG, WebP up to 10MB)</p>
-              <input ref={photoInputRef} id="property-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { if (event.target.files) void handlePhotoFiles(event.target.files); event.target.value = ""; }} />
+              <input ref={photoInputRef} id="property-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { if (event.target.files) { void handlePhotoFiles(event.target.files); } event.target.value = ""; }} />
               <button type="button" className="btn btn-outline" onClick={() => photoInputRef.current?.click()}>Choose photos</button>
             </div>
             {photoError && <div className="alert-box alert-error mb-4" role="alert">{photoError}</div>}
@@ -416,41 +420,41 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
         {currentStep === 7 && (
           <div className="space-y-4">
             <div className="field-group">
-              <label className="field-label">Detailed Description</label>
-              <textarea className="input-control" rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+              <label className="field-label" htmlFor="wizard-description">Detailed Description</label>
+              <textarea id="wizard-description" className="input-control" rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
             </div>
             <div className="field-group">
-              <label className="field-label">House Rules</label>
-              <textarea className="input-control" rows={3} value={formData.houseRules} onChange={(e) => setFormData({ ...formData, houseRules: e.target.value })} />
+              <label className="field-label" htmlFor="wizard-house-rules">House Rules</label>
+              <textarea id="wizard-house-rules" className="input-control" rows={3} value={formData.houseRules} onChange={(e) => setFormData({ ...formData, houseRules: e.target.value })} />
             </div>
-            <div className="field-group"><label className="field-label">Sleeping arrangements</label><textarea className="input-control" rows={3} placeholder="One arrangement per line" value={formData.sleepingArrangements ?? ""} onChange={(e) => setFormData({ ...formData, sleepingArrangements: e.target.value })} /></div>
+            <div className="field-group"><label className="field-label" htmlFor="wizard-sleeping-arrangements">Sleeping arrangements</label><textarea id="wizard-sleeping-arrangements" className="input-control" rows={3} placeholder="One arrangement per line" value={formData.sleepingArrangements ?? ""} onChange={(e) => setFormData({ ...formData, sleepingArrangements: e.target.value })} /></div>
           </div>
         )}
 
         {currentStep === 8 && (
           <div className="grid grid-cols-2 gap-4">
             <div className="field-group">
-              <label className="field-label">Nightly Rate ($ USD)</label>
-              <input type="number" className="input-control" value={formData.nightlyRate} onChange={(e) => setFormData({ ...formData, nightlyRate: parseFloat(e.target.value) || 100 })} />
+              <label className="field-label" htmlFor="wizard-nightly-rate">Nightly Rate ($ USD)</label>
+              <input id="wizard-nightly-rate" type="number" className="input-control" value={formData.nightlyRate} onChange={(e) => setFormData({ ...formData, nightlyRate: parseFloat(e.target.value) || 100 })} />
             </div>
             <div className="field-group">
-              <label className="field-label">Cancellation Policy</label>
-              <select className="input-control" value={formData.cancellationPolicy} onChange={(e) => setFormData({ ...formData, cancellationPolicy: e.target.value })}>
+              <label className="field-label" htmlFor="wizard-cancellation-policy">Cancellation Policy</label>
+              <select id="wizard-cancellation-policy" className="input-control" value={formData.cancellationPolicy} onChange={(e) => setFormData({ ...formData, cancellationPolicy: e.target.value })}>
                 <option value="Flexible">Flexible</option>
                 <option value="Moderate">Moderate</option>
                 <option value="Strict">Strict</option>
               </select>
             </div>
-            <div className="field-group"><label className="field-label">Cleaning fee</label><input type="number" min="0" className="input-control" value={formData.cleaningFee ?? 0} onChange={(e) => setFormData({ ...formData, cleaningFee: Number(e.target.value) || 0 })} /></div>
-            <div className="field-group"><label className="field-label">Service fee</label><input type="number" min="0" className="input-control" value={formData.serviceFee ?? 0} onChange={(e) => setFormData({ ...formData, serviceFee: Number(e.target.value) || 0 })} /></div>
+            <div className="field-group"><label className="field-label" htmlFor="wizard-cleaning-fee">Cleaning fee</label><input id="wizard-cleaning-fee" type="number" min="0" className="input-control" value={formData.cleaningFee ?? 0} onChange={(e) => setFormData({ ...formData, cleaningFee: Number(e.target.value) || 0 })} /></div>
+            <div className="field-group"><label className="field-label" htmlFor="wizard-service-fee">Service fee</label><input id="wizard-service-fee" type="number" min="0" className="input-control" value={formData.serviceFee ?? 0} onChange={(e) => setFormData({ ...formData, serviceFee: Number(e.target.value) || 0 })} /></div>
           </div>
         )}
 
         {currentStep === 9 && (
           <div className="space-y-4">
             <div className="field-group">
-              <label className="field-label">Minimum Stay (Nights)</label>
-              <input type="number" className="input-control" value={formData.minimumNights} onChange={(e) => setFormData({ ...formData, minimumNights: parseInt(e.target.value) || 1 })} />
+              <label className="field-label" htmlFor="wizard-minimum-nights">Minimum Stay (Nights)</label>
+              <input id="wizard-minimum-nights" type="number" className="input-control" value={formData.minimumNights} onChange={(e) => setFormData({ ...formData, minimumNights: parseInt(e.target.value) || 1 })} />
             </div>
           </div>
         )}
@@ -501,8 +505,8 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
       </ActionBar>
 
       {previewOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewOpen(false); }}>
-          <section className="modal-card max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="listing-preview-title">
+        <dialog open className="modal-backdrop" onCancel={() => setPreviewOpen(false)} aria-labelledby="listing-preview-title">
+          <section className="modal-card max-w-2xl">
             <div className="flex justify-between items-start gap-3 mb-4">
               <div><span className="badge badge-sun">Preview</span><h3 id="listing-preview-title">{formData.title || "Untitled listing"}</h3><p className="subtext">{formData.location}, {formData.country}</p></div>
               <button type="button" className="btn btn-ghost" onClick={() => setPreviewOpen(false)} aria-label="Close listing preview">Close</button>
@@ -511,7 +515,7 @@ export function HostPropertyWizard({ token, hostUserId, hostName, hostEmail, onF
             <div className="grid grid-cols-2 gap-3 text-sm mb-4"><div><strong>From</strong><br />${formData.nightlyRate} {formData.currency} / night</div><div><strong>Guests</strong><br />Up to {formData.capacityAdults + formData.capacityChildren}</div><div><strong>Stay</strong><br />{formData.bedrooms} bedrooms · {formData.bathrooms} bathrooms</div><div><strong>Policy</strong><br />{formData.cancellationPolicy} cancellation</div></div>
             <p>{formData.description || "Add a description to help guests understand your stay."}</p>
           </section>
-        </div>
+        </dialog>
       )}
     </div>
   );

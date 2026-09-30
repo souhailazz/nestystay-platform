@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Heart, Map, Search, Users } from "lucide-react";
 import { AppLink } from "../../components/AppLink";
 import { PublicFooter, TierBadge } from "../../components/layout/PublicShell";
@@ -7,6 +7,7 @@ import { ListControls, downloadCsv } from "../../components/ui/ListControls";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
+import { announceFeedback } from "../../lib/feedback";
 import { BookingModal } from "../../components/booking/BookingModal";
 import type { AuthSession } from "../../lib/auth";
 
@@ -19,9 +20,55 @@ const BADGE_FILTERS = [["all", "All"], ["free", "Free"], ["verified", "✓ Verif
 type BadgeFilter = (typeof BADGE_FILTERS)[number][0];
 const chipBase = "min-h-11 cursor-pointer rounded-pill px-5 font-sans text-[13.5px] font-semibold transition-colors";
 
+function verificationLabel(status?: string | null) {
+  if (status === "Approved") return "Host identity verified";
+  if (status === "Pending") return "Host verification pending";
+  return "Host identity not yet verified";
+}
+
+function PropertyResultCard({
+  property,
+  index,
+  nights,
+  saved,
+  saving,
+  onToggleSave,
+  onBook,
+}: {
+  property: PropertyListing;
+  index: number;
+  nights: number;
+  saved: boolean;
+  saving: boolean;
+  onToggleSave: () => void;
+  onBook: () => void;
+}) {
+  const reviewLabel = property.reviewCount ? `★ ${(property.ratingAverage ?? 0).toFixed(1)} (${property.reviewCount})` : "New";
+  const bedrooms = property.bedrooms ?? 1;
+  const guestLabel = bedrooms === 1 ? "bedroom" : "bedrooms";
+  const nightLabel = nights === 1 ? "night" : "nights";
+  return (
+    <article className="flex flex-col overflow-hidden rounded-card border border-sand-border bg-cream shadow-[0_1px_2px_rgba(96,74,20,0.08)] transition-shadow hover:shadow-[0_16px_34px_rgba(96,74,20,0.16)]">
+      <div className="relative aspect-[3/2]">
+        <img alt={`${property.title} — ${property.location}`} className="block h-full w-full object-cover" height={533} loading="lazy" src={property.imageUrl ?? property.galleryUrls?.[0] ?? getStayImage(index).src} width={800} />
+        <TierBadge className="absolute left-3.5 top-3.5" level={property.badgeLevel} />
+        <button aria-label={`${saved ? "Remove" : "Save"} ${property.title}`} aria-pressed={saved} className={cx("absolute right-2.5 top-2.5 grid size-11 cursor-pointer place-items-center rounded-full border-none bg-white/90 transition-[color,transform] active:scale-90", saved ? "animate-[ns-favorite-pop_320ms_ease-out] text-coral" : "text-gray-600 hover:text-coral")} disabled={saving} onClick={onToggleSave} type="button"><Heart fill={saved ? "currentColor" : "none"} size={18} /></button>
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4 px-[18px]">
+        <div className="flex items-baseline justify-between gap-2.5"><span className="font-display text-[17px] font-medium">{property.title}</span><span className="whitespace-nowrap text-[13px] text-gray-600">{reviewLabel}</span></div>
+        <div className="text-[13px] text-gray-600">{property.location} · {property.parish || property.country}</div>
+        <div className="flex flex-wrap gap-1.5 text-[11.5px] font-semibold text-gray-600"><span className="rounded-pill bg-shell px-2.5 py-1">{bedrooms} {guestLabel}</span><span className="rounded-pill bg-shell px-2.5 py-1">Up to {property.maxGuests ?? 2} guests</span>{(property.amenities ?? []).slice(0, 2).map((amenity) => <span className="rounded-pill bg-shell px-2.5 py-1" key={amenity}>{amenity}</span>)}</div>
+        <div className="flex flex-wrap gap-2 text-[12px] text-gray-600"><span className="rounded-pill bg-success-tint px-2.5 py-1">{verificationLabel(property.hostVerificationStatus)}</span>{property.guestVerificationEnabled && <span className="rounded-pill bg-info-tint px-2.5 py-1">eKYC required</span>}</div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-shell pt-2"><span className="text-base"><strong>{formatMoney(property.nightlyRate, property.currency)}</strong> <span className="text-[13px] text-sand-500">/ night</span></span><span className="text-right text-[12px] text-gray-600"><strong>Est. total {formatMoney(estimatedStayTotal(property, nights), property.currency)}</strong><br />{nights} {nightLabel}, incl. fees</span></div>
+        <div className="flex items-center justify-end gap-2.5 pt-1"><AppLink className="inline-flex min-h-11 items-center rounded-[12px] border-[1.5px] border-deep-hover px-4 text-[13.5px] font-semibold text-deep-hover" href={`/properties/${property.id}`}>Details</AppLink><button className="inline-flex min-h-11 cursor-pointer items-center rounded-[12px] border-none bg-deep px-4 font-semibold text-white" onClick={onBook} type="button">Book</button></div>
+      </div>
+    </article>
+  );
+}
+
 function ExploreLoadingState() {
   return (
-    <div aria-busy="true" className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3" role="status">
+    <div aria-busy="true" className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3" aria-live="polite">
       <span className="sr-only">Searching available stays…</span>
       {Array.from({ length: 6 }, (_, index) => (
         <article aria-hidden="true" className="overflow-hidden rounded-card border border-sand-border bg-cream p-0" key={index}>
@@ -148,11 +195,18 @@ export function PublicSearchMap({ session }: PublicSearchMapProps) {
       return;
     }
     setSavingId(property.id);
+    const wasSaved = Boolean(saved[property.id]);
+    const previousItemId = wishlistItems[property.id];
+    const previousCollectionId = wishlistCollectionId;
+    const nextSaved = !wasSaved;
+    setSaved((current) => ({ ...current, [property.id]: nextSaved }));
+    if (!nextSaved) {
+      setWishlistItems((current) => { const next = { ...current }; delete next[property.id]; return next; });
+    }
     try {
-      if (saved[property.id] && wishlistItems[property.id]) {
-        await api.removeWishlistItem(session.userId, wishlistItems[property.id], session.accessToken);
-        setSaved((current) => ({ ...current, [property.id]: false }));
-        setWishlistItems((current) => { const next = { ...current }; delete next[property.id]; return next; });
+      if (wasSaved && previousItemId) {
+        await api.removeWishlistItem(session.userId, previousItemId, session.accessToken);
+        announceFeedback(`${property.title} removed from saved stays.`, "info");
       } else {
         let collectionId = wishlistCollectionId;
         if (!collectionId) {
@@ -163,12 +217,42 @@ export function PublicSearchMap({ session }: PublicSearchMapProps) {
         const item = await api.addWishlistItem(session.userId, collectionId, session.accessToken, { propertyId: property.id, propertyTitle: property.title });
         setSaved((current) => ({ ...current, [property.id]: true }));
         setWishlistItems((current) => ({ ...current, [property.id]: item.id }));
+        announceFeedback(`${property.title} saved to your stays.`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "This stay could not be saved.");
+      setSaved((current) => ({ ...current, [property.id]: wasSaved }));
+      setWishlistItems((current) => {
+        const next = { ...current };
+        if (previousItemId) next[property.id] = previousItemId; else delete next[property.id];
+        return next;
+      });
+      setWishlistCollectionId(previousCollectionId);
+      const message = err instanceof Error ? err.message : "This stay could not be saved.";
+      setError(message);
+      announceFeedback(message, "error");
     } finally {
       setSavingId(null);
     }
+  }
+
+  function clearFilters() {
+    setBadge("all");
+    setQuery("");
+    setSearch("");
+    setCheckIn(isoDate(7));
+    setCheckOut(isoDate(11));
+    setAdults(2);
+    setChildren(0);
+  }
+
+  function renderSearchResults(): ReactNode {
+    if (loading) return <ExploreLoadingState />;
+    if (error) return <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />;
+    if (filtered.length === 0) {
+      return <div className="flex flex-col items-center gap-2.5 rounded-card border border-dashed border-sand-input bg-cream px-6 py-10 text-center"><Search size={20} className="text-sand-500" /><div className="font-display text-lg font-medium">No available stays match those dates</div><div className="max-w-[360px] text-[13.5px] text-gray-600">Try another parish, different dates, or a smaller guest group.</div><button className="mt-1.5 min-h-11 cursor-pointer rounded-field border-[1.5px] border-deep-hover bg-transparent px-5 font-semibold text-deep-hover" onClick={clearFilters} type="button">Clear filters</button></div>;
+    }
+    const nights = stayNights(checkIn, checkOut);
+    return <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">{visibleProperties.map((property, index) => <PropertyResultCard key={property.id} index={index} nights={nights} onBook={() => setBookingProp(property)} onToggleSave={() => void toggleSave(property)} property={property} saved={Boolean(saved[property.id])} saving={savingId === property.id} />)}</div>;
   }
 
   return (
@@ -189,7 +273,7 @@ export function PublicSearchMap({ session }: PublicSearchMapProps) {
         <ListControls className="mt-1" label="Filter visible stays" onExport={() => downloadCsv("nesty-stays.csv", ["Title", "Location", "Country", "Badge", "Nightly rate"], filtered.map((property) => [property.title, property.location, property.country, property.badgeLevel, property.nightlyRate]))} onPageChange={setPage} onQueryChange={(value) => { setQuery(value); setSearch(value); }} onSortChange={setSort} page={page} pageSize={pageSize} query={query} sort={sort} sortOptions={[{ value: "relevance", label: "Relevance" }, { value: "name", label: "Name" }, { value: "price-low", label: "Price: low to high" }, { value: "price-high", label: "Price: high to low" }]} total={filtered.length} />
       </header>
       <main className="mx-auto max-w-[1200px] px-6 pb-14 pt-7">
-        {loading ? <ExploreLoadingState /> : error ? <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} /> : filtered.length === 0 ? <div className="flex flex-col items-center gap-2.5 rounded-card border border-dashed border-sand-input bg-cream px-6 py-10 text-center"><Search size={20} className="text-sand-500" /><div className="font-display text-lg font-medium">No available stays match those dates</div><div className="max-w-[360px] text-[13.5px] text-gray-600">Try another parish, different dates, or a smaller guest group.</div><button className="mt-1.5 min-h-11 cursor-pointer rounded-field border-[1.5px] border-deep-hover bg-transparent px-5 font-semibold text-deep-hover" onClick={() => { setBadge("all"); setQuery(""); setSearch(""); setCheckIn(isoDate(7)); setCheckOut(isoDate(11)); setAdults(2); setChildren(0); }} type="button">Clear filters</button></div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">{visibleProperties.map((prop, index) => { const reviewLabel = prop.reviewCount ? `★ ${(prop.ratingAverage ?? 0).toFixed(1)} (${prop.reviewCount})` : "New"; const nights = stayNights(checkIn, checkOut); const verificationLabel = prop.hostVerificationStatus === "Approved" ? "Host identity verified" : prop.hostVerificationStatus === "Pending" ? "Host verification pending" : "Host identity not yet verified"; return <article className="flex flex-col overflow-hidden rounded-card border border-sand-border bg-cream shadow-[0_1px_2px_rgba(96,74,20,0.08)] transition-shadow hover:shadow-[0_16px_34px_rgba(96,74,20,0.16)]" key={prop.id}><div className="relative aspect-[3/2]"><img alt={`${prop.title} — ${prop.location}`} className="block h-full w-full object-cover" height={533} loading="lazy" src={prop.imageUrl ?? prop.galleryUrls?.[0] ?? getStayImage(index).src} width={800} /><TierBadge className="absolute left-3.5 top-3.5" level={prop.badgeLevel} /><button aria-label={`${saved[prop.id] ? "Remove" : "Save"} ${prop.title}`} aria-pressed={Boolean(saved[prop.id])} className={cx("absolute right-2.5 top-2.5 grid size-11 cursor-pointer place-items-center rounded-full border-none bg-white/90 transition-colors", saved[prop.id] ? "text-coral" : "text-gray-600 hover:text-coral")} disabled={savingId === prop.id} onClick={() => void toggleSave(prop)} type="button"><Heart fill={saved[prop.id] ? "currentColor" : "none"} size={18} /></button></div><div className="flex flex-1 flex-col gap-2 p-4 px-[18px]"><div className="flex items-baseline justify-between gap-2.5"><span className="font-display text-[17px] font-medium">{prop.title}</span><span className="whitespace-nowrap text-[13px] text-gray-600">{reviewLabel}</span></div><div className="text-[13px] text-gray-600">{prop.location} · {prop.parish || prop.country}</div><div className="flex flex-wrap gap-1.5 text-[11.5px] font-semibold text-gray-600"><span className="rounded-pill bg-shell px-2.5 py-1">{prop.bedrooms ?? 1} bedroom{(prop.bedrooms ?? 1) === 1 ? "" : "s"}</span><span className="rounded-pill bg-shell px-2.5 py-1">Up to {prop.maxGuests ?? 2} guests</span>{(prop.amenities ?? []).slice(0, 2).map((amenity) => <span className="rounded-pill bg-shell px-2.5 py-1" key={amenity}>{amenity}</span>)}</div><div className="flex flex-wrap gap-2 text-[12px] text-gray-600"><span className="rounded-pill bg-success-tint px-2.5 py-1">{verificationLabel}</span>{prop.guestVerificationEnabled && <span className="rounded-pill bg-info-tint px-2.5 py-1">eKYC required</span>}</div><div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-shell pt-2"><span className="text-base"><strong>{formatMoney(prop.nightlyRate, prop.currency)}</strong> <span className="text-[13px] text-sand-500">/ night</span></span><span className="text-right text-[12px] text-gray-600"><strong>Est. total {formatMoney(estimatedStayTotal(prop, nights), prop.currency)}</strong><br />{nights} night{nights === 1 ? "" : "s"}, incl. fees</span></div><div className="flex items-center justify-end gap-2.5 pt-1"><AppLink className="inline-flex min-h-11 items-center rounded-[12px] border-[1.5px] border-deep-hover px-4 text-[13.5px] font-semibold text-deep-hover" href={`/properties/${prop.id}`}>Details</AppLink><button className="inline-flex min-h-11 cursor-pointer items-center rounded-[12px] border-none bg-deep px-4 font-semibold text-white" onClick={() => setBookingProp(prop)} type="button">Book</button></div></div></article>; })}</div>}
+         {renderSearchResults()}
       </main>
       <PublicFooter />
       <BookingModal open={Boolean(bookingProp)} onClose={() => setBookingProp(null)} onCreated={(created) => { const nextStep = ["PENDING", "PENDING_VERIFICATION", "PENDINGVERIFICATION"].includes(created.status.trim().toUpperCase()) ? "identity" : "checkout"; window.location.href = `/booking/${created.id}/${nextStep}`; }} property={bookingProp} session={session} />

@@ -78,8 +78,9 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   expect(bookingId).toBeTruthy();
   await expect(page.getByText(/booking|identity|payment/i).first()).toBeVisible();
   await capture(page, testInfo, "guest-booking-created");
-  if (await page.getByRole("button", { name: /Hold dates & verify/ }).isVisible()) {
-    await page.getByRole("button", { name: /Hold dates & verify/ }).click();
+  const holdAndVerifyButton = page.getByRole("button", { name: /Hold dates & verify/ });
+  await expect(holdAndVerifyButton).toBeVisible({ timeout: 30_000 });
+  await holdAndVerifyButton.click();
     await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+\/pending$/);
     await expect(page.getByText(/verification|pending/i).first()).toBeVisible();
     await capture(page, testInfo, "guest-booking-pending");
@@ -131,7 +132,6 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
     await paymentNotification.click();
     await expect(page).toHaveURL(new RegExp(`/booking/${bookingId}/receipt$`));
     await expect(page.getByText(/receipt/i).first()).toBeVisible();
-  }
   await page.goto("/guest-dashboard", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Your stay hub" })).toBeVisible();
   const stayHub = page.getByRole("region", { name: "Your stay hub" });
@@ -151,7 +151,13 @@ test("real guest registration, login, quote, and persisted eKYC booking flow", a
   const firstCard = page.locator("article").first();
   const savedTitle = await firstCard.locator("span.font-display").innerText();
   const saveButton = firstCard.getByRole("button", { name: new RegExp(savedTitle) });
-  if (await saveButton.getAttribute("aria-pressed") !== "true") await saveButton.click();
+  if (await saveButton.getAttribute("aria-pressed") !== "true") {
+    await saveButton.click();
+    // The card updates optimistically. Wait for the persisted success status
+    // before navigating away, otherwise the browser can cancel the wishlist
+    // request and make the following page look empty.
+    await expect(page.getByText(`${savedTitle} saved to your stays.`, { exact: true })).toBeVisible();
+  }
   await expect(saveButton).toHaveAttribute("aria-pressed", "true");
   await page.goto("/traveler/favorites", { waitUntil: "domcontentloaded" });
   await expect(page.getByText(savedTitle, { exact: true })).toBeVisible();

@@ -37,6 +37,31 @@ const requirements: Record<BadgeLevel, string[]> = {
   Wellness: ["Active Verified badge", "Property address on an approved listing", "Wellness subscription enabled"],
 };
 
+function paymentStatusCopy(paymentIntent: BadgePaymentIntent) {
+  const status = paymentIntent.status.toUpperCase();
+  if (status === "CAPTURED") return "Confirmed by the payment provider and applied to your badge.";
+  if (status === "PENDING" || status === "AUTHORIZED") return "Payment is awaiting provider confirmation.";
+  return paymentIntent.failureReason || `Payment status: ${paymentIntent.status}.`;
+}
+
+function renewalCopy(pendingRenewal: BadgeRenewal | null | undefined, activeAssignment: BadgeAssignment | null | undefined) {
+  if (pendingRenewal) return `Reminder due ${dateLabel(pendingRenewal.reminderDueAt)} · ${formatMoney(pendingRenewal.amountDue, pendingRenewal.currency)}. Renew before expiry to keep gated directory access. If a payment becomes overdue, access may be paused until the retry succeeds.`;
+  if (activeAssignment) return `No pending renewal. Your badge is paid through ${dateLabel(activeAssignment.paidThrough)}.`;
+  return "Free badge access does not require renewal.";
+}
+
+function badgeAssignmentStatus(isCurrent: boolean, isUnlocked: boolean) {
+  if (isCurrent) return "Current";
+  if (isUnlocked) return "Included";
+  return "Upgrade";
+}
+
+function ChecklistIcon({ state }: { state: string }) {
+  if (state === "complete") return <Check className="mt-0.5 text-mint-text" size={15} />;
+  if (state === "pending") return <CircleAlert className="mt-0.5 text-amber-text" size={15} />;
+  return <LockKeyhole className="mt-0.5 text-sand-500" size={15} />;
+}
+
 function dateLabel(value?: string | null) {
   if (!value) return "Not available";
   return new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" });
@@ -45,6 +70,11 @@ function dateLabel(value?: string | null) {
 function daysUntil(value?: string | null) {
   if (!value) return Number.POSITIVE_INFINITY;
   return Math.ceil((new Date(value).getTime() - Date.now()) / 86_400_000);
+}
+
+function formatBadgeAnnualPrice(definition: BadgeDefinition) {
+  if (definition.annualPrice === 0) return "Included";
+  return formatMoney(definition.annualPrice, definition.currency) + (definition.priceCadence ? " · " + definition.priceCadence : " / year");
 }
 
 function activeAssignmentFor(assignments: BadgeAssignment[], level: BadgeLevel) {
@@ -365,7 +395,7 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
       )}
       {loadError && <div className="rounded-card border border-coral bg-coral-tint p-5 text-coral-text" role="alert">{loadError}</div>}
       {actionError && <div className="rounded-card border border-coral bg-coral-tint p-5 text-coral-text" role="alert">{actionError}</div>}
-      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-[13px] text-mint-text" role="status">{notice}</div>}
+      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-[13px] text-mint-text" aria-live="polite">{notice}</div>}
 
       {paymentIntent && (
         <section className="rounded-card border border-sand-border bg-cream p-5" aria-labelledby="badge-payment-heading" data-testid="badge-payment-panel">
@@ -374,7 +404,7 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
               <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-sand-500">Payment status</p>
               <h2 className="m-0 font-display text-[22px] font-medium" id="badge-payment-heading">{paymentIntent.level} badge payment</h2>
               <p className="mb-0 mt-2 text-[13px] text-gray-600" aria-live="polite">
-                {paymentIntent.status.toUpperCase() === "CAPTURED" ? "Confirmed by the payment provider and applied to your badge." : paymentIntent.status.toUpperCase() === "PENDING" || paymentIntent.status.toUpperCase() === "AUTHORIZED" ? "Payment is awaiting provider confirmation." : paymentIntent.failureReason || `Payment status: ${paymentIntent.status}.`}
+                {paymentStatusCopy(paymentIntent)}
               </p>
             </div>
             <StatusChip value={paymentIntent.status} />
@@ -416,27 +446,21 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
                 {renewalAttention ? <CircleAlert className="mt-0.5 text-amber-text" size={20} /> : <RefreshCcw className="mt-0.5 text-mint-text" size={20} />}
                 <div className="min-w-0">
                   <h2 className="m-0 font-display text-[19px] font-medium">Renewal & payment</h2>
-                  {pendingRenewal ? (
-                    <p className="mb-3 mt-2 text-[13px] leading-5 text-gray-600">Reminder due {dateLabel(pendingRenewal.reminderDueAt)} · {formatMoney(pendingRenewal.amountDue, pendingRenewal.currency)}. Renew before expiry to keep gated directory access. If a payment becomes overdue, access may be paused until the retry succeeds.</p>
-                  ) : activeAssignment ? (
-                    <p className="mb-3 mt-2 text-[13px] leading-5 text-gray-600">No pending renewal. Your badge is paid through {dateLabel(activeAssignment.paidThrough)}.</p>
-                  ) : (
-                    <p className="mb-3 mt-2 text-[13px] leading-5 text-gray-600">Free badge access does not require renewal.</p>
-                  )}
+                  <p className="mb-3 mt-2 text-[13px] leading-5 text-gray-600">{renewalCopy(pendingRenewal, activeAssignment)}</p>
                   {activeAssignment && pendingRenewal && (
                     <div className="flex flex-wrap items-center gap-3">
                       <button className="inline-flex min-h-[42px] items-center gap-2 rounded-pill bg-deep px-4 text-[13px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={isRenewing} onClick={() => void retryRenewal()} type="button">
                         <CreditCard size={16} /> {isRenewing ? "Retrying…" : "Pay / retry renewal"}
                       </button>
                       <label className="inline-flex items-center gap-2 text-[12px] font-semibold text-gray-700">
-                        <input checked={autoRenew} onChange={(event) => toggleAutoRenew(event.target.checked)} type="checkbox" />
+                        <input checked={autoRenew} onChange={(event) => toggleAutoRenew(event.target.checked)} type="checkbox" />{" "}
                         Auto-renew preference
                       </label>
                     </div>
                   )}
                   {activeAssignment && !pendingRenewal && (
                     <label className="inline-flex items-center gap-2 text-[12px] font-semibold text-gray-700">
-                      <input checked={autoRenew} onChange={(event) => toggleAutoRenew(event.target.checked)} type="checkbox" />
+                      <input checked={autoRenew} onChange={(event) => toggleAutoRenew(event.target.checked)} type="checkbox" />{" "}
                       Auto-renew preference
                     </label>
                   )}
@@ -465,7 +489,7 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
                   <article className={`flex flex-col gap-3 rounded-card p-5 ${definition.level === "Trusted" ? "bg-deep text-on-dark-heading" : "border border-sand-border bg-cream"}`} key={definition.id}>
                     <div className="flex items-center justify-between gap-2">
                       <span className={`rounded-pill px-3 py-1.5 text-[10px] font-bold tracking-[0.1em] ${definition.level === "Trusted" ? "bg-yellow/15 text-yellow" : "border border-mint bg-mint-tint text-mint-text"}`}>{definition.level.toUpperCase()}</span>
-                      <StatusChip value={isCurrent ? "Current" : isUnlocked ? "Included" : "Upgrade"} />
+                       <StatusChip value={badgeAssignmentStatus(isCurrent, isUnlocked)} />
                     </div>
                     <div>
                       <h3 className="m-0 font-display text-[22px] font-medium">{definition.level} badge</h3>
@@ -474,7 +498,7 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
                       {definition.level === "Trusted" && <p className={`mb-0 mt-2 text-[11px] leading-5 ${definition.level === "Trusted" ? "text-on-dark-muted" : "text-gray-500"}`}>Trust score is based on approved booking history and account standing; it is never self-declared.</p>}
                     </div>
                     <div className="font-display text-[20px] font-medium">
-                      {definition.annualPrice === 0 ? "Included" : `${formatMoney(definition.annualPrice, definition.currency)}${definition.priceCadence ? ` · ${definition.priceCadence}` : " / year"}`}
+                      {formatBadgeAnnualPrice(definition)}
                     </div>
                     <ul className={`m-0 flex flex-col gap-2 border-t pt-3 text-[12px] ${definition.level === "Trusted" ? "border-white/15 text-on-dark-muted" : "border-sand-border text-gray-600"}`}>
                       {definition.unlocks.map((feature) => <li className="flex items-start gap-2" key={feature}><Check className="mt-0.5 shrink-0 text-mint-text" size={14} /> <span>{feature}</span></li>)}
@@ -507,7 +531,7 @@ export function HostReviewsBadgesSettings({ view, token, hostUserId }: HostRevie
                     <ul className="m-0 flex flex-col gap-2 text-[12.5px] text-gray-600">
                       {requirements[level].map((item, index) => {
                         const state = checklistState(level, index);
-                        return <li className="flex items-start gap-2" key={item}>{state === "complete" ? <Check className="mt-0.5 text-mint-text" size={15} /> : state === "pending" ? <CircleAlert className="mt-0.5 text-amber-text" size={15} /> : <LockKeyhole className="mt-0.5 text-sand-500" size={15} />}<span>{item}</span><span className="ml-auto text-[10px] font-bold uppercase tracking-[0.08em] text-sand-500">{state}</span></li>;
+                        return <li className="flex items-start gap-2" key={item}><ChecklistIcon state={state} /><span>{item}</span><span className="ml-auto text-[10px] font-bold uppercase tracking-[0.08em] text-sand-500">{state}</span></li>;
                       })}
                     </ul>
                   </div>

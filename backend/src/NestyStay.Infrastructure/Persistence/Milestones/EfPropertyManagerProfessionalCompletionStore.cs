@@ -202,7 +202,8 @@ public sealed class EfPropertyManagerProfessionalCompletionStore(NestyStayDbCont
     {
         if (string.IsNullOrWhiteSpace(request.ResourceType) || string.IsNullOrWhiteSpace(request.Status)) throw new InvalidOperationException("Resource type and status are required.");
         if (string.IsNullOrWhiteSpace(request.PayloadJson) || request.PayloadJson.Length > 500_000) throw new InvalidOperationException("A bounded JSON payload is required.");
-        try { using var document = JsonDocument.Parse(request.PayloadJson); if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Payload must be a JSON object."); }
+        try { using var document = JsonDocument.Parse(request.PayloadJson);
+        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Payload must be a JSON object."); }
         catch (JsonException) { throw new InvalidOperationException("Payload must be valid JSON."); }
         if (area == "utilities" && request.PropertyId is null) throw new InvalidOperationException("Utility records require a property.");
         if (area is "assets" or "inventory" or "incidents" && request.PropertyId is null) throw new InvalidOperationException($"{area} records require a property.");
@@ -235,7 +236,10 @@ public sealed class EfPropertyManagerProfessionalCompletionStore(NestyStayDbCont
             using var doc = JsonDocument.Parse(json);
             foreach (var name in new[] { "amount", "total", "value", "cost" }) if (doc.RootElement.TryGetProperty(name, out var value) && value.TryGetDecimal(out amount)) return true;
         }
-        catch (JsonException) { }
+        catch (JsonException)
+        {
+            return false;
+        }
         return false;
     }
 

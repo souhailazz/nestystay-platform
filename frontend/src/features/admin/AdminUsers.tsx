@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Search, ShieldCheck, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 import { api, type HostVerificationQueueItem } from "../../lib/api";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -12,7 +12,10 @@ interface AdminUsersProps {
 }
 
 function statusClass(status: string) {
-  return status.toLowerCase() === "approved" ? "badge-green" : status.toLowerCase() === "rejected" ? "badge-coral" : "badge-sun";
+  const normalized = status.toLowerCase();
+  if (normalized === "approved") return "badge-green";
+  if (normalized === "rejected") return "badge-coral";
+  return "badge-sun";
 }
 
 export function AdminUsers({ token }: AdminUsersProps) {
@@ -73,13 +76,16 @@ export function AdminUsers({ token }: AdminUsersProps) {
         <label className="relative w-full max-w-sm"><Search aria-hidden="true" className="absolute left-3 top-3 text-sand-500" size={16} /><span className="sr-only">Search host verification</span><input aria-label="Search host verification" className="input-control pl-9" placeholder="Search name, email, document..." value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       </header>
 
-      {notice && <div className="notice-panel mb-4" role="status">{notice}</div>}
+      {notice && <div className="notice-panel mb-4" aria-live="polite">{notice}</div>}
       {error && <ErrorState message={error} />}
-      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter host verification status">
+      <fieldset className="mb-4 flex flex-wrap gap-2 border-0 p-0" aria-label="Filter host verification status">
         {[['all', 'All'], ['pending', 'Pending'], ['approved', 'Approved'], ['rejected', 'Rejected']].map(([value, label]) => <button aria-pressed={status === value} className={`btn btn-sm ${status === value ? "btn-primary" : "btn-outline"}`} key={value} onClick={() => setStatus(value)} type="button">{label}</button>)}
-      </div>
+      </fieldset>
 
-      {loading ? <div className="loading-shimmer p-6 text-center">Loading host verification queue...</div> : filtered.length === 0 ? <EmptyState title="No host submissions found" copy="New host identity submissions will appear here after they are sent for review." /> : <>
+      {(() => {
+        if (loading) return <div className="loading-shimmer p-6 text-center">Loading host verification queue...</div>;
+        if (filtered.length === 0) return <EmptyState title="No host submissions found" copy="New host identity submissions will appear here after they are sent for review." />;
+        return <>
         <div className="card-box hidden overflow-x-auto md:block">
           <table className="table-styled w-full min-w-[760px]">
             <thead><tr><th>Host</th><th>Document</th><th>Status</th><th>Submitted</th><th className="text-right">Actions</th></tr></thead>
@@ -87,7 +93,8 @@ export function AdminUsers({ token }: AdminUsersProps) {
           </table>
         </div>
         <div className="grid gap-3 md:hidden">{filtered.map((host) => <article className="card-box" key={host.userId}><div className="flex items-start justify-between gap-3"><div><strong>{host.displayName}</strong><p className="subtext m-0 mt-1 break-all text-xs">{host.email}</p></div><span className={`badge ${statusClass(host.status)}`}>{host.status}</span></div><div className="mt-3 grid gap-1 text-sm"><span><strong>Document:</strong> {host.documentType ?? "Not submitted"}</span><span><strong>Submitted:</strong> {host.submittedAt ? new Date(host.submittedAt).toLocaleDateString() : "—"}</span>{host.reason && <span className="text-coral-text"><strong>Reason:</strong> {host.reason}</span>}</div><button className="btn btn-outline mt-4 w-full" onClick={() => { setSelectedHost(host); setDecision("Rejected"); setReason(host.status === "Rejected" ? host.reason ?? "" : ""); }} type="button">Review host</button></article>)}</div>
-      </>}
+        </>;
+      })()}
 
       <Modal open={Boolean(selectedHost)} title={selectedHost ? `Review ${selectedHost.displayName}` : "Review host"} onClose={() => setSelectedHost(null)} variant="sheet">
         {selectedHost && <>

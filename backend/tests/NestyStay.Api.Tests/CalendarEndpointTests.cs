@@ -117,6 +117,10 @@ public sealed class CalendarEndpointTests : IClassFixture<NestyStayApiFactory>
             currency = "USD", badgeLevel = "Free", cancellationPolicy = "Flexible"
         });
         var propertyId = (await property.Content.ReadFromJsonAsync<IdResponse>())!.Id;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await client.PostAsJsonAsync($"/api/properties/{propertyId}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(hostId, UserRole.Host));
 
         var created = await client.PostAsJsonAsync($"/api/properties/{propertyId}/calendar/blocks", new { startsOn = "2026-10-20", endsOn = "2026-10-22", reason = "Owner stay" });
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);

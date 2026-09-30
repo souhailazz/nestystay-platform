@@ -6739,6 +6739,10 @@ namespace NestyStay.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("host_user_id");
 
+                    b.Property<bool>("IsDateHold")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_date_hold");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");

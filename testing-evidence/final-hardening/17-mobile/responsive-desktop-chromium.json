@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T14:59:34.619Z",
+  "generatedAt": "2026-09-30T14:23:44.010Z",
   "project": "desktop-chromium",
   "viewport": {
     "width": 1440,
@@ -13,7 +13,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 19,
+      "controlCount": 11,
       "undersized": []
     },
     {
@@ -21,7 +21,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 35,
+      "controlCount": 46,
       "undersized": []
     },
     {
@@ -29,7 +29,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 13,
+      "controlCount": 14,
       "undersized": []
     },
     {
@@ -37,7 +37,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 13,
+      "controlCount": 17,
       "undersized": []
     },
     {
@@ -45,7 +45,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 23,
+      "controlCount": 42,
       "undersized": []
     },
     {
@@ -61,7 +61,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 48,
+      "controlCount": 61,
       "undersized": []
     },
     {
@@ -85,7 +85,7 @@
       "viewportWidth": 1440,
       "scrollWidth": 1440,
       "horizontalOverflow": 0,
-      "controlCount": 8,
+      "controlCount": 11,
       "undersized": []
     },
     {

@@ -123,9 +123,9 @@ export function HostReservations({ token }: HostReservationsProps) {
             sortOptions={[{ value: "date", label: "Check-in date" }, { value: "property", label: "Property" }]}
             total={filtered.length}
           />
-          <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter reservation status">
+          <fieldset className="mb-4 flex flex-wrap items-center gap-2 border-0 p-0" aria-label="Filter reservation status">
             {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]].map(([value, label]) => <button aria-pressed={status === value} className={`btn btn-sm ${status === value ? "btn-primary" : "btn-outline"}`} key={value} onClick={() => setStatus(value)} type="button">{label}</button>)}
-          </div>
+          </fieldset>
           <div className="card-box hidden md:block">
           <table className="table-styled w-full">
             <thead>

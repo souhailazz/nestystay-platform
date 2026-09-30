@@ -71,6 +71,17 @@ public sealed class BookingsController(
         return Ok(await phaseOneStore.CreateBookingAsync(request with { GuestUserId = guestUserId }, cancellationToken));
     }
 
+    [Authorize]
+    [HttpPost("hold-dates")]
+    [EnableRateLimiting(RateLimitPolicies.SensitiveAction)]
+    public async Task<IActionResult> HoldDates(HoldBookingDatesRequest request, CancellationToken cancellationToken)
+    {
+        var guestUserId = authorization.RequireSignedInUser("Authenticated user id is required.");
+        var store = phaseOneStore as IBookingDateHoldStore
+            ?? throw new InvalidOperationException("Date hold store is unavailable.");
+        return Ok(await store.HoldBookingDatesAsync(guestUserId, request, cancellationToken));
+    }
+
     [Authorize(Policy = AdminAuthorizationPolicies.BookingManagement)]
     [HttpPost("{id:guid}/verification-result")]
     public async Task<IActionResult> ResolveVerification(Guid id, ResolveVerificationRequest request, CancellationToken cancellationToken)
@@ -182,6 +193,16 @@ public sealed class BookingsController(
                 cancellationToken);
         }
 
+        return booking is null ? NotFound() : Ok(booking);
+    }
+
+    [Authorize(Policy = AdminAuthorizationPolicies.RefundManagement)]
+    [HttpPost("{id:guid}/void-payment")]
+    public async Task<IActionResult> VoidPayment(Guid id, CancellationToken cancellationToken)
+    {
+        var store = phaseOneStore as IBookingPaymentOperationsStore
+            ?? throw new InvalidOperationException("Payment operations store is unavailable.");
+        var booking = await store.VoidPaymentAsync(id, cancellationToken);
         return booking is null ? NotFound() : Ok(booking);
     }
 

@@ -261,7 +261,7 @@ public sealed class SpecCompletionController(
     }
 
     [HttpPut("traveler/{userId:guid}/identity-documents/uploads/{uploadId:guid}/content")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(10 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<ActionResult<IdentityDocumentUploadDto>> UploadIdentityDocumentContent(
         Guid userId,
         Guid uploadId,
@@ -346,7 +346,7 @@ public sealed class SpecCompletionController(
     [Authorize]
     [HttpPut("directories/providers/{providerId:guid}/documents/{documentId:guid}/content")]
     [EnableRateLimiting(RateLimitPolicies.Upload)]
-    [RequestSizeLimit(25 * 1024 * 1024)]
+    [RequestSizeLimit(25 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<ActionResult<DirectoryProviderDocumentUploadDto>> UploadDirectoryProviderDocumentContent(Guid providerId, Guid documentId, CancellationToken cancellationToken)
     {
         var actor = authorization.RequireSignedInUser();
@@ -395,7 +395,7 @@ public sealed class SpecCompletionController(
 
     [HttpPut("messages/conversations/{conversationId:guid}/attachments/{attachmentId:guid}/content")]
     [EnableRateLimiting(RateLimitPolicies.Upload)]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(10 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<ActionResult<AttachmentUploadDto>> UploadMessageAttachmentContent(
         Guid conversationId,
         Guid attachmentId,
@@ -560,7 +560,7 @@ public sealed class SpecCompletionController(
 
     [Authorize(Policy = AdminAuthorizationPolicies.UserManagement)]
     [HttpPut("admin/cases/{caseId:guid}/evidence/{evidenceId:guid}/content")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(10 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<ActionResult<AdminCaseEvidenceUploadDto>> UploadAdminCaseEvidenceContent(
         Guid caseId,
         Guid evidenceId,
@@ -631,7 +631,7 @@ public sealed class SpecCompletionController(
 
     private string ResolveRequesterIp() =>
         HttpContext.Connection.RemoteIpAddress?.ToString() ??
-        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ??
+        Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim() ?? // NOSONAR: proxy client IP is supplied by the trusted reverse-proxy header.
         "unknown";
 
     private bool IsSecureCookie() =>

@@ -39,10 +39,9 @@ export function CookieConsent() {
   };
 
   return (
-    <div
+    <section
       aria-labelledby="cookie-consent-title"
       className="pointer-events-none fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[760px] sm:inset-x-6"
-      role="region"
     >
       <div
         aria-describedby="cookie-consent-copy"
@@ -64,7 +63,7 @@ export function CookieConsent() {
           </button>
         </div>
       </div>
-      {settingsOpen && <p className="m-0 mt-3 text-xs text-sand-600" role="status">Your preference is saved on this device. No optional analytics is installed in this build.</p>}
-    </div>
+      {settingsOpen && <p className="m-0 mt-3 text-xs text-sand-600" aria-live="polite">Your preference is saved on this device. No optional analytics is installed in this build.</p>}
+    </section>
   );
 }

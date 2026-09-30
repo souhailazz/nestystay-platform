@@ -19,6 +19,16 @@ public interface IPaymentGateway
     Task<PaymentSetupIntentResult> CreateSetupIntentAsync(PaymentSetupIntentRequest request, CancellationToken cancellationToken);
     Task<PaymentMethodTokenizationResult> GetPaymentMethodAsync(PaymentMethodTokenizationRequest request, CancellationToken cancellationToken);
     Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken);
+    /// <summary>Voids an uncaptured authorization and releases the card hold.</summary>
+    Task<PaymentVoidResult> VoidAuthorizationAsync(PaymentVoidRequest request, CancellationToken cancellationToken) =>
+        Task.FromResult(new PaymentVoidResult(
+            ProviderName,
+            string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? $"{ProviderName.ToLowerInvariant()}_local_void_{request.AuthorizationReference}"
+                : $"{ProviderName.ToLowerInvariant()}_local_void_{request.IdempotencyKey.Replace(":", "_", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal)}",
+            PaymentStatus.Cancelled,
+            request.Currency,
+            DateTimeOffset.UtcNow));
     Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken);
     Task<PaymentRefundResult> RefundAsync(PaymentRefundRequest request, CancellationToken cancellationToken);
 }
@@ -240,6 +250,20 @@ public sealed record PaymentCaptureResult(
     PaymentStatus Status,
     decimal CapturedAmount,
     string Currency);
+
+public sealed record PaymentVoidRequest(
+    string AuthorizationReference,
+    decimal Amount,
+    string Currency,
+    string Reason,
+    string IdempotencyKey = "");
+
+public sealed record PaymentVoidResult(
+    string ProviderName,
+    string VoidReference,
+    PaymentStatus Status,
+    string Currency,
+    DateTimeOffset VoidedAt);
 
 public sealed record PaymentRefundRequest(
     string PaymentReference,

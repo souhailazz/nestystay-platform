@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Download } from "lucide-react";
+import { Copy, Download } from "lucide-react";
 import { AppLink } from "../../components/AppLink";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
+import { announceFeedback } from "../../lib/feedback";
 import {
   BookingScaffold,
   BookingStepper,
@@ -29,6 +30,7 @@ export function BookingSuccessPage({ bookingId, auth }: BookingSuccessPageProps)
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
+  const [downloadKind, setDownloadKind] = useState<"invoice" | "receipt" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -51,6 +53,7 @@ export function BookingSuccessPage({ bookingId, auth }: BookingSuccessPageProps)
 
   async function handleDownload(kind: "invoice" | "receipt") {
     if (!booking || !auth.session) return;
+    setDownloadKind(kind);
     try {
       const doc =
         kind === "invoice"
@@ -65,8 +68,25 @@ export function BookingSuccessPage({ bookingId, auth }: BookingSuccessPageProps)
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setDownloadNotice(`${kind === "invoice" ? "Invoice" : "Receipt"} downloaded: ${doc.fileName}`);
+      announceFeedback(`${kind === "invoice" ? "Invoice" : "Receipt"} download started.`);
     } catch (err) {
       setDownloadNotice(`Download failed: ${err instanceof Error ? err.message : "Error downloading document."}`);
+      announceFeedback("The document could not be downloaded.", "error");
+    } finally {
+      setDownloadKind(null);
+    }
+  }
+
+  async function copyBookingReference() {
+    if (!booking) return;
+    const reference = `NSTY-BK-${booking.id.slice(0, 8).toUpperCase()}`;
+    try {
+      await navigator.clipboard.writeText(reference);
+      setDownloadNotice("Booking reference copied to your clipboard.");
+      announceFeedback("Booking reference copied.");
+    } catch {
+      setDownloadNotice(`Booking reference: ${reference}`);
+      announceFeedback("Copy is unavailable; the booking reference is shown below.", "info");
     }
   }
 
@@ -126,11 +146,14 @@ export function BookingSuccessPage({ bookingId, auth }: BookingSuccessPageProps)
         <div className={bookingCard}>
           <div className="flex flex-wrap items-baseline justify-between gap-2.5">
             <div className="text-[13px] font-semibold">Receipt</div>
-            <span className="font-mono text-[12.5px] text-gray-600">NSTY-BK-{booking.id.slice(0, 8).toUpperCase()}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[12.5px] text-gray-600">NSTY-BK-{booking.id.slice(0, 8).toUpperCase()}</span>
+              <button aria-label="Copy booking reference" className="inline-flex min-h-8 items-center gap-1 rounded-pill border border-sand-input px-2.5 text-xs font-semibold text-deep-hover hover:border-deep" onClick={() => void copyBookingReference()} type="button"><Copy aria-hidden="true" size={13} /> Copy</button>
+            </div>
           </div>
           <div className="flex flex-col text-[13.5px]">
-            {(booking.priceBreakdown ?? []).map((line, idx) => (
-              <div className="flex items-center justify-between gap-2 border-b border-shell py-[7px]" key={idx}>
+            {(booking.priceBreakdown ?? []).map((line) => (
+              <div className="flex items-center justify-between gap-2 border-b border-shell py-[7px]" key={`${line.code}-${line.description}`}>
                 <span>{line.description}</span>
                 <strong>{formatMoney(line.amount, line.currency)}</strong>
               </div>
@@ -141,18 +164,18 @@ export function BookingSuccessPage({ bookingId, auth }: BookingSuccessPageProps)
             </div>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <button className={outlinePill} onClick={() => handleDownload("receipt")} type="button">
-              <Download size={15} /> Download receipt (PDF)
+            <button className={outlinePill} disabled={downloadKind !== null} onClick={() => void handleDownload("receipt")} type="button">
+              <Download size={15} /> {downloadKind === "receipt" ? "Preparing receipt…" : "Download receipt (PDF)"}
             </button>
-            <button className={outlinePill} onClick={() => handleDownload("invoice")} type="button">
-              <Download size={15} /> Download invoice (PDF)
+            <button className={outlinePill} disabled={downloadKind !== null} onClick={() => void handleDownload("invoice")} type="button">
+              <Download size={15} /> {downloadKind === "invoice" ? "Preparing invoice…" : "Download invoice (PDF)"}
             </button>
             <AppLink className={outlinePill} href="/traveler/invoices">
               View all invoices
             </AppLink>
           </div>
           {downloadNotice && (
-            <div className="rounded-field bg-shell px-4 py-3 text-[13px] text-gray-600" role="status">
+            <div className="rounded-field bg-shell px-4 py-3 text-[13px] text-gray-600" aria-live="polite">
               {downloadNotice}
             </div>
           )}

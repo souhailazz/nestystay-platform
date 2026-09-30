@@ -13,8 +13,15 @@ function PolicySection({ title, children }: { title: string; children: ReactNode
 
 function LegalMeta() { return <p className="m-0 text-xs text-sand-600">Last updated {LEGAL_DETAILS.lastUpdated} · Website: {LEGAL_DETAILS.website}</p>; }
 
+function legalTitle(kind: "terms" | "privacy" | "cookies" | "refund-policy") {
+  if (kind === "terms") return "Terms of Service";
+  if (kind === "privacy") return "Privacy Policy";
+  if (kind === "cookies") return "Cookie Policy";
+  return "Refund Policy";
+}
+
 function LegalDocument({ kind }: { kind: "terms" | "privacy" | "cookies" | "refund-policy" }) {
-  const title = kind === "terms" ? "Terms of Service" : kind === "privacy" ? "Privacy Policy" : kind === "cookies" ? "Cookie Policy" : "Refund Policy";
+  const title = legalTitle(kind);
   return <><div className="page-container container py-6" data-testid={`${kind}-page`} id={`PUB-${kind.toUpperCase()}`}>
     <header className="page-header mb-6"><span className="badge badge-sun">LEGAL</span><h1 data-route-heading="true">{title}</h1><PatoisPhrase phrase="Clear terms. Clear choices." translation="Read how NestyStay handles bookings, information, cookies, and refunds." /><LegalMeta /></header>
     <article className="card-box max-w-4xl space-y-6 text-sm leading-relaxed">

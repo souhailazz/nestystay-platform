@@ -80,9 +80,6 @@ public sealed class AdminTokenAuthenticationHandler(
     private AuthenticateResult Success(UserRole role, IReadOnlyList<string>? permissions = null) =>
         Success($"{role.ToString().ToLowerInvariant()}-token", [role], permissions);
 
-    private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles, string? tokenId = null) =>
-        Success(userId.ToString(), roles, null, tokenId);
-
     private AuthenticateResult Success(Guid userId, IReadOnlyList<UserRole> roles, IReadOnlyList<string>? permissions, string? tokenId = null) =>
         Success(userId.ToString(), roles, permissions, tokenId);
 

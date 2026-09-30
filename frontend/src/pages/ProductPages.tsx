@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   BadgeCheck,
-  BedDouble,
   Bell,
   CalendarDays,
   CalendarRange,
@@ -15,7 +13,6 @@ import {
   Eye,
   FileCheck2,
   Gauge,
-  Heart,
   Home,
   KeyRound,
   LayoutDashboard,
@@ -28,27 +25,22 @@ import {
   Plus,
   ReceiptText,
   RotateCcw,
-  Search,
   Settings,
   ShieldCheck,
   Sparkles,
   Star,
   SlidersHorizontal,
   TimerReset,
-  ToggleLeft,
-  UserRound,
   WifiOff,
   X,
 } from "lucide-react";
 import { AppLink, navigate } from "../components/AppLink";
-import { Badge } from "../components/ui/Badge";
 import { Button, buttonClassName } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
-import { PatoisToast } from "../components/ui/PatoisToast";
 import { StatusChip } from "../components/ui/StatusChip";
 import { TierBadge } from "../components/layout/PublicShell";
 import { usePatois } from "../lib/patois";
@@ -58,8 +50,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { useBookings } from "../hooks/useBookings";
 import type { AuthController } from "../hooks/useAuth";
 import { AdminPermissions, hasAdminPermission } from "../lib/adminPermissions";
-import { useProperties, useProperty } from "../hooks/useProperties";
-import { getStayImage } from "../lib/stayImages";
+import { useProperties } from "../hooks/useProperties";
 import { TravelerStateContainer } from "../features/traveler/TravelerStateContainer";
 import { HostStateContainer } from "../features/host/HostStateContainer";
 import { HostReservations } from "../features/host/HostReservations";
@@ -84,14 +75,12 @@ import {
   type FoundingBenefit,
   type FoundingTier,
   type FoundingTransferEvaluation,
-  type GoogleSignInRequest,
   type IntegrationStatus,
   type PhaseTwoPricebookItem,
   type ProfilePhotoUpload,
   type PropertyPhotoUpload,
   type PropertyListing,
   type PropertyAvailability,
-  type SocialAuthConfig,
   type UserProfile,
   type WellnessAdminDashboard,
   type WellnessOfficer,
@@ -108,90 +97,13 @@ function todayPlus(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-/* Reusable scroll-reveal wrapper for product sections */
-function AnimatedSection({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 36 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+function toDateTimeOffset(value: string) {
+  return value.endsWith("Z") ? value : `${value}:00Z`;
 }
 
 /* DS v2 — StatusBadge now delegates to the contractual StatusChip tones. */
 function StatusBadge({ value }: { value: string }) {
   return <StatusChip value={value} />;
-}
-
-function MiniPropertyArt({ index = 0, title = "Jamaican stay" }: { index?: number; title?: string }) {
-  const image = getStayImage(index);
-  return (
-    <div className="property-art property-art--image">
-      <img className="generated-stay-image" src={image.src} srcSet={image.srcSet} sizes="(max-width: 760px) 92vw, (max-width: 1200px) 44vw, 360px" alt={`${title}: ${image.alt}`} decoding="async" height="1003" loading="lazy" width="1568" />
-    </div>
-  );
-}
-
-function ProductCard({
-  property,
-  index,
-  onBook,
-}: {
-  property: PropertyListing;
-  index: number;
-  onBook: (property: PropertyListing) => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-    >
-    <Card className="stay-result-card">
-      <div className="stay-result-card__visual">
-        <MiniPropertyArt index={index} title={property.title} />
-        <span className="property-tag">{property.badgeLevel} host</span>
-        <button type="button" className="heart-button" aria-label={`Save ${property.title}`}>
-          <Heart size={18} />
-        </button>
-      </div>
-      <div className="stay-result-card__body">
-        <div className="stay-result-card__meta">
-          <StatusBadge value={property.guestVerificationEnabled ? "Verified stay" : "Fast booking"} />
-          <span>
-            <Star size={13} fill="currentColor" /> 4.9
-          </span>
-        </div>
-        <h3>{property.title}</h3>
-        <p>
-          <MapPin size={14} /> {property.location}, {property.country}
-        </p>
-        <div className="highlight-list">
-          {property.highlights.slice(0, 3).map((highlight) => (
-            <span key={highlight}>{highlight}</span>
-          ))}
-        </div>
-        <div className="stay-result-card__footer">
-          <strong>{formatMoney(property.nightlyRate, property.currency)} / night</strong>
-          <div className="button-row">
-            <AppLink className={buttonClassName("outline")} href={`/properties/${property.id}`}>
-              Details
-            </AppLink>
-            <Button onClick={() => onBook(property)}>
-              Book <ArrowRight size={16} />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Card>
-    </motion.div>
-  );
 }
 
 function RequireAuth({ auth, title }: { auth: AuthController; title: string }) {
@@ -232,95 +144,6 @@ export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?
   return <AuthStateContainer mode={mode} auth={auth} returnTo={returnTo} />;
 }
 
-async function signInWithGoogle(signIn: (profile: GoogleSignInRequest) => Promise<unknown>, role: "Guest" | "Host") {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-  if (!googleClientId) {
-    throw new Error("Google sign-in is unavailable until OAuth is configured.");
-  }
-
-  const credential = await requestGoogleCredential(googleClientId);
-  return signIn({ credential: credential.raw, role });
-}
-
-function requestGoogleCredential(clientId: string) {
-  return new Promise<{ email: string; name: string; sub: string; picture?: string; raw: string }>((resolve, reject) => {
-    const scriptId = "google-identity-services";
-    const existing = document.getElementById(scriptId);
-    const loadScript = existing
-      ? Promise.resolve()
-      : new Promise<void>((scriptResolve, scriptReject) => {
-          const script = document.createElement("script");
-          script.id = scriptId;
-          script.src = "https://accounts.google.com/gsi/client";
-          script.async = true;
-          script.defer = true;
-          script.onload = () => scriptResolve();
-          script.onerror = () => scriptReject(new Error("Google sign-in could not load."));
-          document.head.appendChild(script);
-        });
-
-    loadScript
-      .then(() => {
-        const google = window.google;
-        if (!google?.accounts?.id) {
-          reject(new Error("Google sign-in is unavailable in this browser."));
-          return;
-        }
-
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response: { credential?: string }) => {
-            if (!response.credential) {
-              reject(new Error("Google did not return a credential."));
-              return;
-            }
-            resolve(decodeGoogleCredential(response.credential));
-          },
-        });
-        google.accounts.id.prompt((notification: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => {
-          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
-            reject(new Error("Google sign-in prompt was dismissed."));
-          }
-        });
-      })
-      .catch(reject);
-  });
-}
-
-function decodeGoogleCredential(raw: string) {
-  const payload = raw.split(".")[1];
-  if (!payload) throw new Error("Google credential is malformed.");
-  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-  const decoded = JSON.parse(window.atob(padded)) as {
-    email?: string;
-    name?: string;
-    sub?: string;
-    picture?: string;
-  };
-  if (!decoded.email || !decoded.sub) throw new Error("Google credential is missing account details.");
-  return {
-    email: decoded.email,
-    name: decoded.name ?? decoded.email.split("@")[0],
-    sub: decoded.sub,
-    picture: decoded.picture,
-    raw,
-  };
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts?: {
-        id?: {
-          initialize: (options: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
-          prompt: (callback?: (notification: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
-        };
-      };
-    };
-  }
-}
-
 function MetricCard({
   icon: Icon,
   label,
@@ -346,105 +169,9 @@ export function GuestDashboardPage({ auth }: { auth: AuthController }) {
   return <TravelerStateContainer view="dashboard" auth={auth} />;
 }
 
-function GuestDashboardContent({ auth }: { auth: AuthController }) {
-  const { bookings, isLoading, error, reload } = useBookings(auth.session?.accessToken);
-  const [showLoginToast, setShowLoginToast] = useState(false);
-  const approved = bookings.filter((booking) => booking.status === "APPROVED").length;
-  const pending = bookings.filter((booking) => booking.status === "PENDING").length;
-  const spend = bookings.reduce((sum, booking) => sum + booking.totalAmount, 0);
-
-  useEffect(() => {
-    if (window.sessionStorage.getItem("nesty-login-toast") !== "1") return;
-    window.sessionStorage.removeItem("nesty-login-toast");
-    setShowLoginToast(true);
-    const timer = window.setTimeout(() => setShowLoginToast(false), 3000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="product-page">
-      {showLoginToast && <PatoisToast />}
-      <PageHeader
-        eyebrow="Guest dashboard"
-        title={`Welcome back, ${auth.session?.displayName}.`}
-        copy="Bookings are filtered through the backend booking API by the current user id."
-        actions={
-          <AppLink className={buttonClassName("sun")} href="/explore">
-            Explore stays <ArrowRight size={17} />
-          </AppLink>
-        }
-      />
-      <AnimatedSection>
-      <section className="product-section">
-        <div className="metric-grid">
-          <MetricCard icon={BedDouble} label="Bookings" value={String(bookings.length)} />
-          <MetricCard icon={ShieldCheck} label="Approved" value={String(approved)} />
-          <MetricCard icon={CalendarDays} label="Pending" value={String(pending)} />
-          <MetricCard icon={ReceiptText} label="Trip value" value={formatMoney(spend || 0)} />
-        </div>
-        <BookingList bookings={bookings} error={error} isLoading={isLoading} onReload={reload} />
-      </section>
-      </AnimatedSection>
-    </div>
-  );
-}
-
 export function HostDashboardPage({ auth }: { auth: AuthController }) {
   if (!auth.session) return <RequireAuth auth={auth} title="Host dashboard needs an active session." />;
   return <HostStateContainer view="analytics" auth={auth} />;
-}
-
-function HostDashboardContent({ auth }: { auth: AuthController }) {
-  const propertiesState = useProperties(auth.session?.accessToken);
-  const bookingsState = useBookings(auth.session?.accessToken);
-  const hostProperties = propertiesState.properties.filter(
-    (property) => property.hostUserId === auth.session?.userId,
-  );
-  const hostBookings = bookingsState.bookings.filter((booking) => booking.hostUserId === auth.session?.userId);
-  const revenue = hostBookings.reduce((sum, booking) => sum + booking.staySubtotal, 0);
-
-  return (
-    <div className="product-page">
-      <PageHeader
-        eyebrow="Host dashboard"
-        title="Operate your stays from one calm view."
-        copy="Host metrics are computed from live property and booking API records tied to your user id."
-        actions={
-          <AppLink className={buttonClassName("sun")} href="/host/properties/new">
-            <Plus size={17} /> Add property
-          </AppLink>
-        }
-      />
-      <section className="product-section">
-        <div className="metric-grid">
-          <MetricCard icon={Home} label="Your properties" value={String(hostProperties.length)} />
-          <MetricCard icon={ListChecks} label="Bookings" value={String(hostBookings.length)} />
-          <MetricCard icon={CreditCard} label="Stay subtotal" value={formatMoney(revenue || 0)} />
-          <MetricCard icon={BadgeCheck} label="API source" value="/api" />
-        </div>
-        {propertiesState.isLoading || bookingsState.isLoading ? <LoadingState /> : null}
-        {propertiesState.error && <ErrorState message={propertiesState.error} onRetry={propertiesState.reload} />}
-        {!propertiesState.isLoading && hostProperties.length === 0 && (
-          <EmptyState
-            title="No properties for this host yet."
-            copy="Create your first property and it will persist through the backend property endpoint."
-            action={
-              <AppLink className={buttonClassName("sun")} href="/host/properties/new">
-                Create property
-              </AppLink>
-            }
-          />
-        )}
-        {hostProperties.length > 0 && (
-          <div className="management-grid">
-            {hostProperties.map((property, index) => (
-              <ProductCard key={property.id} property={property} index={index} onBook={() => undefined} />
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
 }
 
 function defaultWellnessDateTime() {
@@ -823,7 +550,7 @@ function HostWellnessContent({ auth }: { auth: AuthController }) {
           </div>
         )}
         {notice && (
-          <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" role="status">
+          <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" aria-live="polite">
             {notice}
           </div>
         )}
@@ -1210,7 +937,7 @@ export function OfficerWellnessPage({ auth }: { auth: AuthController }) {
           <div className="rounded-field bg-amber-tint px-4 py-3 text-[12.5px] text-amber-text">
             Enforced by the API: only the assigned officer can file, and never before the scheduled time.
           </div>
-          <div className={`flex items-center gap-2 rounded-field px-4 py-3 text-[12.5px] ${isOffline ? "bg-amber-tint text-amber-text" : "bg-shell text-gray-600"}`} role="status">
+          <div className={`flex items-center gap-2 rounded-field px-4 py-3 text-[12.5px] ${isOffline ? "bg-amber-tint text-amber-text" : "bg-shell text-gray-600"}`} aria-live="polite">
             {isOffline ? <WifiOff size={15} /> : <Check size={15} />} {isOffline ? "Offline draft mode: your visit ID and notes are saved locally and will be ready when you reconnect." : "Draft autosaved locally. Uploads resume only when you are online."}
           </div>
           <div className="wellness-upload-panel">
@@ -1482,7 +1209,7 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
         ))}
         <span className="inline-flex min-h-11 items-center gap-1.5 rounded-pill bg-deep px-4 text-[12.5px] font-bold text-on-dark-heading">
           <span className="inline-flex size-[18px] items-center justify-center rounded-full bg-yellow text-[10px] font-bold text-deep">8</span>
-          Verification
+          {" "}Verification
         </span>
       </div>
 
@@ -1566,7 +1293,7 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
               onChange={(event) => update("insuraGuestEnabled", event.target.checked)}
               type="checkbox"
             />
-            InsuraGuest coverage for this property
+            {" "}InsuraGuest coverage for this property
           </label>
           <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-shell pt-3.5">
             <button
@@ -1576,8 +1303,8 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
               Publish property
             </button>
           </div>
-          {created && (
-            <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" role="status">
+           {created && (
+             <div className="rounded-field bg-success-tint px-4 py-3 text-[13px] text-success-text" aria-live="polite" role="status">
               {created.title} is live in the property API.
             </div>
           )}
@@ -1632,7 +1359,11 @@ function PropertyManagementContent({ auth }: { auth: AuthController }) {
 }
 
 function createLocalUploadId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  return `${Date.now().toString(36)}-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function resolvePropertyPhotoContentType(file: File) {
@@ -1891,9 +1622,9 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
           </div>
           {availabilityLoading && <LoadingState />}
           {availabilityError && <ErrorState message={availabilityError} />}
-          {!availabilityLoading && !availabilityError && availability && <div aria-label="Property availability days" className="availability-grid" role="list">
-            {availability.days.map((day) => <div className={`availability-day availability-day--${day.status.toLowerCase()}`} key={day.date} role="listitem" aria-label={`${day.date}: ${day.label ?? day.status}`}><strong>{new Date(`${day.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong><span>{day.label ?? day.status}</span></div>)}
-          </div>}
+          {!availabilityLoading && !availabilityError && availability && <ul aria-label="Property availability days" className="availability-grid m-0 list-none p-0">
+            {availability.days.map((day) => <li className={`availability-day availability-day--${day.status.toLowerCase()}`} key={day.date} aria-label={`${day.date}: ${day.label ?? day.status}`}><strong>{new Date(`${day.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong><span>{day.label ?? day.status}</span></li>)}
+          </ul>}
         </Card>
         {auth.session && propertyId && <Card className="settings-card mt-5">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="m-0 font-display text-xl">External calendar sync</h2><p className="m-0 mt-1 text-sm text-sand-600">Import Airbnb, Booking.com, VRBO, or custom ICS feeds and publish a private outbound calendar.</p></div><a className="btn btn-outline" href={api.exportCalendarUrl(propertyId)} download={`nesty-${propertyId}.ics`}>Download ICS</a></div>
@@ -1909,7 +1640,7 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
             </form>
             {manualBlocks.length > 0 && <div className="mt-4 grid gap-2">{manualBlocks.map((block) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-field bg-shell px-3 py-2 text-sm" key={block.id}><span><strong>{block.startsOn} to {block.endsOn}</strong> · {block.reason}</span><span className="flex gap-2"><button className="btn btn-ghost btn-sm" type="button" onClick={() => { setEditingBlockId(block.id); setBlockForm({ startsOn: block.startsOn, endsOn: block.endsOn, reason: block.reason }); }}>Edit</button><button className="btn btn-ghost btn-sm text-coral" disabled={feedBusy} type="button" onClick={() => void removeManualBlock(block)}>Release</button></span></div>)}</div>}
           </div>
-          <div className="mt-5 rounded-field border border-sand-border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="m-0 text-lg">Private outbound subscription</h3><p className="m-0 mt-1 text-sm text-sand-600">The link contains no guest details and can be revoked or rotated at any time.</p></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void rotateExportToken()} variant="outline">{exportToken ? "Rotate link" : "Create private link"}</Button>{exportToken && <Button disabled={feedBusy} onClick={() => void revokeExportToken()} variant="ghost">Revoke</Button>}</div></div>{exportToken && <div className="mt-3 break-all rounded-field bg-shell p-3 text-xs" role="status">{exportToken.url}</div>}</div>
+           <div className="mt-5 rounded-field border border-sand-border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="m-0 text-lg">Private outbound subscription</h3><p className="m-0 mt-1 text-sm text-sand-600">The link contains no guest details and can be revoked or rotated at any time.</p></div><div className="flex flex-wrap gap-2"><Button disabled={feedBusy} onClick={() => void rotateExportToken()} variant="outline">{exportToken ? "Rotate link" : "Create private link"}</Button>{exportToken && <Button disabled={feedBusy} onClick={() => void revokeExportToken()} variant="ghost">Revoke</Button>}</div></div>{exportToken && <div className="mt-3 break-all rounded-field bg-shell p-3 text-xs" aria-live="polite" role="status">{exportToken.url}</div>}</div>
         </Card>}
         <div className="calendar-board">
           {selectedBookings.length === 0 ? (
@@ -1928,39 +1659,6 @@ export function CalendarPage({ auth }: { auth: AuthController }) {
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function BookingList({
-  bookings,
-  isLoading,
-  error,
-  onReload,
-}: {
-  bookings: Booking[];
-  isLoading: boolean;
-  error: string | null;
-  onReload: () => void;
-}) {
-  if (isLoading) return <LoadingState label="Loading bookings from the API" />;
-  if (error) return <ErrorState message={error} onRetry={onReload} />;
-  if (bookings.length === 0) return <EmptyState title="No bookings yet." copy="Bookings created through the popup will appear here." />;
-
-  return (
-    <div className="booking-list">
-      {bookings.map((booking) => (
-        <Card className="booking-row" key={booking.id}>
-          <div>
-            <strong>{booking.propertyTitle ?? booking.propertyId}</strong>
-            <span>{booking.checkIn} to {booking.checkOut}</span>
-          </div>
-          <StatusBadge value={booking.status} />
-          <StatusBadge value={booking.verificationStatus} />
-          <StatusBadge value={booking.paymentStatus} />
-          <strong>{formatMoney(booking.totalAmount, booking.currency)}</strong>
-        </Card>
-      ))}
     </div>
   );
 }
@@ -2147,6 +1845,8 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
   const [profileUploads, setProfileUploads] = useState<ProfilePhotoUploadItem[]>([]);
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileLastUpdated, setProfileLastUpdated] = useState<string | null>(null);
+  const [deletionRequested, setDeletionRequested] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [sessions, setSessions] = useState<import("../lib/api").UserSession[]>([]);
   const [passkeys, setPasskeys] = useState<import("../lib/api").Passkey[]>([]);
@@ -2170,7 +1870,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
     setProfileError(null);
     api.getProfile(session.accessToken)
       .then((result) => {
-        if (!cancelled) setProfile(result);
+        if (!cancelled) { setProfile(result); setProfileLastUpdated(result.updatedAt ?? new Date().toISOString()); }
       })
       .catch((caught) => {
         if (!cancelled) setProfileError(caught instanceof Error ? caught.message : "Profile could not be loaded.");
@@ -2224,7 +1924,9 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
 
   async function refreshProfile() {
     if (!session) return;
-    setProfile(await api.getProfile(session.accessToken));
+    const refreshed = await api.getProfile(session.accessToken);
+    setProfile(refreshed);
+    setProfileLastUpdated(refreshed.updatedAt ?? new Date().toISOString());
   }
 
   async function uploadProfilePhoto(id: string, file: File) {
@@ -2391,6 +2093,7 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
           <div className="flex flex-col gap-2">
             {profileUploads.map((upload) => (
               <div className="flex flex-wrap items-center gap-2.5 rounded-field border border-sand-border bg-white px-3.5 py-2.5 text-[13px]" key={upload.id}>
+                <img alt={`Preview of ${upload.file.name}`} className="size-12 rounded-field object-cover" src={URL.createObjectURL(upload.file)} />
                 <span className="flex-1 truncate font-semibold">{upload.file.name}</span>
                 <small className="text-gray-600">{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
                 <div className="h-1.5 w-24 overflow-hidden rounded-pill bg-shell">
@@ -2403,8 +2106,19 @@ export function ProfileSettingsPage({ auth }: { auth: AuthController }) {
             ))}
           </div>
         )}
-        {profileNotice && <div className="rounded-field bg-success-tint px-4 py-2.5 text-[13px] text-success-text" role="status">{profileNotice}</div>}
+        {profileNotice && <div className="rounded-field bg-success-tint px-4 py-2.5 text-[13px] text-success-text" aria-live="polite">{profileNotice}</div>}
         {profileError && <ErrorState message={profileError} />}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-sand-border bg-cream p-[22px]" role="status">
+        <div><div className="font-semibold">{profile?.emailVerified === false ? "Email verification needed" : "Email verified"}</div><p className="m-0 mt-1 text-xs text-sand-600">{profile?.emailVerified === false ? "Verify your email to protect your account and receive booking updates." : "Your email is verified and ready for account notifications."}</p></div>
+        {profile?.emailVerified === false && <AppLink className="inline-flex min-h-10 items-center rounded-pill bg-deep px-4 text-xs font-semibold text-white" href="/auth/email-verification">Verify email</AppLink>}
+        {profileLastUpdated && <span className="text-xs text-sand-500">Last updated {new Date(profileLastUpdated).toLocaleString()}</span>}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-coral/30 bg-coral-tint p-[22px]">
+        <div><div className="font-semibold text-coral-text">Account deletion request</div><p className="m-0 mt-1 text-xs text-coral-text">Support will review the request and contact you before any irreversible action.</p></div>
+        <button className="min-h-11 rounded-pill border border-coral/50 bg-transparent px-4 text-sm font-semibold text-coral-text disabled:opacity-60" disabled={deletionRequested} onClick={async () => { if (!(await requestConfirmation({ title: "Request account deletion?", message: "This sends a deletion request to NestyStay support. Nothing is deleted immediately." }))) return; try { await api.createContactRequest({ name: profile?.displayName ?? session.displayName, email: profile?.email ?? session.email, subject: "Account deletion request", message: `Please review a deletion request for user ${session.userId}.` }); setDeletionRequested(true); setProfileNotice("Your deletion request was sent to NestyStay support."); } catch (caught) { setProfileError(caught instanceof Error ? caught.message : "The deletion request could not be sent."); } }} type="button">{deletionRequested ? "Request sent" : "Request deletion"}</button>
       </div>
 
       {/* Prominent patois toggle card — never buried. Drives the real setting. */}
@@ -2520,6 +2234,8 @@ export function AdminPage({ auth }: { auth: AuthController }) {
   }>({ errors: [] });
   const [isLoading, setIsLoading] = useState(true);
   const adminToken = auth.session?.accessToken ?? "";
+  const [integrationStatusLoading, setIntegrationStatusLoading] = useState(false);
+  const [integrationStatusError, setIntegrationStatusError] = useState<string | null>(null);
   const canManageOfficers = hasAdminPermission(auth.session, AdminPermissions.officerManagement);
   const canViewFinancials = hasAdminPermission(auth.session, AdminPermissions.financialReporting);
   const canConfigureSystem = hasAdminPermission(auth.session, AdminPermissions.systemConfiguration);
@@ -2652,17 +2368,28 @@ export function AdminPage({ auth }: { auth: AuthController }) {
   }, []);
 
   useEffect(() => {
-    if (!canConfigureSystem || !adminToken) {
+    if (!canConfigureSystem) {
       setIntegrations([]);
+      setIntegrationStatusError(null);
+      setIntegrationStatusLoading(false);
       return;
     }
     let cancelled = false;
-    void api.integrationStatus(adminToken)
+    setIntegrationStatusLoading(true);
+    setIntegrationStatusError(null);
+    void api.integrationStatus(adminToken || undefined)
       .then((result) => {
-        if (!cancelled) setIntegrations(result.services);
+        if (!cancelled) {
+          setIntegrations(result.services);
+          setIntegrationStatusLoading(false);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setIntegrations([]);
+      .catch((caught) => {
+        if (!cancelled) {
+          setIntegrations([]);
+          setIntegrationStatusError(caught instanceof Error ? caught.message : "Integration status unavailable.");
+          setIntegrationStatusLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -2684,7 +2411,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
     const matchesParish = wellnessParishFilter === "All" || officer.parish === wellnessParishFilter;
     return matchesSearch && matchesStatus && matchesParish;
   });
-  const wellnessParishes = Array.from(new Set((data.wellnessOfficers ?? []).map((officer) => officer.parish))).sort();
+  const wellnessParishes = Array.from(new Set((data.wellnessOfficers ?? []).map((officer) => officer.parish))).sort((a, b) => a.localeCompare(b));
   const pendingReports = (data.wellness?.recentVisits ?? []).filter((visit) => visit.reportStatus !== "Submitted" && visit.visitStatus !== "Cancelled");
   const wellnessSlaWarnings = (data.wellness?.recentVisits ?? []).filter((visit) => visit.visitStatus === "Requested" && Date.now() - new Date(visit.createdAt).getTime() > 24 * 60 * 60 * 1000);
   const adminReportUploadsForVisit = adminReportUploads.filter((upload) => upload.visitId === selectedWellnessVisitId);
@@ -2703,10 +2430,6 @@ export function AdminPage({ auth }: { auth: AuthController }) {
       hasPropertyAddress: propertyAddress.trim().length > 0,
       hasWellnessSubscription: wellnessActive,
     };
-  }
-
-  function toDateTimeOffset(value: string) {
-    return value.endsWith("Z") ? value : `${value}:00Z`;
   }
 
   async function runAction(action: () => Promise<string>) {
@@ -2831,7 +2554,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
         <div className="flex items-center gap-2 rounded-pill border-[1.5px] border-sand-input bg-cream py-1 pl-[18px] pr-1.5">
           <span className="text-xs font-semibold text-sand-500">Bearer token</span>
           <span className="font-mono text-[13px] tracking-widest">••••••••</span>
-          <StatusChip value={adminToken ? "Authenticated" : "Missing token"} />
+          <StatusChip value={auth.session ? "Session authenticated" : "Not authenticated"} />
         </div>
       </div>
       <section className="product-section">
@@ -2848,7 +2571,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 <h2 className="section-subtitle">Integration status</h2>
                 <p className="m-0 text-sm text-sand-500">Live readiness from the protected health integration endpoint. Credentials are never displayed.</p>
               </div>
-              <StatusChip value={integrations.length ? `${integrations.filter((service) => service.status === "HEALTHY" || service.status === "CONFIGURED").length}/${integrations.length} ready` : "Loading"} />
+              <StatusChip value={integrations.length ? `${integrations.filter((service) => service.status === "HEALTHY" || service.status === "CONFIGURED").length}/${integrations.length} ready` : integrationStatusLoading ? "Checking" : integrationStatusError ? "Unavailable" : "No services reported"} />
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {integrations.map((service) => (
@@ -2860,7 +2583,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                   <div className="mt-1 text-xs text-sand-500">{service.provider} · {service.detail}</div>
                 </div>
               ))}
-              {!integrations.length && <div className="text-sm text-sand-500">Integration status is unavailable or still loading.</div>}
+              {!integrations.length && <div className="text-sm text-sand-500">{integrationStatusError ?? (integrationStatusLoading ? "Checking protected integration health…" : "No integration status was returned.")}</div>}
             </div>
           </Card>
         )}
@@ -3117,7 +2840,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 type="checkbox"
                 onChange={(event) => setPricebookActive(event.target.checked)}
               />
-              Active
+              {" "}Active
             </InlineLabel>
           </div>
           <Button variant="dark" disabled={!canConfigureSystem} type="submit">
@@ -3188,7 +2911,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
           <div className="toggle-row">
             <InlineLabel>
               <input checked={ekycPassed} type="checkbox" onChange={(event) => setEkycPassed(event.target.checked)} />
-              eKYC passed
+              {" "}eKYC passed
             </InlineLabel>
             <InlineLabel>
               <input
@@ -3196,7 +2919,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 type="checkbox"
                 onChange={(event) => setWellnessActive(event.target.checked)}
               />
-              Wellness active
+              {" "}Wellness active
             </InlineLabel>
           </div>
           <div className="button-row">
@@ -3397,7 +3120,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 type="checkbox"
                 onChange={(event) => setCampaignForm((current) => ({ ...current, isActive: event.target.checked }))}
               />
-              Active
+              {" "}Active
             </InlineLabel>
           </div>
           <div className="button-row">
@@ -3476,7 +3199,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                 type="checkbox"
                 onChange={(event) => setFoundingEligible(event.target.checked)}
               />
-              Eligible
+              {" "}Eligible
             </InlineLabel>
             {Object.entries(transferForm).map(([key, value]) => (
               <InlineLabel key={key}>
@@ -3485,7 +3208,7 @@ export function AdminPage({ auth }: { auth: AuthController }) {
                   type="checkbox"
                   onChange={(event) => setTransferForm((current) => ({ ...current, [key]: event.target.checked }))}
                 />
-                {key.replace(/[A-Z]/g, " $&")}
+                {" "}{key.replace(/[A-Z]/g, " $&")}
               </InlineLabel>
             ))}
           </div>

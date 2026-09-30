@@ -81,7 +81,7 @@ public interface IPropertyManagerStore
     Task<IReadOnlyList<OwnerPayoutDto>> ListOwnerPayoutsAsync(Guid managerUserId, Guid? ownerUserId, CancellationToken cancellationToken);
     Task<OwnerPayoutDto> CreateOwnerPayoutAsync(Guid managerUserId, CreateOwnerPayoutRequest request, CancellationToken cancellationToken);
     Task<OwnerApprovalDto> CreateOwnerApprovalAsync(Guid managerUserId, CreateOwnerApprovalRequest request, CancellationToken cancellationToken);
-    Task<OwnerApprovalDto?> DecideOwnerApprovalAsync(Guid managerUserId, Guid approvalId, DecideOwnerApprovalRequest request, CancellationToken cancellationToken);
+    Task<OwnerApprovalDto?> DecideOwnerApprovalAsync(Guid ownerUserId, Guid approvalId, DecideOwnerApprovalRequest request, CancellationToken cancellationToken);
     Task<StaffDto> InviteStaffAsync(Guid managerUserId, InviteStaffRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<StaffDto>> ListStaffAsync(Guid managerUserId, CancellationToken cancellationToken);
     Task<CalendarEventDto> CreateCalendarEventAsync(Guid managerUserId, CreateCalendarEventRequest request, CancellationToken cancellationToken);

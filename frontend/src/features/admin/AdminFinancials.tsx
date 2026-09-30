@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DollarSign, RotateCcw, ShieldCheck, Download, AlertCircle } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { api, formatMoney, type Booking } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import { announceFeedback } from "../../lib/feedback";
@@ -11,12 +11,12 @@ interface AdminFinancialsProps {
   token: string;
 }
 
-export function AdminFinancials({ view, token }: AdminFinancialsProps) {
+export function AdminFinancials({ token }: AdminFinancialsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [refoundingId, setRefoundingId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -36,13 +36,76 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
   }, [token, reloadKey]);
 
   async function handleRefund(id: string) {
+    setProcessingId(id);
     try {
       await api.refundPayment(id, token, { reason: "Admin initiated refund" });
       setBookings(bookings.map(b => b.id === id ? { ...b, paymentStatus: "REFUNDED", status: "CANCELLED" } : b));
       announceFeedback("Refund processed successfully via Stripe.");
     } catch {
       announceFeedback("Refund could not be processed. Try again.", "error");
+    } finally {
+      setProcessingId(null);
     }
+  }
+
+  async function handleVoid(id: string) {
+    setProcessingId(id);
+    try {
+      await api.voidPayment(id, token);
+      setBookings((current) => current.map((booking) => booking.id === id ? { ...booking, paymentStatus: "CANCELLED" } : booking));
+      announceFeedback("Payment authorization released successfully.");
+    } catch {
+      announceFeedback("Payment authorization could not be released. Try again.", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  function renderTransactions() {
+    if (loading) return <div className="loading-shimmer p-6 text-center">Loading transaction ledger...</div>;
+    if (error) return <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); setReloadKey((key) => key + 1); }} />;
+    if (bookings.length === 0) return <EmptyState title="No transactions yet" copy="Captured payments and refund-eligible bookings will appear here." />;
+    return (
+      <div className="card-box responsive-table-cards">
+        <table className="table-styled w-full">
+          <thead>
+            <tr>
+              <th>Booking Ref</th>
+              <th>Host</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Ref ID</th>
+              <th className="text-right">Refund Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.map((b) => {
+              const paymentStatus = b.paymentStatus.toUpperCase();
+              return <tr key={b.id}>
+                <td data-label="Booking ref"><strong>NSTY-BK-{b.id.substring(0, 8)}</strong></td>
+                <td data-label="Host">{b.hostName}</td>
+                <td data-label="Total"><strong>{formatMoney(b.totalAmount, b.currency)}</strong></td>
+                <td data-label="Status"><span className="badge badge-green">{b.paymentStatus}</span></td>
+                <td data-label="Reference"><code className="text-xs">{b.id}</code></td>
+                <td className="text-right" data-label="Refund action">
+                  {paymentStatus === "CAPTURED" && (
+                    <button disabled={processingId === b.id} type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => void handleRefund(b.id)}>
+                      <RotateCcw size={14} /> Process Refund
+                    </button>
+                  )}
+                  {paymentStatus === "AUTHORIZED" && (
+                    <button disabled={processingId === b.id} type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => void handleVoid(b.id)}>
+                      <RotateCcw size={14} /> Release Hold
+                    </button>
+                  )}
+                  {!(["CAPTURED", "AUTHORIZED"] as string[]).includes(paymentStatus) && <span className="text-xs text-sand-500">No action available</span>}
+                </td>
+              </tr>
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   return (
@@ -51,51 +114,13 @@ export function AdminFinancials({ view, token }: AdminFinancialsProps) {
         <span className="badge badge-sun">ADM-06 / ADM-07</span>
         <h2>Financial Management & Refund Controls</h2>
         <PatoisPhrase phrase="Platform Payouts & Stripe Refunds" translation="Monitor transaction ledgers, process full/partial refunds, and inspect founding benefits." />
+        <a className="btn btn-outline mt-3" href="/admin/ops/properties">Open property moderation</a>
         <div className="mt-3 flex items-center gap-3">
           <span className="badge badge-outline text-xs">Evidence</span>
         </div>
       </header>
 
-      {loading ? (
-        <div className="loading-shimmer p-6 text-center">Loading transaction ledger...</div>
-      ) : error ? (
-        <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); setReloadKey((key) => key + 1); }} />
-      ) : bookings.length === 0 ? (
-        <EmptyState title="No transactions yet" copy="Captured payments and refund-eligible bookings will appear here." />
-      ) : (
-        <div className="card-box responsive-table-cards">
-          <table className="table-styled w-full">
-            <thead>
-              <tr>
-                <th>Booking Ref</th>
-                <th>Host</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Ref ID</th>
-                <th className="text-right">Refund Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.map((b) => (
-                <tr key={b.id}>
-                  <td data-label="Booking ref"><strong>NSTY-BK-{b.id.substring(0, 8)}</strong></td>
-                  <td data-label="Host">{b.hostName}</td>
-                  <td data-label="Total"><strong>{formatMoney(b.totalAmount, b.currency)}</strong></td>
-                  <td data-label="Status"><span className="badge badge-green">{b.paymentStatus}</span></td>
-                  <td data-label="Reference"><code className="text-xs">{b.id}</code></td>
-                  <td className="text-right" data-label="Refund action">
-                    {b.paymentStatus === "CAPTURED" && (
-                      <button type="button" className="btn btn-ghost btn-sm text-coral" onClick={() => handleRefund(b.id)}>
-                        <RotateCcw size={14} /> Process Refund
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {renderTransactions()}
     </div>
   );
 }

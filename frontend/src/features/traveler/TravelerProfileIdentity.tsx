@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, ShieldCheck, Upload, Trash2, Camera, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { User, ShieldCheck, Trash2, Camera, RefreshCw } from "lucide-react";
 import { api } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import type { TravelerProfile } from "./types";

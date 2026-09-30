@@ -126,18 +126,18 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
       <div className="card-box max-w-3xl mx-auto space-y-4">
         <h3>General Information</h3>
         <div className="field-group">
-          <label className="field-label">Listing Title</label>
-            <input aria-label="Listing Title" type="text" className="input-control" value={title} onChange={(e) => { formDirty.current = true; setTitle(e.target.value); }} />
+            <label className="field-label" htmlFor="host-property-title">Listing Title</label>
+            <input id="host-property-title" type="text" className="input-control" value={title} onChange={(e) => { formDirty.current = true; setTitle(e.target.value); }} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="field-group">
-            <label className="field-label">Nightly Rate ($ USD)</label>
-            <input type="number" className="input-control" value={nightlyRate} onChange={(e) => setNightlyRate(parseFloat(e.target.value) || 0)} />
+            <label className="field-label" htmlFor="host-property-nightly-rate">Nightly Rate ($ USD)</label>
+            <input id="host-property-nightly-rate" type="number" className="input-control" value={nightlyRate} onChange={(e) => setNightlyRate(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="field-group">
-            <label className="field-label">Cancellation Policy</label>
-            <select className="input-control" value={policy} onChange={(e) => setPolicy(e.target.value)}>
+            <label className="field-label" htmlFor="host-property-cancellation-policy">Cancellation Policy</label>
+            <select id="host-property-cancellation-policy" className="input-control" value={policy} onChange={(e) => setPolicy(e.target.value)}>
               <option value="Flexible">Flexible</option>
               <option value="Moderate">Moderate</option>
               <option value="Strict">Strict</option>
@@ -145,14 +145,14 @@ export function HostPropertyEditor({ token, propertyId }: HostPropertyEditorProp
           </div>
         </div>
 
-        <div className="field-group"><label className="field-label">Parish</label><input className="input-control" value={parish} onChange={(event) => setParish(event.target.value)} /></div>
-        <div className="field-group"><label className="field-label">Description</label><textarea className="input-control" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></div>
-        <div className="grid grid-cols-3 gap-4"><div className="field-group"><label className="field-label">Bedrooms</label><input className="input-control" min={1} type="number" value={bedrooms} onChange={(event) => setBedrooms(Number(event.target.value) || 1)} /></div><div className="field-group"><label className="field-label">Bathrooms</label><input className="input-control" min={1} type="number" value={bathrooms} onChange={(event) => setBathrooms(Number(event.target.value) || 1)} /></div><div className="field-group"><label className="field-label">Max guests</label><input className="input-control" min={1} type="number" value={maxGuests} onChange={(event) => setMaxGuests(Number(event.target.value) || 1)} /></div></div>
-        <div className="field-group"><label className="field-label">Amenities (comma separated)</label><input className="input-control" value={amenities} onChange={(event) => setAmenities(event.target.value)} /></div>
-        <div className="field-group"><label className="field-label">Sleeping arrangements</label><textarea className="input-control" rows={2} value={sleepingArrangements} onChange={(event) => setSleepingArrangements(event.target.value)} /></div>
-        <div className="field-group"><label className="field-label">House rules</label><textarea className="input-control" rows={2} value={houseRules} onChange={(event) => setHouseRules(event.target.value)} /></div>
-        <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label">Cleaning fee</label><input className="input-control" min={0} type="number" value={cleaningFee} onChange={(event) => setCleaningFee(Number(event.target.value) || 0)} /></div><div className="field-group"><label className="field-label">Service fee</label><input className="input-control" min={0} type="number" value={serviceFee} onChange={(event) => setServiceFee(Number(event.target.value) || 0)} /></div></div>
-        <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label">Latitude</label><input className="input-control" step="0.000001" type="number" value={latitude} onChange={(event) => setLatitude(event.target.value === "" ? "" : Number(event.target.value))} /></div><div className="field-group"><label className="field-label">Longitude</label><input className="input-control" step="0.000001" type="number" value={longitude} onChange={(event) => setLongitude(event.target.value === "" ? "" : Number(event.target.value))} /></div></div>
+        <div className="field-group"><label className="field-label" htmlFor="host-property-parish">Parish</label><input id="host-property-parish" className="input-control" value={parish} onChange={(event) => setParish(event.target.value)} /></div>
+        <div className="field-group"><label className="field-label" htmlFor="host-property-description">Description</label><textarea id="host-property-description" className="input-control" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></div>
+        <div className="grid grid-cols-3 gap-4"><div className="field-group"><label className="field-label" htmlFor="host-property-bedrooms">Bedrooms</label><input id="host-property-bedrooms" className="input-control" min={1} type="number" value={bedrooms} onChange={(event) => setBedrooms(Number(event.target.value) || 1)} /></div><div className="field-group"><label className="field-label" htmlFor="host-property-bathrooms">Bathrooms</label><input id="host-property-bathrooms" className="input-control" min={1} type="number" value={bathrooms} onChange={(event) => setBathrooms(Number(event.target.value) || 1)} /></div><div className="field-group"><label className="field-label" htmlFor="host-property-guests">Max guests</label><input id="host-property-guests" className="input-control" min={1} type="number" value={maxGuests} onChange={(event) => setMaxGuests(Number(event.target.value) || 1)} /></div></div>
+        <div className="field-group"><label className="field-label" htmlFor="host-property-amenities">Amenities (comma separated)</label><input id="host-property-amenities" className="input-control" value={amenities} onChange={(event) => setAmenities(event.target.value)} /></div>
+        <div className="field-group"><label className="field-label" htmlFor="host-property-sleeping">Sleeping arrangements</label><textarea id="host-property-sleeping" className="input-control" rows={2} value={sleepingArrangements} onChange={(event) => setSleepingArrangements(event.target.value)} /></div>
+        <div className="field-group"><label className="field-label" htmlFor="host-property-rules">House rules</label><textarea id="host-property-rules" className="input-control" rows={2} value={houseRules} onChange={(event) => setHouseRules(event.target.value)} /></div>
+        <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label" htmlFor="host-property-cleaning">Cleaning fee</label><input id="host-property-cleaning" className="input-control" min={0} type="number" value={cleaningFee} onChange={(event) => setCleaningFee(Number(event.target.value) || 0)} /></div><div className="field-group"><label className="field-label" htmlFor="host-property-service">Service fee</label><input id="host-property-service" className="input-control" min={0} type="number" value={serviceFee} onChange={(event) => setServiceFee(Number(event.target.value) || 0)} /></div></div>
+        <div className="grid grid-cols-2 gap-4"><div className="field-group"><label className="field-label" htmlFor="host-property-latitude">Latitude</label><input id="host-property-latitude" className="input-control" step="0.000001" type="number" value={latitude} onChange={(event) => setLatitude(event.target.value === "" ? "" : Number(event.target.value))} /></div><div className="field-group"><label className="field-label" htmlFor="host-property-longitude">Longitude</label><input id="host-property-longitude" className="input-control" step="0.000001" type="number" value={longitude} onChange={(event) => setLongitude(event.target.value === "" ? "" : Number(event.target.value))} /></div></div>
 
         <hr className="my-4" />
 

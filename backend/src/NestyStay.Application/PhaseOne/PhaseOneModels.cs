@@ -342,7 +342,15 @@ public sealed record CreateBookingRequest(
     string? AccessibilityNeeds = null,
     string? ProtectionPlan = null,
     string? BillingCountry = null,
-    bool TermsAccepted = false);
+    bool TermsAccepted = false,
+    Guid? DateHoldId = null);
+
+public sealed record HoldBookingDatesRequest(
+    Guid PropertyId,
+    DateOnly CheckIn,
+    DateOnly CheckOut,
+    int Adults = 1,
+    int Children = 0);
 
 public sealed record RefundBookingRequest(
     decimal? Amount = null,
@@ -405,7 +413,8 @@ public sealed record BookingDto(
     string? RejectionReason = null,
     string? RejectionSource = null,
     Guid? RejectedByUserId = null,
-    DateTimeOffset? RejectedAt = null);
+    DateTimeOffset? RejectedAt = null,
+    bool IsDateHold = false);
 
 public sealed record BookingDocumentDto(
     string FileName,
@@ -457,6 +466,16 @@ public sealed record PropertyModerationRequest(
 public interface IBookingDecisionStore
 {
     Task<BookingDto?> RejectBookingAsync(Guid hostUserId, Guid bookingId, BookingDecisionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IBookingDateHoldStore
+{
+    Task<BookingDto> HoldBookingDatesAsync(Guid guestUserId, HoldBookingDatesRequest request, CancellationToken cancellationToken);
+}
+
+public interface IBookingPaymentOperationsStore
+{
+    Task<BookingDto?> VoidPaymentAsync(Guid bookingId, CancellationToken cancellationToken);
 }
 
 public interface IHostVerificationStore

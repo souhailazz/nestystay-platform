@@ -75,8 +75,16 @@ public sealed class EfWellnessEnhancementStore(
         await RequireOfficerAsync(officerId, actorUserId, isAdmin, cancellationToken);
         var document = await db.MilestoneWellnessOfficerDocuments.SingleOrDefaultAsync(item => item.Id == documentId && item.OfficerId == officerId && !item.IsDeleted, cancellationToken)
             ?? throw new UnauthorizedAccessException("Officer document is not available.");
-        if (document.UploadExpiresAt <= timeProvider.GetUtcNow()) throw new InvalidOperationException("Officer document upload has expired. Start again.");
-        if (document.Status is "Uploaded" or "Rejected") throw new InvalidOperationException("This officer document upload cannot be replaced in place.");
+        if (document.UploadExpiresAt <= timeProvider.GetUtcNow())
+        {
+            throw new InvalidOperationException("Officer document upload has expired. Start again.");
+        }
+
+        if (document.Status is "Uploaded" or "Rejected")
+        {
+            throw new InvalidOperationException("This officer document upload cannot be replaced in place.");
+        }
+
         ValidateFile(document.SafeFileName, contentType, sizeBytes);
         var write = await storageProvider.SaveObjectAsync(new StorageObjectWriteRequest(document.ObjectKey, document.ContentType, MaximumDocumentBytes), content, cancellationToken);
         var scan = await fileSafetyScanner.ScanAsync(new FileSafetyScanRequest(document.ObjectKey, document.SafeFileName, write.ContentType, write.SizeBytes, write.Sha256Hash, write.HeaderBytes), cancellationToken);
@@ -85,7 +93,11 @@ public sealed class EfWellnessEnhancementStore(
         document.Sha256Hash = write.Sha256Hash;
         document.UploadedAt = timeProvider.GetUtcNow();
         document.UpdatedAt = document.UploadedAt.Value;
-        if (scan.Status != "Clean") document.ReviewReason = scan.Reason;
+        if (scan.Status != "Clean")
+        {
+            document.ReviewReason = scan.Reason;
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return ToUploadDto(document);
     }
@@ -93,10 +105,22 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessOfficerDocumentDto?> ReviewOfficerDocumentAsync(Guid documentId, Guid actorUserId, ReviewWellnessOfficerDocumentRequest request, CancellationToken cancellationToken)
     {
         var document = await db.MilestoneWellnessOfficerDocuments.SingleOrDefaultAsync(item => item.Id == documentId && !item.IsDeleted, cancellationToken);
-        if (document is null) return null;
+        if (document is null)
+        {
+            return null;
+        }
+
         var decision = request.Decision.Trim();
-        if (decision is not ("Approved" or "Rejected" or "RequestChanges")) throw new InvalidOperationException("Document decision must be Approved, Rejected, or RequestChanges.");
-        if (decision == "Approved" && (document.Status != "Uploaded" || document.ScanStatus != "Clean")) throw new InvalidOperationException("Only uploaded documents that passed the safety scan can be approved.");
+        if (decision is not ("Approved" or "Rejected" or "RequestChanges"))
+        {
+            throw new InvalidOperationException("Document decision must be Approved, Rejected, or RequestChanges.");
+        }
+
+        if (decision == "Approved" && (document.Status != "Uploaded" || document.ScanStatus != "Clean"))
+        {
+            throw new InvalidOperationException("Only uploaded documents that passed the safety scan can be approved.");
+        }
+
         document.ReviewStatus = decision;
         document.ReviewReason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
         document.UpdatedAt = timeProvider.GetUtcNow();
@@ -108,14 +132,26 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<IReadOnlyList<WellnessReportTemplateDto>> ListReportTemplatesAsync(bool activeOnly, CancellationToken cancellationToken)
     {
         var query = db.MilestoneWellnessReportTemplates.AsNoTracking().Where(item => !item.IsDeleted);
-        if (activeOnly) query = query.Where(item => item.IsActive);
+        if (activeOnly)
+        {
+            query = query.Where(item => item.IsActive);
+        }
+
         return await query.OrderBy(item => item.Name).ThenByDescending(item => item.Version).Select(item => ToTemplateDto(item)).ToListAsync(cancellationToken);
     }
 
     public async Task<WellnessReportTemplateDto> SaveReportTemplateAsync(Guid actorUserId, SaveWellnessReportTemplateRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Name)) throw new InvalidOperationException("Template name is required.");
-        if (string.IsNullOrWhiteSpace(request.DefinitionJson)) throw new InvalidOperationException("Template definition is required.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new InvalidOperationException("Template name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DefinitionJson))
+        {
+            throw new InvalidOperationException("Template definition is required.");
+        }
+
         try { using var _ = JsonDocument.Parse(request.DefinitionJson); }
         catch (JsonException) { throw new InvalidOperationException("Template definition must be valid JSON."); }
         var latest = await db.MilestoneWellnessReportTemplates.Where(item => item.Name == request.Name.Trim() && !item.IsDeleted).MaxAsync(item => (int?)item.Version, cancellationToken) ?? 0;
@@ -162,7 +198,11 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessReportCommentDto> AddReportCommentAsync(Guid reportId, Guid actorUserId, AddWellnessReportCommentRequest request, bool isAdmin, CancellationToken cancellationToken)
     {
         var (report, _) = await RequireReportAsync(reportId, actorUserId, isAdmin, cancellationToken);
-        if (string.IsNullOrWhiteSpace(request.Body) || request.Body.Trim().Length > 4000) throw new InvalidOperationException("Comment must contain 1-4000 characters.");
+        if (string.IsNullOrWhiteSpace(request.Body) || request.Body.Trim().Length > 4000)
+        {
+            throw new InvalidOperationException("Comment must contain 1-4000 characters.");
+        }
+
         var now = timeProvider.GetUtcNow();
         var comment = new MilestoneWellnessReportComment { Id = Guid.NewGuid(), ReportId = report.Id, AuthorUserId = actorUserId, Body = request.Body.Trim(), CreatedAt = now, UpdatedAt = now, CreatedByUserId = actorUserId };
         db.MilestoneWellnessReportComments.Add(comment);
@@ -173,7 +213,11 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessReportAcknowledgementDto> AcknowledgeReportAsync(Guid reportId, Guid actorUserId, CancellationToken cancellationToken)
     {
         var (report, visit) = await RequireReportAsync(reportId, actorUserId, false, cancellationToken);
-        if (visit.HostUserId != actorUserId) throw new UnauthorizedAccessException("Only the host can acknowledge this report.");
+        if (visit.HostUserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Only the host can acknowledge this report.");
+        }
+
         var now = timeProvider.GetUtcNow();
         var existing = await db.MilestoneWellnessReportAcknowledgements.SingleOrDefaultAsync(item => item.ReportId == report.Id && item.AcknowledgedByUserId == actorUserId && !item.IsDeleted, cancellationToken);
         if (existing is null)
@@ -188,7 +232,11 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessFollowUpTaskDto> CreateFollowUpTaskAsync(Guid reportId, Guid actorUserId, CreateWellnessFollowUpTaskRequest request, bool isAdmin, CancellationToken cancellationToken)
     {
         var (report, visit) = await RequireReportAsync(reportId, actorUserId, isAdmin, cancellationToken);
-        if (string.IsNullOrWhiteSpace(request.Title)) throw new InvalidOperationException("Follow-up task title is required.");
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new InvalidOperationException("Follow-up task title is required.");
+        }
+
         var now = timeProvider.GetUtcNow();
         var task = new MilestoneWellnessFollowUpTask { Id = Guid.NewGuid(), ReportId = report.Id, VisitId = visit.Id, PropertyId = visit.PropertyId, Title = request.Title.Trim(), Description = request.Description?.Trim() ?? string.Empty, Priority = string.IsNullOrWhiteSpace(request.Priority) ? "Normal" : request.Priority.Trim(), AssigneeUserId = request.AssigneeUserId, DueAt = request.DueAt, Status = "Open", CreatedAt = now, UpdatedAt = now, CreatedByUserId = actorUserId };
         db.MilestoneWellnessFollowUpTasks.Add(task);
@@ -210,17 +258,33 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessPayoutStatementDto> GetPayoutStatementAsync(Guid actorUserId, bool isAdmin, DateOnly? from, DateOnly? to, string format, CancellationToken cancellationToken)
     {
         var officer = isAdmin ? null : await db.MilestoneWellnessOfficers.AsNoTracking().SingleOrDefaultAsync(item => item.UserId == actorUserId && !item.IsDeleted, cancellationToken);
-        if (!isAdmin && officer is null) throw new UnauthorizedAccessException("An officer profile is required.");
+        if (!isAdmin && officer is null)
+        {
+            throw new UnauthorizedAccessException("An officer profile is required.");
+        }
+
         var fromDate = from ?? DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.AddMonths(-1));
         var toDate = to ?? DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
         var query = db.MilestoneWellnessPayouts.AsNoTracking().Where(item => !item.IsDeleted && (item.EligibleAt == null || item.EligibleAt.Value.Date >= fromDate.ToDateTime(TimeOnly.MinValue).Date) && (item.EligibleAt == null || item.EligibleAt.Value.Date <= toDate.ToDateTime(TimeOnly.MaxValue).Date));
-        if (officer is not null) query = query.Where(item => item.OfficerId == officer.Id);
+        if (officer is not null)
+        {
+            query = query.Where(item => item.OfficerId == officer.Id);
+        }
+
         var rows = await query.OrderBy(item => item.EligibleAt).Select(item => new WellnessPayoutStatementRowDto(item.Id, item.VisitId, item.EligibleAt, item.GrossAmount, item.PlatformFee, item.OfficerAmount, item.Currency, item.Status, item.PaidAt, string.IsNullOrWhiteSpace(item.ProviderReference) ? null : item.ProviderReference)).ToListAsync(cancellationToken);
         var outputFormat = format.Equals("csv", StringComparison.OrdinalIgnoreCase) ? "csv" : "json";
         var baseStatement = new WellnessPayoutStatementDto(officer?.UserId ?? actorUserId, fromDate, toDate, rows.Sum(item => item.GrossAmount), rows.Sum(item => item.PlatformFee), rows.Sum(item => item.OfficerAmount), rows, outputFormat);
-        if (outputFormat != "csv") return baseStatement;
+        if (outputFormat != "csv")
+        {
+            return baseStatement;
+        }
+
         var csv = new StringBuilder("payoutId,visitId,eligibleAt,gross,platformFee,officerAmount,currency,status,paidAt,providerReference\n");
-        foreach (var row in rows) csv.AppendLine(string.Join(',', row.PayoutId, row.VisitId, row.EligibleAt?.ToString("O", CultureInfo.InvariantCulture), row.GrossAmount.ToString(CultureInfo.InvariantCulture), row.PlatformFee.ToString(CultureInfo.InvariantCulture), row.OfficerAmount.ToString(CultureInfo.InvariantCulture), row.Currency, row.Status, row.PaidAt?.ToString("O", CultureInfo.InvariantCulture), row.ProviderReference));
+        foreach (var row in rows)
+        {
+            csv.AppendLine(string.Join(',', row.PayoutId, row.VisitId, row.EligibleAt?.ToString("O", CultureInfo.InvariantCulture), row.GrossAmount.ToString(CultureInfo.InvariantCulture), row.PlatformFee.ToString(CultureInfo.InvariantCulture), row.OfficerAmount.ToString(CultureInfo.InvariantCulture), row.Currency, row.Status, row.PaidAt?.ToString("O", CultureInfo.InvariantCulture), row.ProviderReference));
+        }
+
         return baseStatement with { DownloadFileName = $"wellness-payouts-{fromDate:yyyyMMdd}-{toDate:yyyyMMdd}.csv", DownloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(csv.ToString())) };
     }
 
@@ -228,10 +292,22 @@ public sealed class EfWellnessEnhancementStore(
     {
         var payout = await db.MilestoneWellnessPayouts.SingleOrDefaultAsync(item => item.Id == payoutId && !item.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Payout not found.");
         var officer = await db.MilestoneWellnessOfficers.SingleOrDefaultAsync(item => item.Id == payout.OfficerId && !item.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Officer profile not found.");
-        if (officer.UserId != actorUserId) throw new UnauthorizedAccessException("Only the officer can dispute this payout.");
-        if (string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A dispute reason is required.");
+        if (officer.UserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Only the officer can dispute this payout.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new InvalidOperationException("A dispute reason is required.");
+        }
+
         var existing = await db.MilestoneWellnessPayoutDisputes.FirstOrDefaultAsync(item => item.PayoutId == payoutId && item.Status == "Open" && !item.IsDeleted, cancellationToken);
-        if (existing is not null) return ToDisputeDto(existing);
+        if (existing is not null)
+        {
+            return ToDisputeDto(existing);
+        }
+
         var now = timeProvider.GetUtcNow();
         var dispute = new MilestoneWellnessPayoutDispute { Id = Guid.NewGuid(), PayoutId = payoutId, OfficerId = officer.Id, Reason = request.Reason.Trim(), EvidenceJson = request.EvidenceJson, Status = "Open", CreatedAt = now, UpdatedAt = now, CreatedByUserId = actorUserId };
         db.MilestoneWellnessPayoutDisputes.Add(dispute);
@@ -244,9 +320,21 @@ public sealed class EfWellnessEnhancementStore(
     public async Task<WellnessPayoutDisputeDto?> ResolvePayoutDisputeAsync(Guid disputeId, Guid actorUserId, ResolveWellnessPayoutDisputeRequest request, CancellationToken cancellationToken)
     {
         var dispute = await db.MilestoneWellnessPayoutDisputes.SingleOrDefaultAsync(item => item.Id == disputeId && !item.IsDeleted, cancellationToken);
-        if (dispute is null) return null;
-        if (request.Decision.Trim() is not ("Approved" or "Rejected")) throw new InvalidOperationException("Dispute decision must be Approved or Rejected.");
-        if (dispute.Status != "Open") return ToDisputeDto(dispute);
+        if (dispute is null)
+        {
+            return null;
+        }
+
+        if (request.Decision.Trim() is not ("Approved" or "Rejected"))
+        {
+            throw new InvalidOperationException("Dispute decision must be Approved or Rejected.");
+        }
+
+        if (dispute.Status != "Open")
+        {
+            return ToDisputeDto(dispute);
+        }
+
         var now = timeProvider.GetUtcNow();
         dispute.Status = request.Decision.Trim(); dispute.Decision = request.Decision.Trim(); dispute.DecisionNotes = request.Notes?.Trim(); dispute.DecidedByUserId = actorUserId; dispute.ResolvedAt = now; dispute.UpdatedAt = now; dispute.UpdatedByUserId = actorUserId;
         await db.SaveChangesAsync(cancellationToken);
@@ -256,7 +344,11 @@ public sealed class EfWellnessEnhancementStore(
     private async Task<MilestoneWellnessOfficer> RequireOfficerAsync(Guid officerId, Guid actorUserId, bool isAdmin, CancellationToken cancellationToken)
     {
         var officer = await db.MilestoneWellnessOfficers.SingleOrDefaultAsync(item => item.Id == officerId && !item.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Officer profile not found.");
-        if (!isAdmin && officer.UserId != actorUserId) throw new UnauthorizedAccessException("Officer document access is restricted.");
+        if (!isAdmin && officer.UserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Officer document access is restricted.");
+        }
+
         return officer;
     }
 
@@ -267,19 +359,38 @@ public sealed class EfWellnessEnhancementStore(
         if (!isAdmin && visit.HostUserId != actorUserId)
         {
             var officer = await db.MilestoneWellnessOfficers.SingleOrDefaultAsync(item => item.Id == report.OfficerId && !item.IsDeleted, cancellationToken);
-            if (officer?.UserId != actorUserId) throw new UnauthorizedAccessException("Wellness report access is restricted.");
+            if (officer?.UserId != actorUserId)
+            {
+                throw new UnauthorizedAccessException("Wellness report access is restricted.");
+            }
         }
         return (report, visit);
     }
 
     private static string ValidateFile(string fileName, string contentType, long sizeBytes)
     {
-        if (sizeBytes <= 0 || sizeBytes > MaximumDocumentBytes) throw new InvalidOperationException("Officer documents must be between 1 byte and 25 MB.");
+        if (sizeBytes <= 0 || sizeBytes > MaximumDocumentBytes)
+        {
+            throw new InvalidOperationException("Officer documents must be between 1 byte and 25 MB.");
+        }
+
         var normalizedType = contentType.Trim().ToLowerInvariant();
-        if (!AllowedExtensions.TryGetValue(normalizedType, out var extensions)) throw new InvalidOperationException("Officer documents must be PDF, JPEG, or PNG.");
+        if (!AllowedExtensions.TryGetValue(normalizedType, out var extensions))
+        {
+            throw new InvalidOperationException("Officer documents must be PDF, JPEG, or PNG.");
+        }
+
         var safe = Path.GetFileName(fileName.Trim());
-        if (string.IsNullOrWhiteSpace(safe)) throw new InvalidOperationException("A document filename is required.");
-        if (!extensions.Contains(Path.GetExtension(safe), StringComparer.OrdinalIgnoreCase)) throw new InvalidOperationException("Document extension does not match its content type.");
+        if (string.IsNullOrWhiteSpace(safe))
+        {
+            throw new InvalidOperationException("A document filename is required.");
+        }
+
+        if (!extensions.Contains(Path.GetExtension(safe), StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Document extension does not match its content type.");
+        }
+
         return safe;
     }
 
@@ -294,13 +405,22 @@ public sealed class EfWellnessEnhancementStore(
     private static byte[] BuildPdf(IReadOnlyList<string> lines)
     {
         var streamBuilder = new StringBuilder("BT\n/F1 11 Tf\n15 TL\n54 760 Td\n");
-        foreach (var line in lines) streamBuilder.Append('(').Append(EscapePdfText(line)).Append(") Tj\nT*\n");
+        foreach (var line in lines)
+        {
+            streamBuilder.Append('(').Append(EscapePdfText(line)).Append(") Tj\nT*\n");
+        }
+
         streamBuilder.Append("ET\n");
         var stream = streamBuilder.ToString();
         var objects = new[] { "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n", "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n", "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n", "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n", $"5 0 obj\n<< /Length {Encoding.ASCII.GetByteCount(stream)} >>\nstream\n{stream}endstream\nendobj\n" };
         var pdf = new StringBuilder(); var offsets = new List<int> { 0 }; pdf.Append("%PDF-1.4\n");
         foreach (var obj in objects) { offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString())); pdf.Append(obj); }
-        var xref = Encoding.ASCII.GetByteCount(pdf.ToString()); pdf.Append(CultureInfo.InvariantCulture, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n"); foreach (var offset in offsets.Skip(1)) pdf.Append(CultureInfo.InvariantCulture, $"{offset:D10} 00000 n \n"); pdf.Append(CultureInfo.InvariantCulture, $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"); return Encoding.ASCII.GetBytes(pdf.ToString());
+        var xref = Encoding.ASCII.GetByteCount(pdf.ToString()); pdf.Append(CultureInfo.InvariantCulture, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n"); foreach (var offset in offsets.Skip(1))
+        {
+            pdf.Append(CultureInfo.InvariantCulture, $"{offset:D10} 00000 n \n");
+        }
+
+        pdf.Append(CultureInfo.InvariantCulture, $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"); return Encoding.ASCII.GetBytes(pdf.ToString());
     }
 
     private static string EscapePdfText(string value) => value.ReplaceLineEndings(" ").Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");

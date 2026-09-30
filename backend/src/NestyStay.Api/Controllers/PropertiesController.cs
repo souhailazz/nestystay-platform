@@ -159,7 +159,7 @@ public sealed class PropertiesController(
     [HttpGet("{id:guid}/availability")]
     public async Task<ActionResult<PropertyAvailabilityDto>> GetAvailability(Guid id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken cancellationToken)
     {
-        if (!await db.MilestoneProperties.AsNoTracking().AnyAsync(item => item.Id == id && !item.IsDeleted && !item.IsArchived, cancellationToken)) return NotFound();
+        if (!await db.MilestoneProperties.AsNoTracking().AnyAsync(item => item.Id == id && !item.IsDeleted && !item.IsArchived && item.ModerationStatus == "Approved", cancellationToken)) return NotFound();
         var start = from ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
         var end = to ?? start.AddDays(60);
         if (end <= start || end.DayNumber - start.DayNumber > 366) return BadRequest("Availability range must be between 1 and 366 days.");
@@ -310,7 +310,7 @@ public sealed class PropertiesController(
     [Authorize(Roles = "Host")]
     [HttpPut("{id:guid}/photos/{photoId:guid}/content")]
     [EnableRateLimiting(RateLimitPolicies.Upload)]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(10 * 1024 * 1024)] // NOSONAR: ASP.NET enforces the raw request-body limit before the action runs.
     public async Task<IActionResult> UploadPropertyPhotoContent(Guid id, Guid photoId, CancellationToken cancellationToken)
     {
         var hostUserId = authorization.RequireHost();

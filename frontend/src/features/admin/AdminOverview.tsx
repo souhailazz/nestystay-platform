@@ -17,7 +17,7 @@ export function AdminOverview({ token }: AdminOverviewProps) {
     let active = true;
     async function load() {
       try {
-        const [h, status] = await Promise.all([api.health(), token ? api.integrationStatus(token) : Promise.resolve({ generatedAt: "", services: [] })]);
+        const [h, status] = await Promise.all([api.health(), api.integrationStatus(token || undefined)]);
         if (active) setHealth(h);
         if (active) setIntegrations(status.services);
       } catch (err) {
@@ -30,11 +30,11 @@ export function AdminOverview({ token }: AdminOverviewProps) {
     return () => { active = false; };
   }, [token]);
 
-  const statusClass = (status: string) => status === "CONFIGURED" || status === "SELF_HOSTED"
-    ? "text-green"
-    : status === "LOCAL_CAPTURE" || status === "OPTIONAL_NOT_CONNECTED" || status === "OPTIONAL_DISABLED"
-      ? "text-sun"
-      : "text-coral";
+  const statusClass = (status: string) => {
+    if (status === "CONFIGURED" || status === "SELF_HOSTED") return "text-green";
+    if (status === "LOCAL_CAPTURE" || status === "OPTIONAL_NOT_CONNECTED" || status === "OPTIONAL_DISABLED") return "text-sun";
+    return "text-coral";
+  };
 
   return (
     <div className="page-container container py-6" data-testid="adm-01-page" id="ADM-01">

@@ -180,9 +180,9 @@ export function AuthPostLoginToastPage() {
       {/* Dashboard backdrop (condensed TRAV-01) */}
       <div className="grid min-h-screen md:grid-cols-[220px_1fr]">
         <aside className="flex flex-col gap-1 bg-deep p-5 px-3.5">
-          <AppLink className="flex items-center gap-2 px-2 pb-3.5" href="/">
-            <EmblemRoundel size={32} />
-            <span className="text-[11px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
+          <AppLink aria-label="NestyStay home" className="flex items-center gap-2.5 px-2 pb-3.5" href="/">
+            <EmblemRoundel alt="" size={50} />
+            <span aria-hidden="true" className="text-[15px] font-bold tracking-[0.12em] text-sand">NESTY STAY</span>
           </AppLink>
           {sidebarLinks.map(([label, href, active]) => (
             <AppLink
@@ -245,8 +245,8 @@ export function LogoutScreenPage() {
     >
       <main className="flex flex-1 flex-col items-center justify-center gap-[26px] px-6 pb-12 pt-[72px] text-center">
         <div className="flex items-center gap-3.5">
-          <EmblemRoundel size={56} />
-          <span className="text-[19px] font-bold tracking-[0.22em] text-sand">NESTY STAY</span>
+          <EmblemRoundel size={60} />
+          <span aria-hidden="true" className="text-[19px] font-bold tracking-[0.22em] text-sand">NESTY STAY</span>
         </div>
         <div className="flex flex-col items-center gap-2.5">
           {showPatois ? (
@@ -333,8 +333,8 @@ export function ComingSoonPage() {
     <div className="flex min-h-screen flex-col bg-deep font-sans text-[15px] leading-[1.55] text-white">
       <main className="flex flex-1 flex-col items-center justify-center gap-7 px-6 pb-12 pt-[72px] text-center">
         <div className="flex items-center gap-3.5">
-          <EmblemRoundel size={56} />
-          <span className="text-[19px] font-bold tracking-[0.22em] text-sand">NESTY STAY</span>
+          <EmblemRoundel size={60} />
+          <span aria-hidden="true" className="text-[19px] font-bold tracking-[0.22em] text-sand">NESTY STAY</span>
         </div>
 
         {/* patois-block (dark): patois line always paired with its English translation */}
@@ -413,7 +413,6 @@ export function ComingSoonPage() {
 export function TripSuggestionsPage({ auth }: { auth?: AuthController } = {}) {
   const { properties } = useProperties();
   const [filter, setFilter] = useState("All parishes");
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [recommendations, setRecommendations] = useState<import("../lib/api").TravelerRecommendation[]>([]);
   const [loading, setLoading] = useState(Boolean(auth?.session));
   const [error, setError] = useState<string | null>(null);
@@ -455,7 +454,7 @@ export function TripSuggestionsPage({ auth }: { auth?: AuthController } = {}) {
     <div className="flex flex-col gap-5" id="TRAV-SUGG">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">{visible.length} stay{visible.length === 1 ? "" : "s"} match your <em className="italic text-deep-hover">preferences.</em></h1><p className="m-0 mt-2 max-w-[620px] text-sm text-gray-600">Recommendations are ranked from your saved stays, completed trips, and preferences. Every reason is shown so you stay in control.</p></div>{userId && <Button onClick={() => void savePreference()} variant="outline">Save this filter</Button>}</div>
       <div className="flex flex-wrap gap-2">{["All parishes", "Beachfront", "Under $300", "Wellness hosts"].map((tab) => <button className={cx("inline-flex min-h-11 cursor-pointer items-center rounded-pill px-5 font-sans text-[13px] font-semibold transition-colors", filter === tab ? "border-none bg-deep text-on-dark-heading" : "border-[1.5px] border-sand-input bg-transparent text-gray-600 hover:border-deep hover:text-ink")} key={tab} onClick={() => setFilter(tab)} type="button">{tab}</button>)}</div>
-      {notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm text-success-text" role="status">{notice}</div>}
+      {notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm text-success-text" aria-live="polite">{notice}</div>}
       {error && <div className="rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}
       {!userId && <div className="rounded-field bg-amber-tint px-4 py-3 text-sm text-amber-text">Browse sample matches as a guest, or <AppLink className="font-semibold underline" href="/login">sign in</AppLink> to save preferences and dismiss suggestions.</div>}
       {loading ? <div className="rounded-card border border-sand-border bg-cream p-6 text-sm text-sand-600">Loading recommendations from PostgreSQL…</div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">{visible.map((item, index) => <div className="flex flex-col gap-3 rounded-card border border-sand-border bg-cream p-[22px]" key={item.propertyId}><div className="relative -mx-1.5 -mt-1.5 h-40 overflow-hidden rounded-field"><img alt={item.propertyTitle} className="h-full w-full object-cover" src={getStayImage(index).src} /></div><div className="flex items-baseline justify-between gap-2.5"><div className="font-display text-lg font-medium">{item.propertyTitle}</div><span className="text-sm"><strong>{formatMoney(item.nightlyRate, item.currency)}</strong> <span className="text-[11.5px] text-sand-500">/ night</span></span></div><div className="text-[12.5px] text-gray-600">{item.location} · {item.country}</div><div className="flex flex-wrap gap-1.5"><span className="rounded-pill bg-shell px-2.5 py-1 text-[10.5px] font-bold tracking-[0.04em] text-gray-600">{item.reason}</span>{item.score > 0 && <span className="rounded-pill bg-success-tint px-2.5 py-1 text-[10.5px] font-bold text-success-text">Match score {item.score}</span>}</div><div className="flex flex-wrap gap-2"><AppLink className="inline-flex min-h-[46px] items-center rounded-pill bg-deep px-[22px] text-[13.5px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover" href={`/properties/${item.propertyId}`}>View</AppLink><button className="inline-flex min-h-[46px] cursor-pointer items-center rounded-pill border-[1.5px] border-sand-input bg-transparent px-5 font-sans text-[13.5px] font-semibold text-ink transition-colors hover:border-deep" onClick={() => void dismiss(item.propertyId)} type="button">Dismiss</button></div></div>)}</div>}
@@ -559,7 +558,7 @@ function ErrorTemplate({
 }) {
   return (
     <div className="flex min-h-[72vh] flex-col items-center justify-center gap-4 px-6 py-[72px] text-center font-sans text-ink" id={id}>
-      <EmblemRoundel size={48} />
+      <EmblemRoundel size={60} />
       {Icon && <Icon className="text-sand-500" size={48} strokeWidth={1.6} />}
       <h1 className="m-0 font-display text-[clamp(32px,4vw,44px)] font-normal">{title}</h1>
       <div className="max-w-[420px] text-[14.5px] text-gray-600">{copy}</div>

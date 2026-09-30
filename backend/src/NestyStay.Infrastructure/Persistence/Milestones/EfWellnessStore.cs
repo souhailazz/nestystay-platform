@@ -24,7 +24,6 @@ public sealed class EfWellnessStore(
     private const string OfficerStatusVerified = "Verified";
     private const string OfficerStatusRejected = "Rejected";
     private const string OfficerStatusSuspended = "Suspended";
-    private const string OfficerStatusInactive = "Inactive";
 
     private const string AvailabilityAvailable = "Available";
     private const string AvailabilityInactive = "Inactive";
@@ -44,7 +43,6 @@ public sealed class EfWellnessStore(
     private const string ScanStatusPending = "PendingScan";
     private const string ScanStatusClean = "Clean";
 
-    private const string PaymentPending = "Pending";
     private const string PaymentAuthorized = "Authorized";
     private const string PaymentCaptured = "Captured";
     private const string PaymentCancelled = "Cancelled";

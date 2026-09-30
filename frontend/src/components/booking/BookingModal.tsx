@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarCheck2, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarCheck2, CreditCard, Minus, Plus, ShieldCheck } from "lucide-react";
 import { api, formatMoney, type Booking, type BookingQuote, type PropertyAvailability, type PropertyListing } from "../../lib/api";
 import type { AuthSession } from "../../lib/auth";
 import { AppLink } from "../AppLink";
@@ -44,6 +44,11 @@ export function BookingModal({
   const canBook = Boolean(property && session && quote);
 
   const quoteLines = useMemo(() => quote?.priceBreakdown ?? [], [quote]);
+  const dateError = !checkIn || !checkOut
+    ? "Choose both check-in and check-out dates."
+    : new Date(`${checkOut}T00:00:00`).getTime() <= new Date(`${checkIn}T00:00:00`).getTime()
+      ? "Check-out must be after check-in."
+      : null;
 
   function clearQuoteAfterChange() {
     setQuote(null);
@@ -73,6 +78,7 @@ export function BookingModal({
 
   async function handleQuote() {
     if (!property) return;
+    if (dateError) { setError(dateError); return; }
     setIsBusy(true);
     setError(null);
     setBooking(null);
@@ -87,7 +93,7 @@ export function BookingModal({
   }
 
   async function handleCreateBooking() {
-    if (!property || !session) return;
+    if (!property || !session || !quote || isBusy || dateError) return;
     setIsBusy(true);
     setError(null);
     try {
@@ -145,10 +151,10 @@ export function BookingModal({
               <Input type="date" value={checkOut} onChange={(event) => { setCheckOut(event.target.value); clearQuoteAfterChange(); }} />
             </Field>
             <Field label="Adults">
-              <Input min={1} max={property.maxGuests ?? 2} type="number" value={adults} onChange={(event) => updateGuestCount(Number(event.target.value), children)} />
+              <div className="flex items-center gap-2"><Button aria-label="Decrease adults" disabled={adults <= 1} onClick={() => updateGuestCount(adults - 1, children)} variant="outline"><Minus size={14} /></Button><Input aria-label="Adults count" min={1} max={property.maxGuests ?? 2} type="number" value={adults} onChange={(event) => updateGuestCount(Number(event.target.value), children)} /><Button aria-label="Increase adults" disabled={adults + children >= (property.maxGuests ?? 2)} onClick={() => updateGuestCount(adults + 1, children)} variant="outline"><Plus size={14} /></Button></div>
             </Field>
             <Field label="Children">
-              <Input min={0} max={Math.max(0, (property.maxGuests ?? 2) - adults)} type="number" value={children} onChange={(event) => updateGuestCount(adults, Number(event.target.value))} />
+              <div className="flex items-center gap-2"><Button aria-label="Decrease children" disabled={children <= 0} onClick={() => updateGuestCount(adults, children - 1)} variant="outline"><Minus size={14} /></Button><Input aria-label="Children count" min={0} max={Math.max(0, (property.maxGuests ?? 2) - adults)} type="number" value={children} onChange={(event) => updateGuestCount(adults, Number(event.target.value))} /><Button aria-label="Increase children" disabled={adults + children >= (property.maxGuests ?? 2)} onClick={() => updateGuestCount(adults, children + 1)} variant="outline"><Plus size={14} /></Button></div>
             </Field>
             {property.guestVerificationEnabled && (
               <Field label="Identity document" className="form-grid__full">
@@ -160,6 +166,7 @@ export function BookingModal({
               </Field>
             )}
           </div>
+          {dateError && <p className="m-0 text-xs font-semibold text-coral-text" role="alert">{dateError}</p>}
 
           <div aria-label="Property availability" className="rounded-field border border-sand-border bg-shell p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -168,23 +175,28 @@ export function BookingModal({
             </div>
             {availabilityLoading && <div className="text-xs text-sand-600">Loading dates…</div>}
             {!availabilityLoading && availability && (
-              <div className="grid grid-cols-7 gap-1.5" role="list" aria-label="Next 30 days">
-                {availability.days.slice(0, 35).map((day) => (
-                  <div aria-label={`${day.date}: ${day.label ?? day.status}`} className={`rounded px-1 py-1.5 text-center text-[10px] font-semibold ${day.status === "AVAILABLE" ? "bg-success-tint text-success-text" : day.status === "HELD" ? "bg-amber-tint text-amber-text" : "bg-coral-tint text-coral-text"}`} data-status={day.status} key={day.date} role="listitem" title={day.label ?? day.status}>
+              <ul className="m-0 grid list-none grid-cols-7 gap-1.5 p-0" aria-label="Next 30 days">
+                {availability.days.slice(0, 35).map((day) => {
+                  let statusClass = "bg-coral-tint text-coral-text";
+                  if (day.status === "AVAILABLE") statusClass = "bg-success-tint text-success-text";
+                  if (day.status === "HELD") statusClass = "bg-amber-tint text-amber-text";
+                  return (
+                  <li aria-label={`${day.date}: ${day.label ?? day.status}`} className={`rounded px-1 py-1.5 text-center text-[10px] font-semibold ${statusClass}`} data-status={day.status} key={day.date} title={day.label ?? day.status}>
                     <span className="block">{new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { month: "short" })}</span>
                     <span className="block text-[11px]">{new Date(`${day.date}T00:00:00`).getDate()}</span>
-                  </div>
-                ))}
-              </div>
+                  </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 
           <div className="button-row">
-            <Button disabled={isBusy} onClick={handleQuote} variant="outline">
+            <Button disabled={isBusy || Boolean(dateError)} onClick={handleQuote} variant="outline">
               <CalendarCheck2 size={17} />
               {isBusy ? "Checking" : "Get quote"}
             </Button>
-            <Button disabled={!canBook || isBusy} onClick={handleCreateBooking}>
+            <Button disabled={!canBook || isBusy || Boolean(dateError)} onClick={handleCreateBooking}>
               <CreditCard size={17} />
               Create booking
             </Button>

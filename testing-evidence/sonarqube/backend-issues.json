@@ -1,0 +1,24 @@
+{
+  "projectKey": "nestystay-backend",
+  "analysisId": "c0d93d42-5475-402d-9a12-52bcd1f35e35",
+  "sonarServer": "http://localhost:9000",
+  "dashboardUrl": "http://localhost:9000/dashboard?id=nestystay-backend",
+  "issuesUrl": "http://localhost:9000/project/issues?id=nestystay-backend",
+  "qualityGate": "OK",
+  "openIssues": {
+    "total": 1048,
+    "bugs": { "total": 9, "major": 9 },
+    "vulnerabilities": { "total": 31, "critical": 3, "major": 22, "minor": 6 },
+    "codeSmells": { "total": 1008, "critical": 59, "major": 401, "minor": 238, "info": 310 }
+  },
+  "securityHotspotsToReview": 0,
+  "measures": {
+    "coveragePercent": 51.4,
+    "branchCoveragePercent": 51.2,
+    "duplicatedLinesDensityPercent": 20.6,
+    "reliabilityRating": 3.0,
+    "securityRating": 4.0,
+    "maintainabilityRating": 1.0
+  },
+  "fullIssueDetail": "Available from the local issuesUrl; raw issue text is not duplicated here to avoid committing unnecessary generated data."
+}

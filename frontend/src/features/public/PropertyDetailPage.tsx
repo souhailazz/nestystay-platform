@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heart, MapPin, Users } from "lucide-react";
+import { Check, Heart, MapPin, Minus, Plus, Share2, Users } from "lucide-react";
 import { AppLink } from "../../components/AppLink";
 import { PublicFooter, TierBadge } from "../../components/layout/PublicShell";
 import { ErrorState } from "../../components/ui/ErrorState";
@@ -7,6 +7,7 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { api, formatMoney, type PropertyListing } from "../../lib/api";
 import { getStayImage } from "../../lib/stayImages";
 import { cx } from "../../lib/ui";
+import { announceFeedback } from "../../lib/feedback";
 import { BookingModal } from "../../components/booking/BookingModal";
 import { Seo, siteUrl } from "../../components/seo/Seo";
 import type { AuthSession } from "../../lib/auth";
@@ -37,6 +38,20 @@ function isoDatePlus(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function cancellationDescription(policy: string) {
+  const normalized = policy.toLowerCase();
+  if (normalized === "flexible") return "Full refund up to 24 hours before check-in.";
+  if (normalized === "moderate") return "Full refund up to 5 days before check-in; later cancellations may receive a partial refund.";
+  if (normalized === "strict") return "A limited refund is available only within the policy window shown at checkout.";
+  return "The host has published a custom cancellation policy; review the exact terms before reserving.";
+}
+
+function availabilityClass(status: string) {
+  if (status === "AVAILABLE") return "bg-success-tint text-success-text";
+  if (status === "HELD") return "bg-amber-tint text-amber-text";
+  return "bg-coral-tint text-coral-text";
+}
+
 /** PUB-04 — Property page (DS v2). Emergency 119 badge sits under the header,
  *  ABOVE the gallery, above the fold — never in a footer (client contract). */
 export function PropertyDetailPage({ propertyId, session }: PropertyDetailPageProps) {
@@ -45,12 +60,17 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [savedToWishlist, setSavedToWishlist] = useState(false);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
   const [wishlistItemId, setWishlistItemId] = useState<string | null>(null);
   const [wishlistCollectionId, setWishlistCollectionId] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(isoDatePlus(30));
   const [checkOut, setCheckOut] = useState(isoDatePlus(34));
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [recentlyViewed, setRecentlyViewed] = useState<PropertyListing[]>([]);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof api.quoteBooking>> | null>(null);
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof api.getPropertyAvailability>> | null>(null);
   const [reviews, setReviews] = useState<Awaited<ReturnType<typeof api.getPropertyReviews>>>([]);
@@ -64,7 +84,17 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
       try {
         if (!propertyId) throw new Error("This property could not be found.");
         const found = await api.getProperty(propertyId);
-        if (active) setProperty(found);
+        if (active) {
+          setProperty(found);
+          setLastUpdatedAt(found.updatedAt ?? new Date().toISOString());
+          try {
+            const key = "nesty.recently-viewed-properties";
+            const prior = JSON.parse(window.localStorage.getItem(key) ?? "[]") as PropertyListing[];
+            const next = [found, ...prior.filter((item) => item.id !== found.id)].slice(0, 6);
+            window.localStorage.setItem(key, JSON.stringify(next));
+            setRecentlyViewed(next.filter((item) => item.id !== found.id).slice(0, 4));
+          } catch { /* private browsing/local storage may be unavailable */ }
+        }
       } catch (err) {
         console.error(err);
         if (active) setError(err instanceof Error ? err.message : "Could not load this property.");
@@ -95,6 +125,20 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
     }
     return () => { active = false; };
   }, [property?.id, session?.userId, session?.accessToken]);
+
+  useEffect(() => {
+    if (!checkIn || !checkOut) {
+      setDateError("Choose both check-in and check-out dates.");
+      return;
+    }
+    const start = new Date(`${checkIn}T00:00:00`).getTime();
+    const end = new Date(`${checkOut}T00:00:00`).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      setDateError("Check-out must be after check-in.");
+      return;
+    }
+    setDateError(null);
+  }, [checkIn, checkOut]);
 
   useEffect(() => {
     if (!property || !checkIn || !checkOut) return;
@@ -156,13 +200,19 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
       window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
+    const wasSaved = savedToWishlist;
+    const previousItemId = wishlistItemId;
+    const previousCollectionId = wishlistCollectionId;
     try {
+      setWishlistBusy(true);
       if (savedToWishlist && wishlistItemId) {
-        await api.removeWishlistItem(session.userId, wishlistItemId, session.accessToken);
         setSavedToWishlist(false);
         setWishlistItemId(null);
+        await api.removeWishlistItem(session.userId, wishlistItemId, session.accessToken);
+        announceFeedback(`${currentProperty.title} removed from saved stays.`, "info");
         return;
       }
+      setSavedToWishlist(true);
       let collectionId = wishlistCollectionId;
       if (!collectionId) {
         const collection = await api.createWishlistCollection(session.userId, session.accessToken, { name: "Saved stays" });
@@ -170,11 +220,43 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
         setWishlistCollectionId(collectionId);
       }
       const item = await api.addWishlistItem(session.userId, collectionId, session.accessToken, { propertyId: currentProperty.id, propertyTitle: currentProperty.title });
-      setSavedToWishlist(true);
       setWishlistItemId(item.id);
+      announceFeedback(`${currentProperty.title} saved to your stays.`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "This stay could not be saved.");
+      setSavedToWishlist(wasSaved);
+      setWishlistItemId(previousItemId);
+      setWishlistCollectionId(previousCollectionId);
+      const message = caught instanceof Error ? caught.message : "This stay could not be saved.";
+      setError(message);
+      announceFeedback(message, "error");
+    } finally {
+      setWishlistBusy(false);
     }
+  }
+
+  async function shareProperty() {
+    const currentProperty = property;
+    if (!currentProperty) return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: currentProperty.title, text: `Stay at ${currentProperty.title}`, url });
+        setShareNotice("Property shared.");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareNotice("Link copied to your clipboard.");
+      }
+    } catch { setShareNotice("Sharing was cancelled."); }
+    window.setTimeout(() => setShareNotice(null), 3000);
+  }
+
+  function changeGuests(delta: number) {
+    const currentProperty = property;
+    if (!currentProperty) return;
+    const total = Math.min(currentProperty.maxGuests ?? 2, Math.max(1, adults + children + delta));
+    setAdults(Math.min(adults, total));
+    setChildren(Math.max(0, total - Math.min(adults, total)));
+    setQuote(null);
   }
 
   return (
@@ -196,6 +278,7 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
             <div className="text-[14.5px] text-gray-600">
               {property.location} · {property.country} · Hosted by {property.hostName}
             </div>
+            {lastUpdatedAt && <div className="text-xs text-sand-500">Last updated {new Date(lastUpdatedAt).toLocaleString()}</div>}
             <div className="flex flex-wrap gap-2">
               <TierBadge level={property.badgeLevel} />
               {property.guestVerificationEnabled && (
@@ -210,17 +293,23 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
               )}
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
           <button
             aria-pressed={savedToWishlist}
             className={cx(
-              "flex min-h-11 cursor-pointer items-center gap-2 rounded-field border-[1.5px] bg-cream px-[18px] font-sans text-sm font-semibold transition-colors",
+              "flex min-h-11 cursor-pointer items-center gap-2 rounded-field border-[1.5px] bg-cream px-[18px] font-sans text-sm font-semibold transition-[color,border-color,transform] active:scale-95",
+              savedToWishlist && "animate-[ns-favorite-pop_320ms_ease-out]",
               savedToWishlist ? "border-coral text-coral" : "border-sand-input text-gray-600 hover:border-coral hover:text-coral",
             )}
+            disabled={wishlistBusy}
             onClick={() => void toggleWishlist()}
             type="button"
           >
-            <Heart fill={savedToWishlist ? "currentColor" : "none"} size={16} /> {savedToWishlist ? "Saved" : "Save"}
+            <Heart fill={savedToWishlist ? "currentColor" : "none"} size={16} /> {wishlistBusy ? "Saving…" : savedToWishlist ? "Saved" : "Save"}
           </button>
+          <button className="inline-flex min-h-11 items-center gap-2 rounded-field border-[1.5px] border-sand-input bg-cream px-4 text-sm font-semibold text-gray-600" onClick={() => void shareProperty()} type="button"><Share2 size={16} /> Share</button>
+          </div>
+          {shareNotice && <p className="m-0 text-xs text-success-text" role="status">{shareNotice}</p>}
         </div>
 
         {/* RULE 3: emergency badge — under header, ABOVE gallery, above the fold. Never in a footer. */}
@@ -236,7 +325,7 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
       <section className="mx-auto flex max-w-[1200px] flex-col gap-2.5 px-6 pt-5">
         <div className="min-h-[220px] overflow-hidden rounded-card">
           <img
-            alt={`${property.title} — main photo`}
+            alt={`${property.title} — main view`}
             className="block aspect-[21/9] h-full w-full object-cover"
             src={heroImage}
             width={1600}
@@ -246,7 +335,7 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
           {gallery.slice(0, 5).map((image, i) => (
             <div className="relative aspect-[4/3] overflow-hidden rounded-field" key={image}>
-              <img alt={`${property.title} photo ${i + 1}`} className="block h-full w-full object-cover" height={600} loading="lazy" src={image} width={800} />
+              <img alt={`${property.title} view ${i + 1}`} className="block h-full w-full object-cover" height={600} loading="lazy" src={image} width={800} />
               {i === 4 && gallery.length > 5 && <span className="absolute inset-0 flex items-center justify-center bg-deep/55 text-[14.5px] font-semibold text-white">+ {gallery.length - 5} photos</span>}
             </div>
           ))}
@@ -289,11 +378,11 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
                   <span className="rounded-pill bg-success-tint px-2.5 py-1 text-[10.5px] font-bold text-success-text">
                     eKYC REQUIRED
                   </span>
-                  This host verifies traveler identity before confirming.
+                  {" "}This host verifies traveler identity before confirming.
                 </div>
                 <p className="m-0 text-[13.5px] text-gray-600">
                   After booking, you&apos;ll be redirected to a secure verification page. Accepted documents: Passport
-                  · National ID · Driver license. Your dates are held for 60 minutes while you verify.
+                  {" "}· National ID · Driver license. Your dates are held for 60 minutes while you verify.
                 </p>
               </div>
             </div>
@@ -304,14 +393,14 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
             <div className="max-w-[640px] rounded-field border border-sand-border bg-cream px-5 py-[18px]">
               <div className="text-[15px] font-semibold">{property.cancellationPolicy}</div>
               <p className="m-0 mt-1.5 text-[13.5px] text-gray-600">
-                {property.cancellationPolicy.toLowerCase() === "flexible" ? "Full refund up to 24 hours before check-in." : property.cancellationPolicy.toLowerCase() === "moderate" ? "Full refund up to 5 days before check-in; later cancellations may receive a partial refund." : property.cancellationPolicy.toLowerCase() === "strict" ? "A limited refund is available only within the policy window shown at checkout." : "The host has published a custom cancellation policy; review the exact terms before reserving."} The traveler fee is non-refundable where applicable. Refunds follow this policy automatically.
+                {cancellationDescription(property.cancellationPolicy)} The traveler fee is non-refundable where applicable. Refunds follow this policy automatically.
             </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2.5"><SectionTitle>Location</SectionTitle>{property.latitude != null && property.longitude != null ? <div className="overflow-hidden rounded-card border border-sand-border bg-cream"><iframe title={`Approximate map location for ${property.title}`} className="h-[260px] w-full border-0" loading="lazy" src={`https://www.openstreetmap.org/export/embed.html?bbox=${property.longitude - 0.06}%2C${property.latitude - 0.04}%2C${property.longitude + 0.06}%2C${property.latitude + 0.04}&layer=mapnik&marker=${property.latitude}%2C${property.longitude}`} /><div className="flex items-center gap-2 px-4 py-3 text-sm text-gray-600"><MapPin size={15} /> Approximate location · {property.location}</div></div> : <div className="rounded-field border border-sand-border bg-shell p-4 text-sm text-gray-600">Approximate map location will be shown after the host publishes coordinates.</div>}</div>
 
-          {availability && <div className="flex flex-col gap-2.5"><SectionTitle>Availability</SectionTitle><div className="grid grid-cols-7 gap-1.5 rounded-field border border-sand-border bg-cream p-3">{availability.days.slice(0, 35).map((day) => <div className={`rounded px-1 py-2 text-center text-[10px] font-semibold ${day.status === "AVAILABLE" ? "bg-success-tint text-success-text" : day.status === "HELD" ? "bg-amber-tint text-amber-text" : "bg-coral-tint text-coral-text"}`} key={day.date} title={day.label ?? day.status}>{new Date(`${day.date}T00:00:00`).getDate()}</div>)}</div></div>}
+          {availability && <div className="flex flex-col gap-2.5"><SectionTitle>Availability</SectionTitle><div className="grid grid-cols-7 gap-1.5 rounded-field border border-sand-border bg-cream p-3">{availability.days.slice(0, 35).map((day) => <div className={`rounded px-1 py-2 text-center text-[10px] font-semibold ${availabilityClass(day.status)}`} key={day.date} title={day.label ?? day.status}>{new Date(`${day.date}T00:00:00`).getDate()}</div>)}</div></div>}
 
           <div className="flex flex-col gap-2.5"><SectionTitle>Guest reviews</SectionTitle>{reviews.length === 0 ? <div className="rounded-field border border-sand-border bg-shell p-4 text-sm text-gray-600">No published reviews yet.</div> : <div className="grid gap-3">{reviews.map((review) => <article className="rounded-field border border-sand-border bg-cream p-4" key={review.id}><div className="flex flex-wrap justify-between gap-2"><strong>{review.guestDisplayName}</strong><span className="text-sm text-gray-600">{"★".repeat(Math.max(0, Math.min(5, review.rating)))} · {new Date(review.createdAt).toLocaleDateString()}</span></div><p className="m-0 mt-2 text-sm text-gray-600">{review.text}</p>{review.hostReply && <p className="m-0 mt-2 border-l-2 border-deep pl-3 text-sm text-gray-600"><strong>Host reply:</strong> {review.hostReply}</p>}</article>)}</div>}</div>
 
@@ -348,7 +437,8 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
             </span>
             <span className="text-[13px] text-gray-600">{property.minimumNights ? `${property.minimumNights}+ nights` : "Flexible"}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2"><label className="min-h-11 rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><span className="block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-sand-500">Check-in</span><input className="w-full border-none bg-transparent text-sm font-semibold outline-none" min={isoDatePlus(0)} onChange={(event) => setCheckIn(event.target.value)} type="date" value={checkIn} /></label><label className="min-h-11 rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><span className="block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-sand-500">Check-out</span><input className="w-full border-none bg-transparent text-sm font-semibold outline-none" min={checkIn} onChange={(event) => setCheckOut(event.target.value)} type="date" value={checkOut} /></label><label className="col-span-full flex min-h-11 items-center justify-between rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><span className="flex items-center gap-2"><Users size={15} /><span><span className="block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-sand-500">Guests</span><select className="border-none bg-transparent text-sm font-semibold outline-none" value={adults + children} onChange={(event) => setAdults(Math.max(1, Number(event.target.value)))}>{Array.from({ length: property.maxGuests ?? 2 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} guest{count === 1 ? "" : "s"}</option>)}</select></span></span></label></div>
+          <div className="grid grid-cols-2 gap-2"><div className="min-h-11 rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><label className="block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-sand-500" htmlFor="property-check-in">Check-in</label><input id="property-check-in" className="w-full border-none bg-transparent text-sm font-semibold outline-none" min={isoDatePlus(0)} onChange={(event) => { setCheckIn(event.target.value); setQuote(null); }} type="date" value={checkIn} /></div><div className="min-h-11 rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><label className="block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-sand-500" htmlFor="property-check-out">Check-out</label><input id="property-check-out" className="w-full border-none bg-transparent text-sm font-semibold outline-none" min={checkIn} onChange={(event) => { setCheckOut(event.target.value); setQuote(null); }} type="date" value={checkOut} /></div><div className="col-span-full flex min-h-11 items-center justify-between rounded-[12px] border-[1.5px] border-sand-input px-3 py-2"><span className="flex items-center gap-2 text-sm font-semibold"><Users size={15} /> Guests</span><div className="flex items-center gap-2"><button aria-label="Decrease guests" className="grid size-8 place-items-center rounded-full border border-sand-input" disabled={adults + children <= 1} onClick={() => changeGuests(-1)} type="button"><Minus size={14} /></button><span aria-live="polite" className="min-w-16 text-center text-sm font-semibold">{adults + children} guest{adults + children === 1 ? "" : "s"}</span><button aria-label="Increase guests" className="grid size-8 place-items-center rounded-full border border-sand-input" disabled={adults + children >= (property.maxGuests ?? 2)} onClick={() => changeGuests(1)} type="button"><Plus size={14} /></button></div></div></div>
+          {dateError && <p className="m-0 text-xs font-semibold text-coral-text" role="alert">{dateError}</p>}
           <div className="flex flex-col gap-[9px] border-t border-shell pt-3.5 text-sm">
             <div className="flex justify-between">
               <span>
@@ -380,6 +470,7 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
           </div>
           <button
             className="min-h-12 cursor-pointer rounded-field border-none bg-deep font-sans text-[15.5px] font-bold text-white transition-colors hover:bg-deep-hover"
+            disabled={Boolean(dateError)}
             onClick={() => setShowModal(true)}
             type="button"
           >
@@ -391,6 +482,12 @@ export function PropertyDetailPage({ propertyId, session }: PropertyDetailPagePr
           </div>
         </aside>
       </main>
+
+      <div className="fixed inset-x-4 bottom-4 z-40 md:hidden">
+        <button className="flex min-h-14 w-full items-center justify-center gap-2 rounded-pill bg-deep px-6 text-base font-bold text-white shadow-navbar disabled:opacity-50" disabled={Boolean(dateError)} onClick={() => setShowModal(true)} type="button"><Check size={18} /> Book now · {formatMoney(quoteTotal, property.currency)}</button>
+      </div>
+
+      {recentlyViewed.length > 0 && <section className="mx-auto max-w-[1200px] px-6 pb-16" aria-labelledby="recently-viewed-heading"><div className="mb-3 flex items-center justify-between"><h2 className="m-0 font-display text-2xl" id="recently-viewed-heading">Recently viewed</h2><span className="text-xs text-sand-500">Saved on this device</span></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{recentlyViewed.map((item) => <AppLink className="rounded-field border border-sand-border bg-cream p-3" href={`/properties/${item.id}`} key={item.id}><strong className="block truncate">{item.title}</strong><span className="text-xs text-gray-600">{item.location} · {formatMoney(item.nightlyRate, item.currency)}/night</span></AppLink>)}</div></section>}
 
       <PublicFooter />
 

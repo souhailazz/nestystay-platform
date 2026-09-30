@@ -58,9 +58,11 @@ function monthAgo() {
   return date.toISOString().slice(0, 10);
 }
 function randomId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  return `${Date.now().toString(36)}-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 function parseJson(value: string, fallback: unknown) {
   try {
@@ -573,7 +575,8 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
       {notice && (
         <div
           className="mb-4 rounded-field bg-success-tint px-4 py-3 text-sm font-semibold text-success-text"
-          role="status"
+           aria-live="polite"
+           role="status"
         >
           {notice}
         </div>
@@ -1241,7 +1244,7 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
           {feeCalculation && (
             <div
               className="mt-3 rounded-field bg-shell p-3 text-sm"
-              role="status"
+              aria-live="polite"
             >
               {feeCalculation.ruleId ? (
                 <>
@@ -1548,25 +1551,25 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
             <div className="mt-4 rounded-field bg-shell p-3 text-sm">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <span>
-                  Income
+                  <span>Income</span>
                   <strong className="block">
                     {formatMoney(statement.income, currency)}
                   </strong>
                 </span>
                 <span>
-                  Expenses
+                  <span>Expenses</span>
                   <strong className="block">
                     {formatMoney(statement.expenses, currency)}
                   </strong>
                 </span>
                 <span>
-                  Fees
+                  <span>Fees</span>
                   <strong className="block">
                     {formatMoney(statement.managementFees, currency)}
                   </strong>
                 </span>
                 <span>
-                  Closing
+                  <span>Closing</span>
                   <strong className="block">
                     {formatMoney(statement.closingBalance, currency)}
                   </strong>
@@ -1601,25 +1604,25 @@ export function PropertyManagerP0Page({ auth }: { auth: AuthController }) {
             <>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-field bg-shell p-3">
-                  Accrual income
+                  <span>Accrual income</span>
                   <strong className="block">
                     {formatMoney(profitability.income, currency)}
                   </strong>
                 </div>
                 <div className="rounded-field bg-shell p-3">
-                  Expenses
+                  <span>Expenses</span>
                   <strong className="block">
                     {formatMoney(profitability.expenses, currency)}
                   </strong>
                 </div>
                 <div className="rounded-field bg-shell p-3">
-                  Cash collected
+                  <span>Cash collected</span>
                   <strong className="block">
                     {formatMoney(profitability.cashCollected, currency)}
                   </strong>
                 </div>
                 <div className="rounded-field bg-shell p-3">
-                  PM margin
+                  <span>PM margin</span>
                   <strong className="block">
                     {formatMoney(profitability.pmMargin, currency)}
                   </strong>

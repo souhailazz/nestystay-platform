@@ -36,6 +36,19 @@ export function AdminDirectories({ token }: { token: string }) {
 
   const visible = useMemo(() => providers.filter((provider) => !query.trim() || `${provider.name} ${provider.category} ${provider.parish} ${provider.kind}`.toLowerCase().includes(query.trim().toLowerCase())), [providers, query]);
 
+  function renderQueue() {
+    if (loading) return <LoadingState label="Loading provider moderation queue" />;
+    if (visible.length === 0) return <EmptyState title="No providers match this queue." copy="New provider applications will appear here after they save their profile." />;
+    return <div className="grid gap-4 lg:grid-cols-2">
+      {visible.map((provider) => <Card className="flex flex-col gap-3" key={provider.id}>
+        <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-bold uppercase tracking-wide text-sand-500">{provider.kind} · {provider.category}</div><h3 className="m-0 mt-1 font-display text-2xl">{provider.name}</h3><p className="m-0 text-sm text-sand-600">{provider.parish} · {provider.availabilitySummary}</p></div><StatusChip value={provider.status ?? "Unknown"} /></div>
+        <div className="grid gap-2 text-sm sm:grid-cols-2"><span><strong>Badge:</strong> {provider.badgeLevel}</span><span><strong>Rating:</strong> {provider.rating.toFixed(1)} ({provider.reviewCount})</span><span><strong>Verification:</strong> {provider.verificationStatus}</span><span><strong>Risk flags:</strong> {provider.isBrickAndMortar || provider.kind !== "LocalBusiness" ? "None" : "Brick-and-mortar required"}</span></div>
+        <p className="m-0 text-sm text-sand-600">{provider.description}</p>
+        <div className="mt-auto flex flex-wrap gap-2"><Button variant="outline" onClick={() => setSelected(provider)}><FileSearch size={15} /> Compare documents</Button><Button onClick={() => void moderate(provider, "approve")}><Check size={15} /> Approve</Button><Button variant="ghost" onClick={() => { setSelected(provider); setReason(""); }}><X size={15} /> Review decision</Button></div>
+      </Card>)}
+    </div>;
+  }
+
   async function moderate(provider: DirectoryProvider, action: "approve" | "reject" | "request-changes") {
     if ((action !== "approve") && !reason.trim()) {
       setError("Add a reason so the provider receives actionable feedback.");
@@ -61,7 +74,7 @@ export function AdminDirectories({ token }: { token: string }) {
       <p className="subtext">Review risk flags, compare submitted details, and publish only verified providers. Every action writes an audit event.</p>
     </header>
     {error && <div className="mb-4 rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}
-    {notice && <div className="mb-4 rounded-field bg-success-tint px-4 py-3 text-sm text-success-text" role="status">{notice}</div>}
+    {notice && <div className="mb-4 rounded-field bg-success-tint px-4 py-3 text-sm text-success-text" aria-live="polite">{notice}</div>}
     <Card className="mb-5">
       <div className="grid gap-3 md:grid-cols-[1fr_220px_auto] md:items-end">
         <Field label="Search providers"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 text-sand-500" size={16} /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, category, parish" /></div></Field>
@@ -69,14 +82,7 @@ export function AdminDirectories({ token }: { token: string }) {
         <Button variant="outline" onClick={() => void load()}>Refresh queue</Button>
       </div>
     </Card>
-    {loading ? <LoadingState label="Loading provider moderation queue" /> : visible.length === 0 ? <EmptyState title="No providers match this queue." copy="New provider applications will appear here after they save their profile." /> : <div className="grid gap-4 lg:grid-cols-2">
-      {visible.map((provider) => <Card className="flex flex-col gap-3" key={provider.id}>
-        <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-bold uppercase tracking-wide text-sand-500">{provider.kind} · {provider.category}</div><h3 className="m-0 mt-1 font-display text-2xl">{provider.name}</h3><p className="m-0 text-sm text-sand-600">{provider.parish} · {provider.availabilitySummary}</p></div><StatusChip value={provider.status ?? "Unknown"} /></div>
-        <div className="grid gap-2 text-sm sm:grid-cols-2"><span><strong>Badge:</strong> {provider.badgeLevel}</span><span><strong>Rating:</strong> {provider.rating.toFixed(1)} ({provider.reviewCount})</span><span><strong>Verification:</strong> {provider.verificationStatus}</span><span><strong>Risk flags:</strong> {provider.isBrickAndMortar || provider.kind !== "LocalBusiness" ? "None" : "Brick-and-mortar required"}</span></div>
-        <p className="m-0 text-sm text-sand-600">{provider.description}</p>
-        <div className="mt-auto flex flex-wrap gap-2"><Button variant="outline" onClick={() => setSelected(provider)}><FileSearch size={15} /> Compare documents</Button><Button onClick={() => void moderate(provider, "approve")}><Check size={15} /> Approve</Button><Button variant="ghost" onClick={() => { setSelected(provider); setReason(""); }}><X size={15} /> Review decision</Button></div>
-      </Card>)}
-    </div>}
+    {renderQueue()}
     <Modal open={Boolean(selected)} title={selected ? `Review ${selected.name}` : "Review provider"} onClose={() => setSelected(null)} variant="sheet">
       {selected && <>
         <p className="subtext">Compare the submitted profile, risk flags, and verification evidence before changing status.</p>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { XCircle, Search, ShieldCheck } from "lucide-react";
-import { api, formatMoney } from "../../lib/api";
+import { api } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import { PatoisPhrase } from "../../lib/patois";
 import type { AuthController } from "../../hooks/useAuth";
@@ -30,14 +30,21 @@ export function BookingRejectedPage({ bookingId, auth }: BookingRejectedPageProp
 
   const isVerificationRejection = booking?.rejectionSource === "GuestVerification" || /fail|expired/i.test(booking?.verificationStatus ?? "");
   const isHostRejection = booking?.rejectionSource === "Host";
-  const title = isVerificationRejection ? "Identity verification was not approved" : isHostRejection ? "Booking request declined by the host" : "Booking request could not be approved";
-  const translation = isVerificationRejection
-    ? `The configured identity verification provider did not approve this verification${booking?.rejectionReason ? `: ${booking.rejectionReason}` : "."} Your dates were released and no payment was captured.`
-    : isHostRejection && booking?.rejectionReason
-      ? `The host declined this booking request: ${booking.rejectionReason}`
-      : booking?.rejectionReason
-        ? `NestyStay recorded this decision reason: ${booking.rejectionReason}`
-        : "The booking request was declined. Your dates were released and no payment was captured.";
+  let title = "Booking request could not be approved";
+  if (isVerificationRejection) {
+    title = "Identity verification was not approved";
+  } else if (isHostRejection) {
+    title = "Booking request declined by the host";
+  }
+  let translation = "The booking request was declined. Your dates were released and no payment was captured.";
+  if (isVerificationRejection) {
+    const reason = booking?.rejectionReason ? `: ${booking.rejectionReason}` : ".";
+    translation = `The configured identity verification provider did not approve this verification${reason} Your dates were released and no payment was captured.`;
+  } else if (isHostRejection && booking?.rejectionReason) {
+    translation = `The host declined this booking request: ${booking.rejectionReason}`;
+  } else if (booking?.rejectionReason) {
+    translation = `NestyStay recorded this decision reason: ${booking.rejectionReason}`;
+  }
 
   return (
     <div className="page-container container py-6" data-testid="book-06-page" id="BOOK-06">

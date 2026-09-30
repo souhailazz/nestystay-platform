@@ -110,7 +110,7 @@ export default function FeatureCards() {
       <div className="section-heading">
         <div>
           <div className="section-tag">
-            <span />
+            <span />{" "}
             Easy living, island style
           </div>
           <h2>All the details sorted.</h2>

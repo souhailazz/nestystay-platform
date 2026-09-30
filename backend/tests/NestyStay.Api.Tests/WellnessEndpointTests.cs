@@ -47,7 +47,7 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         var officer = await officerResponse.Content.ReadFromJsonAsync<OfficerResponse>();
         Assert.NotNull(officer);
         Assert.Equal("Pending", officer.VerificationStatus);
-        Assert.DoesNotContain(officer.BadgeNumber, " ");
+        Assert.DoesNotContain(" ", officer.BadgeNumber);
 
         var duplicateResponse = await client.PostAsJsonAsync("/api/wellness/officers", new
         {
@@ -155,7 +155,7 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         var approvedResponse = await client.PostAsJsonAsync($"/api/wellness/officers/{officer.Id}/approve", new { reason = "Approved" });
         Assert.Equal(HttpStatusCode.OK, approvedResponse.StatusCode);
 
-        var scheduledAt = DateTimeOffset.UtcNow.AddSeconds(1.5);
+        var scheduledAt = DateTimeOffset.UtcNow.AddSeconds(30);
         var quoteResponse = await client.PostAsJsonAsync("/api/wellness/quote", new
         {
             hostUserId,
@@ -251,7 +251,11 @@ public sealed class WellnessEndpointTests : IClassFixture<NestyStayApiFactory>
         });
         Assert.Equal(HttpStatusCode.BadRequest, earlyReport.StatusCode);
 
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        var untilScheduled = scheduledAt - DateTimeOffset.UtcNow;
+        if (untilScheduled > TimeSpan.Zero)
+        {
+            await Task.Delay(untilScheduled);
+        }
 
         var placeholderReport = await client.PostAsJsonAsync($"/api/wellness/visits/{visit.Id}/report", new
         {

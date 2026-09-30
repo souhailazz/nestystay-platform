@@ -98,8 +98,8 @@ export function BookingReceiptPage({ bookingId, auth }: BookingReceiptPageProps)
         </div>
 
         <div className="flex flex-col text-[13.5px]">
-          {(booking.priceBreakdown ?? []).map((line, idx) => (
-            <div className="flex items-center justify-between gap-2 border-b border-shell py-[7px]" key={idx}>
+          {(booking.priceBreakdown ?? []).map((line) => (
+            <div className="flex items-center justify-between gap-2 border-b border-shell py-[7px]" key={`${line.code}-${line.description}`}>
               <span>{line.description}</span>
               <strong>{formatMoney(line.amount, line.currency)}</strong>
             </div>

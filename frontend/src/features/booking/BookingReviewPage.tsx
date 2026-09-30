@@ -23,13 +23,22 @@ interface BookingReviewPageProps {
   onProceedToCheckout: (bookingId: string, status: string) => void;
 }
 
-/* BOOK-02 (DS v2) — quote review. Booking creation logic unchanged; every fee
-   line comes from the backend quote (the signed 9% platform fee is computed server-side). */
+/* BOOK-02 (DS v2) — quote review. Every fee line comes from the backend quote
+   and the checkout starts with a short-lived server-side date hold. */
 export function BookingReviewPage({ quote, details, auth, onBackToModal, onProceedToCheckout }: BookingReviewPageProps) {
   const [billingCountry, setBillingCountry] = useState("JM");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  let continueLabel = "Continue to payment →";
+  if (quote.requiresGuestVerification) continueLabel = "Continue to identity →";
+  if (loading) continueLabel = "Creating reservation…";
+
+  function renderRefundability(line: BookingQuote["priceBreakdown"][number]) {
+    if (isVerificationLine(line) && line.amount === 0) return <LineChip tone="blue">Required by host</LineChip>;
+    if (line.isRefundable) return <LineChip tone="green">Refundable</LineChip>;
+    return <LineChip tone="coral">Non-refundable</LineChip>;
+  }
 
   async function handleCreateBooking() {
     if (!acceptedTerms) {
@@ -43,6 +52,16 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
     setLoading(true);
     setError(null);
     try {
+      const dateHold = await api.holdBookingDates(
+        {
+          propertyId: quote.property.id,
+          checkIn: quote.checkIn,
+          checkOut: quote.checkOut,
+          adults: details.adults,
+          children: details.children,
+        },
+        auth.session.accessToken,
+      );
       const created = await api.createBooking(
         {
           propertyId: quote.property.id,
@@ -55,6 +74,7 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
           protectionPlan: details.protection,
           billingCountry,
           termsAccepted: acceptedTerms,
+          dateHoldId: dateHold.id,
         },
         auth.session.accessToken,
       );
@@ -80,11 +100,7 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
           <PriceSummary currency={quote.currency} lines={quote.priceBreakdown ?? []} total={quote.totalAmount} />
           <div className="text-[11.5px] text-sand-500">{DEGRESSIVE_NOTE}</div>
           <button className={bookingDeepCta} disabled={loading || !acceptedTerms} onClick={handleCreateBooking} type="button">
-            {loading
-              ? "Creating reservation…"
-              : quote.requiresGuestVerification
-                ? "Continue to identity →"
-                : "Continue to payment →"}
+            {continueLabel}
           </button>
           {!acceptedTerms && (
             <div className="text-center text-[11.5px] text-sand-500">Accept the terms below to continue.</div>
@@ -106,17 +122,11 @@ export function BookingReviewPage({ quote, details, auth, onBackToModal, onProce
       <div className={bookingCard}>
         <div className="text-[13px] font-semibold">What&apos;s refundable</div>
         <div className="flex flex-col text-sm">
-          {(quote.priceBreakdown ?? []).map((line, idx) => (
-            <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2.5" key={idx}>
+          {(quote.priceBreakdown ?? []).map((line) => (
+            <div className="flex items-center justify-between gap-2.5 border-b border-shell py-2.5" key={`${line.code}-${line.description}`}>
               <span className="flex flex-wrap items-center gap-2">
                 {line.description}
-                {isVerificationLine(line) && line.amount === 0 ? (
-                  <LineChip tone="blue">Required by host</LineChip>
-                ) : line.isRefundable ? (
-                  <LineChip tone="green">Refundable</LineChip>
-                ) : (
-                  <LineChip tone="coral">Non-refundable</LineChip>
-                )}
+                {renderRefundability(line)}
               </span>
               <strong>{formatMoney(line.amount, line.currency)}</strong>
             </div>

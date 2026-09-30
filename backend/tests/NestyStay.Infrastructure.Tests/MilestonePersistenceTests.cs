@@ -9,6 +9,8 @@ using NestyStay.Domain;
 using NestyStay.Infrastructure.Persistence;
 using NestyStay.Infrastructure.Persistence.Milestones;
 
+#pragma warning disable CS0618 // This persistence regression test intentionally covers the legacy PhaseTwoStore compatibility facade.
+
 namespace NestyStay.Infrastructure.Tests;
 
 public sealed class MilestonePersistenceTests
@@ -204,6 +206,7 @@ public sealed class MilestonePersistenceTests
                 150m,
                 "USD"),
                 CancellationToken.None);
+            await ((IPropertyModerationStore)store).ModeratePropertyAsync(Guid.NewGuid(), property.Id, new PropertyModerationRequest("Approved"), CancellationToken.None);
 
             var booking = await store.CreateBookingAsync(
                 new CreateBookingRequest(property.Id, registered.UserId, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 3)),
@@ -462,3 +465,5 @@ public sealed class MilestonePersistenceTests
         }
     }
 }
+
+#pragma warning restore CS0618

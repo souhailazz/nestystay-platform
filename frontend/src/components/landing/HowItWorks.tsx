@@ -27,7 +27,7 @@ export default function HowItWorks() {
     <section className="how-section section-pad" id="how-it-works">
       <div className="how-heading">
         <div className="section-tag">
-          <span />
+          <span />{" "}
           Three easy steps
         </div>
         <h2>From maybe to booked.</h2>

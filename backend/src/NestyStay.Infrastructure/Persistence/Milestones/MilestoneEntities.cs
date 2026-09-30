@@ -243,6 +243,7 @@ public sealed class MilestoneBooking : BaseEntity
     public VerificationStatus VerificationStatus { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
     public bool RequiresGuestVerification { get; set; }
+    public bool IsDateHold { get; set; }
     public DateTimeOffset? HoldExpiresAt { get; set; }
     public int Nights { get; set; }
     public decimal NightlyRate { get; set; }

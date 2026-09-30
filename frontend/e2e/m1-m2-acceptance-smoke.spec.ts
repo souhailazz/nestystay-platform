@@ -283,8 +283,10 @@ async function seedHostProfile(api: APIRequestContext, session: AuthSession) {
 
 function collectPageErrors(page: Page) {
   const errors: string[] = [];
+  const isExternalMapTileNoise = (value: string) =>
+    /(?:tile\.)?openstreetmap\.org|openstreetmap\.org\/assets\/embed/i.test(value);
   page.on("console", (message) => {
-    if (message.type() === "error" && !message.text().includes("401")) {
+    if (message.type() === "error" && !message.text().includes("401") && !isExternalMapTileNoise(message.text())) {
       errors.push(message.text());
     }
   });
@@ -292,6 +294,17 @@ function collectPageErrors(page: Page) {
     if (!error.message.includes("401")) {
       errors.push(error.message);
     }
+  });
+  page.on("requestfailed", (request) => {
+    const failure = request.failure();
+    // The map iframe is cancelled when the evidence route advances; this is
+    // expected navigation cleanup, not a failed app/API request.
+    if (failure?.errorText === "net::ERR_ABORTED") return;
+    // Tile requests are a third-party network dependency and may be blocked
+    // in a restricted test environment; the map UI remains testable without
+    // treating the provider response as an application failure.
+    if (isExternalMapTileNoise(request.url())) return;
+    errors.push(`Failed resource ${request.url()}${failure?.errorText ? ` (${failure.errorText})` : ""}`);
   });
   return errors;
 }

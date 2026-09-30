@@ -57,7 +57,11 @@ public sealed class CalendarController(
         var hostUserId = RequireOwnedProperty(propertyId);
         ValidateDateRange(request.StartsOn, request.EndsOn);
         var conflicts = await HasCalendarConflictAsync(propertyId, request.StartsOn, request.EndsOn, null, cancellationToken);
-        if (conflicts) return Conflict("The requested dates overlap an existing booking or calendar block.");
+        if (conflicts)
+        {
+            return Conflict("The requested dates overlap an existing booking or calendar block.");
+        }
+
         var now = timeProvider.GetUtcNow();
         var block = new MilestoneCalendarManualBlock
         {
@@ -77,9 +81,17 @@ public sealed class CalendarController(
     {
         var hostUserId = RequireOwnedProperty(propertyId);
         var block = await db.MilestoneCalendarManualBlocks.SingleOrDefaultAsync(item => item.Id == blockId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (block is null) return NotFound();
+        if (block is null)
+        {
+            return NotFound();
+        }
+
         ValidateDateRange(request.StartsOn, request.EndsOn);
-        if (await HasCalendarConflictAsync(propertyId, request.StartsOn, request.EndsOn, blockId, cancellationToken)) return Conflict("The requested dates overlap an existing booking or calendar block.");
+        if (await HasCalendarConflictAsync(propertyId, request.StartsOn, request.EndsOn, blockId, cancellationToken))
+        {
+            return Conflict("The requested dates overlap an existing booking or calendar block.");
+        }
+
         block.StartsOn = request.StartsOn; block.EndsOn = request.EndsOn; block.Reason = RequireText(request.Reason, "Block reason"); block.UpdatedAt = timeProvider.GetUtcNow(); block.UpdatedByUserId = hostUserId;
         await db.SaveChangesAsync(cancellationToken);
         return Ok(ToDto(block));
@@ -91,7 +103,11 @@ public sealed class CalendarController(
     {
         var hostUserId = RequireOwnedProperty(propertyId);
         var block = await db.MilestoneCalendarManualBlocks.SingleOrDefaultAsync(item => item.Id == blockId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (block is null) return NotFound();
+        if (block is null)
+        {
+            return NotFound();
+        }
+
         block.IsDeleted = true; block.Status = "CANCELLED"; block.UpdatedAt = timeProvider.GetUtcNow(); block.UpdatedByUserId = hostUserId;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
@@ -123,7 +139,11 @@ public sealed class CalendarController(
     {
         var hostUserId = RequireOwnedProperty(propertyId);
         var token = await db.MilestoneCalendarExportTokens.SingleOrDefaultAsync(item => item.PropertyId == propertyId && item.HostUserId == hostUserId && item.RevokedAt == null, cancellationToken);
-        if (token is null) return NoContent();
+        if (token is null)
+        {
+            return NoContent();
+        }
+
         token.RevokedAt = timeProvider.GetUtcNow(); token.UpdatedAt = timeProvider.GetUtcNow(); token.UpdatedByUserId = hostUserId;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
@@ -171,7 +191,10 @@ public sealed class CalendarController(
         var feed = await db.MilestoneCalendarFeeds.SingleOrDefaultAsync(
             item => item.Id == feedId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted,
             cancellationToken);
-        if (feed is null) return NotFound();
+        if (feed is null)
+        {
+            return NotFound();
+        }
 
         var now = timeProvider.GetUtcNow();
         feed.LastSyncAttemptAt = now;
@@ -192,11 +215,22 @@ public sealed class CalendarController(
             {
                 await CalendarFeedSafety.EnsurePublicDestinationAsync(feed.FeedUrl, cancellationToken);
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Get, feed.FeedUrl);
-                if (!string.IsNullOrWhiteSpace(feed.ETag)) httpRequest.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
-                if (feed.LastModifiedAt is not null) httpRequest.Headers.IfModifiedSince = feed.LastModifiedAt;
+                if (!string.IsNullOrWhiteSpace(feed.ETag))
+                {
+                    httpRequest.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
+                }
+
+                if (feed.LastModifiedAt is not null)
+                {
+                    httpRequest.Headers.IfModifiedSince = feed.LastModifiedAt;
+                }
+
                 using var response = await httpClientFactory.CreateClient("calendar-feed").SendAsync(httpRequest, cancellationToken);
                 if ((int)response.StatusCode is >= 300 and <= 399)
+                {
                     throw new InvalidOperationException("Calendar feed redirects are not allowed.");
+                }
+
                 if (response.StatusCode == HttpStatusCode.NotModified)
                 {
                     feed.Status = "Healthy";
@@ -211,13 +245,28 @@ public sealed class CalendarController(
                 }
                 response.EnsureSuccessStatusCode();
                 if (response.Content.Headers.ContentLength is > CalendarFeedSafety.MaximumCalendarBytes)
+                {
                     throw new InvalidOperationException("Calendar feed is larger than the 5 MB safety limit.");
-                if (response.Headers.ETag is not null) feed.ETag = response.Headers.ETag.Tag;
-                if (response.Content.Headers.LastModified is not null) feed.LastModifiedAt = response.Content.Headers.LastModified;
+                }
+
+                if (response.Headers.ETag is not null)
+                {
+                    feed.ETag = response.Headers.ETag.Tag;
+                }
+
+                if (response.Content.Headers.LastModified is not null)
+                {
+                    feed.LastModifiedAt = response.Content.Headers.LastModified;
+                }
+
                 ics = await CalendarFeedSafety.ReadTextWithLimitAsync(response.Content, cancellationToken);
             }
             var blocks = ParseEvents(ics!, feed.Id, propertyId, now);
-            if (blocks.Count > 5000) throw new InvalidOperationException("Calendar feed contains too many events.");
+            if (blocks.Count > 5000)
+            {
+                throw new InvalidOperationException("Calendar feed contains too many events.");
+            }
+
             await ApplyImportedBlocksAsync(db, feed, blocks, now, cancellationToken);
             feed.Status = "Healthy";
             feed.LastSyncAt = now;
@@ -252,7 +301,11 @@ public sealed class CalendarController(
     {
         var hostUserId = RequireOwnedProperty(propertyId);
         var feed = await db.MilestoneCalendarFeeds.SingleOrDefaultAsync(item => item.Id == feedId && item.PropertyId == propertyId && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (feed is null) return NotFound();
+        if (feed is null)
+        {
+            return NotFound();
+        }
+
         feed.IsDeleted = true;
         feed.Status = "Disconnected";
         feed.UpdatedAt = timeProvider.GetUtcNow();
@@ -268,7 +321,11 @@ public sealed class CalendarController(
     {
         var hostUserId = RequireOwnedProperty(propertyId);
         var exists = await db.MilestoneCalendarFeeds.AnyAsync(item => item.Id == feedId && item.PropertyId == propertyId && item.HostUserId == hostUserId, cancellationToken);
-        if (!exists) return NotFound();
+        if (!exists)
+        {
+            return NotFound();
+        }
+
         var history = await db.MilestoneCalendarSyncEvents.AsNoTracking().Where(item => item.FeedId == feedId && !item.IsDeleted).OrderByDescending(item => item.StartedAt).Take(50).Select(item => new CalendarSyncEventDto(item.Id, item.Status, item.BlockCount, item.Error, item.StartedAt, item.CompletedAt)).ToListAsync(cancellationToken);
         return Ok(history);
     }
@@ -299,7 +356,10 @@ public sealed class CalendarController(
         var host = authorization.RequireHost();
         var property = phaseOneStore.GetProperties(host).SingleOrDefault(item => item.Id == propertyId);
         if (property is null || property.HostUserId != host)
+        {
             throw new UnauthorizedAccessException("Calendar is not available for this property.");
+        }
+
         return host;
     }
 
@@ -308,7 +368,10 @@ public sealed class CalendarController(
     internal static List<MilestoneCalendarBlock> ParseEvents(string ics, Guid feedId, Guid propertyId, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(ics) || !ics.Contains("BEGIN:VCALENDAR", StringComparison.OrdinalIgnoreCase) || !ics.Contains("END:VCALENDAR", StringComparison.OrdinalIgnoreCase))
+        {
             throw new FormatException("Calendar feed is not a valid iCalendar document.");
+        }
+
         var events = new List<MilestoneCalendarBlock>();
         string? uid = null;
         string? summary = null;
@@ -321,23 +384,39 @@ public sealed class CalendarController(
         foreach (var raw in lines)
         {
             var line = raw.Trim();
-            if (line.Equals("BEGIN:VEVENT", StringComparison.OrdinalIgnoreCase)) { uid = null; summary = null; start = null; end = null; startTimeZone = null; endTimeZone = null; cancelled = false; continue; }
+            if (line.Equals("BEGIN:VEVENT", StringComparison.OrdinalIgnoreCase)) { uid = null; summary = null; start = null; end = null; cancelled = false; continue; }
             if (line.Equals("END:VEVENT", StringComparison.OrdinalIgnoreCase))
             {
                 if (!cancelled && start is not null && end is not null && end > start)
+                {
                     events.Add(new MilestoneCalendarBlock { Id = Guid.NewGuid(), FeedId = feedId, PropertyId = propertyId, ExternalId = RequireText(uid, "Calendar event UID"), StartsOn = start.Value, EndsOn = end.Value, Summary = string.IsNullOrWhiteSpace(summary) ? "Unavailable" : summary[..Math.Min(summary.Length, 200)], CreatedAt = now, UpdatedAt = now });
+                }
+
                 continue;
             }
             var separator = line.IndexOf(':');
-            if (separator <= 0) continue;
+            if (separator <= 0)
+            {
+                continue;
+            }
+
             var property = line[..separator];
             var key = property.Split(';')[0].ToUpperInvariant();
             var value = line[(separator + 1)..].Trim();
-            if (key == "UID") uid = value;
-            else if (key == "SUMMARY") summary = UnescapeText(value);
+            if (key == "UID")
+            {
+                uid = value;
+            }
+            else if (key == "SUMMARY")
+            {
+                summary = UnescapeText(value);
+            }
             else if (key == "DTSTART") { startTimeZone = GetParameter(property, "TZID"); start = ParseDate(value, startTimeZone); }
             else if (key == "DTEND") { endTimeZone = GetParameter(property, "TZID"); end = ParseDate(value, endTimeZone); }
-            else if (key == "STATUS") cancelled = value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase);
+            else if (key == "STATUS")
+            {
+                cancelled = value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase);
+            }
         }
         return events.GroupBy(item => item.ExternalId, StringComparer.OrdinalIgnoreCase).Select(group => group.Last()).ToList();
     }
@@ -346,9 +425,15 @@ public sealed class CalendarController(
     {
         var normalized = value.Trim();
         if (normalized.Length == 8 && normalized.All(char.IsDigit))
+        {
             return DateOnly.ParseExact(normalized[..8], "yyyyMMdd", CultureInfo.InvariantCulture);
+        }
+
         if (DateTime.TryParseExact(normalized, "yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var utcDateTime))
+        {
             return DateOnly.FromDateTime(utcDateTime);
+        }
+
         if (DateTime.TryParseExact(normalized, "yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var localDateTime))
         {
             if (!string.IsNullOrWhiteSpace(timeZoneId))
@@ -358,8 +443,14 @@ public sealed class CalendarController(
                     var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId.Trim());
                     localDateTime = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localDateTime, DateTimeKind.Unspecified), zone);
                 }
-                catch (TimeZoneNotFoundException) { }
-                catch (InvalidTimeZoneException) { }
+                catch (TimeZoneNotFoundException)
+                {
+                    return DateOnly.FromDateTime(localDateTime);
+                }
+                catch (InvalidTimeZoneException)
+                {
+                    return DateOnly.FromDateTime(localDateTime);
+                }
             }
             return DateOnly.FromDateTime(localDateTime);
         }
@@ -386,9 +477,15 @@ public sealed class CalendarController(
         {
             if (line.StartsWith(' ') || line.StartsWith('\t'))
             {
-                if (unfolded.Count > 0) unfolded[^1] += line[1..];
+                if (unfolded.Count > 0)
+                {
+                    unfolded[^1] += line[1..];
+                }
             }
-            else unfolded.Add(line);
+            else
+            {
+                unfolded.Add(line);
+            }
         }
         return unfolded;
     }
@@ -422,7 +519,10 @@ public sealed class CalendarController(
 
     private static void ValidateDateRange(DateOnly startsOn, DateOnly endsOn)
     {
-        if (endsOn <= startsOn || endsOn.DayNumber - startsOn.DayNumber > 366) throw new InvalidOperationException("Calendar block must be between 1 and 366 days.");
+        if (endsOn <= startsOn || endsOn.DayNumber - startsOn.DayNumber > 366)
+        {
+            throw new InvalidOperationException("Calendar block must be between 1 and 366 days.");
+        }
     }
 
     private static string RequireText(string? value, string label) => string.IsNullOrWhiteSpace(value) ? throw new InvalidOperationException($"{label} is required.") : value.Trim();
@@ -436,8 +536,8 @@ public sealed class CalendarController(
 
 public sealed record ConnectCalendarFeedRequest(string FeedUrl, string? Channel = null);
 public sealed record SyncCalendarFeedRequest(string? IcsContent = null);
-public sealed record CreateCalendarManualBlockRequest(DateOnly StartsOn, DateOnly EndsOn, string Reason);
-public sealed record UpdateCalendarManualBlockRequest(DateOnly StartsOn, DateOnly EndsOn, string Reason);
+public sealed record CreateCalendarManualBlockRequest([property: System.Text.Json.Serialization.JsonRequired] DateOnly StartsOn, [property: System.Text.Json.Serialization.JsonRequired] DateOnly EndsOn, string Reason);
+public sealed record UpdateCalendarManualBlockRequest([property: System.Text.Json.Serialization.JsonRequired] DateOnly StartsOn, [property: System.Text.Json.Serialization.JsonRequired] DateOnly EndsOn, string Reason);
 public sealed record CalendarManualBlockDto(Guid Id, Guid PropertyId, DateOnly StartsOn, DateOnly EndsOn, string Reason, string Status, string SourceType);
 public sealed record CalendarExportTokenDto(string Url, DateTimeOffset CreatedAt, DateTimeOffset? RevokedAt, bool IsActive);
 public sealed record CalendarFeedDto(Guid Id, Guid PropertyId, string FeedUrl, string Status, DateTimeOffset? LastSyncAttemptAt, DateTimeOffset? LastSyncAt, string? LastError, int BlockCount, DateTimeOffset? NextSyncAt = null, string? ETag = null, string Channel = "Custom");

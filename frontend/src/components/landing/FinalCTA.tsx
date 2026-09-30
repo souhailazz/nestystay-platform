@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Instagram, Linkedin } from "lucide-react";
 import { AppLink } from "../AppLink";
+import { EmblemRoundel } from "../layout/PublicShell";
 
 export default function FinalCTA() {
   const currentYear = new Date().getFullYear();
@@ -44,8 +45,9 @@ export default function FinalCTA() {
       </motion.div>
 
       <div className="footer-bar">
-        <AppLink aria-label="Nesty Stay home" className="brand-lockup" href="/">
-          <span>NESTY STAY</span>
+        <AppLink aria-label="NestyStay home" className="brand-lockup" href="/">
+          <EmblemRoundel alt="" size={48} />
+          <span aria-hidden="true">NESTY STAY</span>
         </AppLink>
         <p>© {currentYear} Nesty Stay. Made for slower mornings and good vibes.</p>
         <div className="socials">

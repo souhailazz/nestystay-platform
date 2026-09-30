@@ -135,9 +135,7 @@ export function HostAnalytics({ token, hostUserId }: HostAnalyticsProps) {
             <h2 className="m-0 font-display text-[19px] font-medium" id="host-occupancy-heading">Occupancy (next 30 days)</h2>
             <span className="font-display text-[26px] font-medium text-deep-hover">{occupancy}%</span>
           </div>
-          <div aria-label={`${occupancy}% occupancy`} className="mt-4 h-3 overflow-hidden rounded-pill bg-shell" role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={occupancy}>
-            <div className="h-full rounded-pill bg-deep transition-[width]" style={{ width: `${occupancy}%` }} />
-          </div>
+          <progress aria-label={`${occupancy}% occupancy`} className="mt-4 h-3 w-full overflow-hidden rounded-pill bg-shell" max={100} value={occupancy}>{occupancy}%</progress>
           <p className="mt-3 mb-0 text-[12.5px] text-gray-600">Based on accepted, paid, and held bookings across your live listings.</p>
         </section>
         <section aria-labelledby="host-revenue-heading" className="rounded-card border border-sand-border bg-cream p-[22px]">

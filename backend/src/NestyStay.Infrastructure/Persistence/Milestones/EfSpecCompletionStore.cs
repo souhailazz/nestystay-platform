@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
@@ -307,7 +308,11 @@ public sealed class EfSpecCompletionStore(
 
     public async Task<TravelerPreferenceDto> SaveTravelerPreferencesAsync(Guid userId, SaveTravelerPreferencesRequest request, CancellationToken cancellationToken)
     {
-        if (request.MaximumNightlyRate is <= 0 or > 1_000_000) throw new InvalidOperationException("Maximum nightly rate must be between 0 and 1,000,000.");
+        if (request.MaximumNightlyRate is <= 0 or > 1_000_000)
+        {
+            throw new InvalidOperationException("Maximum nightly rate must be between 0 and 1,000,000.");
+        }
+
         var now = timeProvider.GetUtcNow();
         var preference = await db.MilestoneTravelerPreferences.SingleOrDefaultAsync(item => item.UserId == userId && !item.IsDeleted, cancellationToken);
         if (preference is null)
@@ -691,7 +696,11 @@ public sealed class EfSpecCompletionStore(
         entity.Description = RequireText(request.Description, "Description");
         entity.AvailabilitySummary = RequireText(request.AvailabilitySummary, "Availability");
         entity.ContactMode = RequireText(request.ContactMode, "Contact mode");
-        if (request.ServiceRadiusKm is <= 0 or > 500) throw new InvalidOperationException("Service radius must be between 0 and 500 km.");
+        if (request.ServiceRadiusKm is <= 0 or > 500)
+        {
+            throw new InvalidOperationException("Service radius must be between 0 and 500 km.");
+        }
+
         entity.ServicesJson = MilestoneJson.Serialize((request.Services ?? Array.Empty<string>()).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToArray());
         entity.OpeningHours = string.IsNullOrWhiteSpace(request.OpeningHours) ? null : request.OpeningHours.Trim();
         entity.EmergencyAvailable = request.EmergencyAvailable;
@@ -859,7 +868,11 @@ public sealed class EfSpecCompletionStore(
     {
         await RequireParticipantAsync(userId, conversationId, cancellationToken);
         var conversation = await db.MilestoneConversations.AsNoTracking().SingleOrDefaultAsync(item => item.Id == conversationId && !item.IsDeleted, cancellationToken);
-        if (conversation is null) return null;
+        if (conversation is null)
+        {
+            return null;
+        }
+
         var participants = await db.MilestoneConversationParticipants.AsNoTracking().Where(item => item.ConversationId == conversationId && !item.IsDeleted).Select(item => ToDto(item)).ToListAsync(cancellationToken);
         var messages = await db.MilestoneMessages.AsNoTracking().Where(item => item.ConversationId == conversationId && !item.IsDeleted).OrderBy(item => item.SentAt).Select(item => ToDto(item)).ToListAsync(cancellationToken);
         return new ConversationDto(conversation.Id, conversation.Subject, conversation.BookingId, conversation.IsSupportThread, participants, messages);
@@ -1303,10 +1316,21 @@ public sealed class EfSpecCompletionStore(
     public async Task<HostPayoutDto?> SettleHostPayoutAsync(Guid payoutId, Guid actorUserId, string? notes, CancellationToken cancellationToken)
     {
         var payout = await db.MilestoneHostPayouts.SingleOrDefaultAsync(item => item.Id == payoutId && !item.IsDeleted, cancellationToken);
-        if (payout is null) return null;
-        if (payout.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)) return ToDto(payout);
+        if (payout is null)
+        {
+            return null;
+        }
+
+        if (payout.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+        {
+            return ToDto(payout);
+        }
+
         if (!payout.Status.Equals("Available", StringComparison.OrdinalIgnoreCase) && !payout.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidOperationException("This payout cannot be settled in its current state.");
+        }
+
         var account = await db.PaymentAccounts.SingleOrDefaultAsync(
             item => item.UserId == payout.HostUserId && item.Provider == connectPayoutProvider.ProviderName,
             cancellationToken);
@@ -1358,7 +1382,11 @@ public sealed class EfSpecCompletionStore(
         payout.PaidAt = transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? now : null;
         payout.SettlementReference = transfer.TransferReference;
         payout.Notes = string.IsNullOrWhiteSpace(notes) ? "Settled manually by NestyStay finance." : notes.Trim()[..Math.Min(500, notes.Trim().Length)];
-        if (!string.IsNullOrWhiteSpace(transfer.FailureReason)) payout.Notes = $"{payout.Notes} {transfer.FailureReason}".Trim();
+        if (!string.IsNullOrWhiteSpace(transfer.FailureReason))
+        {
+            payout.Notes = $"{payout.Notes} {transfer.FailureReason}".Trim();
+        }
+
         payout.UpdatedAt = now;
         payout.UpdatedByUserId = actorUserId;
         await AddAuditAsync(transfer.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? "HostPayoutSettled" : $"HostPayout{transfer.Status}", "HostPayout", payout.Id, payout.Notes, actorUserId, cancellationToken);
@@ -1395,7 +1423,11 @@ public sealed class EfSpecCompletionStore(
         ValidatePricingRule(request);
         await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
         var entity = await db.MilestoneHostPricingRules.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (entity is null) return null;
+        if (entity is null)
+        {
+            return null;
+        }
+
         var previous = ToDto(entity);
         entity.PropertyId = request.PropertyId;
         entity.Name = RequireText(request.Name, "Rule name");
@@ -1414,7 +1446,11 @@ public sealed class EfSpecCompletionStore(
     public async Task<bool> DeleteHostPricingRuleAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken)
     {
         var entity = await db.MilestoneHostPricingRules.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (entity is null) return false;
+        if (entity is null)
+        {
+            return false;
+        }
+
         entity.IsDeleted = true;
         entity.UpdatedAt = timeProvider.GetUtcNow();
         entity.UpdatedByUserId = hostUserId;
@@ -1453,7 +1489,11 @@ public sealed class EfSpecCompletionStore(
         ValidatePromotion(request);
         await EnsureHostPropertyAsync(hostUserId, request.PropertyId, cancellationToken);
         var entity = await db.MilestoneHostPromotions.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (entity is null) return null;
+        if (entity is null)
+        {
+            return null;
+        }
+
         var previous = ToDto(entity);
         entity.PropertyId = request.PropertyId;
         entity.Name = RequireText(request.Name, "Promotion name");
@@ -1473,7 +1513,11 @@ public sealed class EfSpecCompletionStore(
     public async Task<bool> DeleteHostPromotionAsync(Guid hostUserId, Guid id, CancellationToken cancellationToken)
     {
         var entity = await db.MilestoneHostPromotions.SingleOrDefaultAsync(item => item.Id == id && item.HostUserId == hostUserId && !item.IsDeleted, cancellationToken);
-        if (entity is null) return false;
+        if (entity is null)
+        {
+            return false;
+        }
+
         entity.IsDeleted = true;
         entity.UpdatedAt = timeProvider.GetUtcNow();
         entity.UpdatedByUserId = hostUserId;
@@ -1859,7 +1903,10 @@ public sealed class EfSpecCompletionStore(
         var flow = await db.MilestoneAuthFlows.SingleOrDefaultAsync(item => item.Id == request.FlowId && !item.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Invitation not found.");
         if (!flow.FlowType.Equals("OwnerInvitation", StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidOperationException("This link is not an owner invitation.");
+        }
+
         var result = await CompleteAuthFlowAsync(request, cancellationToken);
         var owners = await db.MilestoneManagerOwners
             .Where(item => item.OwnerUserId == flow.UserId && !item.IsDeleted && item.InvitationStatus == "INVITED")
@@ -1956,7 +2003,11 @@ public sealed class EfSpecCompletionStore(
 
     private async Task EnsurePropertyCatalogAsync(CancellationToken cancellationToken)
     {
-        if (await db.MilestoneProperties.AnyAsync(item => !item.IsDeleted, cancellationToken)) return;
+        if (await db.MilestoneProperties.AnyAsync(item => !item.IsDeleted, cancellationToken))
+        {
+            return;
+        }
+
         db.MilestoneProperties.AddRange(
             new MilestoneProperty { Id = SeedPropertyId, HostUserId = SeedHostUserId, HostName = "Island Villa Hosting", HostEmail = "host-villa@nestystay.local", Title = "Ocho Rios Verified Villa", Location = "Ocho Rios, St. Ann", Country = "Jamaica", NightlyRate = 185m, Currency = "USD", BadgeLevel = BadgeLevel.Verified, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Moderate", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Stripe Identity", "QR gate access", "InsuraGuest available"]) },
             new MilestoneProperty { Id = Guid.Parse("22222222-2222-4222-8222-222222222222"), HostUserId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), HostName = "Kingston Corporate Homes", HostEmail = "host-kingston@nestystay.local", Title = "Kingston Business Stay", Location = "New Kingston, St. Andrew", Country = "Jamaica", NightlyRate = 140m, Currency = "USD", BadgeLevel = BadgeLevel.Trusted, GuestVerificationEnabled = true, InsuraGuestEnabled = true, CancellationPolicy = "Flexible", HighlightsJson = MilestoneJson.Serialize<IReadOnlyList<string>>(["Trusted host", "Local business directory", "Split payments"]) },
@@ -1985,7 +2036,11 @@ public sealed class EfSpecCompletionStore(
         var matchingHighlights = highlights.Where(item => preferredHighlights.Any(preferred => item.Contains(preferred, StringComparison.OrdinalIgnoreCase) || preferred.Contains(item, StringComparison.OrdinalIgnoreCase))).ToList();
         if (matchingHighlights.Count > 0) { score += Math.Min(20, matchingHighlights.Count * 10); reasons.Add($"Includes {matchingHighlights[0]}"); }
         if (wishlistIds.Contains(property.Id)) { score += 8; reasons.Add("Similar to a stay you saved"); }
-        if (completedIds.Contains(property.Id)) reasons.Add("You stayed here before");
+        if (completedIds.Contains(property.Id))
+        {
+            reasons.Add("You stayed here before");
+        }
+
         if (reasons.Count == 0) { score = 5; reasons.Add("A trusted Jamaican stay to explore"); }
         var dismissed = latestActions.TryGetValue(property.Id, out var action) && action.Equals("Dismissed", StringComparison.OrdinalIgnoreCase);
         return new TravelerRecommendationDto(property.Id, property.Title, property.Location, property.Country, property.NightlyRate, property.Currency, property.BadgeLevel.ToString(), highlights, score, string.Join(" · ", reasons), dismissed, generatedAt);
@@ -2218,7 +2273,7 @@ public sealed class EfSpecCompletionStore(
         Title = title,
         Category = category,
         Author = author,
-        PublishedAt = DateTimeOffset.Parse("2026-06-15T12:00:00+00:00"),
+        PublishedAt = DateTimeOffset.Parse("2026-06-15T12:00:00+00:00", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
         Summary = summary,
         Body = $"{summary}\n\nThis article is stored in PostgreSQL-backed milestone content and appears through the journal routes.",
         TagsJson = MilestoneJson.Serialize<IReadOnlyList<string>>([category, "Jamaica", "NestyStay"]),
@@ -2612,8 +2667,16 @@ public sealed class EfSpecCompletionStore(
         var stem = Path.GetFileNameWithoutExtension(originalFileName).Trim().ToLowerInvariant();
         var safeStem = new string(stem.Select(character => IsSafeFileNameCharacter(character) ? character : '-').ToArray());
         safeStem = string.Join("-", safeStem.Split('-', StringSplitOptions.RemoveEmptyEntries));
-        if (string.IsNullOrWhiteSpace(safeStem)) safeStem = "provider-document";
-        if (safeStem.Length > 80) safeStem = safeStem[..80];
+        if (string.IsNullOrWhiteSpace(safeStem))
+        {
+            safeStem = "provider-document";
+        }
+
+        if (safeStem.Length > 80)
+        {
+            safeStem = safeStem[..80];
+        }
+
         return $"{safeStem}{extension}";
     }
 
@@ -2808,7 +2871,11 @@ public sealed class EfSpecCompletionStore(
         var bookings = await db.MilestoneBookings.AsNoTracking()
             .Where(item => item.HostUserId == hostUserId && !item.IsDeleted && item.PaymentStatus == PaymentStatus.Captured)
             .ToListAsync(cancellationToken);
-        if (bookings.Count == 0) return;
+        if (bookings.Count == 0)
+        {
+            return;
+        }
+
         var bookingIds = bookings.Select(item => item.Id).ToArray();
         var existing = (await db.MilestoneHostPayouts.AsNoTracking().Where(item => bookingIds.Contains(item.BookingId) && !item.IsDeleted).Select(item => item.BookingId).ToListAsync(cancellationToken)).ToHashSet();
         var now = timeProvider.GetUtcNow();
@@ -2825,7 +2892,10 @@ public sealed class EfSpecCompletionStore(
                 Notes = "Manual settlement mode; live Stripe Connect is not configured."
             });
         }
-        if (bookings.Any(item => !existing.Contains(item.Id))) await db.SaveChangesAsync(cancellationToken);
+        if (bookings.Any(item => !existing.Contains(item.Id)))
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private async Task<HostPayoutSummaryDto> BuildHostPayoutSummaryAsync(Guid hostUserId, CancellationToken cancellationToken)
@@ -2916,6 +2986,7 @@ public sealed class EfSpecCompletionStore(
         object? newState,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var metadata = new MilestoneAuditMetadata(
             string.IsNullOrWhiteSpace(actor?.CorrelationId) ? null : actor.CorrelationId.Trim(),
             string.IsNullOrWhiteSpace(actor?.EffectivePermission) ? null : actor.EffectivePermission.Trim(),
@@ -3229,7 +3300,6 @@ public sealed class EfSpecCompletionStore(
         item.UploadExpiresAt,
         item.Sha256Hash,
         item.IdentityDocumentId);
-    private static DirectoryProviderDocumentDto ToDto(MilestoneDirectoryProviderDocument item) => new(item.Id, item.ProviderId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.Status, item.ScanStatus, item.UploadedAt, item.CreatedAt);
     private static DirectoryProviderDocumentUploadDto ToUploadDto(MilestoneDirectoryProviderDocument item) => new(item.Id, item.ProviderId, item.DocumentType, item.SafeFileName, item.ContentType, item.SizeBytes, item.ObjectKey, item.UploadUrl, item.Status, item.ScanStatus, item.UploadExpiresAt, item.Sha256Hash);
     private static MessageDto ToDto(MilestoneMessage item) => new(item.Id, item.ConversationId, item.SenderUserId, item.Body, item.Status, item.SentAt, item.ReadAt, MilestoneJson.DeserializeList<MessageAttachmentDto>(item.AttachmentsJson));
     private static HostPricingRuleDto ToDto(MilestoneHostPricingRule item) => new(item.Id, item.HostUserId, item.PropertyId, item.Name, item.StartsOn, item.EndsOn, item.NightlyRate, item.MinimumStay, item.IsActive);

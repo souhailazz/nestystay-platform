@@ -17,13 +17,11 @@ import {
   Phone,
   LayoutDashboard,
   Lock,
-  Mail,
   MessageSquare,
   Paperclip,
   RotateCcw,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Star,
   TriangleAlert,
   X,
@@ -39,10 +37,9 @@ import { Field, InlineLabel, Input, Select, Textarea } from "../components/ui/In
 import { LoadingState } from "../components/ui/LoadingState";
 import { ListControls, downloadCsv } from "../components/ui/ListControls";
 import { StatusChip } from "../components/ui/StatusChip";
-import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import type { AuthController } from "../hooks/useAuth";
-import { api, formatMoney, type AdminCase, type AdminCaseEvidenceUpload, type AdminOperations, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type DirectoryProviderDocument, type DirectoryProviderInsights, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type PublicContentPage, type TravelerWorkspace } from "../lib/api";
+import { api, formatMoney, type AttachmentUpload, type Booking, type Conversation, type DirectoryProvider, type DirectoryProviderDocument, type DirectoryProviderInsights, type Experience, type HostOperations, type HostProfile, type IdentityDocumentUpload, type JournalArticle, type MessageAttachment, type TravelerWorkspace } from "../lib/api";
 import { PatoisPhrase, PatoisToggle } from "../lib/patois";
 import { getStayImage } from "../lib/stayImages";
 import { cx } from "../lib/ui";
@@ -141,52 +138,6 @@ export function PublicContentRoute({ slug }: { slug: string }) {
   return <PublicStateContainer view={slug} session={null} />;
 }
 
-function ContactForm() {
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setNotice(null);
-    setError(null);
-    try {
-      await api.createContactRequest(form);
-      setNotice("Contact request saved and queued for support.");
-      setForm({ name: "", email: "", subject: "", message: "" });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Contact request failed.");
-    }
-  }
-
-  return (
-    <Card className="settings-card">
-      <form className="management-form" onSubmit={submit}>
-        <Field label="Name"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
-        <Field label="Email"><Input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field>
-        <Field label="Subject"><Input value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} /></Field>
-        <Field label="Message"><Textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></Field>
-        <Button type="submit"><Mail size={17} /> Send</Button>
-        {notice && <div className="notice-panel">{notice}</div>}
-        {error && <ErrorState message={error} />}
-      </form>
-    </Card>
-  );
-}
-
-function screenForPage(page: PublicContentPage) {
-  const map: Record<string, string> = {
-    about: "PUB-09",
-    trust: "PUB-09",
-    help: "PUB-10",
-    contact: "PUB-12",
-    terms: "PUB-13",
-    privacy: "PUB-14",
-    maintenance: "ERR-05",
-  };
-  return map[page.slug] ?? "PUB-10";
-}
-
 export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthController }) {
   const social = useAsync(() => api.getSocialAuthConfig(), []);
   const [flow, setFlow] = useState<{ id: string; deliveryChannel: string; expiresAt: string; status: string; attemptsRemaining: number } | null>(null);
@@ -194,6 +145,7 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resetRequestId, setResetRequestId] = useState(() => new URLSearchParams(window.location.search).get("requestId") ?? "");
   const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
   const [linkFlowId] = useState(() => new URLSearchParams(window.location.search).get("flowId") ?? "");
@@ -208,6 +160,12 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
     "2fa-setup": "twofa",
     "social-consent": "social",
   } as Record<string, string>)[kind] ?? kind;
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => setResendCooldown((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (normalizedKind !== "email" || !linkFlowId || !resetToken) return;
@@ -228,7 +186,14 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
       attemptsRemaining: started.attemptsRemaining,
     });
     setCode("");
+    setResendCooldown(30);
     setNotice(`Code sent by ${started.deliveryChannel.toLowerCase()}.`);
+  }
+
+  async function resendVerification() {
+    if (resendCooldown > 0) return;
+    await start("email");
+    setNotice("A new verification code has been sent. Check your inbox.");
   }
 
   async function complete() {
@@ -361,7 +326,10 @@ export function AuthSpecFlowPage({ kind, auth }: { kind: string; auth: AuthContr
           )}
           {flow && (
             <div className="notice-panel">
-              <span>{flow.deliveryChannel} delivery pending until {new Date(flow.expiresAt).toLocaleTimeString()}.</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span><strong>{flow.status === "Completed" ? "Verification complete" : "Verification pending"}</strong> · {flow.deliveryChannel} delivery until {new Date(flow.expiresAt).toLocaleTimeString()}.</span>
+                {normalizedKind === "email" && flow.status !== "Completed" && <button className="min-h-9 rounded-pill border border-deep-hover px-3 text-xs font-semibold text-deep-hover disabled:cursor-not-allowed disabled:opacity-50" disabled={resendCooldown > 0} onClick={() => run(resendVerification)} type="button">{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}</button>}
+              </div>
               <Field label="Enter code"><Input value={code} onChange={(event) => setCode(event.target.value)} /></Field>
               {canUseDevelopmentDelivery && (
                 <Button onClick={() => run(useDevelopmentDelivery)} variant="ghost">Use development delivery</Button>
@@ -419,7 +387,7 @@ export function OwnerInvitationPage() {
     <CompletionShell id="PM-INVITE" eyebrow="Owner invitation" title="Your NestyStay owner portal starts here." copy="This secure link is single-use and expires after seven days.">
       <section className="product-section product-section--center">
         <Card className="settings-card max-w-xl">
-          <div className={status === "accepted" ? "notice-panel" : status === "error" ? "rounded-field bg-coral-tint p-4 text-sm" : "notice-panel"} role="status" aria-live="polite">{message}</div>
+          <div className={status === "accepted" ? "notice-panel" : status === "error" ? "rounded-field bg-coral-tint p-4 text-sm" : "notice-panel"} aria-live="polite">{message}</div>
           {status === "accepted" && <AppLink className={buttonClassName("sun") + " mt-4 inline-flex"} href="/login">Sign in to owner portal <ArrowRight size={16} /></AppLink>}
           {status === "error" && <AppLink className={buttonClassName("outline") + " mt-4 inline-flex"} href="/contact">Contact support</AppLink>}
         </Card>
@@ -953,7 +921,7 @@ function InvoiceListPanel({ bookings, token }: { bookings: AsyncState<Booking[]>
   const [year, setYear] = useState("all");
   const years = useMemo(() => {
     const values = new Set((bookings.data ?? []).map((booking) => booking.checkIn.slice(0, 4)));
-    return Array.from(values).sort().reverse();
+    return Array.from(values).sort((a, b) => b.localeCompare(a));
   }, [bookings.data]);
   const invoices = useMemo(() => {
     const all = bookings.data ?? [];
@@ -1267,13 +1235,13 @@ function IdentityPanel({ data, userId, token, reload }: { data: TravelerWorkspac
         </label>
       </div>
       {cameraOpen && (
-        <div className="identity-camera" role="group" aria-label="Identity document camera">
+        <fieldset className="identity-camera border-0 p-0" aria-label="Identity document camera">
           <video aria-label="Live document camera preview" autoPlay className="identity-camera__video" muted playsInline ref={cameraVideo} />
           <div className="identity-camera__actions">
             <Button onClick={captureCameraPhoto} type="button"><Camera size={16} /> Capture document</Button>
             <Button onClick={stopCamera} type="button" variant="ghost"><X size={16} /> Close camera</Button>
           </div>
-        </div>
+        </fieldset>
       )}
       {cameraError && <div aria-live="polite" className="notice-panel notice-panel--error">{cameraError}</div>}
       {uploads.length > 0 && (
@@ -1407,7 +1375,7 @@ function ReviewsPanel({ data, view, bookings, userId, token, reload }: { data: T
             {openId === booking.id && (
               <div className="flex flex-col gap-2.5 rounded-field bg-night p-4">
                 <label className="flex items-center gap-2.5 text-[13px] font-semibold text-on-dark-body">
-                  Rating
+                  <span>Rating</span>
                   <select
                     className="min-h-11 rounded-field border border-on-dark-faint/40 bg-transparent px-3 font-sans text-on-dark-heading outline-none [&>option]:text-ink"
                     onChange={(e) => setRating(Number(e.target.value))}
@@ -1465,7 +1433,7 @@ function NotificationPreferencesPanel({ userId }: { userId: string }) {
   });
   const [notice, setNotice] = useState<string | null>(null);
   const update = (key: keyof typeof preferences, value: boolean) => setPreferences((current) => ({ ...current, [key]: value }));
-  return <Card className="mb-4"><h2 className="m-0 font-display text-2xl">Delivery channels</h2><p className="m-0 mt-2 text-sm text-sand-600">Choose which delivery channels this device should use for booking and message updates.</p><div className="mt-4 grid gap-2 sm:grid-cols-3"><label className="checkbox-card"><input aria-label="Email notifications" checked={preferences.email} onChange={(event) => update("email", event.target.checked)} type="checkbox" /> Email notifications</label><label className="checkbox-card"><input aria-label="SMS notifications" checked={preferences.sms} onChange={(event) => update("sms", event.target.checked)} type="checkbox" /> SMS notifications</label><label className="checkbox-card"><input aria-label="Push notifications" checked={preferences.push} onChange={(event) => update("push", event.target.checked)} type="checkbox" /> Push notifications</label></div><div className="mt-4 flex flex-wrap items-center gap-3"><Button onClick={() => { window.localStorage.setItem(storageKey, JSON.stringify(preferences)); setNotice("Notification preferences saved."); }}>Save preferences</Button>{notice && <span className="text-sm font-semibold text-success-text" role="status">{notice}</span>}</div></Card>;
+  return <Card className="mb-4"><h2 className="m-0 font-display text-2xl">Delivery channels</h2><p className="m-0 mt-2 text-sm text-sand-600">Choose which delivery channels this device should use for booking and message updates.</p><div className="mt-4 grid gap-2 sm:grid-cols-3"><label className="checkbox-card"><input aria-label="Email notifications" checked={preferences.email} onChange={(event) => update("email", event.target.checked)} type="checkbox" /> Email notifications</label><label className="checkbox-card"><input aria-label="SMS notifications" checked={preferences.sms} onChange={(event) => update("sms", event.target.checked)} type="checkbox" /> SMS notifications</label><label className="checkbox-card"><input aria-label="Push notifications" checked={preferences.push} onChange={(event) => update("push", event.target.checked)} type="checkbox" /> Push notifications</label></div><div className="mt-4 flex flex-wrap items-center gap-3"><Button onClick={() => { window.localStorage.setItem(storageKey, JSON.stringify(preferences)); setNotice("Notification preferences saved."); }}>Save preferences</Button>{notice && <span className="text-sm font-semibold text-success-text" aria-live="polite" role="status">{notice}</span>}</div></Card>;
 }
 
 function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWorkspace; userId: string; token: string; reload: () => void }) {
@@ -1479,7 +1447,7 @@ function NotificationsPanel({ data, userId, token, reload }: { data: TravelerWor
       window.dispatchEvent(new Event("nesty:notifications-changed"));
     });
   }
-  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span></div><AppLink aria-label={`Open ${item.title}`} href={item.deepLink} onClick={() => markRead(item.id)}>Open</AppLink></Card>)}</div></>;
+  return <><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="m-0 font-display text-2xl">Recent notifications</h2><Button onClick={readAll}><Bell size={17} /> Mark all as read</Button></div><div className="compact-list">{data.notifications.length === 0 ? <EmptyState title="No notifications yet" copy="Booking and message events will appear here." /> : data.notifications.map((item) => <Card className={item.isRead ? "compact-list__item" : "compact-list__item is-unread"} key={item.id}><Bell size={18} /><div><strong>{item.title}</strong><span>{item.body}</span><small className="mt-1 block text-xs text-sand-500">Last updated {new Date(item.createdAt).toLocaleString()}</small></div><AppLink aria-label={`Open ${item.title}`} href={item.deepLink} onClick={() => markRead(item.id)}>Open</AppLink></Card>)}</div></>;
 }
 
 function travelerScreenId(view: string) {
@@ -1743,7 +1711,11 @@ function ConversationPanel({ conversation, userId, token, reload }: { conversati
 }
 
 function createUploadId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  return `${Date.now().toString(36)}-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function resolveMessageAttachmentContentType(file: File) {
@@ -1852,14 +1824,14 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
         {isTrades && <span className="text-[11.5px] text-sand-500">Powered by EITA — electricianinthisarea.com</span>}
       </div>
 
-      {kind === "Police" && <div className="rounded-card border border-coral/30 bg-coral-tint p-[18px] text-coral-text" role="region" aria-label="Emergency 119"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="flex items-center gap-2"><TriangleAlert size={18} /> Emergency? Call 119</strong><p className="m-0 mt-1 text-sm">For immediate danger use Jamaica’s emergency line. Share your location and keep this page open for safety guidance.</p></div><a className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-coral px-5 font-semibold text-white" href="tel:119"><Phone size={16} /> Tap to call 119</a></div><div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-pill bg-white/70 px-3 py-1.5">Emergency: 119</span><span className="rounded-pill bg-white/70 px-3 py-1.5">Non-emergency: use the directory contacts</span></div></div>}
+      {kind === "Police" && <section className="rounded-card border border-coral/30 bg-coral-tint p-[18px] text-coral-text" aria-label="Emergency 119"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="flex items-center gap-2"><TriangleAlert size={18} /> Emergency? Call 119</strong><p className="m-0 mt-1 text-sm">For immediate danger use Jamaica’s emergency line. Share your location and keep this page open for safety guidance.</p></div><a className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-coral px-5 font-semibold text-white" href="tel:119"><Phone size={16} /> Tap to call 119</a></div><div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-pill bg-white/70 px-3 py-1.5">Emergency: 119</span><span className="rounded-pill bg-white/70 px-3 py-1.5">Non-emergency: use the directory contacts</span></div></section>}
       {directoryLocked && <div className="rounded-card border border-sand-border bg-cream p-[22px] text-[13px] text-gray-600"><strong>{kind === "Police" ? "Wellness badge access" : `${kind === "Trades" ? "Trusted" : "Verified"} badge access`}</strong><p className="m-0 mt-1">{kind === "Police" ? "Police wellness directory access requires a signed-in host with an active Wellness badge." : `A ${kind === "Trades" ? "Trusted" : "Verified"} badge is required to use this directory.`}</p><div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-pill bg-yellow/25 px-3 py-1.5 font-semibold">Upgrade to unlock · from US$49/year</span><AppLink className={buttonClassName("sun")} href="/host/badges">View badge options <ArrowRight size={16} /></AppLink></div></div>}
 
       {!directoryLocked && !badgePending && auth.session && recentViews.data && recentViews.data.length > 0 && <section className="product-section" aria-label="Recently viewed providers"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="m-0 font-display text-2xl">Recently viewed</h2><p className="m-0 text-sm text-sand-600">Your private provider history is only visible to you.</p></div><Button variant="outline" onClick={() => void api.clearDirectoryRecentViews(auth.session!.accessToken).then(recentViews.reload).catch(() => undefined)}>Clear history</Button></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{recentViews.data.slice(0, 6).map((provider) => <Card className="p-4" key={provider.id}><strong>{provider.name}</strong><p className="m-0 text-sm text-sand-600">{provider.category} · {provider.parish}</p><div className="mt-2 flex gap-2"><AppLink className={buttonClassName("outline")} href={`/directory/providers/${provider.slug}`}>View</AppLink><Button variant="outline" onClick={() => void api.removeDirectoryRecentView(provider.id, auth.session!.accessToken).then(recentViews.reload).catch(() => undefined)}>Remove</Button></div></Card>)}</div></section>}
       {!directoryLocked && !badgePending && !list.error && <DataGate state={list}>
         {(providers) => {
           const categories = ["All", ...Array.from(new Set(providers.map((provider) => provider.category)))];
-          const parishes = ["All", ...Array.from(new Set(providers.map((provider) => provider.parish))).sort()];
+          const parishes = ["All", ...Array.from(new Set(providers.map((provider) => provider.parish))).sort((a, b) => a.localeCompare(b))];
           const filtered = providers
             .filter((provider) => category === "All" || provider.category === category)
             .filter((provider) => parish === "All" || provider.parish === parish)
@@ -1941,7 +1913,7 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
           <div className="flex gap-2"><Button aria-pressed={directoryView === "list"} onClick={() => setDirectoryView("list")} variant={directoryView === "list" ? "dark" : "outline"}>List</Button><Button aria-pressed={directoryView === "map"} onClick={() => setDirectoryView("map")} variant={directoryView === "map" ? "dark" : "outline"}><Map size={15} /> Map</Button></div>
           <Button onClick={list.reload} variant="outline">Retry</Button>
         </div>
-        <div data-testid={directoryView === "map" ? "directory-map" : "directory-list"} className="rounded-card border border-sand-border bg-white p-5 text-sm text-sand-600" role="status">Directory data is temporarily unavailable. Your search is preserved; try again when the service is back.</div>
+        <div data-testid={directoryView === "map" ? "directory-map" : "directory-list"} className="rounded-card border border-sand-border bg-white p-5 text-sm text-sand-600" aria-live="polite">Directory data is temporarily unavailable. Your search is preserved; try again when the service is back.</div>
       </section>}
     </div>
   );
@@ -2249,6 +2221,7 @@ function ProviderCard({ provider, isTrades, isFavorite, onToggleFavorite }: { pr
 function ProviderDetail({ provider, auth }: { provider: DirectoryProvider; auth: AuthController }) {
   const isPolice = provider.kind === "Police";
   const isBusiness = provider.kind === "LocalBusiness";
+  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(provider.name + " " + provider.parish);
   const reviews = useAsync(() => api.getDirectoryReviews(provider.slug), [provider.slug]);
   const [quoteScope, setQuoteScope] = useState("");
   const [quoteBudget, setQuoteBudget] = useState("");
@@ -2267,7 +2240,7 @@ function ProviderDetail({ provider, auth }: { provider: DirectoryProvider; auth:
     try { await api.createDirectoryReview(provider.slug, token, { rating: Number(reviewRating), body: reviewBody }); setReviewBody(""); reviews.reload(); setNotice("Review submitted for moderation."); }
     catch (caught) { setError(caught instanceof Error ? caught.message : "Review submission failed."); }
   }
-  return <CompletionShell id="DIR-05" eyebrow={provider.kind} title={provider.name} copy={provider.description}><section className="product-section details-layout"><HeroImage index={3} /><Card className="settings-card"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{provider.badgeLevel} verified</Badge><span className="text-sm text-sand-600"><Star className="mr-1 inline text-yellow" size={15} /> {provider.rating ? provider.rating.toFixed(1) : "New"} ({provider.reviewCount} reviews)</span></div><p className="flex items-center gap-2"><MapPin size={16} /> {provider.parish}</p><p className="flex items-center gap-2"><ClockIcon /> {provider.availabilitySummary}</p>{(provider.services?.length || provider.openingHours || provider.serviceRadiusKm) && <div className="rounded-field border border-sand-border bg-white p-3 text-sm"><strong>Service details</strong><div className="mt-1 text-sand-600">{provider.services?.join(" · ") || "Services available on request"}</div>{provider.openingHours && <div className="mt-1 text-sand-600">Hours: {provider.openingHours}</div>}{provider.weeklyHoursJson && <div className="mt-1 text-sand-600">Structured hours configured</div>}{provider.holidayClosuresJson && provider.holidayClosuresJson !== "[]" && <div className="mt-1 text-sand-600">Holiday closures listed</div>}{provider.promotionsJson && provider.promotionsJson !== "[]" && <div className="mt-1 text-sand-600">Current promotions available</div>}{provider.accessibilityInfo && <div className="mt-1 text-sand-600">Accessibility: {provider.accessibilityInfo}</div>}{provider.serviceRadiusKm && <div className="mt-1 text-sand-600">Coverage: {provider.serviceRadiusKm} km radius</div>}{provider.emergencyAvailable && <div className="mt-1 font-semibold text-coral-text">Emergency availability</div>}</div>}{isBusiness && <div className="rounded-field bg-shell p-3 text-sm"><strong>Local business essentials</strong><div className="mt-1 flex flex-wrap gap-2 text-sand-600"><span>Open-now status uses Jamaica time</span><span>Promotions and exceptional closures are shown</span></div><a className="mt-2 inline-flex items-center gap-1 font-semibold underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${provider.name} ${provider.parish}`)}`} rel="noreferrer" target="_blank"><Navigation size={15} /> Get directions</a></div>}{isPolice && <div className="rounded-field bg-coral-tint p-3 text-sm text-coral-text"><strong>Emergency: 119</strong><p className="m-0 mt-1">For immediate danger call <a className="font-bold underline" href="tel:119">119</a>. Use this profile for non-emergency platform contact.</p></div>}<AppLink className={buttonClassName("sun")} href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={17} /> Contact provider</AppLink></Card></section><section className="product-section grid gap-4 lg:grid-cols-2"><Card><h2 className="m-0 font-display text-2xl">Request a quote</h2>{auth.session ? <form className="mt-3 grid gap-3" onSubmit={submitQuote}><Field label="Work needed"><Textarea required value={quoteScope} onChange={(event) => setQuoteScope(event.target.value)} placeholder="Describe the job, preferred timing and access details" /></Field><Field label="Budget (optional)"><Input inputMode="decimal" min="0" step="0.01" type="number" value={quoteBudget} onChange={(event) => setQuoteBudget(event.target.value)} /></Field><Button type="submit" variant="dark">Send quote request</Button></form> : <p className="text-sm text-sand-600">Sign in to request a quote and keep the conversation in NestyStay.</p>}</Card><Card><h2 className="m-0 font-display text-2xl">Reviews</h2><DataGate state={reviews}>{(items) => items.length ? <div className="mt-3 grid gap-2">{items.map((item) => <div className="rounded-field border border-sand-border p-3" key={item.id}><div className="font-semibold">{"★".repeat(item.rating)} <span className="text-xs text-sand-500">{new Date(item.createdAt).toLocaleDateString()}</span></div><p className="m-0 mt-1 text-sm">{item.body}</p>{item.providerResponse && <p className="m-0 mt-2 border-l-2 border-deep pl-2 text-sm text-sand-600">Provider response: {item.providerResponse}</p>}</div>)}</div> : <p className="mt-3 text-sm text-sand-600">No published reviews yet.</p>}</DataGate>{auth.session && <form className="mt-4 grid gap-3 border-t border-sand-border pt-4" onSubmit={submitReview}><div className="grid gap-3 sm:grid-cols-[120px_1fr]"><Field label="Rating"><Select value={reviewRating} onChange={(event) => setReviewRating(event.target.value)}><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Okay</option><option value="2">2 — Poor</option><option value="1">1 — Bad</option></Select></Field><Field label="Your review"><Textarea required value={reviewBody} onChange={(event) => setReviewBody(event.target.value)} /></Field></div><Button type="submit" variant="outline">Submit review</Button></form>}</Card></section>{(notice || error) && <div className="product-section">{notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm font-semibold text-success-text" role="status">{notice}</div>}{error && <div className="rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}</div>}</CompletionShell>;
+  return <CompletionShell id="DIR-05" eyebrow={provider.kind} title={provider.name} copy={provider.description}><section className="product-section details-layout"><HeroImage index={3} /><Card className="settings-card"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{provider.badgeLevel} verified</Badge><span className="text-sm text-sand-600"><Star className="mr-1 inline text-yellow" size={15} /> {provider.rating ? provider.rating.toFixed(1) : "New"} ({provider.reviewCount} reviews)</span></div><p className="flex items-center gap-2"><MapPin size={16} /> {provider.parish}</p><p className="flex items-center gap-2"><ClockIcon /> {provider.availabilitySummary}</p>{(provider.services?.length || provider.openingHours || provider.serviceRadiusKm) && <div className="rounded-field border border-sand-border bg-white p-3 text-sm"><strong>Service details</strong><div className="mt-1 text-sand-600">{provider.services?.join(" · ") || "Services available on request"}</div>{provider.openingHours && <div className="mt-1 text-sand-600">Hours: {provider.openingHours}</div>}{provider.weeklyHoursJson && <div className="mt-1 text-sand-600">Structured hours configured</div>}{provider.holidayClosuresJson && provider.holidayClosuresJson !== "[]" && <div className="mt-1 text-sand-600">Holiday closures listed</div>}{provider.promotionsJson && provider.promotionsJson !== "[]" && <div className="mt-1 text-sand-600">Current promotions available</div>}{provider.accessibilityInfo && <div className="mt-1 text-sand-600">Accessibility: {provider.accessibilityInfo}</div>}{provider.serviceRadiusKm && <div className="mt-1 text-sand-600">Coverage: {provider.serviceRadiusKm} km radius</div>}{provider.emergencyAvailable && <div className="mt-1 font-semibold text-coral-text">Emergency availability</div>}</div>}{isBusiness && <div className="rounded-field bg-shell p-3 text-sm"><strong>Local business essentials</strong><div className="mt-1 flex flex-wrap gap-2 text-sand-600"><span>Open-now status uses Jamaica time</span><span>Promotions and exceptional closures are shown</span></div><a className="mt-2 inline-flex items-center gap-1 font-semibold underline" href={mapsUrl} rel="noreferrer" target="_blank"><Navigation size={15} /> Get directions</a></div>}{isPolice && <div className="rounded-field bg-coral-tint p-3 text-sm text-coral-text"><strong>Emergency: 119</strong><p className="m-0 mt-1">For immediate danger call <a className="font-bold underline" href="tel:119">119</a>. Use this profile for non-emergency platform contact.</p></div>}<AppLink className={buttonClassName("sun")} href={`/messages?provider=${encodeURIComponent(provider.slug)}`}><MessageSquare size={17} /> Contact provider</AppLink></Card></section><section className="product-section grid gap-4 lg:grid-cols-2"><Card><h2 className="m-0 font-display text-2xl">Request a quote</h2>{auth.session ? <form className="mt-3 grid gap-3" onSubmit={submitQuote}><Field label="Work needed"><Textarea required value={quoteScope} onChange={(event) => setQuoteScope(event.target.value)} placeholder="Describe the job, preferred timing and access details" /></Field><Field label="Budget (optional)"><Input inputMode="decimal" min="0" step="0.01" type="number" value={quoteBudget} onChange={(event) => setQuoteBudget(event.target.value)} /></Field><Button type="submit" variant="dark">Send quote request</Button></form> : <p className="text-sm text-sand-600">Sign in to request a quote and keep the conversation in NestyStay.</p>}</Card><Card><h2 className="m-0 font-display text-2xl">Reviews</h2><DataGate state={reviews}>{(items) => items.length ? <div className="mt-3 grid gap-2">{items.map((item) => <div className="rounded-field border border-sand-border p-3" key={item.id}><div className="font-semibold">{"★".repeat(item.rating)} <span className="text-xs text-sand-500">{new Date(item.createdAt).toLocaleDateString()}</span></div><p className="m-0 mt-1 text-sm">{item.body}</p>{item.providerResponse && <p className="m-0 mt-2 border-l-2 border-deep pl-2 text-sm text-sand-600">Provider response: {item.providerResponse}</p>}</div>)}</div> : <p className="mt-3 text-sm text-sand-600">No published reviews yet.</p>}</DataGate>{auth.session && <form className="mt-4 grid gap-3 border-t border-sand-border pt-4" onSubmit={submitReview}><div className="grid gap-3 sm:grid-cols-[120px_1fr]"><Field label="Rating"><Select value={reviewRating} onChange={(event) => setReviewRating(event.target.value)}><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Okay</option><option value="2">2 — Poor</option><option value="1">1 — Bad</option></Select></Field><Field label="Your review"><Textarea required value={reviewBody} onChange={(event) => setReviewBody(event.target.value)} /></Field></div><Button type="submit" variant="outline">Submit review</Button></form>}</Card></section>{(notice || error) && <div className="product-section">{notice && <div className="rounded-field bg-success-tint px-4 py-3 text-sm font-semibold text-success-text" aria-live="polite">{notice}</div>}{error && <div className="rounded-field bg-coral-tint px-4 py-3 text-sm text-coral-text" role="alert">{error}</div>}</div>}</CompletionShell>;
 }
 
 function ClockIcon() {
@@ -2332,7 +2305,7 @@ function HostProfileEditorApi({ auth }: { auth: AuthController }) {
     }
   }
   if (!session) return <ErrorState message="Sign in is required to edit a host profile." />;
-  return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><DataGate state={profile}>{() => <Card className="settings-card"><Field label="Display name"><Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Field><Field label="Parish"><Input value={parish} onChange={(event) => setParish(event.target.value)} /></Field><Field label="Bio"><Textarea value={bio} onChange={(event) => setBio(event.target.value)} /></Field><InlineLabel><input checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} type="checkbox" /> Public profile visible</InlineLabel><div className="flex flex-wrap gap-2"><Button onClick={save}>Save profile</Button><AppLink className={buttonClassName("outline")} href="/host/profile/preview">Preview profile</AppLink></div>{notice && <div className="notice-panel" role="status">{notice}</div>}{saveError && <ErrorState message={saveError} />}</Card>}</DataGate></section></CompletionShell>;
+  return <CompletionShell id="HPRO-04" eyebrow="Host profile edit" title="Edit host profile." copy="Host biography, badges, privacy, preview, and Link Mi visibility settings."><section className="product-section"><DataGate state={profile}>{() => <Card className="settings-card"><Field label="Display name"><Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Field><Field label="Parish"><Input value={parish} onChange={(event) => setParish(event.target.value)} /></Field><Field label="Bio"><Textarea value={bio} onChange={(event) => setBio(event.target.value)} /></Field><InlineLabel><input checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} type="checkbox" /> Public profile visible</InlineLabel><div className="flex flex-wrap gap-2"><Button onClick={save}>Save profile</Button><AppLink className={buttonClassName("outline")} href="/host/profile/preview">Preview profile</AppLink></div>{notice && <div className="notice-panel" aria-live="polite">{notice}</div>}{saveError && <ErrorState message={saveError} />}</Card>}</DataGate></section></CompletionShell>;
 }
 
 export function HostSpecPage({ view, auth, propertyId }: { view: string; auth: AuthController; propertyId?: string }) {
@@ -2381,190 +2354,9 @@ function MetricCards({ items }: { items: [string, string][] }) {
 }
 
 function Table({ labels, rows }: { labels: string[]; rows: ReactNode[][] }) {
-  return <div className="spec-table-wrap responsive-table-cards"><table className="spec-table"><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td data-label={labels[cellIndex] ?? `Column ${cellIndex + 1}`} key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="spec-table-wrap responsive-table-cards"><table className="spec-table"><tbody>{rows.map((row) => { const rowKey = row.map((cell) => typeof cell === "string" ? cell : "value").join("|"); const cells = row.map((cell, position) => ({ cell, label: labels[position] ?? "Value" })); return <tr key={rowKey}>{cells.map(({ cell, label }) => <td data-label={label} key={label}>{cell}</td>)}</tr>; })}</tbody></table></div>;
 }
 
 export function AdminOpsSpecPage({ view, auth }: { view: string; auth: AuthController }) {
   return <AdminStateContainer view={view} auth={auth} />;
-}
-
-type AdminEvidenceUploadItem = {
-  id: string;
-  file: File;
-  progress: number;
-  status: IdentityUploadStatus;
-  upload?: AdminCaseEvidenceUpload;
-  error?: string;
-};
-
-const maximumAdminCaseEvidenceBytes = 10 * 1024 * 1024;
-
-function AdminCaseEvidenceControl({ adminCase, token, reload }: { adminCase: AdminCase; token: string; reload: () => void }) {
-  const [uploads, setUploads] = useState<AdminEvidenceUploadItem[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
-  const uploadControllers = useRef<Record<string, AbortController>>({});
-  const evidence = adminCase.evidence ?? [];
-
-  useEffect(() => () => {
-    Object.values(uploadControllers.current).forEach((controller) => controller.abort());
-  }, []);
-
-  function updateUpload(id: string, patch: Partial<AdminEvidenceUploadItem>) {
-    setUploads((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
-  }
-
-  async function uploadFile(id: string, file: File) {
-    setNotice(null);
-    if (file.size > maximumAdminCaseEvidenceBytes) {
-      updateUpload(id, { status: "failed", error: "Evidence must be 10 MB or smaller." });
-      return;
-    }
-
-    const controller = new AbortController();
-    uploadControllers.current[id] = controller;
-
-    try {
-      const contentType = resolveMessageAttachmentContentType(file);
-      const prepared = await api.prepareAdminCaseEvidenceUpload(token, adminCase.id, {
-        fileName: file.name,
-        contentType,
-        sizeBytes: file.size,
-      });
-      updateUpload(id, { upload: prepared, progress: 5, status: "uploading", error: undefined });
-      const uploaded = await api.uploadAdminCaseEvidenceContent(token, adminCase.id, prepared.id, file, {
-        signal: controller.signal,
-        onProgress: (progress) => updateUpload(id, { progress, status: "uploading" }),
-      });
-      updateUpload(id, { upload: uploaded, progress: 100, status: "uploaded", error: undefined });
-      setNotice(`${uploaded.fileName} verified.`);
-      reload();
-    } catch (caught) {
-      updateUpload(id, {
-        status: controller.signal.aborted ? "cancelled" : "failed",
-        error: caught instanceof Error ? caught.message : "Evidence upload failed.",
-      });
-    } finally {
-      delete uploadControllers.current[id];
-    }
-  }
-
-  function addFiles(files: FileList | null) {
-    if (!files?.length) return;
-    Array.from(files).forEach((file) => {
-      const id = createUploadId();
-      const isTooLarge = file.size > maximumAdminCaseEvidenceBytes;
-      setUploads((items) => [...items, {
-        id,
-        file,
-        progress: 0,
-        status: isTooLarge ? "failed" : "queued",
-        error: isTooLarge ? "Evidence must be 10 MB or smaller." : undefined,
-      }]);
-      if (!isTooLarge) {
-        void uploadFile(id, file);
-      }
-    });
-  }
-
-  function cancelUpload(id: string) {
-    uploadControllers.current[id]?.abort();
-    updateUpload(id, { status: "cancelled", error: "Evidence upload cancelled." });
-  }
-
-  function retryUpload(item: AdminEvidenceUploadItem) {
-    updateUpload(item.id, { upload: undefined, progress: 0, status: "queued", error: undefined });
-    void uploadFile(item.id, item.file);
-  }
-
-  function removeUpload(id: string) {
-    uploadControllers.current[id]?.abort();
-    setUploads((items) => items.filter((item) => item.id !== id));
-  }
-
-  async function downloadEvidence(evidenceId: string) {
-    try {
-      setNotice(null);
-      const download = await api.getAdminCaseEvidenceDownload(token, adminCase.id, evidenceId);
-      const link = document.createElement("a");
-      link.href = download.url;
-      link.download = download.fileName;
-      link.rel = "noopener noreferrer";
-      link.click();
-    } catch (caught) {
-      setNotice(caught instanceof Error ? caught.message : "Evidence download failed.");
-    }
-  }
-
-  return (
-    <div className="admin-evidence-cell">
-      {evidence.length > 0 && (
-        <div className="admin-evidence-list">
-          {evidence.map((item) => (
-            <div className="admin-evidence-row" key={item.id}>
-              <FileText size={15} />
-              <div>
-                <strong>{item.fileName}</strong>
-                <small>{item.scanStatus}</small>
-              </div>
-              <Button onClick={() => void downloadEvidence(item.id)} title="Download evidence" variant="ghost"><Download size={15} /></Button>
-            </div>
-          ))}
-        </div>
-      )}
-      <label className={buttonClassName("outline", "message-file-picker admin-evidence-picker")}>
-        <Paperclip size={15} /> Evidence
-        <input accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ""; }} type="file" />
-      </label>
-      {uploads.length > 0 && (
-        <div className="message-upload-list">
-          {uploads.map((upload) => (
-            <div className="message-upload-item admin-evidence-upload" key={upload.id}>
-              <FileText size={15} />
-              <div>
-                <strong>{upload.file.name}</strong>
-                <small>{upload.status === "uploading" ? `${upload.progress}%` : upload.error ?? upload.upload?.scanStatus ?? upload.status}</small>
-                <div className="message-upload-progress"><span style={{ width: `${upload.status === "uploaded" ? 100 : upload.progress}%` }} /></div>
-              </div>
-              {(upload.status === "uploading" || upload.status === "queued") && <Button onClick={() => cancelUpload(upload.id)} title="Cancel upload" variant="ghost"><X size={15} /></Button>}
-              {(upload.status === "failed" || upload.status === "cancelled") && <Button onClick={() => retryUpload(upload)} title="Retry upload" variant="ghost"><RotateCcw size={15} /></Button>}
-              {upload.status !== "uploading" && <Button onClick={() => removeUpload(upload.id)} title="Remove evidence" variant="ghost"><X size={15} /></Button>}
-            </div>
-          ))}
-        </div>
-      )}
-      {notice && <small className="admin-evidence-notice">{notice}</small>}
-    </div>
-  );
-}
-
-function AdminOpsPanel({ data, token, reload, view }: { data: AdminOperations; token: string; reload: () => void; view: string }) {
-  const [caseToResolve, setCaseToResolve] = useState<AdminCase | null>(null);
-  async function create() {
-    await api.createAdminCase(token, { caseType: travelerTitle(view), subjectType: "User", priority: "Normal", reason: "Manual admin review opened from UI.", assignedTo: "Ops" });
-    reload();
-  }
-  async function resolve() {
-    if (!caseToResolve) return;
-    await api.resolveAdminCase(token, caseToResolve.id, { resolutionNotes: "Reviewed and resolved with audit record." });
-    setCaseToResolve(null);
-    reload();
-  }
-  return (
-    <>
-      <MetricCards items={data.metrics.map((item) => [item.label, item.value]) as [string, string][]} />
-      <Button onClick={create}>Create admin case</Button>
-      <Table labels={["Case", "Priority", "Status", "Reason", "Evidence", "Action"]} rows={data.cases.map((item) => [item.caseType, item.priority, item.status, item.reason, <AdminCaseEvidenceControl adminCase={item} key={`${item.id}-evidence`} reload={reload} token={token} />, <Button key={item.id} onClick={() => setCaseToResolve(item)} variant="outline">Resolve</Button>])} />
-      <h3 className="section-subtitle">Audit log</h3>
-      <Table labels={["Action", "Subject", "Reason", "Created"]} rows={data.auditEvents.slice(0, 10).map((item) => [item.action, item.subjectType, item.reason, new Date(item.createdAt).toLocaleString()])} />
-      <Modal open={Boolean(caseToResolve)} title="Resolve admin case" onClose={() => setCaseToResolve(null)}>
-        <p>Every sensitive action requires a reason and writes an audit record.</p>
-        <Button onClick={resolve}>Confirm resolution</Button>
-      </Modal>
-    </>
-  );
-}
-
-function adminScreenId(view: string) {
-  const map: Record<string, string> = { users: "ADM-03", moderation: "ADM-04", reservations: "ADM-05", payments: "ADM-06", disputes: "ADM-07", support: "ADM-08", reports: "ADM-09", fraud: "ADM-10", flagged: "ADM-11", audit: "ADM-11" };
-  return map[view] ?? "ADM-01";
 }

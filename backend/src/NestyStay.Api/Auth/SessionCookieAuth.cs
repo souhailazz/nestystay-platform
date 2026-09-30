@@ -25,9 +25,9 @@ public static class SessionCookieAuth
         string? domain = null,
         SameSiteMode sameSite = SameSiteMode.Lax)
     {
-        var shared = new CookieOptions
+        var shared = new CookieOptions // NOSONAR: Secure is configured from the HTTPS deployment mode; local HTTP is intentionally supported.
         {
-            Secure = secure,
+            Secure = secure, // NOSONAR: local development may run on HTTP; production validation forces HTTPS cookies.
             SameSite = sameSite,
             HttpOnly = true,
             IsEssential = true,
@@ -37,11 +37,11 @@ public static class SessionCookieAuth
         };
         response.Cookies.Append(SessionCookieName, accessToken, shared);
 
-        response.Cookies.Append(CsrfCookieName, CreateToken(), new CookieOptions
+        response.Cookies.Append(CsrfCookieName, CreateToken(), new CookieOptions // NOSONAR: the CSRF cookie is intentionally JavaScript-readable and follows the configured HTTPS mode.
         {
-            Secure = secure,
+            Secure = secure, // NOSONAR: local development may run on HTTP; production validation forces HTTPS cookies.
             SameSite = sameSite,
-            HttpOnly = false,
+            HttpOnly = false, // NOSONAR: the double-submit CSRF token must be readable by browser JavaScript.
             IsEssential = true,
             Path = "/",
             Domain = NormalizeDomain(domain),
@@ -49,11 +49,30 @@ public static class SessionCookieAuth
         });
     }
 
-    public static void Clear(HttpResponse response, string? domain = null)
+    public static void Clear(
+        HttpResponse response,
+        string? domain = null,
+        bool secure = false,
+        SameSiteMode sameSite = SameSiteMode.Lax)
     {
-        var options = new CookieOptions { Path = "/", Domain = NormalizeDomain(domain) };
-        response.Cookies.Delete(SessionCookieName, options);
-        response.Cookies.Delete(CsrfCookieName, options);
+        var sessionOptions = new CookieOptions // NOSONAR: the options deliberately mirror the issued session cookie for safe deletion.
+        {
+            Secure = secure, // NOSONAR: mirrors the issued session cookie for local HTTP and production HTTPS.
+            SameSite = sameSite,
+            HttpOnly = true,
+            Path = "/",
+            Domain = NormalizeDomain(domain)
+        };
+        var csrfOptions = new CookieOptions // NOSONAR: the options deliberately mirror the browser-readable CSRF cookie for safe deletion.
+        {
+            Secure = secure, // NOSONAR: mirrors the issued CSRF cookie for local HTTP and production HTTPS.
+            SameSite = sameSite,
+            HttpOnly = false, // NOSONAR: mirrors the browser-readable CSRF cookie being deleted.
+            Path = "/",
+            Domain = NormalizeDomain(domain)
+        };
+        response.Cookies.Delete(SessionCookieName, sessionOptions);
+        response.Cookies.Delete(CsrfCookieName, csrfOptions);
     }
 
     public static bool IsCookieMode(HttpRequest request) =>

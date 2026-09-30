@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Clock, User, ArrowRight } from "lucide-react";
+import { Clock, User, ArrowRight } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 import type { JournalArticleItem } from "./types";
 import { AppLink } from "../../components/AppLink";
@@ -9,7 +9,7 @@ interface JournalPageProps {
 }
 
 export function JournalPage({ view }: JournalPageProps) {
-  const [articles, setArticles] = useState<JournalArticleItem[]>([
+  const [articles] = useState<JournalArticleItem[]>([
     {
       id: "art-1",
       title: "The Ultimate Guide to Vacation Rentals in Ocho Rios",
@@ -26,7 +26,7 @@ export function JournalPage({ view }: JournalPageProps) {
   ]);
 
   return (
-    <div className="page-container container py-6" data-testid="pub-11-page" id="PUB-11">
+    <div className="page-container container py-6" data-testid="pub-11-page" data-view={view} id="PUB-11">
       <header className="page-header mb-6">
         <span className="badge badge-sun">PUB-11</span>
         <h2>NestyStay Journal & Culture Stories</h2>

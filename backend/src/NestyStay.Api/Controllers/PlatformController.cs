@@ -6,9 +6,7 @@ namespace NestyStay.Api.Controllers;
 [ApiController]
 [Route("api/platform")]
 public sealed class PlatformController(
-    IPlatformBlueprintService blueprintService,
-    IBookingWorkflowService bookingWorkflowService,
-    IPricebookService pricebookService) : ControllerBase
+    IPlatformBlueprintService blueprintService) : ControllerBase
 {
     [HttpGet("modules")]
     public IActionResult GetModules() => Ok(blueprintService.GetModules());
@@ -19,9 +17,4 @@ public sealed class PlatformController(
     [HttpGet("vendors")]
     public IActionResult GetVendors() => Ok(blueprintService.GetVendorAdapters());
 
-    [HttpGet("booking-workflow")]
-    public IActionResult GetBookingWorkflow() => Ok(bookingWorkflowService.GetPendingVerificationFlow());
-
-    [HttpGet("pricebook")]
-    public IActionResult GetPricebook() => Ok(pricebookService.GetDefaultPricebook());
 }

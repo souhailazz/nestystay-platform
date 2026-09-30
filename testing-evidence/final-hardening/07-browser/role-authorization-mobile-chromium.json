@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T15:14:03.832Z",
+  "generatedAt": "2026-09-30T14:37:27.468Z",
   "roles": 8,
   "project": "mobile-chromium",
   "checks": [
@@ -46,12 +46,6 @@
       "mobileNavigationItems": 5
     },
     {
-      "role": "Admin",
-      "landing": "/admin",
-      "landingStatus": "passed",
-      "mobileNavigationItems": 5
-    },
-    {
       "role": "Guest",
       "deniedRoute": "/pm/dashboard",
       "forbiddenStatus": "passed"
@@ -82,14 +76,14 @@
       "forbiddenStatus": "passed"
     },
     {
-      "role": "Admin",
-      "deniedRoute": "/pm/dashboard",
-      "forbiddenStatus": "passed"
-    },
-    {
       "role": "PropertyManager",
       "authorizedRoute": "/pm/dashboard",
       "authorizedStatus": "passed"
+    },
+    {
+      "role": "Admin",
+      "status": "CONFIG_BLOCKED",
+      "reason": "No legitimate local/staging Admin account was provisioned."
     }
   ]
 }

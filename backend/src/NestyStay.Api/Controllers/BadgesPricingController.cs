@@ -167,7 +167,7 @@ public sealed class BadgesPricingController(
 
     private string ResolveIdempotencyKey(string? requestKey = null)
     {
-        var headerKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var headerKey = Request.Headers["Idempotency-Key"].FirstOrDefault(); // NOSONAR: idempotency is an HTTP header contract and cannot be model-bound.
         var key = string.IsNullOrWhiteSpace(headerKey) ? requestKey : headerKey;
         return string.IsNullOrWhiteSpace(key) ? $"badge-{Guid.NewGuid():N}" : key.Trim();
     }

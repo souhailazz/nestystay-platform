@@ -17,6 +17,10 @@ public sealed class PropertyManagerProfessionalWorkflowTests(NestyStayApiFactory
         SignIn(ownerClient, portfolio.Owner, UserRole.Host);
         var listing = await Ok(ownerClient.PostAsJsonAsync("/api/properties", new { hostUserId = portfolio.Owner, hostName = "Owner", hostEmail = portfolio.OwnerEmail, title = "Rental listing", location = "Kingston", country = "Jamaica", nightlyRate = 100, currency = "JMD", badgeLevel = "Free", cancellationPolicy = "Flexible" }));
         var listingId = listing.GetProperty("id").GetGuid();
+        ownerClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await ownerClient.PostAsJsonAsync($"/api/properties/{listingId}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+        SignIn(ownerClient, portfolio.Owner, UserRole.Host);
         var linked = await Ok(client.PatchAsJsonAsync($"/api/property-manager/properties/{portfolio.Property}/rental-listing", new { rentalListingId = listingId }));
         Assert.Equal(listingId, linked.GetProperty("rentalListingId").GetGuid());
         var second = await Ok(client.PostAsJsonAsync("/api/property-manager/properties", new { ownerUserId = portfolio.Owner, title = "Second managed property", unitNumber = "P-2", address = "Kingston" }));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
@@ -7,6 +7,8 @@ import { loadSession } from "../../lib/auth";
 import { userSafeErrorMessage } from "../../lib/errorMessages";
 import { cx } from "../../lib/ui";
 import { LEGAL_DETAILS } from "../../lib/legal";
+import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
+import { setUnsavedChanges } from "../../lib/unsavedChanges";
 import { signInWithGoogle } from "./googleSignIn";
 import { isSafeInternalReturnTo, postAuthRoute } from "./postAuthRoute";
 import type { AuthModalMode } from "./types";
@@ -29,6 +31,21 @@ const labelText = "font-sans text-[13px] font-semibold text-ink";
 const cardClass = "flex flex-col gap-4 rounded-card border border-sand-border bg-cream p-7";
 const deepPill =
   "flex min-h-[50px] cursor-pointer items-center justify-center gap-2.5 rounded-pill border-none bg-deep font-sans text-[15px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:pointer-events-none disabled:bg-shell disabled:text-sand-500";
+
+function PasswordVisibilityButton({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      aria-label={visible ? "Hide password" : "Show password"}
+      aria-pressed={visible}
+      className="absolute right-2 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-pill border-none bg-transparent text-sand-600 transition-colors hover:bg-shell hover:text-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deep-hover"
+      onClick={onToggle}
+      title={visible ? "Hide password" : "Show password"}
+      type="button"
+    >
+      {visible ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+    </button>
+  );
+}
 
 function GoogleMark() {
   return (
@@ -61,27 +78,39 @@ function maskEmail(email: string) {
   return `${email[0]}•••${email.slice(at)}`;
 }
 
+function isValidEmail(value: string) {
+  const at = value.indexOf("@");
+  return at > 0 && at === value.lastIndexOf("@") && value.indexOf(".", at + 2) > at + 1 && !value.includes(" ");
+}
+
 function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) => void }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
-  const digits = Array.from({ length: 6 }, (_, i) => code[i] ?? "");
+  const digits = [
+    { key: "otp-digit-1", value: code[0] ?? "" },
+    { key: "otp-digit-2", value: code[1] ?? "" },
+    { key: "otp-digit-3", value: code[2] ?? "" },
+    { key: "otp-digit-4", value: code[3] ?? "" },
+    { key: "otp-digit-5", value: code[4] ?? "" },
+    { key: "otp-digit-6", value: code[5] ?? "" },
+  ];
   return (
     <div className="flex flex-wrap gap-2">
-      {digits.map((digit, i) => (
+      {digits.map(({ key, value }, i) => (
         <input
           aria-label={`Digit ${i + 1}`}
           className="min-h-14 w-12 rounded-field border-[1.5px] border-sand-input bg-white text-center font-display text-[22px] text-ink outline-none transition-[border-color,box-shadow] focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]"
           inputMode="numeric"
-          key={i}
+          key={key}
           maxLength={1}
           onChange={(event) => {
-            const value = event.target.value.replace(/\D/g, "").slice(-1);
+            const nextValue = event.target.value.replace(/\D/g, "").slice(-1);
             const next = digits.slice();
-            next[i] = value;
-            onChange(next.join("").slice(0, 6));
-            if (value && i < 5) refs.current[i + 1]?.focus();
+            next[i] = { key, value: nextValue };
+            onChange(next.map((digit) => digit.value).join("").slice(0, 6));
+            if (nextValue && i < 5) refs.current[i + 1]?.focus();
           }}
           onKeyDown={(event) => {
-            if (event.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+            if (event.key === "Backspace" && !value && i > 0) refs.current[i - 1]?.focus();
           }}
           onPaste={(event) => {
             const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
@@ -95,7 +124,7 @@ function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) 
             refs.current[i] = el;
           }}
           type="text"
-          value={digit}
+          value={value}
         />
       ))}
     </div>
@@ -106,9 +135,16 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginEmailError, setLoginEmailError] = useState<string | null>(null);
+  const [loginCapsLock, setLoginCapsLock] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [registerDisplayName, setRegisterDisplayName] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+  const [registerCapsLock, setRegisterCapsLock] = useState(false);
+  const [confirmCapsLock, setConfirmCapsLock] = useState(false);
   const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
@@ -126,6 +162,22 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const [resetSent, setResetSent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const countdown = useChallengeCountdown(auth.pendingChallenge?.expiresAt);
+
+  const registrationDirty = mode === "register" && Boolean(registerDisplayName || registerPhone || email || password || registerConfirmPassword || acceptedTerms || acceptedPrivacy);
+
+  useEffect(() => {
+    setUnsavedChanges(registrationDirty);
+    if (!registrationDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      setUnsavedChanges(false);
+    };
+  }, [registrationDirty]);
 
   function showError(message: string) {
     setNotice(message);
@@ -160,10 +212,16 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setLoginEmailError("Enter a valid email address.");
+      return;
+    }
+    setLoginEmailError(null);
     setLoading(true);
     setNotice(null);
     try {
-      const result = await auth.login(email, password, { deviceName: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 80) : "Browser", rememberDevice });
+      const result = await auth.login(normalizedEmail, password, { deviceName: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 80) : "Browser", rememberDevice });
       if ("challengeId" in result) {
         setMode("2fa-verify");
         showSuccess("Enter your authenticator code to finish signing in.");
@@ -192,11 +250,12 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   async function handleRequestPasswordless(e: FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return;
     setLoading(true);
     setNotice(null);
     try {
-      await auth.requestPasswordlessLogin(email.trim());
+      await auth.requestPasswordlessLogin(normalizedEmail);
       setMode("passwordless-request");
       showSuccess("If that email is registered, a secure sign-in link has been sent. It expires in 15 minutes.");
     } catch (err) {
@@ -211,9 +270,9 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
     setNotice(null);
 
     const errors: Record<string, string> = {};
-    const normalizedEmail = email.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     if (!registerDisplayName.trim()) errors.displayName = "Enter your display name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) errors.email = "Enter a valid email address.";
+    if (!isValidEmail(normalizedEmail)) errors.email = "Enter a valid email address.";
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
       errors.password = "Use at least 8 characters with an uppercase letter, lowercase letter, and number.";
     }
@@ -364,7 +423,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
     setResetSent(null);
     setNotice(null);
     try {
-      const res = await api.requestPasswordReset(resetEmail);
+      const res = await api.requestPasswordReset(resetEmail.trim().toLowerCase());
       setResetSent(res.message || "If that address exists, a reset link is on its way. It expires in 30 minutes.");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Could not send the reset link.");
@@ -379,6 +438,9 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
     ["Lowercase", /[a-z]/.test(password)],
     ["Number", /\d/.test(password)],
   ] as const;
+  const passwordScore = passwordChecks.filter(([, passed]) => passed).length;
+  const passwordStrength = passwordScore === 0 ? "Start with a strong password" : passwordScore < 3 ? "Needs a little more strength" : passwordScore === 3 ? "Good password" : "Strong password";
+  const confirmPasswordMismatch = registerConfirmPassword.length > 0 && password !== registerConfirmPassword;
 
   const noticePanel = notice && (
     <div
@@ -386,7 +448,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
         "rounded-field px-4 py-3 font-sans text-[13px]",
         noticeTone === "error" ? "bg-coral-tint text-coral-text" : "bg-success-tint text-success-text",
       )}
-      role={noticeTone === "error" ? "alert" : "status"}
+      aria-live={noticeTone === "error" ? "assertive" : "polite"}
     >
       {notice}
     </div>
@@ -396,9 +458,9 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
     <div className="grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink md:grid-cols-[minmax(320px,44%)_1fr]" id="AUTH-01">
       {/* Brand panel */}
       <aside className="flex flex-col justify-between gap-10 p-11 px-11" style={deepPatternBackground}>
-        <AppLink className="flex items-center gap-3" href="/">
-          <EmblemRoundel size={48} />
-          <span className="text-[15px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
+        <AppLink aria-label="NestyStay home" className="flex items-center gap-3" href="/">
+          <EmblemRoundel size={60} />
+          <span aria-hidden="true" className="text-[18px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
         </AppLink>
         <div className="flex flex-col gap-3.5">
           <h1 className="m-0 font-display text-[clamp(36px,4vw,56px)] font-normal leading-[1.02] tracking-[-0.015em] text-on-dark-heading [text-wrap:balance]">
@@ -456,7 +518,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
         )}
 
         {mode === "login" && (
-          <form className={cardClass} onSubmit={handleLogin}>
+          <form className={cardClass} noValidate onSubmit={handleLogin}>
             <h2 className="m-0 font-display text-[26px] font-medium">Log in</h2>
             <button
               className="flex min-h-12 cursor-pointer items-center justify-center gap-2.5 rounded-pill border-[1.5px] border-sand-input bg-white font-sans text-[14.5px] font-semibold text-ink transition-colors hover:border-deep disabled:pointer-events-none disabled:opacity-60"
@@ -464,40 +526,53 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               onClick={handleGoogle}
               type="button"
             >
-              <GoogleMark /> Continue with Google
+              {loading && <LoadingSpinner label="Signing in with Google" />}<GoogleMark /> Continue with Google
             </button>
             <div className="flex items-center gap-3 text-xs text-sand-500">
               <span className="h-px flex-1 bg-sand-border" />
-              or with email
+              <span>or with email</span>
               <span className="h-px flex-1 bg-sand-border" />
             </div>
             <label className="flex flex-col gap-1.5">
               <span className={labelText}>Email</span>
               <input
                 autoComplete="email"
+                aria-describedby={loginEmailError ? "login-email-error" : undefined}
+                aria-invalid={Boolean(loginEmailError)}
                 className={inputClass}
-                onChange={(e) => setEmail(e.target.value)}
+                id="login-email"
+                name="email"
+                onChange={(e) => { setEmail(e.target.value); if (loginEmailError) setLoginEmailError(null); }}
                 placeholder="you@example.com"
                 required
                 type="email"
                 value={email}
               />
+              {loginEmailError && <p className="m-0 text-xs text-coral-text" id="login-email-error" role="alert">{loginEmailError}</p>}
             </label>
             <label className="flex cursor-pointer items-center gap-2.5 text-[12.5px] text-gray-600">
-              <input checked={rememberDevice} className="size-4 accent-deep-hover" onChange={(event) => setRememberDevice(event.target.checked)} type="checkbox" />
-              Trust this device for 30 days
+              <input checked={rememberDevice} className="size-4 accent-deep-hover" onChange={(event) => setRememberDevice(event.target.checked)} type="checkbox" />{" "}
+              Remember me on this device for 30 days
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelText}>Password</span>
-              <input
-                autoComplete="current-password"
-                className={inputClass}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                type="password"
-                value={password}
-              />
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <label className={labelText} htmlFor="login-password">Password</label>
+              <div className="relative">
+                <input
+                  autoComplete="current-password"
+                  className={`${inputClass} pr-12`}
+                  id="login-password"
+                  name="password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(event) => setLoginCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                  onKeyUp={(event) => setLoginCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                  required
+                  type={showLoginPassword ? "text" : "password"}
+                  value={password}
+                />
+                <PasswordVisibilityButton visible={showLoginPassword} onToggle={() => setShowLoginPassword((visible) => !visible)} />
+              </div>
+              {loginCapsLock && <p className="m-0 text-xs text-amber-text" role="status">Caps Lock is on.</p>}
+            </div>
               <button
                 className="inline-flex min-h-11 cursor-pointer items-center self-end border-none bg-transparent font-sans text-[12.5px] font-semibold text-deep-hover hover:text-deep"
                 onClick={() => {
@@ -509,8 +584,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                 Forgot password?
               </button>
             {noticePanel}
-            <button className={deepPill} disabled={loading} type="submit">
-              {loading ? "Signing in…" : "Log in"} <span aria-hidden="true">→</span>
+            <button aria-busy={loading} className={deepPill} disabled={loading} type="submit">
+              {loading && <LoadingSpinner label="Signing in" />} {loading ? "Signing in…" : "Log in"} <span aria-hidden="true">→</span>
             </button>
             <button
               className="cursor-pointer self-center border-none bg-transparent font-sans text-xs font-semibold text-deep-hover hover:text-deep"
@@ -552,6 +627,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               <input
                 autoComplete="email"
                 className={inputClass}
+                id="passwordless-email"
+                name="email"
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
@@ -641,6 +718,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                   aria-invalid={Boolean(registerErrors.displayName)}
                   className={inputClass}
                   id="register-display-name"
+                  name="name"
+                  autoComplete="name"
                   onChange={(e) => { setRegisterDisplayName(e.target.value); clearRegisterError("displayName"); }}
                   placeholder="Keisha Brown"
                   required
@@ -652,7 +731,10 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               <label className="flex flex-col gap-1.5">
                 <span className={labelText}>Phone</span>
                 <input
+                  autoComplete="tel"
                   className={inputClass}
+                  id="register-phone"
+                  name="tel"
                   onChange={(e) => setRegisterPhone(e.target.value)}
                   placeholder="+1 876 555 0123"
                   type="tel"
@@ -692,19 +774,25 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                 <option value="LocalBusiness">Local business</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelText}>Password</span>
-              <input
-                autoComplete="new-password"
-                aria-describedby={registerErrors.password ? "register-password-error" : undefined}
-                aria-invalid={Boolean(registerErrors.password)}
-                className={inputClass}
-                id="register-password"
-                onChange={(e) => { setPassword(e.target.value); clearRegisterError("password"); }}
-                required
-                type="password"
-                value={password}
-              />
+            <div className="flex flex-col gap-1.5">
+              <label className={labelText} htmlFor="register-password">Password</label>
+              <div className="relative">
+                <input
+                  autoComplete="new-password"
+                  aria-describedby={registerErrors.password ? "register-password-error" : undefined}
+                  aria-invalid={Boolean(registerErrors.password)}
+                   className={`${inputClass} pr-12`}
+                   id="register-password"
+                   name="new-password"
+                   onChange={(e) => { setPassword(e.target.value); clearRegisterError("password"); }}
+                   onKeyDown={(event) => setRegisterCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                   onKeyUp={(event) => setRegisterCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                   required
+                  type={showRegisterPassword ? "text" : "password"}
+                  value={password}
+                />
+                <PasswordVisibilityButton visible={showRegisterPassword} onToggle={() => setShowRegisterPassword((visible) => !visible)} />
+              </div>
               <div className="flex flex-wrap gap-2 text-[11.5px] font-semibold">
                 {passwordChecks.map(([label, ok]) => (
                   <span
@@ -717,25 +805,35 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                     {ok ? "✓ " : ""}
                     {label}
                   </span>
-                ))}
-              </div>
-              {registerErrors.password && <p className="m-0 text-xs text-coral-text" id="register-password-error" role="alert">{registerErrors.password}</p>}
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelText}>Confirm password</span>
-              <input
-                autoComplete="new-password"
-                aria-describedby={registerErrors.confirmPassword ? "register-confirm-password-error" : undefined}
-                aria-invalid={Boolean(registerErrors.confirmPassword)}
-                className={inputClass}
-                id="register-confirm-password"
-                onChange={(e) => { setRegisterConfirmPassword(e.target.value); clearRegisterError("confirmPassword"); }}
-                required
-                type="password"
-                value={registerConfirmPassword}
-              />
-              {registerErrors.confirmPassword && <p className="m-0 text-xs text-coral-text" id="register-confirm-password-error" role="alert">{registerErrors.confirmPassword}</p>}
-            </label>
+                 ))}
+               </div>
+               <p className="m-0 text-xs text-sand-600" aria-live="polite">{passwordStrength}</p>
+               {registerCapsLock && <p className="m-0 text-xs text-amber-text" role="status">Caps Lock is on.</p>}
+               {registerErrors.password && <p className="m-0 text-xs text-coral-text" id="register-password-error" role="alert">{registerErrors.password}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={labelText} htmlFor="register-confirm-password">Confirm password</label>
+              <div className="relative">
+                <input
+                  autoComplete="new-password"
+                   aria-describedby={registerErrors.confirmPassword || confirmPasswordMismatch ? "register-confirm-password-error" : undefined}
+                   aria-invalid={Boolean(registerErrors.confirmPassword || confirmPasswordMismatch)}
+                   className={`${inputClass} pr-12`}
+                   id="register-confirm-password"
+                   name="password-confirmation"
+                   onChange={(e) => { setRegisterConfirmPassword(e.target.value); clearRegisterError("confirmPassword"); }}
+                   onKeyDown={(event) => setConfirmCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                   onKeyUp={(event) => setConfirmCapsLock(event.getModifierState?.("CapsLock") ?? false)}
+                  required
+                  type={showRegisterConfirmPassword ? "text" : "password"}
+                  value={registerConfirmPassword}
+                 />
+                 <PasswordVisibilityButton visible={showRegisterConfirmPassword} onToggle={() => setShowRegisterConfirmPassword((visible) => !visible)} />
+               </div>
+               {confirmCapsLock && <p className="m-0 text-xs text-amber-text" role="status">Caps Lock is on.</p>}
+               {confirmPasswordMismatch && <p className="m-0 text-xs text-coral-text" id="register-confirm-password-error" role="alert">Passwords do not match yet.</p>}
+               {registerErrors.confirmPassword && !confirmPasswordMismatch && <p className="m-0 text-xs text-coral-text" id="register-confirm-password-error" role="alert">{registerErrors.confirmPassword}</p>}
+             </div>
             <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
                 aria-describedby={registerErrors.terms ? "register-terms-error" : undefined}
@@ -748,8 +846,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               />
               <span>I agree to the <AppLink className="font-semibold text-deep-hover underline" href="/terms" target="_blank">Terms of Service</AppLink>.</span>
               {registerErrors.terms && <span className="text-xs text-coral-text" id="register-terms-error" role="alert">{registerErrors.terms}</span>}
-            </label>
-            <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
+             </label>
+             <label className="flex cursor-pointer items-start gap-2.5 font-sans text-[13px] text-ink">
               <input
                 aria-describedby={registerErrors.privacy ? "register-privacy-error" : undefined}
                 aria-invalid={Boolean(registerErrors.privacy)}
@@ -763,8 +861,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
               {registerErrors.privacy && <span className="text-xs text-coral-text" id="register-privacy-error" role="alert">{registerErrors.privacy}</span>}
             </label>
             {noticePanel}
-            <button className={deepPill} disabled={loading || auth.isAuthBusy} type="submit">
-              {loading || auth.isAuthBusy ? "Creating account…" : "Create my account"}
+            <button aria-busy={loading || auth.isAuthBusy} className={deepPill} disabled={loading || auth.isAuthBusy} type="submit">
+              {(loading || auth.isAuthBusy) && <LoadingSpinner label="Creating account" />} {loading || auth.isAuthBusy ? "Creating account…" : "Create my account"}
             </button>
             <div className="text-xs text-sand-500">By continuing you agree to the Terms. Backend errors show verbatim above the button.</div>
           </form>
@@ -816,11 +914,11 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
                 disabled={loading}
                 type="submit"
               >
-                {loading ? "Sending…" : "Send reset link"}
+                {loading && <LoadingSpinner label="Sending reset link" />} {loading ? "Sending…" : "Send reset link"}
               </button>
             </div>
             {resetSent && (
-              <div className="rounded-field bg-success-tint px-4 py-3 font-sans text-[13px] text-success-text" role="status">
+              <div className="rounded-field bg-success-tint px-4 py-3 font-sans text-[13px] text-success-text" aria-live="polite" role="status">
                 {resetSent}
               </div>
             )}

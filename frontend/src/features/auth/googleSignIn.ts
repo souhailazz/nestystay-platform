@@ -1,5 +1,18 @@
 import type { GoogleSignInRequest } from "../../lib/api";
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (options: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
+          prompt: (callback?: (notification: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
+        };
+      };
+    };
+  }
+}
+
 /** Google Identity Services sign-in (native overlay — not stylable, per AUTH-01 spec). */
 export async function signInWithGoogle(
   signIn: (profile: GoogleSignInRequest) => Promise<unknown>,

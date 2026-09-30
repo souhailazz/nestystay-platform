@@ -148,6 +148,10 @@ public sealed class BookingMarketplaceHardeningTests : IClassFixture<NestyStayAp
         var property = await propertyResponse.Content.ReadFromJsonAsync<PropertyBody>();
         Assert.NotNull(property);
 
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await client.PostAsJsonAsync($"/api/properties/{property!.Id}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+
         var guestId = await RegisterGuestAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(guestId, UserRole.Guest));
         var bookingResponse = await client.PostAsJsonAsync("/api/bookings", new { propertyId = property!.Id, checkIn = "2099-02-01", checkOut = "2099-02-04", adults = 2, termsAccepted = true });

@@ -150,7 +150,7 @@ export function TravelerReviewsNotifications({ view, userId, token }: TravelerRe
             {openId === booking.id && (
               <div className="flex flex-col gap-2.5 rounded-field bg-night p-4">
                 <label className="flex items-center gap-2.5 text-[13px] font-semibold text-on-dark-body">
-                  Rating
+                  <span>Rating</span>
                   <select
                     className="min-h-11 rounded-field border border-on-dark-faint/40 bg-transparent px-3 font-sans text-on-dark-heading outline-none [&>option]:text-ink"
                     onChange={(e) => setRating(Number(e.target.value))}

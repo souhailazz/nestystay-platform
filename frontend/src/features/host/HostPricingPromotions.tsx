@@ -144,6 +144,9 @@ export function HostPricingPromotions({ view, token, hostUserId }: HostPricingPr
   }
 
   const items = isPricing ? pricingRules : promotions;
+  let submitLabel = "Create";
+  if (editingId) submitLabel = "Save changes";
+  if (saving) submitLabel = "Saving…";
 
   return (
     <div className="page-container container py-6" data-testid={isPricing ? "host-07-page" : "host-08-page"} id={isPricing ? "HOST-07" : "HOST-08"}>
@@ -158,9 +161,9 @@ export function HostPricingPromotions({ view, token, hostUserId }: HostPricingPr
         </button>
       </header>
 
-      {loading && <div className="notice-panel" role="status">Loading your saved {isPricing ? "pricing rules" : "promotions"}…</div>}
+      {loading && <div className="notice-panel" aria-live="polite">Loading your saved {isPricing ? "pricing rules" : "promotions"}…</div>}
       {error && <div className="notice-panel" role="alert">{error}</div>}
-      {notice && <div className="notice-panel" role="status">{notice}</div>}
+      {notice && <div className="notice-panel" aria-live="polite">{notice}</div>}
       {!loading && properties.length === 0 && <div className="notice-panel">Add a property before creating a pricing rule or promotion.</div>}
 
       {formOpen && !loading && properties.length > 0 && (
@@ -184,7 +187,7 @@ export function HostPricingPromotions({ view, token, hostUserId }: HostPricingPr
             </>}
             <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input checked={form.isActive} type="checkbox" onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /> Active in booking quotes</label>
           </div>
-          <button className="btn btn-primary mt-5" disabled={saving} type="submit">{saving ? "Saving…" : editingId ? "Save changes" : "Create"}</button>
+          <button className="btn btn-primary mt-5" disabled={saving} type="submit">{submitLabel}</button>
         </form>
       )}
 

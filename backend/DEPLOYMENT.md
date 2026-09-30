@@ -69,8 +69,22 @@ manager or `.env` file. Stripe Identity is the only supported eKYC provider.
 
 `.github/workflows/ci-cd.yml` runs restore, build and the full test suite for
 pull requests. A push to `main` then publishes the API, uploads a SHA-named
-release archive over SSH, switches `/opt/nestystay/backend/current`, restarts
-the `systemd` service and checks `/api/health/ready`.
+release archive over SSH, applies any pending reviewed EF Core migrations
+incrementally, switches `/opt/nestystay/backend/current`, restarts the
+`systemd` service and checks `/api/health/ready`.
+
+The migration step is data-preserving: it runs the migrations in the release
+in order and never clears, drops, recreates or resets the database. If a
+migration fails, the deployment stops before the new release is activated and
+the existing release remains the active service. The migration tool can also
+be run without `--apply` to perform a read-only pending-migration check.
+
+The staging workflow checks both live and ready health through the origin's
+local nginx listener (`127.0.0.1` with the staging hostname/SNI), so Cloudflare
+does not intercept the deploy-time readiness probe. It also checks the public
+ready endpoint from the GitHub runner. A Cloudflare 403 challenge from that
+runner is reported as a warning only after the origin check passes; verify the
+public URL separately from an allowed client network in that case.
 
 Create a GitHub `production` environment with these Actions secrets:
 

@@ -58,7 +58,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return <textarea className={cx(fieldClassName, "min-h-[120px] resize-y py-3", className)} {...props} />;
 }
 
-export function InlineLabel({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
+export function InlineLabel({ className, children, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
       className={cx(
@@ -67,6 +67,8 @@ export function InlineLabel({ className, ...props }: LabelHTMLAttributes<HTMLLab
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </label>
   );
 }

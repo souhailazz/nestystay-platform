@@ -70,9 +70,21 @@ public static class DependencyInjection
                 ? provider.GetRequiredService<StripeConnectPayoutProvider>()
                 : provider.GetRequiredService<ManualConnectPayoutProvider>();
         });
+        services.AddHttpClient("object-storage", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<LocalFileStorageProvider>();
+        services.AddSingleton<MinioStorageProvider>();
         services.AddSingleton<IStorageProvider>(provider =>
-            provider.GetRequiredService<LocalFileStorageProvider>());
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var storageProvider = ProviderFeatureFlags.From(configuration).ObjectStorageProvider;
+            return storageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase) ||
+                   storageProvider.Equals("s3", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<MinioStorageProvider>()
+                : provider.GetRequiredService<LocalFileStorageProvider>();
+        });
         services.AddSingleton<IFileSafetyScanner, MagicByteFileSafetyScanner>();
         services.AddSingleton<INotificationGateway, PersistentNotificationGateway>();
         services.AddSingleton<IEmailSender, EmailOutboxSender>();
@@ -508,6 +520,42 @@ internal sealed class StripePaymentGateway(IConfiguration configuration) : IPaym
             MapStripeStatus(status),
             null,
             publishableKey);
+    }
+
+    public async Task<PaymentVoidResult> VoidAuthorizationAsync(PaymentVoidRequest request, CancellationToken cancellationToken)
+    {
+        var secretKey = ResolveSetting("Integrations:StripeSecretKey", "STRIPE_SECRET_KEY");
+        if (string.IsNullOrWhiteSpace(secretKey) || request.AuthorizationReference.StartsWith("stripe_local_auth_", StringComparison.Ordinal))
+        {
+            var reference = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? $"stripe_local_void_{Guid.NewGuid():N}"
+                : $"stripe_local_void_{request.IdempotencyKey.Replace(":", "_", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal)}";
+            return new PaymentVoidResult(ProviderName, reference, PaymentStatus.Cancelled, request.Currency, DateTimeOffset.UtcNow);
+        }
+
+        using var document = await SendStripeFormAsync(
+            secretKey,
+            HttpMethod.Post,
+            $"/v1/payment_intents/{Uri.EscapeDataString(request.AuthorizationReference)}/cancel",
+            new Dictionary<string, string>
+            {
+                ["cancellation_reason"] = "requested_by_customer"
+            },
+            request.IdempotencyKey,
+            cancellationToken);
+        var root = document.RootElement;
+        var status = root.GetProperty("status").GetString() ?? string.Empty;
+        if (!string.Equals(status, "canceled", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Stripe did not cancel the payment authorization (status: {status}).");
+        }
+
+        return new PaymentVoidResult(
+            ProviderName,
+            root.GetProperty("id").GetString() ?? request.AuthorizationReference,
+            PaymentStatus.Cancelled,
+            request.Currency,
+            DateTimeOffset.UtcNow);
     }
 
     public async Task<PaymentCaptureResult> CaptureAsync(PaymentCaptureRequest request, CancellationToken cancellationToken)

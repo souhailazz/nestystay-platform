@@ -95,7 +95,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: DEPLOY_PATH,RELEASE_ARCHIVE,HEALTHCHECK_URL
+          envs: DEPLOY_PATH,RELEASE_ARCHIVE,HEALTHCHECK_URL,GITHUB_SHA
           script_stop: true
           script: |
             set -eu

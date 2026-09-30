@@ -117,7 +117,6 @@ function CalendarGrid({
             <div
               className="min-h-28 bg-shell p-2"
               key={key}
-              tabIndex={0}
               aria-label={`Events for ${date.toLocaleDateString()}`}
             >
               <div className="text-xs font-semibold text-ink-muted">
@@ -1199,7 +1198,7 @@ export function PropertyManagerProfessionalPage({
                           ? "basis-full rounded-field bg-mint-tint p-2 text-xs"
                           : "basis-full rounded-field bg-coral-tint p-2 text-xs text-coral-text"
                       }
-                      role="status"
+                      aria-live="polite"
                     >
                       {preview.allowed
                         ? `Available · ${preview.proposedNights} nights · ${preview.currency} ${preview.proposedTotal.toFixed(2)}`
@@ -2258,7 +2257,7 @@ export function PropertyManagerProfessionalPage({
       {notice && (
         <div
           className="mb-4 rounded-field bg-mint-tint px-4 py-3 text-sm"
-          role="status"
+          aria-live="polite"
         >
           {notice}
         </div>
@@ -2441,9 +2440,8 @@ export function PropertyManagerProfessionalPage({
                     server-calculated overlap warnings.
                   </p>
                 </div>
-                <div
-                  className="flex flex-wrap gap-2"
-                  role="group"
+                <fieldset
+                  className="flex flex-wrap gap-2 border-0 p-0"
                   aria-label="Calendar range"
                 >
                   <Button
@@ -2510,7 +2508,7 @@ export function PropertyManagerProfessionalPage({
                   >
                     Month
                   </Button>
-                </div>
+                </fieldset>
               </div>
               <p className="mt-2 text-sm font-semibold" aria-live="polite">
                 {calendarRange.start.toLocaleDateString()} –{" "}
@@ -3109,55 +3107,54 @@ export function PropertyManagerProfessionalPage({
                     </Button>
                     {(() => {
                       try {
-                        const checklist = JSON.parse(i.checklistJson) as Array<
-                          Record<string, unknown>
-                        >;
+                        const parsed = JSON.parse(i.checklistJson) as unknown;
+                        if (!Array.isArray(parsed) || parsed.length === 0) {
+                          return (
+                            <span className="mt-2 block text-xs text-coral-text">
+                              Checklist data is invalid.
+                            </span>
+                          );
+                        }
+                        const checklist = parsed as Array<Record<string, unknown>>;
                         return (
-                          checklist.length > 0 && (
-                            <div
-                              className="mt-2 space-y-1 rounded-field bg-shell p-2"
-                              aria-label={`Inspection checklist ${i.id}`}
-                            >
-                              {checklist.map((entry, index) => (
-                                <label
-                                  className="flex items-center gap-2 text-xs"
-                                  key={String(entry.id ?? index)}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={entry.completed === true}
-                                    onChange={(e) =>
-                                      void toggleInspectionChecklist(
-                                        i,
-                                        index,
-                                        e.target.checked,
-                                      )
-                                    }
-                                    disabled={
-                                      busy ||
-                                      i.status === "SIGNED_OFF" ||
-                                      i.status === "CANCELLED"
-                                    }
-                                  />
-                                  <span>
-                                    {String(
-                                      entry.label ??
-                                        entry.id ??
-                                        `Item ${index + 1}`,
-                                    )}
-                                    {entry.required === true
-                                      ? " (required)"
-                                      : ""}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          )
-                        );
-                        return (
-                          <span className="mt-2 block text-xs text-coral-text">
-                            Checklist data is invalid.
-                          </span>
+                          <div
+                            className="mt-2 space-y-1 rounded-field bg-shell p-2"
+                            aria-label={`Inspection checklist ${i.id}`}
+                          >
+                            {checklist.map((entry, index) => (
+                              <label
+                                className="flex items-center gap-2 text-xs"
+                                key={String(entry.id ?? index)}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={entry.completed === true}
+                                  onChange={(e) =>
+                                    void toggleInspectionChecklist(
+                                      i,
+                                      index,
+                                      e.target.checked,
+                                    )
+                                  }
+                                  disabled={
+                                    busy ||
+                                    i.status === "SIGNED_OFF" ||
+                                    i.status === "CANCELLED"
+                                  }
+                                />
+                                <span>
+                                  {String(
+                                    entry.label ??
+                                      entry.id ??
+                                      `Item ${index + 1}`,
+                                  )}
+                                  {entry.required === true
+                                    ? " (required)"
+                                    : ""}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
                         );
                       } catch {
                         return (

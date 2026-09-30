@@ -16,7 +16,6 @@ export function ActionBar({ children, className, sticky = false, labelledBy }: {
     <div
       aria-labelledby={labelledBy}
       className={cx("action-bar button-row", sticky && "action-bar--sticky", className)}
-      role="group"
     >
       {children}
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, FileText, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
@@ -92,8 +92,8 @@ export function BookingInvoicePage({ bookingId, auth }: BookingInvoicePageProps)
             </tr>
           </thead>
           <tbody>
-            {booking.priceBreakdown.map((line, idx) => (
-              <tr key={idx}>
+            {booking.priceBreakdown.map((line) => (
+              <tr key={`${line.code}-${line.description}`}>
                 <td data-label="Description">{line.description}</td>
                 <td className="text-right" data-label="Amount">{formatMoney(line.amount, line.currency)}</td>
               </tr>

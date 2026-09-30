@@ -23,6 +23,102 @@ function statusCopy(status: string) {
   }
 }
 
+type InsurancePropertyCardProps = {
+  property: InsuranceProperty;
+  plans: InsurancePlan[];
+  selectedPlan: string;
+  busy: boolean;
+  events: InsurancePolicyEvent[];
+  claims: InsuranceClaim[];
+  claimOpen: boolean;
+  incidentAt: string;
+  claimDescription: string;
+  claimEvidence: string;
+  onPlanChange: (value: string) => void;
+  onActivate: () => void;
+  onRenew: () => void;
+  onCancel: () => void;
+  onOpenClaim: () => void;
+  onCloseClaim: () => void;
+  onSubmitClaim: (event: React.FormEvent<HTMLFormElement>) => void;
+  onIncidentAtChange: (value: string) => void;
+  onClaimDescriptionChange: (value: string) => void;
+  onClaimEvidenceChange: (value: string) => void;
+};
+
+function InsurancePropertyCard({
+  property,
+  plans,
+  selectedPlan,
+  busy,
+  events,
+  claims,
+  claimOpen,
+  incidentAt,
+  claimDescription,
+  claimEvidence,
+  onPlanChange,
+  onActivate,
+  onRenew,
+  onCancel,
+  onOpenClaim,
+  onCloseClaim,
+  onSubmitClaim,
+  onIncidentAtChange,
+  onClaimDescriptionChange,
+  onClaimEvidenceChange,
+}: InsurancePropertyCardProps) {
+  const status = property.status.toUpperCase();
+  const canRenew = status === "ACTIVE" || status === "RENEWAL_DUE";
+  const canRetry = status === "FAILED" || status === "CANCELLED";
+
+  function renderActions() {
+    if (canRenew) {
+      return <>
+        <Button disabled={busy} onClick={onRenew} variant="outline">{busy ? "Saving…" : "Renew monthly"}</Button>
+        <Button disabled={busy} onClick={onCancel} variant="outline">Cancel coverage</Button>
+        {status === "ACTIVE" && <Button disabled={busy} onClick={onOpenClaim} variant="dark">Submit claim</Button>}
+      </>;
+    }
+    return <Button disabled={busy || !selectedPlan} onClick={onActivate} variant="dark">{busy ? "Saving…" : canRetry ? "Try coverage again" : "Activate coverage"}</Button>;
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h3 className="m-0 font-display text-xl">{property.propertyTitle}</h3><p className="m-0 mt-1 text-sm text-sand-600">{statusCopy(property.status)}</p></div>
+        <StatusChip value={property.status.replaceAll("_", " ")} />
+      </div>
+      {property.policy && <div className="mt-4 grid gap-2 rounded-field bg-shell p-3 text-sm sm:grid-cols-2">
+        <span>Provider <strong className="ml-1">{property.policy.provider}</strong></span>
+        <span>Plan <strong className="ml-1">{property.policy.planCode}</strong></span>
+        <span>Monthly <strong className="ml-1">{formatMoney(property.policy.monthlyAmount, property.policy.currency)}</strong></span>
+        <span>Effective <strong className="ml-1">{dateLabel(property.policy.effectiveAt)}</strong></span>
+        <span>Renews <strong className="ml-1">{dateLabel(property.policy.renewsAt)}</strong></span>
+        <span>Provider reference <strong className="ml-1">{property.policy.providerReference ?? "Pending reference"}</strong></span>
+      </div>}
+      <div className="mt-4 flex flex-wrap items-end gap-2">
+        <Field label="Plan">
+          <select aria-label={`Insurance plan for ${property.propertyTitle}`} className="min-h-11 rounded-field border-[1.5px] border-sand-input bg-white px-3 text-sm" disabled={busy || status === "ACTIVE"} onChange={(event) => onPlanChange(event.target.value)} value={selectedPlan}>
+            {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.code} · {formatMoney(plan.monthlyAmount, plan.currency)}</option>)}
+          </select>
+        </Field>
+        {renderActions()}
+      </div>
+      {events.length > 0 && <div className="mt-4 rounded-field border border-sand-border p-3"><h4 className="m-0 text-sm font-semibold">Policy lifecycle</h4><div className="mt-2 grid gap-1 text-xs text-sand-600">{events.map((item) => <div className="flex flex-wrap gap-1" key={item.id}><strong>{item.fromStatus.replaceAll("_", " ")} → {item.toStatus.replaceAll("_", " ")}</strong><span>· {item.reason}</span></div>)}</div></div>}
+      {claims.length > 0 && <div className="mt-4 rounded-field border border-sand-border p-3"><h4 className="m-0 text-sm font-semibold">Claims</h4><div className="mt-2 grid gap-1 text-xs text-sand-600">{claims.map((claim) => <div className="flex flex-wrap justify-between gap-2" key={claim.id}><span>{new Date(claim.incidentAt).toLocaleDateString()} · {claim.description}</span><StatusChip value={claim.status} /></div>)}</div></div>}
+      {claimOpen && <form className="mt-4 grid gap-3 rounded-field border border-sand-border bg-cream p-4" onSubmit={onSubmitClaim}>
+        <h4 className="m-0 font-display text-lg">Submit a claim</h4>
+        <p className="m-0 text-xs text-sand-600">Local provider workflow only. Approval or rejection by a real insurer is not implied.</p>
+        <Field label="Incident date and time"><Input required max={new Date().toISOString().slice(0, 16)} onChange={(event) => onIncidentAtChange(event.target.value)} type="datetime-local" value={incidentAt} /></Field>
+        <Field label="Description"><Textarea required onChange={(event) => onClaimDescriptionChange(event.target.value)} value={claimDescription} /></Field>
+        <Field label="Evidence references (JSON)"><Textarea aria-describedby="claim-evidence-help" onChange={(event) => onClaimEvidenceChange(event.target.value)} value={claimEvidence} /><span className="text-xs text-sand-500" id="claim-evidence-help">Use existing private object keys when available; do not paste identity documents here.</span></Field>
+        <div className="flex flex-wrap gap-2"><Button disabled={busy || !claimDescription.trim()} type="submit" variant="dark">Submit claim</Button><Button onClick={onCloseClaim} type="button" variant="outline">Close</Button></div>
+      </form>}
+    </Card>
+  );
+}
+
 export function HostInsurance({ token }: { token: string }) {
   const [plans, setPlans] = useState<InsurancePlan[]>([]);
   const [properties, setProperties] = useState<InsuranceProperty[]>([]);
@@ -144,7 +240,7 @@ export function HostInsurance({ token }: { token: string }) {
       </div>
 
       {error && <div className="rounded-card border border-coral bg-coral-tint p-4 text-sm text-coral-text" role="alert">{error}</div>}
-      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-sm text-mint-text" role="status">{notice}</div>}
+      {notice && <div className="rounded-card border border-mint bg-mint-tint p-4 text-sm text-mint-text" aria-live="polite">{notice}</div>}
       <div className="grid gap-3 sm:grid-cols-3">
         <Card><p className="m-0 text-xs uppercase tracking-[0.12em] text-sand-500">Available plans</p><strong className="mt-1 block font-display text-3xl">{plans.length}</strong></Card>
         <Card><p className="m-0 text-xs uppercase tracking-[0.12em] text-sand-500">Managed properties</p><strong className="mt-1 block font-display text-3xl">{properties.length}</strong></Card>
@@ -158,7 +254,7 @@ export function HostInsurance({ token }: { token: string }) {
 
       <section aria-labelledby="property-coverage-heading">
         <div className="mb-3 flex items-center justify-between gap-3"><h2 className="m-0 font-display text-2xl" id="property-coverage-heading">Property coverage</h2><span className="text-sm text-sand-600">Policy state is persisted per property.</span></div>
-        {!loading && properties.length === 0 ? <EmptyState title="No properties yet" copy="Create a property before configuring InsuraGuest coverage." /> : <div className="grid gap-4">{properties.map((property) => { const policy = property.policy; const status = property.status.toUpperCase(); const busy = busyProperty === property.propertyId; return <Card key={property.propertyId}><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="m-0 font-display text-xl">{property.propertyTitle}</h3><p className="m-0 mt-1 text-sm text-sand-600">{statusCopy(property.status)}</p></div><StatusChip value={property.status.replaceAll("_", " ")} /></div>{policy && <div className="mt-4 grid gap-2 rounded-field bg-shell p-3 text-sm sm:grid-cols-2"><span>Provider <strong className="ml-1">{policy.provider}</strong></span><span>Plan <strong className="ml-1">{policy.planCode}</strong></span><span>Monthly <strong className="ml-1">{formatMoney(policy.monthlyAmount, policy.currency)}</strong></span><span>Effective <strong className="ml-1">{dateLabel(policy.effectiveAt)}</strong></span><span>Renews <strong className="ml-1">{dateLabel(policy.renewsAt)}</strong></span><span>Provider reference <strong className="ml-1">{policy.providerReference ?? "Pending reference"}</strong></span></div>}<div className="mt-4 flex flex-wrap items-end gap-2"><Field label="Plan"><select aria-label={`Insurance plan for ${property.propertyTitle}`} className="min-h-11 rounded-field border-[1.5px] border-sand-input bg-white px-3 text-sm" disabled={busy || status === "ACTIVE"} onChange={(event) => setSelectedPlan((current) => ({ ...current, [property.propertyId]: event.target.value }))} value={selectedPlan[property.propertyId] ?? plans[0]?.code ?? ""}>{plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.code} · {formatMoney(plan.monthlyAmount, plan.currency)}</option>)}</select></Field>{status === "ACTIVE" || status === "RENEWAL_DUE" ? <><Button disabled={busy} onClick={() => void renew(property)} variant="outline">{busy ? "Saving…" : "Renew monthly"}</Button><Button disabled={busy} onClick={() => void cancel(property)} variant="outline">Cancel coverage</Button>{status === "ACTIVE" && <Button disabled={busy} onClick={() => setClaimProperty(property.propertyId)} variant="dark">Submit claim</Button>}</> : <Button disabled={busy || !selectedPlan[property.propertyId]} onClick={() => void activate(property)} variant="dark">{busy ? "Saving…" : status === "FAILED" || status === "CANCELLED" ? "Try coverage again" : "Activate coverage"}</Button>}</div>{(eventsByProperty[property.propertyId]?.length ?? 0) > 0 && <div className="mt-4 rounded-field border border-sand-border p-3"><h4 className="m-0 text-sm font-semibold">Policy lifecycle</h4><div className="mt-2 grid gap-1 text-xs text-sand-600">{eventsByProperty[property.propertyId].map((item) => <div className="flex flex-wrap gap-1" key={item.id}><strong>{item.fromStatus.replaceAll("_", " ")} → {item.toStatus.replaceAll("_", " ")}</strong><span>· {item.reason}</span></div>)}</div></div>}{(claimsByProperty[property.propertyId]?.length ?? 0) > 0 && <div className="mt-4 rounded-field border border-sand-border p-3"><h4 className="m-0 text-sm font-semibold">Claims</h4><div className="mt-2 grid gap-1 text-xs text-sand-600">{claimsByProperty[property.propertyId].map((claim) => <div className="flex flex-wrap justify-between gap-2" key={claim.id}><span>{new Date(claim.incidentAt).toLocaleDateString()} · {claim.description}</span><StatusChip value={claim.status} /></div>)}</div></div>}{claimProperty === property.propertyId && <form className="mt-4 grid gap-3 rounded-field border border-sand-border bg-cream p-4" onSubmit={submitClaim}><h4 className="m-0 font-display text-lg">Submit a claim</h4><p className="m-0 text-xs text-sand-600">Local provider workflow only. Approval or rejection by a real insurer is not implied.</p><Field label="Incident date and time"><Input required max={new Date().toISOString().slice(0, 16)} onChange={(event) => setIncidentAt(event.target.value)} type="datetime-local" value={incidentAt} /></Field><Field label="Description"><Textarea required onChange={(event) => setClaimDescription(event.target.value)} value={claimDescription} /></Field><Field label="Evidence references (JSON)"><Textarea aria-describedby="claim-evidence-help" onChange={(event) => setClaimEvidence(event.target.value)} value={claimEvidence} /><span className="text-xs text-sand-500" id="claim-evidence-help">Use existing private object keys when available; do not paste identity documents here.</span></Field><div className="flex flex-wrap gap-2"><Button disabled={busy || !claimDescription.trim()} type="submit" variant="dark">Submit claim</Button><Button onClick={() => setClaimProperty(null)} type="button" variant="outline">Close</Button></div></form>}</Card>; })}</div>}
+        {!loading && properties.length === 0 ? <EmptyState title="No properties yet" copy="Create a property before configuring InsuraGuest coverage." /> : <div className="grid gap-4">{properties.map((property) => <InsurancePropertyCard key={property.propertyId} busy={busyProperty === property.propertyId} claimDescription={claimDescription} claimEvidence={claimEvidence} claimOpen={claimProperty === property.propertyId} claims={claimsByProperty[property.propertyId] ?? []} events={eventsByProperty[property.propertyId] ?? []} incidentAt={incidentAt} onActivate={() => void activate(property)} onCancel={() => void cancel(property)} onClaimDescriptionChange={setClaimDescription} onClaimEvidenceChange={setClaimEvidence} onCloseClaim={() => setClaimProperty(null)} onIncidentAtChange={setIncidentAt} onOpenClaim={() => setClaimProperty(property.propertyId)} onPlanChange={(value) => setSelectedPlan((current) => ({ ...current, [property.propertyId]: value }))} onRenew={() => void renew(property)} onSubmitClaim={submitClaim} plans={plans} property={property} selectedPlan={selectedPlan[property.propertyId] ?? plans[0]?.code ?? ""} />)}</div>}
       </section>
     </div>
   );

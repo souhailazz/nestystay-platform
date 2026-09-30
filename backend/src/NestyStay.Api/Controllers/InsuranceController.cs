@@ -258,7 +258,7 @@ public sealed class InsuranceController(
 
 public sealed record InsuranceActivationRequest(string PlanCode, string IdempotencyKey);
 public sealed record InsuranceLifecycleRequest(string IdempotencyKey);
-public sealed record InsuranceClaimRequest(DateTimeOffset IncidentAt, string Description, Guid? BookingId = null, string EvidenceJson = "[]");
+public sealed record InsuranceClaimRequest([property: System.Text.Json.Serialization.JsonRequired] DateTimeOffset IncidentAt, string Description, Guid? BookingId = null, string EvidenceJson = "[]");
 public sealed record InsurancePropertyDto(Guid PropertyId, string PropertyTitle, bool CoverageFlag, string Status, InsurancePolicyDto? Policy);
 public sealed record InsurancePolicyDto(Guid Id, Guid PropertyId, Guid HostUserId, string Provider, string PlanCode, string Market, decimal MonthlyAmount, string Currency, decimal PropertyDamageCoverage, decimal AccidentalMedicalCoverage, string Status, string? ProviderReference, DateTimeOffset? EffectiveAt, DateTimeOffset? RenewsAt, DateTimeOffset? CancelledAt, string? FailureReason);
 public sealed record InsuranceClaimDto(Guid Id, Guid PolicyId, Guid PropertyId, Guid? BookingId, DateTimeOffset IncidentAt, string Description, string EvidenceJson, string Status, string? ProviderReference, DateTimeOffset SubmittedAt);

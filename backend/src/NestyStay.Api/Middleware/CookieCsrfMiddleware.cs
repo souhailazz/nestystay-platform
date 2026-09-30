@@ -38,7 +38,7 @@ public sealed class CookieCsrfMiddleware(RequestDelegate next)
                     title = "CSRF validation failed",
                     status = StatusCodes.Status403Forbidden,
                     detail = "A valid CSRF token is required for cookie-authenticated changes."
-                });
+                }, context.RequestAborted);
                 return;
             }
         }

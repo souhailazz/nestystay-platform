@@ -173,7 +173,7 @@ export function BookingPendingPage({ bookingId, auth }: BookingPendingPageProps)
               {timeline.map((item, idx) => {
                 const isLast = idx === timeline.length - 1;
                 return (
-                  <div className="grid grid-cols-[20px_1fr] gap-3.5" key={idx}>
+                  <div className="grid grid-cols-[20px_1fr] gap-3.5" key={item}>
                     <div className="flex flex-col items-center">
                       <span className={`mt-[3px] size-3 rounded-full ${isLast ? "bg-amber" : "bg-success"}`} />
                       {!isLast && <span className="w-0.5 flex-1 bg-sand-border" />}

@@ -1,4 +1,14 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
+function trimTrailingSlashes(value: string) {
+  let normalized = value;
+  while (normalized.endsWith("/")) normalized = normalized.slice(0, -1);
+  return normalized;
+}
+
+function withOptionalReason(path: string, reason?: string) {
+  return reason ? `${path}?reason=${encodeURIComponent(reason)}` : path;
+}
+
+export const API_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL ?? "/api");
 
 export type UserRole = "Guest" | "Host" | "Owner" | "Admin" | "Officer" | "ServiceProvider" | "LocalBusiness" | "PropertyManager";
 
@@ -114,6 +124,8 @@ export type UserProfile = {
   roles: UserRole[];
   isTwoFactorEnabled: boolean;
   photo?: UserProfilePhoto | null;
+  emailVerified?: boolean;
+  updatedAt?: string | null;
 };
 
 export type UserSession = {
@@ -211,6 +223,7 @@ export type PropertyListing = {
   latitude?: number | null;
   longitude?: number | null;
   galleryUrls?: string[];
+  updatedAt?: string | null;
   ratingAverage?: number;
   reviewCount?: number;
   moderationStatus?: string;
@@ -397,6 +410,8 @@ export type Booking = {
   rejectionSource?: string | null;
   rejectedByUserId?: string | null;
   rejectedAt?: string | null;
+  isDateHold?: boolean;
+  updatedAt?: string | null;
 };
 
 export type HostVerification = {
@@ -434,6 +449,7 @@ export type CreateBookingRequest = BookingQuoteRequest & {
   ekycMetaInfo?: string;
   documentType?: string;
   ekycCallbackUrl?: string;
+  dateHoldId?: string;
 };
 
 export type BadgeLevel = "Free" | "Verified" | "Trusted" | "Wellness";
@@ -691,8 +707,6 @@ export type WellnessQuoteRequest = {
   parish: string;
   area?: string | null;
 };
-
-export type CreateWellnessVisitRequest = WellnessQuoteRequest;
 
 export type WellnessVisit = {
   id: string;
@@ -1612,7 +1626,7 @@ export const api = {
       database: string;
       openApi: string;
     }>("/health"),
-  integrationStatus: (token: string) =>
+  integrationStatus: (token?: string) =>
     request<{ generatedAt: string; services: IntegrationStatus[] }>("/health/integrations", { token }),
   register: (body: RegisterUserRequest) =>
     request<RegisterUserResponse>("/auth/register", { method: "POST", body }),
@@ -1746,6 +1760,8 @@ export const api = {
     request<BookingQuote>("/bookings/quote", { method: "POST", body }),
   createBooking: (body: CreateBookingRequest, token: string) =>
     request<Booking>("/bookings", { method: "POST", body, token }),
+  holdBookingDates: (body: { propertyId: string; checkIn: string; checkOut: string; adults?: number; children?: number }, token: string) =>
+    request<Booking>("/bookings/hold-dates", { method: "POST", body, token }),
   resolveVerification: (bookingId: string, passed: boolean, providerReference: string, token: string) =>
     request<Booking>(`/bookings/${bookingId}/verification-result`, {
       method: "POST",
@@ -1760,6 +1776,8 @@ export const api = {
     request<Booking>(`/bookings/${bookingId}/reject`, { method: "POST", token, body: { reason } }),
   refundPayment: (bookingId: string, token: string, body: { amount?: number; reason?: string; idempotencyKey?: string }) =>
     request<Booking>(`/bookings/${bookingId}/refund-payment`, { method: "POST", token, body }),
+  voidPayment: (bookingId: string, token: string) =>
+    request<Booking>(`/bookings/${bookingId}/void-payment`, { method: "POST", token }),
   downloadBookingInvoice: (bookingId: string, token: string) =>
     requestFile(`/bookings/${bookingId}/invoice`, token),
   downloadBookingReceipt: (bookingId: string, token: string) =>
@@ -1807,12 +1825,12 @@ export const api = {
       { token },
     ),
   expireBadgeAssignment: (assignmentId: string, token: string, reason?: string) =>
-    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/expire${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`, {
+    request<BadgeAssignment>(withOptionalReason(`/badges-pricing/badges/assignments/${assignmentId}/expire`, reason), {
       method: "POST",
       token,
     }),
   suspendBadgeAssignment: (assignmentId: string, token: string, reason?: string) =>
-    request<BadgeAssignment>(`/badges-pricing/badges/assignments/${assignmentId}/suspend${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`, {
+    request<BadgeAssignment>(withOptionalReason(`/badges-pricing/badges/assignments/${assignmentId}/suspend`, reason), {
       method: "POST",
       token,
     }),
@@ -1883,7 +1901,7 @@ export const api = {
   startWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions", { method: "POST", token }),
   renewWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions/renew", { method: "POST", token }),
   cancelWellnessSubscription: (token: string) => request<WellnessSubscription>("/wellness/subscriptions/cancel", { method: "POST", token }),
-  createWellnessVisit: (body: CreateWellnessVisitRequest, token?: string) =>
+  createWellnessVisit: (body: WellnessQuoteRequest, token?: string) =>
     request<WellnessVisit>("/wellness/visits", { method: "POST", body, token }),
   getWellnessVisits: (params: { hostUserId?: string; propertyId?: string; officerId?: string } = {}, token?: string) =>
     request<WellnessVisit[]>("/wellness/visits" + withQuery("", params), { token }),

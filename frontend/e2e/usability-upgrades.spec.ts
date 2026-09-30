@@ -1,15 +1,5 @@
 import { expect, test } from "@playwright/test";
-
-const hostSession = {
-  userId: "usability-host",
-  email: "usability-host@nestystay.local",
-  displayName: "Usability Host",
-  // Browser sessions intentionally do not persist bearer secrets. API calls use the secure cookie mode.
-  accessToken: "",
-  expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-  roles: ["Host"],
-  permissions: [],
-};
+import { registerAndLoginSession } from "./helpers/session";
 
 test.describe("global usability upgrades", () => {
   test("public search is keyboard reachable and deep-links into filtered stays", async ({ page }) => {
@@ -27,8 +17,7 @@ test.describe("global usability upgrades", () => {
   });
 
   test("role workspace exposes shortcuts, breadcrumbs, back action, and keyboard search", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), hostSession);
+    await registerAndLoginSession(page, "Host", "Usability Host");
     await page.goto("/host-dashboard", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
@@ -47,16 +36,7 @@ test.describe("global usability upgrades", () => {
   });
 
   test("notification preferences provide accessible channel controls and persistence", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), {
-      userId: "usability-guest",
-      email: "usability-guest@nestystay.local",
-      displayName: "Usability Guest",
-      accessToken: "",
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      roles: ["Guest"],
-      permissions: [],
-    });
+    await registerAndLoginSession(page, "Guest", "Usability Guest");
     await page.goto("/traveler/notifications", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Notification preferences" })).toBeVisible();
     const sms = page.getByRole("checkbox", { name: "SMS notifications" });
@@ -68,8 +48,7 @@ test.describe("global usability upgrades", () => {
   });
 
   test("host property wizard keeps a real draft and provides listing preview/photo controls", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), hostSession);
+    await registerAndLoginSession(page, "Host", "Usability Host");
     await page.goto("/host/properties/new", { waitUntil: "domcontentloaded" });
 
     await expect(page.locator("#HOST-05")).toBeVisible();
@@ -99,8 +78,7 @@ test.describe("global usability upgrades", () => {
 
   test("mobile workspace navigation stays visible with large touch targets", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile-chromium", "Mobile navigation is only visible below the md breakpoint.");
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.evaluate((session) => window.localStorage.setItem("nestyStay.session", JSON.stringify(session)), hostSession);
+    await registerAndLoginSession(page, "Host", "Usability Host");
     await page.goto("/host-dashboard", { waitUntil: "domcontentloaded" });
     const mobileNav = page.getByRole("navigation", { name: "Mobile workspace navigation" });
     await expect(mobileNav).toBeVisible();

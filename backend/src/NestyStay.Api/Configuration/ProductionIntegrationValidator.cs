@@ -28,17 +28,32 @@ public static class ProductionIntegrationValidator
         }
 
         var providerFlags = ProviderFeatureFlags.From(configuration);
+        var requiredSettings = RequiredSettings.Concat(new[]
+        {
+            new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL")
+        }).ToArray();
+
+        ValidateIdentityProvider(providerFlags);
+        ValidateRequiredSettings(configuration, requiredSettings);
+        ValidateLegacyAdmin(configuration);
+        ValidateSecretsAndDatabase(configuration);
+        ValidateStripe(configuration);
+        ValidateBrevo(configuration, providerFlags);
+        ValidateStorage(configuration, environment, providerFlags);
+        ValidateAdminBootstrap(configuration);
+    }
+
+    private static void ValidateIdentityProvider(ProviderFeatureFlags providerFlags)
+    {
         if (providerFlags.EkycProvider is not ("stripe_identity" or "stripe-identity" or "stripeidentity"))
         {
             throw new InvalidOperationException(
                 $"Unsupported identity provider '{providerFlags.EkycProvider}'. NestyStay supports stripe_identity only.");
         }
+    }
 
-        var identitySettings = new[]
-        {
-            new RequiredSetting("Integrations:StripeIdentityReturnUrl", "STRIPE_IDENTITY_RETURN_URL", "Stripe Identity return URL")
-        };
-        var requiredSettings = RequiredSettings.Concat(identitySettings).ToArray();
+    private static void ValidateRequiredSettings(IConfiguration configuration, RequiredSetting[] requiredSettings)
+    {
         var missing = requiredSettings
             .Where(setting => string.IsNullOrWhiteSpace(Resolve(configuration, setting)))
             .Select(setting => $"{setting.Description} ({setting.ConfigurationKey} or {setting.EnvironmentKey})")
@@ -54,7 +69,10 @@ public static class ProductionIntegrationValidator
         {
             RejectPlaceholderValue(configuration, setting);
         }
+    }
 
+    private static void ValidateLegacyAdmin(IConfiguration configuration)
+    {
         if (configuration.GetValue<bool>("Security:AllowLegacyAdminTokens") &&
             string.IsNullOrWhiteSpace(Resolve(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"))))
         {
@@ -67,7 +85,10 @@ public static class ProductionIntegrationValidator
             RequireSha256Hex(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"));
             RejectPlaceholderValue(configuration, new RequiredSetting("Security:AdminTokenSha256", "NESTYSTAY_ADMIN_TOKEN_SHA256", "admin token hash"));
         }
+    }
 
+    private static void ValidateSecretsAndDatabase(IConfiguration configuration)
+    {
         var sessionSecret = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Security:SessionTokenSecret"));
         if (sessionSecret is not null && System.Text.Encoding.UTF8.GetByteCount(sessionSecret) < MinimumSessionTokenSecretBytes)
         {
@@ -81,11 +102,14 @@ public static class ProductionIntegrationValidator
         }
 
         var connectionString = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "ConnectionStrings:Postgres"));
-        if (Contains(connectionString, "Database=nestystay_dev") || Contains(connectionString, "Password=nestystay"))
+        if (Contains(connectionString, "Database=nestystay_dev") || Contains(connectionString, "Password=nestystay")) // NOSONAR: this deliberately detects a known development credential marker.
         {
             throw new InvalidOperationException("Production PostgreSQL connection string uses a development database name or password.");
         }
+    }
 
+    private static void ValidateStripe(IConfiguration configuration)
+    {
         var stripeSecretKey = Resolve(configuration, RequiredSettings.Single(setting => setting.ConfigurationKey == "Integrations:StripeSecretKey"));
         if (stripeSecretKey?.StartsWith("sk_test_", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -109,7 +133,10 @@ public static class ProductionIntegrationValidator
         {
             throw new InvalidOperationException("Production Stripe Identity return URL must be an absolute HTTPS URL.");
         }
+    }
 
+    private static void ValidateBrevo(IConfiguration configuration, ProviderFeatureFlags providerFlags)
+    {
         // Keep production validation on the same selector resolution as DI and
         // the integration-health endpoint. This honors EMAIL_PROVIDER and its
         // backwards-compatible NESTYSTAY_EMAIL_PROVIDER alias instead of
@@ -129,14 +156,64 @@ public static class ProductionIntegrationValidator
                 throw new InvalidOperationException("Production Brevo email configuration contains a placeholder value.");
             }
         }
+    }
 
+    private static void ValidateStorage(IConfiguration configuration, IHostEnvironment environment, ProviderFeatureFlags providerFlags)
+    {
         var storageProvider = providerFlags.ObjectStorageProvider.Trim().ToLowerInvariant();
-        if (storageProvider is not ("local" or "filesystem" or "server" or "server_local"))
+        if (storageProvider is "minio" or "s3")
         {
-            throw new InvalidOperationException(
-                $"Unsupported object storage provider '{providerFlags.ObjectStorageProvider}'. NestyStay uses private server-local storage only.");
+            ValidateMinioStorage(configuration);
+            return;
         }
 
+        if (storageProvider is "local" or "filesystem" or "server" or "server_local")
+        {
+            ValidateLocalStorage(configuration, environment);
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Unsupported object storage provider '{providerFlags.ObjectStorageProvider}'. Select MinIO/S3 or private server-local storage.");
+    }
+
+    private static void ValidateMinioStorage(IConfiguration configuration)
+    {
+        var minioEndpoint = configuration["Integrations:MinioEndpoint"] ?? Environment.GetEnvironmentVariable("MINIO_ENDPOINT");
+        var minioBucket = configuration["Integrations:MinioBucket"] ?? Environment.GetEnvironmentVariable("MINIO_BUCKET");
+        var minioAccessKey = configuration["Integrations:MinioAccessKey"] ?? Environment.GetEnvironmentVariable("MINIO_ACCESS_KEY") ?? configuration["Integrations:MinioRootUser"] ?? Environment.GetEnvironmentVariable("MINIO_ROOT_USER");
+        var minioSecretKey = configuration["Integrations:MinioSecretKey"] ?? Environment.GetEnvironmentVariable("MINIO_SECRET_KEY") ?? configuration["Integrations:MinioRootPassword"] ?? Environment.GetEnvironmentVariable("MINIO_ROOT_PASSWORD");
+        var missingMinio = new[]
+        {
+            (Value: minioEndpoint, Description: "MinIO endpoint"),
+            (Value: minioBucket, Description: "MinIO bucket"),
+            (Value: minioAccessKey, Description: "MinIO access key"),
+            (Value: minioSecretKey, Description: "MinIO secret key")
+        }.Where(setting => string.IsNullOrWhiteSpace(setting.Value)).Select(setting => setting.Description).ToArray();
+        if (missingMinio.Length > 0)
+        {
+            throw new InvalidOperationException("Production MinIO storage configuration is incomplete. Missing: " + string.Join(", ", missingMinio));
+        }
+
+        RejectPlaceholderValue(minioEndpoint, "MinIO endpoint");
+        RejectPlaceholderValue(minioBucket, "MinIO bucket");
+        RejectPlaceholderValue(minioAccessKey, "MinIO access key");
+        RejectPlaceholderValue(minioSecretKey, "MinIO secret key");
+        if (!Uri.TryCreate(minioEndpoint, UriKind.Absolute, out var minioUri) ||
+            (!string.Equals(minioUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(minioUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Production MinIO endpoint must be an absolute HTTP or HTTPS URL.");
+        }
+
+        if (System.Text.Encoding.UTF8.GetByteCount(minioSecretKey!) < 16)
+        {
+            throw new InvalidOperationException("Production MinIO secret key must be at least 16 bytes.");
+        }
+    }
+
+    private static void ValidateLocalStorage(IConfiguration configuration, IHostEnvironment environment)
+    {
         var localStorageSettings = new[]
         {
             new RequiredSetting("Integrations:LocalStorageRoot", "NESTYSTAY_STORAGE_LOCAL_ROOT", "private server storage root"),
@@ -148,8 +225,7 @@ public static class ProductionIntegrationValidator
             .ToArray();
         if (missingLocalStorage.Length > 0)
         {
-            throw new InvalidOperationException(
-                "Production server-local storage configuration is incomplete. Missing: " + string.Join("; ", missingLocalStorage));
+            throw new InvalidOperationException("Production server-local storage configuration is incomplete. Missing: " + string.Join("; ", missingLocalStorage));
         }
 
         foreach (var setting in localStorageSettings) RejectPlaceholderValue(configuration, setting);
@@ -174,7 +250,10 @@ public static class ProductionIntegrationValidator
         {
             throw new InvalidOperationException("Production private server storage root must not be inside the application or web root.");
         }
+    }
 
+    private static void ValidateAdminBootstrap(IConfiguration configuration)
+    {
         if (ResolveBoolean(configuration, "Security:AdminBootstrap:Enabled", "NESTYSTAY_ADMIN_BOOTSTRAP_ENABLED"))
         {
             var bootstrapEmail = new RequiredSetting("Security:AdminBootstrap:Email", "NESTYSTAY_ADMIN_BOOTSTRAP_EMAIL", "administrator bootstrap email");
@@ -210,12 +289,17 @@ public static class ProductionIntegrationValidator
     private static void RejectPlaceholderValue(IConfiguration configuration, RequiredSetting setting)
     {
         var value = Resolve(configuration, setting);
+        RejectPlaceholderValue(value, setting.Description);
+    }
+
+    private static void RejectPlaceholderValue(string? value, string description)
+    {
         if (Contains(value, "replace-with") ||
             Contains(value, "<") ||
             Contains(value, "development-only") ||
             Contains(value, "dev-webhook-secret"))
         {
-            throw new InvalidOperationException($"Production {setting.Description} contains a placeholder or development value.");
+            throw new InvalidOperationException($"Production {description} contains a placeholder or development value.");
         }
     }
 

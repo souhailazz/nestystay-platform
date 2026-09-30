@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, MapPin, Clock, Users, ArrowRight } from "lucide-react";
+import { MapPin, Clock, ArrowRight } from "lucide-react";
 import { formatMoney } from "../../lib/api";
 import { PatoisPhrase } from "../../lib/patois";
 import { announceFeedback } from "../../lib/feedback";
@@ -10,7 +10,7 @@ interface ExperiencesPageProps {
 }
 
 export function ExperiencesPage({ view }: ExperiencesPageProps) {
-  const [experiences, setExperiences] = useState<JamaicanExperience[]>([
+  const [experiences] = useState<JamaicanExperience[]>([
     {
       id: "exp-1",
       title: "Dunn's River Falls & Ocho Rios Catamaran Cruise",
@@ -38,7 +38,7 @@ export function ExperiencesPage({ view }: ExperiencesPageProps) {
   ]);
 
   return (
-    <div className="page-container container py-6" data-testid="pub-05-page" id="PUB-05">
+    <div className="page-container container py-6" data-testid="pub-05-page" data-view={view} id="PUB-05">
       <header className="page-header mb-6">
         <span className="badge badge-sun">PUB-05 / PUB-08</span>
         <h2>Jamaican Local Experiences</h2>

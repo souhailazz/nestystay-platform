@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { SCREEN_MANIFEST, USER_ROLES, type ScreenDefinition } from "../src/app/routeManifest";
+import { installCookieSession, registerAndLoginSession, type BrowserSession } from "./helpers/session";
 
 type BrowserRole = "anonymous" | (typeof USER_ROLES)[number];
 type InventoryResult = {
@@ -29,7 +30,6 @@ const TEST_VALUE_BY_PARAM: Record<string, string> = {
 };
 const supportedProjects = ["desktop-chromium", "tablet-chromium", "mobile-chromium"] as const;
 const evidenceDir = path.resolve(process.cwd(), "..", "testing-evidence", "final-hardening", "07-browser");
-const password = "NestyStay1";
 
 test.describe.configure({ mode: "serial", timeout: 600_000 });
 
@@ -42,17 +42,20 @@ test("99 canonical screens and 57 aliases render from the canonical manifest", a
   expect(SCREEN_MANIFEST).toHaveLength(99);
   expect(cases.filter((item) => item.kind === "canonical")).toHaveLength(99);
   expect(cases.filter((item) => item.kind === "alias")).toHaveLength(57);
+  const browserCases = cases.filter((item) => item.role !== "Admin");
 
   const results: InventoryResult[] = [];
   await page.goto("/", { waitUntil: "domcontentloaded" });
   let activeRole: BrowserRole | null = null;
-  let activeSession: Session | null = null;
-  for (const item of cases) {
+  let activeSession: BrowserSession | null = null;
+  for (const item of browserCases) {
     if (item.role !== activeRole) {
       activeRole = item.role;
       activeSession = await provisionSession(page, item.role);
+      if (activeSession) await installCookieSession(page, activeSession);
+      else await page.context().clearCookies();
     }
-    await setSyntheticSession(page, activeSession);
+    await setSessionMetadata(page, activeSession);
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     const failedRequests: string[] = [];
@@ -62,11 +65,20 @@ test("99 canonical screens and 57 aliases render from the canonical manifest", a
       }
     };
     const onPageError = (error: Error) => pageErrors.push(error.message);
+    const onRequestFailed = (request: { url(): string; failure(): { errorText?: string } | null }) => {
+      const failure = request.failure();
+      // Embedded third-party documents are cancelled when the route inventory
+      // immediately navigates to the next screen; that is not an application
+      // failure. API 4xx/5xx responses remain covered by the response listener.
+      if (failure?.errorText === "net::ERR_ABORTED") return;
+      consoleErrors.push(`Failed resource ${request.url()}${failure?.errorText ? ` (${failure.errorText})` : ""}`);
+    };
     const onResponse = (response: { status(): number; url(): string }) => {
       if (response.status() >= 500) failedRequests.push(`${response.status()} ${response.url()}`);
     };
     page.on("console", onConsole);
     page.on("pageerror", onPageError);
+    page.on("requestfailed", onRequestFailed);
     page.on("response", onResponse);
     let documentStatus = 0;
     let shellRendered = false;
@@ -93,6 +105,7 @@ test("99 canonical screens and 57 aliases render from the canonical manifest", a
     } finally {
       page.off("console", onConsole);
       page.off("pageerror", onPageError);
+      page.off("requestfailed", onRequestFailed);
       page.off("response", onResponse);
     }
     results.push({
@@ -118,6 +131,8 @@ test("99 canonical screens and 57 aliases render from the canonical manifest", a
     routePatterns: 156,
     aliases: 57,
     project: testInfo.project.name,
+    adminRoutes: cases.length - browserCases.length,
+    adminStatus: "CONFIG_BLOCKED",
     results,
   }, null, 2));
 });
@@ -137,9 +152,12 @@ test("every configured role reaches its landing route and is denied a foreign wo
   };
   const checks: Array<Record<string, unknown>> = [];
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  for (const role of USER_ROLES) {
-    await setSyntheticSession(page, syntheticSessionForRole(role));
-    await page.goto(landingRoutes[role], { waitUntil: "domcontentloaded" });
+  const testableRoles = USER_ROLES.filter((role) => role !== "Admin");
+  const sessions = new Map<string, BrowserSession>();
+  for (const role of testableRoles) {
+    const session = await registerAndLoginSession(page, role, `${role} Authorization`);
+    sessions.set(role, session);
+    await gotoAuthenticatedRoute(page, session, landingRoutes[role]);
     await expect(page.locator("[data-route-name]")).toHaveCount(1);
     await expect(page.getByRole("navigation", { name: "Workspace navigation", exact: true })).toBeVisible();
     const mobileNavigation = page.locator('nav[aria-label="Mobile workspace navigation"]');
@@ -150,21 +168,32 @@ test("every configured role reaches its landing route and is denied a foreign wo
     checks.push({ role, landing: landingRoutes[role], landingStatus: "passed", mobileNavigationItems: mobileItems });
   }
 
-  for (const role of USER_ROLES.filter((candidate) => candidate !== "PropertyManager")) {
-    await setSyntheticSession(page, syntheticSessionForRole(role));
+  for (const role of testableRoles.filter((candidate) => candidate !== "PropertyManager")) {
+    await installCookieSession(page, sessions.get(role)!);
     await page.goto("/pm/dashboard", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /Access is restricted/i })).toBeVisible();
     checks.push({ role, deniedRoute: "/pm/dashboard", forbiddenStatus: "passed" });
   }
 
-  await setSyntheticSession(page, syntheticSessionForRole("PropertyManager"));
-  await page.goto("/pm/dashboard", { waitUntil: "domcontentloaded" });
+  await gotoAuthenticatedRoute(page, sessions.get("PropertyManager")!, "/pm/dashboard");
   await expect(page.locator("[data-route-name]")).toHaveCount(1);
   checks.push({ role: "PropertyManager", authorizedRoute: "/pm/dashboard", authorizedStatus: "passed" });
 
   mkdirSync(evidenceDir, { recursive: true });
-  writeFileSync(path.join(evidenceDir, `role-authorization-${testInfo.project.name}.json`), JSON.stringify({ generatedAt: new Date().toISOString(), roles: 8, project: testInfo.project.name, checks }, null, 2));
+  checks.push({ role: "Admin", status: "CONFIG_BLOCKED", reason: "No legitimate local/staging Admin account was provisioned." });
+  writeFileSync(path.join(evidenceDir, `role-authorization-${testInfo.project.name}.json`), JSON.stringify({ generatedAt: new Date().toISOString(), roles: USER_ROLES.length, project: testInfo.project.name, checks }, null, 2));
 });
+
+async function gotoAuthenticatedRoute(page: Page, session: BrowserSession, route: string) {
+  await installCookieSession(page, session);
+  await page.goto(route, { waitUntil: "networkidle" });
+  const shell = page.locator("[data-route-name]");
+  if (await shell.count() !== 1) {
+    // The app hydrates cookie-backed identity on a fresh document. A single
+    // reload makes that boundary deterministic without bypassing auth.
+    await page.reload({ waitUntil: "networkidle" });
+  }
+}
 
 function roleFor(screen: ScreenDefinition): BrowserRole {
   if (screen.auth === "public") return "anonymous";
@@ -175,69 +204,19 @@ function materialize(pattern: string) {
   return pattern.replace(/:([A-Za-z]+)/g, (_, key: string) => TEST_VALUE_BY_PARAM[key] ?? "sample");
 }
 
-async function setSyntheticSession(page: Page, session: Session | null) {
+async function setSessionMetadata(page: Page, session: BrowserSession | null) {
   await page.evaluate((value) => {
     if (!value) window.localStorage.removeItem("nestyStay.session");
     else window.localStorage.setItem("nestyStay.session", JSON.stringify(value));
-  }, session);
+  }, session ? { ...session, accessToken: "" } : null);
 }
 
-type Session = {
-  userId: string;
-  email: string;
-  displayName: string;
-  accessToken: string;
-  expiresAt: string;
-  roles: (typeof USER_ROLES)[number][];
-  permissions: string[];
-};
-
-function syntheticSessionForRole(role: (typeof USER_ROLES)[number]): Session {
-  return {
-    userId: `route-authorization-${role.toLowerCase()}`,
-    email: `${role.toLowerCase()}@route-authorization.local`,
-    displayName: `${role} Authorization`,
-    accessToken: "",
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    roles: [role],
-    permissions: role === "Admin" ? ["super_administration"] : [],
-  };
-}
-
-async function provisionSession(page: Page, role: BrowserRole): Promise<Session | null> {
+async function provisionSession(page: Page, role: BrowserRole): Promise<BrowserSession | null> {
   await page.context().clearCookies();
   if (role === "anonymous") return null;
   if (role === "Admin") {
-    return {
-      userId: "route-inventory-admin",
-      email: "admin@route-inventory.local",
-      displayName: "Admin Inventory",
-      accessToken: "",
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      roles: ["Admin"],
-      permissions: ["super_administration"],
-    };
+    throw new Error("ADMIN_BROWSER=CONFIG_BLOCKED: a real local/staging Admin account is required; synthetic roles are not permitted.");
   }
 
-  const email = `route-inventory-${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@nestystay.local`;
-  const registration = await page.request.post("/api/auth/register", {
-    data: { email, password, confirmPassword: password, displayName: `${role} Inventory`, phone: "+15550102032", acceptedTerms: true, acceptedPrivacy: true, role },
-  });
-  expect(registration.ok(), await registration.text()).toBeTruthy();
-  const registered = await registration.json() as { userId: string; displayName: string };
-  const login = await page.request.post("/api/auth/login", {
-    headers: { "X-Session-Mode": "cookie" },
-    data: { email, password },
-  });
-  expect(login.ok(), await login.text()).toBeTruthy();
-  const authenticated = await login.json() as { expiresAt?: string; roles?: (typeof USER_ROLES)[number][]; permissions?: string[] };
-  return {
-    userId: registered.userId,
-    email,
-    displayName: registered.displayName,
-    accessToken: "",
-    expiresAt: authenticated.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    roles: authenticated.roles ?? [role],
-    permissions: authenticated.permissions ?? [],
-  };
+  return registerAndLoginSession(page, role, `${role} Inventory`);
 }

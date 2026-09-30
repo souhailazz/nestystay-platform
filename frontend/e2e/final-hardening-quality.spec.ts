@@ -98,8 +98,12 @@ test("keyboard focus, Enter, Shift+Tab, and Escape work on authentication and mo
   expect(firstFocus.tag).not.toBe("BODY");
   await page.keyboard.press("Shift+Tab");
   await page.getByLabel("Email").fill("invalid@example.com");
-  await page.getByLabel("Password").fill("bad-password");
-  await page.getByLabel("Password").press("Enter");
+  // The visibility control is intentionally labelled for screen readers too;
+  // target the password textbox explicitly so the button cannot be selected
+  // by label substring matching in any browser engine.
+  const passwordInput = page.getByRole("textbox", { name: "Password", exact: true });
+  await passwordInput.fill("bad-password");
+  await passwordInput.press("Enter");
   await expect(page.getByText(/invalid|incorrect|unable|failed/i).first()).toBeVisible();
 
   await page.goto("/screens", { waitUntil: "networkidle" });

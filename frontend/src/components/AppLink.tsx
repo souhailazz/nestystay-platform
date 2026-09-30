@@ -1,4 +1,6 @@
 import type { AnchorHTMLAttributes, MouseEvent } from "react";
+import { requestConfirmation } from "../lib/confirmation";
+import { hasUnsavedChanges, setUnsavedChanges } from "../lib/unsavedChanges";
 
 export function navigate(path: string) {
   window.history.pushState({}, "", path);
@@ -20,6 +22,21 @@ export function AppLink({ href = "/", onClick, ...props }: AnchorHTMLAttributes<
       href.startsWith("#") ||
       href.startsWith("http")
     ) {
+      return;
+    }
+
+    if (hasUnsavedChanges()) {
+      event.preventDefault();
+      void requestConfirmation({
+        title: "Leave this form?",
+        message: "You have unsaved changes. Leave this page and discard them?",
+        confirmLabel: "Leave page",
+        cancelLabel: "Stay here",
+      }).then((accepted) => {
+        if (!accepted) return;
+        setUnsavedChanges(false);
+        navigate(href);
+      });
       return;
     }
 

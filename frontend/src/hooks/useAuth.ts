@@ -291,7 +291,9 @@ function encodeBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  let encoded = window.btoa(binary).replaceAll("+", "-").replaceAll("/", "_");
+  while (encoded.endsWith("=")) encoded = encoded.slice(0, -1);
+  return encoded;
 }
 
 function serializeCredential(credential: PublicKeyCredential, response: AuthenticatorResponse) {

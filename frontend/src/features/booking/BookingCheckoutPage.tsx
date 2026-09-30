@@ -154,7 +154,7 @@ function LocalCheckoutForm({
 
   return (
     <form className="flex flex-col gap-3.5" onSubmit={completeLocalAuthorization}>
-      <div className="rounded-field border border-blue/20 bg-info-tint p-4 text-sm text-info-text" role="status">
+      <div className="rounded-field border border-blue/20 bg-info-tint p-4 text-sm text-info-text" aria-live="polite">
         <strong>Local payment test mode</strong>
         <p className="m-0 mt-1">The application payment adapter has recorded an authorization. No live card details are collected in this environment.</p>
       </div>
@@ -236,7 +236,7 @@ export function BookingCheckoutPage({ bookingId, auth, onSuccess, onFailure }: B
           <>
             <PropertyMiniHeader
               ekycRequired={booking.requiresGuestVerification}
-              subtitle={`Booking ${booking.id.slice(0, 8).toUpperCase()}${booking.checkIn ? ` · ${booking.checkIn} → ${booking.checkOut}` : ""}`}
+              subtitle={booking.checkIn ? "Booking " + booking.id.slice(0, 8).toUpperCase() + " · " + booking.checkIn + " → " + booking.checkOut : "Booking " + booking.id.slice(0, 8).toUpperCase()}
               title={booking.propertyTitle ?? "Your stay"}
             />
             <PriceSummary currency={booking.currency} lines={booking.priceBreakdown ?? []} total={booking.totalAmount} />

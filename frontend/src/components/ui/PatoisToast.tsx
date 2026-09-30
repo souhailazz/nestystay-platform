@@ -46,17 +46,16 @@ export function PatoisToast({
           className={cx("flex items-center gap-3.5 rounded-card bg-deep p-4 pr-5 shadow-navbar", className)}
           exit={{ opacity: 0 }}
           initial={reduceMotion ? false : { x: 24, opacity: 0 }}
-          role="status"
           transition={{ duration: 0.2, ease: "easeOut" }}
         >
-          <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-cream">
+          <span className="grid size-[52px] shrink-0 place-items-center overflow-hidden rounded-full bg-cream">
             <img
               alt=""
               aria-hidden="true"
-              className="size-9 rounded-full object-contain"
-              height={36}
-              src="/assets/nestystay-emblem.png"
-              width={36}
+              className="size-11 rounded-full object-contain"
+              height={44}
+              src="/assets/optimized/nestystay-logo-mark-96.webp"
+              width={44}
             />
           </span>
           {showPatois ? (

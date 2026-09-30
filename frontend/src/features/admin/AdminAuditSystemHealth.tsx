@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, Download, Activity, FileText, Search } from "lucide-react";
+import { Download } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 import type { AuditTrailLog } from "./types";
 
@@ -8,8 +8,9 @@ interface AdminAuditSystemHealthProps {
   token: string;
 }
 
-export function AdminAuditSystemHealth({ view, token }: AdminAuditSystemHealthProps) {
-  const [logs, setLogs] = useState<AuditTrailLog[]>([
+export function AdminAuditSystemHealth(props: AdminAuditSystemHealthProps) {
+  const { view } = props;
+  const [logs] = useState<AuditTrailLog[]>([
     {
       id: "log-1",
       timestamp: "2026-07-24 16:00:00",

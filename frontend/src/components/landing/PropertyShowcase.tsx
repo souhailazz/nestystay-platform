@@ -86,7 +86,7 @@ export default function PropertyShowcase() {
       <div className="section-heading section-heading--light">
         <div>
           <div className="section-tag section-tag--light">
-            <span />
+            <span />{" "}
             Handpicked Jamaican stays
           </div>
           <h2>Places with real vibes.</h2>

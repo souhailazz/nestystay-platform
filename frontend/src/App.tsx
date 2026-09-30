@@ -8,6 +8,7 @@ import { useAuth, type AuthController } from "./hooks/useAuth";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AdminPermissions, hasAdminPermission, isAdminSession } from "./lib/adminPermissions";
 import type { AdminPermission } from "./lib/api";
+import type { FeedbackTone } from "./lib/feedback";
 import { PatoisProvider } from "./lib/patois";
 import { getRouteAccess, getRouteDefinition, hasPublicNav, isWorkspaceRoute, parseRoute, PUBLIC_NAVIGATION, routeForScreenId, SCREEN_MANIFEST, type Route } from "./app/routeManifest";
 import { Modal } from "./components/ui/Modal";
@@ -110,9 +111,9 @@ function Navbar({ auth, route }: { auth: AuthController; route: Route }) {
           scrolled ? "px-1.5 py-[3px] pl-1 shadow-[0_18px_44px_rgba(4,31,31,0.5)]" : "px-2.5 py-[7px] pl-2 shadow-navbar",
         )}
       >
-        <AppLink aria-label="Nesty Stay home" className="flex min-h-11 items-center gap-2.5 pl-1" href="/">
-          <EmblemRoundel size={44} />
-          <span className="text-[15px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
+        <AppLink aria-label="NestyStay home" className="flex min-h-11 items-center gap-2.5 pl-1" href="/">
+          <EmblemRoundel size={60} />
+          <span aria-hidden="true" className="text-[19px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
         </AppLink>
 
         <div className="ml-auto flex flex-wrap items-center gap-0.5">
@@ -397,190 +398,169 @@ function TextInputHost() {
   );
 }
 
-function CurrentPage({ auth, route }: { auth: AuthController; route: Route }) {
+type RouteContext = { auth: AuthController; route: Route };
+type RouteRenderer = (context: RouteContext) => ReactNode | null;
+
+function renderSpecRoute({ auth, route }: RouteContext): ReactNode | null {
   switch (route.name) {
     case "design-screen": {
       if (route.screenId === "INDEX") return <ScreenImplementationIndex />;
       const componentRoute = routeForScreenId(route.screenId);
       return componentRoute ? <CurrentPage auth={auth} route={componentRoute} /> : <ScreenImplementationIndex />;
     }
-    case "public-content":
-      return <PublicContentRoute slug={route.slug} />;
-    case "auth-spec":
-      return <AuthSpecFlowPage auth={auth} kind={route.kind} />;
-    case "owner-invitation":
-      return <OwnerInvitationPage />;
-    case "experiences":
-      return <ExperiencesPage slug={route.slug} />;
-    case "journal":
-      return <JournalPage slug={route.slug} />;
-    case "booking-state":
-      return <BookingSpecStatePage auth={auth} bookingId={route.bookingId} state={route.state} />;
-    case "traveler-spec":
-      return route.view === "wishlist" || route.view === "collections" || route.view === "favorites"
-        ? <TravelerStateContainer auth={auth} view={route.view} />
-        : <TravelerSpecPage auth={auth} view={route.view} />;
-    case "qr-gate":
-      return <QrGateValidationPage />;
-    case "messages":
-      return <MessagesPage auth={auth} conversationId={route.conversationId} />;
-    case "directory-spec":
-      return <DirectorySpecPage auth={auth} kind={route.kind} slug={route.slug} />;
-    case "host-profile":
-      return <HostProfileSpecPage auth={auth} edit={route.edit} slug={route.slug} />;
-    case "host-spec":
-      return <HostSpecPage auth={auth} view={route.view} propertyId={route.propertyId} />;
-    case "admin-ops":
-      return (
-        <AdminRoute auth={auth} permission={adminOpsPermission(route.view)}>
-          {route.view === "wellness" ? <AdminPage auth={auth} /> : <AdminOpsSpecPage auth={auth} view={route.view} />}
-        </AdminRoute>
-      );
-    case "explore":
-      return <ExplorePage auth={auth} />;
-    case "map-search":
-      return <MapSearchPage />;
-    case "coming-soon":
-      return <ComingSoonPage />;
-    case "property":
-      return <PropertyDetailsPage auth={auth} propertyId={route.propertyId} />;
-    case "login":
-      return <AuthPage auth={auth} mode="login" />;
-    case "register":
-      return <AuthPage auth={auth} mode="register" />;
-    case "passwordless-complete":
-      return <PasswordlessCompletionPage auth={auth} />;
-    case "auth-post":
-      return <AuthPostLoginToastPage />;
-    case "logout":
-      return <LogoutRoute auth={auth} />;
-    case "guest-dashboard":
-      return <GuestDashboardPage auth={auth} />;
-    case "trav-suggestions":
-      return <TripSuggestionsPage auth={auth} />;
-    case "host-dashboard":
-      return <HostDashboardPage auth={auth} />;
-    case "host-wellness":
-      return <HostWellnessPage auth={auth} />;
-    case "officer-directory":
-      return <DirectorySpecPage auth={auth} kind="Police" />;
-    case "wellness-booking":
-      return <HostWellnessPage auth={auth} />;
-    case "officer-wellness":
-      return <OfficerWellnessPage auth={auth} />;
-    case "property-management":
-      return <PropertyManagementPage auth={auth} />;
-    case "host-property-edit":
-      return <HostSpecPage auth={auth} view="properties-edit" />;
-    case "pm-gates":
-      return <PropertyManagerPmsPage auth={auth} module="gates" />;
-    case "pm-dashboard":
-      return <PropertyManagerDashboardPage auth={auth} />;
-    case "pm-p0":
-      return <PropertyManagerP0Page auth={auth} />;
-    case "pm-professional":
-      return <PropertyManagerProfessionalPage auth={auth} />;
-    case "pm-professional-completion":
-      return <PropertyManagerProfessionalCompletionPage auth={auth} />;
-    case "pm-invoices":
-      return <PropertyManagerPmsPage auth={auth} module="invoices" />;
-    case "pm-maintenance":
-      return <PropertyManagerPmsPage auth={auth} module="maintenance" />;
-    case "pm-governance":
-      return <PropertyManagerPmsPage auth={auth} module="governance" />;
-    case "pm-documents":
-      return <PropertyManagerPmsPage auth={auth} module="documents" />;
-    case "owner-dashboard":
-      return <OwnerPortalPage auth={auth} />;
-    case "owner-p0":
-      return <OwnerP0PortalPage auth={auth} />;
-    case "pm-gate":
-      return <PropertyManagerGatePage auth={auth} />;
-    case "pm-utilities":
-      return <PropertyManagerPmsPage auth={auth} module="utilities" />;
-    case "pm-verification":
-      return <PropertyManagerPmsPage auth={auth} module="verification" />;
-    case "pm-reports":
-      return <PropertyManagerPmsPage auth={auth} module="reports" />;
-    case "pm-payments":
-      return <PropertyManagerPmsPage auth={auth} module="payments" />;
-    case "pm-vendors":
-      return <PropertyManagerPmsPage auth={auth} module="vendors" />;
-    case "pm-community":
-      return <PropertyManagerPmsPage auth={auth} module="community" />;
-    case "pm-subscription":
-      return <PropertyManagerPmsPage auth={auth} module="subscription" />;
-    case "pm-calendar":
-      return <PropertyManagerPmsPage auth={auth} module="calendar" />;
-    case "pm-work-orders":
-      return <PropertyManagerPmsPage auth={auth} module="work-orders" />;
-    case "pm-agreements":
-      return <PropertyManagerPmsPage auth={auth} module="agreements" />;
-    case "pm-approvals":
-      return <PropertyManagerPmsPage auth={auth} module="approvals" />;
-    case "pm-team":
-      return <PropertyManagerPmsPage auth={auth} module="team" />;
-    case "pm-inspections":
-      return <PropertyManagerPmsPage auth={auth} module="inspections" />;
-    case "pm-cleaning":
-      return <PropertyManagerPmsPage auth={auth} module="cleaning" />;
-    case "pm-insurance":
-      return <PropertyManagerPmsPage auth={auth} module="insurance" />;
-    case "business-directory":
-      return <DirectorySpecPage auth={auth} kind="LocalBusiness" />;
-    case "provider-dashboard":
-      return <DirectorySpecPage auth={auth} kind="ProviderDashboard" />;
-    case "calendar":
-      return <CalendarPage auth={auth} />;
-    case "bookings":
-      return <BookingManagementPage auth={auth} />;
-    case "payment":
-      return <PaymentConfirmationPage auth={auth} bookingId={route.bookingId} />;
-    case "profile":
-      return <ProfileSettingsPage auth={auth} />;
-    case "admin":
-      return (
-        <AdminRoute auth={auth} permission={AdminPermissions.superAdministration}>
-          <AdminPage auth={auth} />
-        </AdminRoute>
-      );
-    case "admin-kpis":
-      return (
-        <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}>
-          <AdminInsightsPage token={auth.session?.accessToken ?? ""} view="kpis" />
-        </AdminRoute>
-      );
-    case "admin-reports":
-      return (
-        <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}>
-          <AdminInsightsPage token={auth.session?.accessToken ?? ""} view="reports" />
-        </AdminRoute>
-      );
-    case "officer-id-reset":
-      return (
-        <AdminRoute auth={auth} permission={AdminPermissions.officerManagement}>
-          <OfficerIdResetPage />
-        </AdminRoute>
-      );
-    case "sign-in-required":
-      return <SignInRequiredPage />;
-    case "access-restricted":
-      return <AccessRestrictedPage />;
-    case "server-error":
-      return <ServerErrorPage />;
-    case "design-system":
-      return <DesignSystemReferencePage />;
-    case "loading-state":
-      return <LoadingStatePage />;
-    case "no-favorites":
-      return <NoFavoritesPage />;
-    case "no-reservations":
-      return <NoReservationsPage />;
-    case "not-found":
-      return <NotFoundPage />;
-    default:
-      return <LandingPage />;
+    case "public-content": return <PublicContentRoute slug={route.slug} />;
+    case "auth-spec": return <AuthSpecFlowPage auth={auth} kind={route.kind} />;
+    case "owner-invitation": return <OwnerInvitationPage />;
+    case "experiences": return <ExperiencesPage slug={route.slug} />;
+    case "journal": return <JournalPage slug={route.slug} />;
+    case "booking-state": return <BookingSpecStatePage auth={auth} bookingId={route.bookingId} state={route.state} />;
+    case "traveler-spec": return route.view === "wishlist" || route.view === "collections" || route.view === "favorites" ? <TravelerStateContainer auth={auth} view={route.view} /> : <TravelerSpecPage auth={auth} view={route.view} />;
+    case "qr-gate": return <QrGateValidationPage />;
+    case "messages": return <MessagesPage auth={auth} conversationId={route.conversationId} />;
+    case "directory-spec": return <DirectorySpecPage auth={auth} kind={route.kind} slug={route.slug} />;
+    case "host-profile": return <HostProfileSpecPage auth={auth} edit={route.edit} slug={route.slug} />;
+    case "host-spec": return <HostSpecPage auth={auth} view={route.view} propertyId={route.propertyId} />;
+    default: return null;
   }
+}
+
+function GlobalFeedbackToast({ enabled }: { enabled: boolean }) {
+  const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const onFeedback = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string; tone?: FeedbackTone }>).detail;
+      if (!detail?.message) return;
+      setFeedback({ message: detail.message, tone: detail.tone ?? "success" });
+      window.setTimeout(() => setFeedback(null), 4200);
+    };
+    window.addEventListener("nesty:feedback", onFeedback);
+    return () => window.removeEventListener("nesty:feedback", onFeedback);
+  }, [enabled]);
+
+  if (!enabled || !feedback) return null;
+  const feedbackClass = feedback.tone === "error" ? "border-coral/30 bg-coral-tint text-coral-text" : feedback.tone === "info" ? "border-blue/20 bg-info-tint text-info-text" : "border-green/20 bg-success-tint text-success-text";
+  return <div aria-live={feedback.tone === "error" ? "assertive" : "polite"} className={cx("fixed inset-x-4 bottom-5 z-[80] mx-auto flex max-w-md items-center justify-between gap-3 rounded-card border px-4 py-3 text-sm font-semibold shadow-navbar", feedbackClass)} role="status"><span>{feedback.message}</span><button aria-label="Dismiss notification" className="rounded-pill px-2 text-lg leading-none" onClick={() => setFeedback(null)} type="button">×</button></div>;
+}
+
+function SessionExpiryWarning({ auth }: { auth: AuthController }) {
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!auth.session?.expiresAt) { setSecondsLeft(null); return; }
+    const update = () => setSecondsLeft(Math.max(0, Math.floor((new Date(auth.session!.expiresAt).getTime() - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 30_000);
+    return () => window.clearInterval(timer);
+  }, [auth.session?.expiresAt]);
+  if (secondsLeft === null || secondsLeft > 5 * 60) return null;
+  const minutes = Math.ceil(secondsLeft / 60);
+  return <div aria-live="polite" className="fixed inset-x-4 top-4 z-[90] mx-auto flex max-w-xl items-center justify-between gap-3 rounded-card border border-amber-300 bg-amber-tint px-4 py-3 text-sm font-semibold text-amber-text shadow-navbar" role="status"><span>{secondsLeft === 0 ? "Your session has expired." : `Your session expires in about ${minutes} minute${minutes === 1 ? "" : "s"}.`}</span><AppLink className="rounded-pill bg-deep px-3 py-2 text-xs text-white" href={`/login?returnTo=${encodeURIComponent(window.location.pathname)}`}>Sign in again</AppLink></div>;
+}
+
+function renderPublicRoute({ auth, route }: RouteContext): ReactNode | null {
+  switch (route.name) {
+    case "admin-ops": return <AdminRoute auth={auth} permission={adminOpsPermission(route.view)}>{route.view === "wellness" ? <AdminPage auth={auth} /> : <AdminOpsSpecPage auth={auth} view={route.view} />}</AdminRoute>;
+    case "explore": return <ExplorePage auth={auth} />;
+    case "map-search": return <MapSearchPage />;
+    case "coming-soon": return <ComingSoonPage />;
+    case "property": return <PropertyDetailsPage auth={auth} propertyId={route.propertyId} />;
+    case "login": return <AuthPage auth={auth} mode="login" />;
+    case "register": return <AuthPage auth={auth} mode="register" />;
+    case "passwordless-complete": return <PasswordlessCompletionPage auth={auth} />;
+    case "auth-post": return <AuthPostLoginToastPage />;
+    case "logout": return <LogoutRoute auth={auth} />;
+    default: return null;
+  }
+}
+
+function renderPrimaryWorkspaceRoute({ auth, route }: RouteContext): ReactNode | null {
+  switch (route.name) {
+    case "guest-dashboard": return <GuestDashboardPage auth={auth} />;
+    case "trav-suggestions": return <TripSuggestionsPage auth={auth} />;
+    case "host-dashboard": return <HostDashboardPage auth={auth} />;
+    case "host-wellness":
+    case "wellness-booking": return <HostWellnessPage auth={auth} />;
+    case "officer-directory": return <DirectorySpecPage auth={auth} kind="Police" />;
+    case "officer-wellness": return <OfficerWellnessPage auth={auth} />;
+    case "property-management": return <PropertyManagementPage auth={auth} />;
+    case "host-property-edit": return <HostSpecPage auth={auth} view="properties-edit" />;
+    default: return null;
+  }
+}
+
+function renderPropertyManagerRoute({ auth, route }: RouteContext): ReactNode | null {
+  switch (route.name) {
+    case "pm-dashboard": return <PropertyManagerDashboardPage auth={auth} />;
+    case "pm-p0": return <PropertyManagerP0Page auth={auth} />;
+    case "pm-professional": return <PropertyManagerProfessionalPage auth={auth} />;
+    case "pm-professional-completion": return <PropertyManagerProfessionalCompletionPage auth={auth} />;
+    case "owner-dashboard": return <OwnerPortalPage auth={auth} />;
+    case "owner-p0": return <OwnerP0PortalPage auth={auth} />;
+    case "pm-gate": return <PropertyManagerGatePage auth={auth} />;
+    case "pm-gates": return <PropertyManagerPmsPage auth={auth} module="gates" />;
+    case "pm-invoices": return <PropertyManagerPmsPage auth={auth} module="invoices" />;
+    case "pm-maintenance": return <PropertyManagerPmsPage auth={auth} module="maintenance" />;
+    case "pm-governance": return <PropertyManagerPmsPage auth={auth} module="governance" />;
+    case "pm-documents": return <PropertyManagerPmsPage auth={auth} module="documents" />;
+    case "pm-utilities": return <PropertyManagerPmsPage auth={auth} module="utilities" />;
+    case "pm-verification": return <PropertyManagerPmsPage auth={auth} module="verification" />;
+    case "pm-reports": return <PropertyManagerPmsPage auth={auth} module="reports" />;
+    case "pm-payments": return <PropertyManagerPmsPage auth={auth} module="payments" />;
+    case "pm-vendors": return <PropertyManagerPmsPage auth={auth} module="vendors" />;
+    case "pm-community": return <PropertyManagerPmsPage auth={auth} module="community" />;
+    case "pm-subscription": return <PropertyManagerPmsPage auth={auth} module="subscription" />;
+    case "pm-calendar": return <PropertyManagerPmsPage auth={auth} module="calendar" />;
+    case "pm-work-orders": return <PropertyManagerPmsPage auth={auth} module="work-orders" />;
+    case "pm-agreements": return <PropertyManagerPmsPage auth={auth} module="agreements" />;
+    case "pm-approvals": return <PropertyManagerPmsPage auth={auth} module="approvals" />;
+    case "pm-team": return <PropertyManagerPmsPage auth={auth} module="team" />;
+    case "pm-inspections": return <PropertyManagerPmsPage auth={auth} module="inspections" />;
+    case "pm-cleaning": return <PropertyManagerPmsPage auth={auth} module="cleaning" />;
+    case "pm-insurance": return <PropertyManagerPmsPage auth={auth} module="insurance" />;
+    default: return null;
+  }
+}
+
+function renderOperationsRoute({ auth, route }: RouteContext): ReactNode | null {
+  switch (route.name) {
+    case "business-directory": return <DirectorySpecPage auth={auth} kind="LocalBusiness" />;
+    case "provider-dashboard": return <DirectorySpecPage auth={auth} kind="ProviderDashboard" />;
+    case "calendar": return <CalendarPage auth={auth} />;
+    case "bookings": return <BookingManagementPage auth={auth} />;
+    case "payment": return <PaymentConfirmationPage auth={auth} bookingId={route.bookingId} />;
+    case "profile": return <ProfileSettingsPage auth={auth} />;
+    case "admin": return <AdminRoute auth={auth} permission={AdminPermissions.superAdministration}><AdminPage auth={auth} /></AdminRoute>;
+    case "admin-kpis": return <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}><AdminInsightsPage token={auth.session?.accessToken ?? ""} view="kpis" /></AdminRoute>;
+    case "admin-reports": return <AdminRoute auth={auth} permission={AdminPermissions.financialReporting}><AdminInsightsPage token={auth.session?.accessToken ?? ""} view="reports" /></AdminRoute>;
+    case "officer-id-reset": return <AdminRoute auth={auth} permission={AdminPermissions.officerManagement}><OfficerIdResetPage /></AdminRoute>;
+    default: return null;
+  }
+}
+
+function renderSystemRoute({ route }: RouteContext): ReactNode | null {
+  switch (route.name) {
+    case "home": return <LandingPage />;
+    case "sign-in-required": return <SignInRequiredPage />;
+    case "access-restricted": return <AccessRestrictedPage />;
+    case "server-error": return <ServerErrorPage />;
+    case "design-system": return <DesignSystemReferencePage />;
+    case "loading-state": return <LoadingStatePage />;
+    case "no-favorites": return <NoFavoritesPage />;
+    case "no-reservations": return <NoReservationsPage />;
+    case "not-found": return <NotFoundPage />;
+    default: return null;
+  }
+}
+
+const routeRenderers: readonly RouteRenderer[] = [renderSpecRoute, renderPublicRoute, renderPrimaryWorkspaceRoute, renderPropertyManagerRoute, renderOperationsRoute, renderSystemRoute];
+
+function CurrentPage(context: RouteContext) {
+  for (const renderRoute of routeRenderers) {
+    const page = renderRoute(context);
+    if (page !== null) return page;
+  }
+  return <LandingPage />;
 }
 
 export default function App() {
@@ -621,7 +601,7 @@ export default function App() {
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "Organization", "@id": `${siteUrl()}/#organization`, name: "NestyStay", url: siteUrl(), logo: `${siteUrl()}/assets/nestystay-emblem.png`, telephone: "+1-754-248-2435" },
+      { "@type": "Organization", "@id": `${siteUrl()}/#organization`, name: "NestyStay", url: siteUrl(), logo: `${siteUrl()}/assets/reference/nestystay-logo.png`, telephone: "+1-754-248-2435" },
       { "@type": "WebSite", "@id": `${siteUrl()}/#website`, name: "NestyStay", url: siteUrl(), publisher: { "@id": `${siteUrl()}/#organization` }, potentialAction: { "@type": "SearchAction", target: `${siteUrl()}/explore?search={search_term_string}`, "query-input": "required name=search_term_string" } },
     ],
   };
@@ -669,30 +649,41 @@ export default function App() {
     };
   }, [route, `${window.location.pathname}${window.location.search}`]);
 
+  const renderRouteContent = () => {
+    if (access.kind === "auth-required") {
+      return <SignInRequiredPage returnTo={access.returnTo} />;
+    }
+    if (access.kind === "forbidden") {
+      return <AccessRestrictedPage />;
+    }
+    if (canRenderWorkspace) {
+      return (
+        <WorkspaceFrame routeName={route.name} screenId={route.screenId}>
+          <CurrentPage auth={auth} route={route} />
+        </WorkspaceFrame>
+      );
+    }
+    return (
+      <main key={route.canonicalPath} id="route-main" tabIndex={-1}>
+        <CurrentPage auth={auth} route={route} />
+      </main>
+    );
+  };
+
   return (
     <PatoisProvider>
       <Seo canonicalPath={canonicalPath} description={seo.description} jsonLd={route.name === "home" ? organizationJsonLd : undefined} noindex={!publicRoute || route.name === "map-search" || Boolean(window.location.search)} title={seo.title} />
       <ConfirmationHost />
       <TextInputHost />
+      <SessionExpiryWarning auth={auth} />
       <div
         className={`app-shell route-${route.name} ${canRenderWorkspace ? "app-shell--workspace" : ""}`}
       >
         {access.kind === "allowed" && hasPublicNav(route) && <Navbar auth={auth} route={route} />}
-        <Suspense fallback={<div aria-live="polite" className="min-h-[50vh] p-8" role="status">Loading this workspace…</div>}>
-          {access.kind === "auth-required" ? (
-            <SignInRequiredPage returnTo={access.returnTo} />
-          ) : access.kind === "forbidden" ? (
-            <AccessRestrictedPage />
-          ) : canRenderWorkspace ? (
-            <WorkspaceFrame routeName={route.name} screenId={route.screenId}>
-              <CurrentPage auth={auth} route={route} />
-            </WorkspaceFrame>
-          ) : (
-            <main key={route.canonicalPath} id="route-main" tabIndex={-1}>
-              <CurrentPage auth={auth} route={route} />
-            </main>
-          )}
+        <Suspense fallback={<div aria-live="polite" className="min-h-[50vh] p-8">Loading this workspace…</div>}>
+          {renderRouteContent()}
         </Suspense>
+        <GlobalFeedbackToast enabled={!canRenderWorkspace} />
       </div>
       <CookieConsent />
     </PatoisProvider>

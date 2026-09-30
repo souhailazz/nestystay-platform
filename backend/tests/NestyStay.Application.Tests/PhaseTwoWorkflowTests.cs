@@ -2,6 +2,8 @@ using NestyStay.Application.PhaseTwo;
 using NestyStay.Application.Services;
 using NestyStay.Domain;
 
+#pragma warning disable CS0618 // These tests intentionally cover the deprecated in-memory compatibility facade; production purchase paths use the provider-backed store.
+
 namespace NestyStay.Application.Tests;
 
 public sealed class PhaseTwoWorkflowTests
@@ -229,3 +231,5 @@ public sealed class PhaseTwoWorkflowTests
         public void Advance(TimeSpan duration) => _utcNow = _utcNow.Add(duration);
     }
 }
+
+#pragma warning restore CS0618

@@ -20,7 +20,7 @@ export function Modal({
   variant?: "modal" | "sheet" | "fullscreen";
   closeOnOverlayClick?: boolean;
 }) {
-  const dialogRef = useRef<HTMLElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
   onCloseRef.current = onClose;
@@ -74,27 +74,32 @@ export function Modal({
   }, [open]);
 
   const overlayClass = variant === "sheet" ? "items-end p-0 sm:items-center sm:p-6" : "items-center overflow-y-auto p-6";
-  const surfaceClass = variant === "sheet"
-    ? "max-h-[min(88dvh,760px)] w-full rounded-t-[22px] rounded-b-none p-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-48px)] sm:w-[min(720px,100%)] sm:rounded-[22px] sm:p-7"
-    : variant === "fullscreen"
-      ? "min-h-[100dvh] w-full rounded-none p-5 sm:min-h-0 sm:w-[min(960px,100%)] sm:rounded-[22px] sm:p-7"
-      : "max-h-[calc(100dvh-48px)] w-[min(720px,100%)] rounded-[22px] p-7";
+  let surfaceClass = "max-h-[calc(100dvh-48px)] w-[min(720px,100%)] rounded-[22px] p-7";
+  if (variant === "sheet") {
+    surfaceClass = "max-h-[min(88dvh,760px)] w-full rounded-t-[22px] rounded-b-none p-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-48px)] sm:w-[min(720px,100%)] sm:rounded-[22px] sm:p-7";
+  } else if (variant === "fullscreen") {
+    surfaceClass = "min-h-[100dvh] w-full rounded-none p-5 sm:min-h-0 sm:w-[min(960px,100%)] sm:rounded-[22px] sm:p-7";
+  }
 
   if (!open) return null;
 
   return (
-    <div
-      className={`modal-overlay-enter fixed inset-0 z-[200] grid overflow-y-auto bg-[rgba(6,43,43,0.45)] ${overlayClass}`}
-      onMouseDown={(event) => {
-        if (closeOnOverlayClick && event.target === event.currentTarget) onCloseRef.current();
-      }}
-    >
-      <section
+    <div className={`modal-overlay-enter fixed inset-0 z-[200] grid overflow-y-auto bg-[rgba(6,43,43,0.45)] ${overlayClass}`}>
+      {closeOnOverlayClick && (
+        <button
+          aria-label="Close modal overlay"
+          className="absolute inset-0 cursor-default"
+          onClick={() => onCloseRef.current()}
+          tabIndex={-1}
+          type="button"
+        />
+      )}
+      <dialog
         aria-labelledby={titleId}
         aria-modal="true"
-        className={`${surfaceClass} modal-surface-enter overflow-y-auto bg-cream shadow-modal`}
+        className={`${surfaceClass} relative z-10 modal-surface-enter overflow-y-auto bg-cream shadow-modal`}
+        open
         ref={dialogRef}
-        role="dialog"
         tabIndex={-1}
       >
         <header className="mb-5 flex items-center justify-between gap-4">
@@ -109,7 +114,7 @@ export function Modal({
           </button>
         </header>
         {children}
-      </section>
+      </dialog>
     </div>
   );
 }

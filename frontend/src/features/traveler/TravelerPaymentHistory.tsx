@@ -37,7 +37,7 @@ export function TravelerPaymentHistory({ token }: TravelerPaymentHistoryProps) {
 
   const years = useMemo(() => {
     const values = new Set(bookings.map((b) => b.checkIn.slice(0, 4)));
-    return Array.from(values).sort().reverse();
+    return Array.from(values).sort((a, b) => b.localeCompare(a));
   }, [bookings]);
   const invoices = useMemo(
     () => (year === "all" ? bookings : bookings.filter((b) => b.checkIn.startsWith(year))),

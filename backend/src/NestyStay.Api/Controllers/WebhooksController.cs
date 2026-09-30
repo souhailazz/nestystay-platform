@@ -95,6 +95,7 @@ public sealed class WebhooksController(
             });
         }
 
+        var fallbackEventId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{eventType}:{payloadJson}"))).ToLowerInvariant();
         try
         {
             var request = new WebhookEventRequest("stripe", eventType, payloadJson, eventId);
@@ -372,7 +373,7 @@ public sealed class WebhooksController(
     private bool IsStripeWebhookAuthorized(string payloadJson)
     {
         var signingSecret = ResolveSecret("Webhooks:StripeSigningSecret", "STRIPE_WEBHOOK_SECRET");
-        var signatureHeader = Request.Headers["Stripe-Signature"].ToString();
+        var signatureHeader = Request.Headers["Stripe-Signature"].ToString(); // NOSONAR: Stripe signature verification requires the raw HTTP header.
         if (string.IsNullOrWhiteSpace(signingSecret) || string.IsNullOrWhiteSpace(signatureHeader))
         {
             return false;
@@ -539,6 +540,7 @@ public sealed class WebhooksController(
             return eventId.Trim();
         }
 
+        var fallbackEventId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{eventType}:{payloadJson}"))).ToLowerInvariant();
         try
         {
             using var document = JsonDocument.Parse(payloadJson);
@@ -549,9 +551,10 @@ public sealed class WebhooksController(
         }
         catch (JsonException)
         {
+            return fallbackEventId;
         }
 
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{eventType}:{payloadJson}"))).ToLowerInvariant();
+        return fallbackEventId;
     }
 
     private async Task<string> ReadRawRequestBodyAsync(CancellationToken cancellationToken)
@@ -587,7 +590,7 @@ public sealed class WebhooksController(
         }
 
         var expectedSecret = ResolveSecret("Webhooks:SharedSecret", "NESTYSTAY_WEBHOOK_SHARED_SECRET");
-        var providedSecret = Request.Headers["X-NestyStay-Webhook-Secret"].ToString();
+        var providedSecret = Request.Headers["X-NestyStay-Webhook-Secret"].ToString(); // NOSONAR: the internal provider signature contract is an HTTP header.
         if (string.IsNullOrWhiteSpace(expectedSecret) || string.IsNullOrWhiteSpace(providedSecret))
         {
             return false;

@@ -92,7 +92,7 @@ public sealed class PhaseOneStore(
     IGoogleIdentityValidator? googleIdentityValidator = null,
     IEmailSender? emailSender = null,
     IDevelopmentAuthSecretStore? developmentAuthSecrets = null,
-    IConfiguration? configuration = null) : IPhaseOneStore, ISessionActivityStore, IBookingDecisionStore, IHostVerificationStore, IPropertyModerationStore
+    IConfiguration? configuration = null) : IPhaseOneStore, ISessionActivityStore, IBookingDecisionStore, IBookingDateHoldStore, IBookingPaymentOperationsStore, IHostVerificationStore, IPropertyModerationStore
 {
     private const int PasswordHashIterations = 120_000;
     private const int TotpStepSeconds = 30;
@@ -100,10 +100,10 @@ public sealed class PhaseOneStore(
     private const int MaximumChallengeAttempts = 5;
     private const string PaymentOperationAuthorize = "Authorize";
     private const string PaymentOperationCapture = "Capture";
-    private const string PasswordResetStatusPending = "Pending";
-    private const string PasswordResetStatusCompleted = "Completed";
-    private const string PasswordResetStatusExpired = "Expired";
-    private const string PasswordResetStatusFailed = "Failed";
+    private const string PasswordResetStatusPending = "Pending"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusCompleted = "Completed"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusExpired = "Expired"; // NOSONAR: this is a persisted workflow status, not a credential.
+    private const string PasswordResetStatusFailed = "Failed"; // NOSONAR: this is a persisted workflow status, not a credential.
     private const long MaximumProfilePhotoBytes = 10 * 1024 * 1024;
     private const long MaximumPropertyPhotoBytes = 10 * 1024 * 1024;
     private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
@@ -1263,7 +1263,7 @@ public sealed class PhaseOneStore(
 
     public Task<BookingQuoteDto> QuoteBookingAsync(BookingQuoteRequest request, CancellationToken cancellationToken)
     {
-        var property = FindProperty(request.PropertyId);
+        var property = FindBookableProperty(request.PropertyId);
         var now = timeProvider.GetUtcNow();
 
         lock (_gate)
@@ -1325,7 +1325,7 @@ public sealed class PhaseOneStore(
 
     public async Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken)
     {
-        var property = FindProperty(request.PropertyId);
+        var property = FindBookableProperty(request.PropertyId);
         PhaseOneUser guest;
         PhaseOneBooking booking;
         var now = timeProvider.GetUtcNow();
@@ -1337,7 +1337,15 @@ public sealed class PhaseOneStore(
                 ?? throw new InvalidOperationException("Guest user must register before booking.");
 
             ExpirePendingHoldsNoLock(now);
-            if (FindBlockingBookingNoLock(property.Id, request.CheckIn, request.CheckOut, now) is not null)
+            var existingHold = request.DateHoldId is { } holdId
+                ? _bookings.SingleOrDefault(item => item.Id == holdId && item.IsDateHold && item.GuestUserId == guest.Id && item.PropertyId == property.Id && item.CheckIn == request.CheckIn && item.CheckOut == request.CheckOut)
+                : null;
+            if (request.DateHoldId is not null && (existingHold is null || existingHold.HoldExpiresAt <= now))
+            {
+                throw new InvalidOperationException("The date hold is missing, expired, or belongs to another guest.");
+            }
+
+            if (FindBlockingBookingNoLock(property.Id, request.CheckIn, request.CheckOut, now, existingHold?.Id) is not null)
             {
                 throw new InvalidOperationException("Requested dates are already held or approved for this property.");
             }
@@ -1345,6 +1353,11 @@ public sealed class PhaseOneStore(
             EnforceBookingCreationRateLimitNoLock(guest.Id, now);
 
             var requiresVerification = property.GuestVerificationEnabled;
+            if (existingHold is not null)
+            {
+                _bookings.Remove(existingHold);
+            }
+
             booking = new PhaseOneBooking(
                 Guid.NewGuid(),
                 property.Id,
@@ -1395,6 +1408,61 @@ public sealed class PhaseOneStore(
 
         lock (_gate)
         {
+            return ToDto(booking);
+        }
+    }
+
+    public Task<BookingDto> HoldBookingDatesAsync(Guid guestUserId, HoldBookingDatesRequest request, CancellationToken cancellationToken)
+    {
+        var property = FindBookableProperty(request.PropertyId);
+        var now = timeProvider.GetUtcNow();
+        var quote = BuildQuote(property, request.CheckIn, request.CheckOut, true, null, request.Adults, request.Children);
+
+        lock (_gate)
+        {
+            var guest = _users.SingleOrDefault(user => user.Id == guestUserId)
+                ?? throw new InvalidOperationException("Guest user must register before holding dates.");
+            ExpirePendingHoldsNoLock(now);
+            if (FindBlockingBookingNoLock(property.Id, request.CheckIn, request.CheckOut, now) is not null)
+            {
+                throw new InvalidOperationException("Requested dates are already held or approved for this property.");
+            }
+
+            var hold = new PhaseOneBooking(
+                Guid.NewGuid(), property.Id, property.HostUserId, property.HostName, property.HostEmail,
+                guest.Id, guest.Email, guest.DisplayName, request.CheckIn, request.CheckOut,
+                BookingStatus.PendingVerification, VerificationStatus.Pending, PaymentStatus.Pending, false,
+                now.AddMinutes(NestyStayBusinessRules.DefaultBookingHoldMinutes), quote.Nights,
+                property.NightlyRate, quote.StaySubtotal, quote.GuestPlatformFee, quote.TotalAmount,
+                property.Currency, property.Title, null, null, null, null, null, null, null,
+                quote.PriceBreakdown, ["Dates held for checkout"], true);
+            _bookings.Add(hold);
+            return Task.FromResult(ToDto(hold));
+        }
+    }
+
+    public async Task<BookingDto?> VoidPaymentAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        PhaseOneBooking booking;
+        lock (_gate)
+        {
+            booking = _bookings.SingleOrDefault(item => item.Id == bookingId)
+                ?? throw new InvalidOperationException("Booking not found.");
+            if (booking.PaymentStatus != PaymentStatus.Authorized || string.IsNullOrWhiteSpace(booking.PaymentAuthorizationReference))
+            {
+                throw new InvalidOperationException("Only an authorized payment can be released.");
+            }
+        }
+
+        var result = await paymentGateway.VoidAuthorizationAsync(
+            new PaymentVoidRequest(booking.PaymentAuthorizationReference!, booking.TotalAmount, booking.Currency, "Admin released payment authorization", $"booking:{booking.Id:N}:void"),
+            cancellationToken);
+        lock (_gate)
+        {
+            BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, result.Status, "void_payment", booking.Status);
+            booking.PaymentProvider = result.ProviderName;
+            booking.PaymentStatus = result.Status;
+            booking.Timeline.Add("Payment authorization voided and card hold released");
             return ToDto(booking);
         }
     }
@@ -1804,8 +1872,20 @@ public sealed class PhaseOneStore(
         _properties.SingleOrDefault(property => property.Id == propertyId && !property.IsDeleted && !property.IsArchived)
         ?? throw new InvalidOperationException("Property not found.");
 
-    private PhaseOneBooking? FindBlockingBookingNoLock(Guid propertyId, DateOnly checkIn, DateOnly checkOut, DateTimeOffset now) =>
+    private PhaseOneProperty FindBookableProperty(Guid propertyId)
+    {
+        var property = FindProperty(propertyId);
+        if (!string.Equals(property.ModerationStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Property is not approved for booking.");
+        }
+
+        return property;
+    }
+
+    private PhaseOneBooking? FindBlockingBookingNoLock(Guid propertyId, DateOnly checkIn, DateOnly checkOut, DateTimeOffset now, Guid? excludedBookingId = null) =>
         _bookings.FirstOrDefault(booking =>
+            booking.Id != excludedBookingId &&
             booking.PropertyId == propertyId &&
             BlocksDates(booking, now) &&
             DateRangesOverlap(booking.CheckIn, booking.CheckOut, checkIn, checkOut));
@@ -2120,7 +2200,8 @@ public sealed class PhaseOneStore(
             booking.RejectionReason,
             booking.RejectionSource,
             booking.RejectedByUserId,
-            booking.RejectedAt);
+            booking.RejectedAt,
+            booking.IsDateHold);
 
     private static void ValidateRegistration(RegisterUserRequest request)
     {
@@ -2810,7 +2891,7 @@ public sealed class PhaseOneStore(
             Array.Reverse(counterBytes);
         }
 
-        using var hmac = new HMACSHA1(secret);
+        using var hmac = new HMACSHA1(secret); // NOSONAR: RFC 6238 TOTP compatibility requires the standard SHA-1 profile.
         var hash = hmac.ComputeHash(counterBytes);
         var offset = hash[^1] & 0x0f;
         var binaryCode =
@@ -2973,8 +3054,8 @@ public sealed class PhaseOneStore(
         public string? ImageUrl { get; set; }
         public IReadOnlyList<string> GalleryUrls { get; set; } = [];
         public bool IsDraft { get; set; }
-        public decimal RatingAverage { get; set; }
-        public int ReviewCount { get; set; }
+        public decimal RatingAverage { get; }
+        public int ReviewCount { get; }
         public string ModerationStatus { get; set; } = "Approved";
         public string? ModerationReason { get; set; }
         public DateTimeOffset? ModeratedAt { get; set; }
@@ -3008,6 +3089,7 @@ public sealed class PhaseOneStore(
     {
         PhaseOneBooking? booking;
         IReadOnlyList<PendingNotification> notifications;
+        PaymentVoidRequest? voidRequest = null;
         var reason = NormalizeDecisionReason(request.Reason);
 
         lock (_gate)
@@ -3029,13 +3111,37 @@ public sealed class PhaseOneStore(
                 throw new InvalidOperationException("Captured bookings must be cancelled or refunded through the payment workflow.");
             }
 
-            BookingPaymentStateMachine.EnsureBookingTransition(booking.Status, BookingStatus.Rejected, "host_reject_booking");
-            if (booking.PaymentStatus is PaymentStatus.Pending or PaymentStatus.Authorized)
+            if (booking.PaymentStatus == PaymentStatus.Authorized)
+            {
+                voidRequest = new PaymentVoidRequest(
+                    booking.PaymentAuthorizationReference ?? throw new InvalidOperationException("Authorized booking is missing its payment reference."),
+                    booking.TotalAmount,
+                    booking.Currency,
+                    "Host rejected booking",
+                    $"booking:{booking.Id:N}:void");
+            }
+            else if (booking.PaymentStatus == PaymentStatus.Pending)
             {
                 BookingPaymentStateMachine.EnsurePaymentTransition(booking.PaymentStatus, PaymentStatus.Cancelled, "host_reject_booking", booking.Status);
                 booking.PaymentStatus = PaymentStatus.Cancelled;
             }
+        }
 
+        if (voidRequest is not null)
+        {
+            var voidResult = await paymentGateway.VoidAuthorizationAsync(voidRequest, cancellationToken);
+            lock (_gate)
+            {
+                BookingPaymentStateMachine.EnsurePaymentTransition(booking!.PaymentStatus, voidResult.Status, "host_reject_booking", booking.Status);
+                booking.PaymentProvider = voidResult.ProviderName;
+                booking.PaymentStatus = voidResult.Status;
+                booking.Timeline.Add("Payment authorization voided and card hold released");
+            }
+        }
+
+        lock (_gate)
+        {
+            BookingPaymentStateMachine.EnsureBookingTransition(booking!.Status, BookingStatus.Rejected, "host_reject_booking");
             booking.Status = BookingStatus.Rejected;
             booking.HoldExpiresAt = null;
             booking.RejectionReason = reason;
@@ -3200,7 +3306,8 @@ public sealed class PhaseOneStore(
         string? paymentClientSecret,
         string? paymentCaptureReference,
         IReadOnlyList<BookingPriceLineDto> priceBreakdown,
-        IReadOnlyList<string> timeline)
+        IReadOnlyList<string> timeline,
+        bool isDateHold = false)
     {
         public Guid Id { get; } = id;
         public Guid PropertyId { get; } = propertyId;
@@ -3216,6 +3323,7 @@ public sealed class PhaseOneStore(
         public VerificationStatus VerificationStatus { get; set; } = verificationStatus;
         public PaymentStatus PaymentStatus { get; set; } = paymentStatus;
         public bool RequiresGuestVerification { get; } = requiresGuestVerification;
+        public bool IsDateHold { get; } = isDateHold;
         public DateTimeOffset? HoldExpiresAt { get; set; } = holdExpiresAt;
         public int Nights { get; } = nights;
         public decimal NightlyRate { get; } = nightlyRate;

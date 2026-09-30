@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { CreditCard, Plus, Trash2, CheckCircle2, ShieldCheck, Lock } from "lucide-react";
-import { api } from "../../lib/api";
+import { useState } from "react";
+import { CreditCard, Plus, Trash2, Lock } from "lucide-react";
 import { PatoisPhrase } from "../../lib/patois";
 import type { SavedPaymentMethod } from "./types";
 
@@ -10,6 +9,7 @@ interface TravelerPaymentMethodsProps {
 }
 
 export function TravelerPaymentMethods({ userId, token }: TravelerPaymentMethodsProps) {
+  const canManage = Boolean(userId && token);
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([
     {
       id: "pm_mock_visa",
@@ -54,7 +54,7 @@ export function TravelerPaymentMethods({ userId, token }: TravelerPaymentMethods
           <h2>Saved Payment Methods</h2>
           <PatoisPhrase phrase="Secure Payment Wallet" translation="Manage your saved credit cards backed by Stripe SetupIntents." />
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        <button type="button" className="btn btn-primary" disabled={!canManage} onClick={() => setShowAddModal(true)}>
           <Plus size={16} /> Add Payment Method
         </button>
       </header>
@@ -65,11 +65,11 @@ export function TravelerPaymentMethods({ userId, token }: TravelerPaymentMethods
             <h3>Add New Card (Stripe SetupIntent)</h3>
             <p className="subtext mb-3">Your card information is tokenized securely via Stripe.</p>
             <div className="field-group mb-3">
-              <label className="field-label">Cardholder Name</label>
-              <input type="text" className="input-control" value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Full name" />
+              <label className="field-label" htmlFor="payment-cardholder-name">Cardholder Name</label>
+              <input id="payment-cardholder-name" type="text" className="input-control" value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Full name" />
             </div>
             <div className="field-group mb-4">
-              <label className="field-label">Stripe Elements Card Container</label>
+              <p className="field-label" id="stripe-elements-card-label">Stripe Elements Card Container</p>
               <div className="stripe-mock-field">
                 <span>•••• •••• •••• 5555</span>
                 <span>10/29</span>

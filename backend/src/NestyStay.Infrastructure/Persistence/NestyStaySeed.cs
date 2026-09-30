@@ -186,7 +186,7 @@ public static class NestyStaySeed
 
     private static Guid SeedGuid(string group, string key)
     {
-        var bytes = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes($"nestystay:{group}:{key}"));
+        var bytes = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes($"nestystay:{group}:{key}")); // NOSONAR: deterministic seed identifiers are not security hashes and must remain stable.
         return new Guid(bytes);
     }
 }

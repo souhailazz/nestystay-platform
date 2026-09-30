@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T15:09:16.080Z",
+  "generatedAt": "2026-09-22T18:12:14.994Z",
   "project": "tablet-chromium",
   "routeCount": 19,
   "results": [
@@ -7,10 +7,7 @@
       "role": "anonymous",
       "route": "/",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -18,10 +15,7 @@
       "role": "anonymous",
       "route": "/explore",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -29,10 +23,7 @@
       "role": "anonymous",
       "route": "/explore/map",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -40,10 +31,7 @@
       "role": "anonymous",
       "route": "/directory/custodians",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -51,10 +39,7 @@
       "role": "anonymous",
       "route": "/directory/trades",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -62,10 +47,7 @@
       "role": "anonymous",
       "route": "/directory/businesses",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -73,10 +55,7 @@
       "role": "anonymous",
       "route": "/directory/police",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -84,10 +63,7 @@
       "role": "anonymous",
       "route": "/gate/qr",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -95,10 +71,7 @@
       "role": "guest",
       "route": "/guest-dashboard",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -106,10 +79,7 @@
       "role": "guest",
       "route": "/traveler/reservations",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -117,10 +87,7 @@
       "role": "guest",
       "route": "/traveler/qr",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -128,10 +95,7 @@
       "role": "guest",
       "route": "/messages",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -139,10 +103,7 @@
       "role": "host",
       "route": "/host-dashboard",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -150,10 +111,7 @@
       "role": "host",
       "route": "/host/properties",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -161,10 +119,7 @@
       "role": "host",
       "route": "/host/wellness",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -172,10 +127,7 @@
       "role": "host",
       "route": "/host/wellness/book",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -183,10 +135,7 @@
       "role": "host",
       "route": "/host/wellness/directory",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -194,10 +143,7 @@
       "role": "host",
       "route": "/directory/provider",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     },
@@ -205,10 +151,7 @@
       "role": "officer",
       "route": "/officer/wellness",
       "status": 200,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-      ],
+      "consoleErrors": [],
       "failedRequests": [],
       "bodyHasServerError": false
     }

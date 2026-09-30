@@ -55,6 +55,6 @@ public sealed class AccessController(
     public async Task<ActionResult<QrValidationResult>> Validate(ValidateQrRequest request, CancellationToken cancellationToken) =>
         Ok(await qrAccessStore.ValidateAsync(request.Token, request.PropertyId, request.DeviceMetadata, cancellationToken));
 
-    public sealed record ValidateQrRequest(string Token, Guid PropertyId, string? DeviceMetadata = null);
+    public sealed record ValidateQrRequest(string Token, [property: System.Text.Json.Serialization.JsonRequired] Guid PropertyId, string? DeviceMetadata = null);
     public sealed record RevokeQrRequest(string? Reason = null);
 }

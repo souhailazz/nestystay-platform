@@ -331,6 +331,10 @@ public sealed class M3M4EndpointTests : IClassFixture<NestyStayApiFactory>
         Assert.Equal(HttpStatusCode.OK, propertyResponse.StatusCode);
         var propertyId = (await propertyResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.AdminToken);
+        var moderation = await client.PostAsJsonAsync($"/api/properties/{propertyId}/moderate", new { status = "Approved" });
+        Assert.Equal(HttpStatusCode.OK, moderation.StatusCode);
+
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", NestyStayApiFactory.UserToken(guestId, UserRole.Guest));
         var checkIn = DateOnly.FromDateTime(DateTime.UtcNow);
         var checkOut = checkIn.AddDays(1);

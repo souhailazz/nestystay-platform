@@ -121,4 +121,4 @@ public sealed class PropertyManagerProfessionalController(IPropertyManagerProfes
     private Guid Actor() => authorization.RequireSignedInUser();
 }
 
-public sealed record CancelPmOwnerBlockRequest(string Reason, long RowVersion);
+public sealed record CancelPmOwnerBlockRequest(string Reason, [property: System.Text.Json.Serialization.JsonRequired] long RowVersion);

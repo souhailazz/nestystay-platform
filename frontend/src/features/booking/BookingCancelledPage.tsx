@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Ban, RefreshCw, FileText } from "lucide-react";
+import { Ban } from "lucide-react";
 import { api, formatMoney } from "../../lib/api";
 import type { BookingDetails } from "./types";
 import { PatoisPhrase } from "../../lib/patois";

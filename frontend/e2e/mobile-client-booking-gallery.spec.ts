@@ -5,6 +5,7 @@ import { installCookieSession } from "./helpers/session";
 
 type Session = { userId: string; email: string; displayName: string; accessToken: string; roles: string[]; permissions: string[] };
 type Property = { id: string; title: string; guestVerificationEnabled?: boolean };
+type AvailableStay = { property: Property; checkIn: string; checkOut: string };
 
 const password = "NestyStay1";
 const evidenceDirectory = path.resolve(process.cwd(), "..", "testing-evidence", "mobile-client-booking-gallery");
@@ -21,8 +22,9 @@ test("captures the real guest/client booking experience on mobile", async ({ bas
   const propertiesResponse = await api.get("/api/properties");
   expect(propertiesResponse.ok(), await propertiesResponse.text()).toBeTruthy();
   const properties = await propertiesResponse.json() as Property[];
-  const property = properties.find(item => item.guestVerificationEnabled === false) ?? properties[0];
-  expect(property, "a seeded public property is required").toBeTruthy();
+  const stay = await findAvailableStay(api, properties, testInfo.project.name);
+  expect(stay, "a seeded public property with an available demo window is required").toBeTruthy();
+  const property = stay!.property;
 
   await screenshotRoute(page, "/", "CLIENT-01-landing.png");
   await screenshotRoute(page, "/explore", "CLIENT-02-explore-search.png");
@@ -51,9 +53,8 @@ test("captures the real guest/client booking experience on mobile", async ({ bas
   // Persistent local acceptance data can occupy ordinary near-term dates.
   // Ask the same quote endpoint used by the product for a free deterministic
   // window, then enter those dates through the real booking UI.
-  const { checkIn, checkOut } = await findAvailableStay(api, property!.id, testInfo.project.name);
-  await dateInputs.nth(0).fill(checkIn);
-  await dateInputs.nth(1).fill(checkOut);
+  await dateInputs.nth(0).fill(stay!.checkIn);
+  await dateInputs.nth(1).fill(stay!.checkOut);
   await quoteButton.click();
   await expect(createButton).toBeEnabled({ timeout: 30_000 });
   await page.screenshot({ path: path.join(evidenceDirectory, "CLIENT-06-booking-quote.png"), fullPage: false });
@@ -99,17 +100,20 @@ async function createGuest(api: APIRequestContext): Promise<Session> {
   return { ...(await login.json()) as Session, email, displayName: "Mobile Client Guest" };
 }
 
-async function findAvailableStay(api: APIRequestContext, propertyId: string, projectName: string) {
+async function findAvailableStay(api: APIRequestContext, properties: Property[], projectName: string): Promise<AvailableStay | undefined> {
   const projectOffset = projectName.includes("tablet") ? 10 : projectName.includes("mobile") ? 20 : 0;
   const apiRoot = (process.env.PLAYWRIGHT_API_ROOT ?? process.env.PLAYWRIGHT_API_URL?.replace(/\/health\/?$/, "") ?? "http://127.0.0.1:5019/api").replace(/\/$/, "");
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  const candidates = [...properties].sort((left, right) => Number(left.guestVerificationEnabled ?? false) - Number(right.guestVerificationEnabled ?? false));
+  for (let attempt = 0; attempt < 72; attempt += 1) {
     const stayOffset = 12_000 + projectOffset + attempt * 5;
     const checkIn = new Date(Date.now() + stayOffset * 86_400_000).toISOString().slice(0, 10);
     const checkOut = new Date(Date.now() + (stayOffset + 3) * 86_400_000).toISOString().slice(0, 10);
-    const response = await api.post(`${apiRoot}/bookings/quote`, {
-      data: { propertyId, checkIn, checkOut, adults: 2, children: 0 },
-    });
-    if (response.ok()) return { checkIn, checkOut };
+    for (const property of candidates) {
+      const response = await api.post(`${apiRoot}/bookings/quote`, {
+        data: { propertyId: property.id, checkIn, checkOut, adults: 2, children: 0 },
+      });
+      if (response.ok()) return { property, checkIn, checkOut };
+    }
   }
-  throw new Error("Could not find an available client-demo stay window after 12 attempts.");
+  throw new Error("Could not find an available client-demo stay window after 72 attempts across seeded properties.");
 }

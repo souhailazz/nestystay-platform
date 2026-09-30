@@ -27,7 +27,13 @@ test("M5 reservation amendment cancellation rebooking and calendar are usable", 
   const booking = await request.post("/api/bookings", { headers: { Authorization: `Bearer ${await tokenFor(request, data.guestEmail, data.password)}` }, data: { propertyId: data.listingId!, guestUserId: data.guestId, checkIn: isoDay(4), checkOut: isoDay(6) } }); expect(booking.ok(), await booking.text()).toBeTruthy(); const bookingId = (await booking.json()).id as string;
   await login(page, data.managerEmail, data.password); await page.goto("/pm/operations");
   const reservation = page.locator(`#reservation-${bookingId}`); await expect(reservation).toBeVisible(); await reservation.getByLabel("New check-in").fill(isoDay(7)); await reservation.getByLabel("New check-out").fill(isoDay(9)); await reservation.getByLabel("Reason").fill("Guest confirmed revised dates"); await reservation.getByRole("button", { name: "Preview amendment" }).click(); await expect(reservation.getByText(/Available/)).toBeVisible(); await reservation.getByRole("button", { name: "Confirm amendment" }).click(); await expect(page.getByText("Reservation amendment confirmed", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Master calendar" }).click(); await expect(page.locator("span.font-semibold").filter({ hasText: /^RESERVATION$/ }).first()).toBeVisible(); await expect(page.getByText(/server-calculated overlap warnings/i)).toBeVisible();
+  await page.getByRole("button", { name: "Master calendar" }).click();
+  const reservationDate = new Date(`${isoDay(7)}T00:00:00.000Z`);
+  const today = new Date();
+  if (reservationDate.getUTCFullYear() !== today.getUTCFullYear() || reservationDate.getUTCMonth() !== today.getUTCMonth()) {
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+  }
+  await expect(page.locator("span.font-semibold").filter({ hasText: /^RESERVATION$/ }).first()).toBeVisible(); await expect(page.getByText(/server-calculated overlap warnings/i)).toBeVisible();
   await page.getByRole("button", { name: "Reservations", exact: true }).click(); const amended = page.locator(`#reservation-${bookingId}`); await amended.getByLabel("Reason").fill("Guest requested cancellation"); await amended.getByRole("button", { name: "Cancel reservation" }).click(); await expect(page.getByText("Reservation cancelled", { exact: true })).toBeVisible();
   const cancelled = page.locator(`#reservation-${bookingId}`); await cancelled.getByLabel("Replacement check-in").fill(isoDay(10)); await cancelled.getByLabel("Replacement check-out").fill(isoDay(12)); await cancelled.getByLabel("Reason").fill("Replacement dates approved"); await cancelled.getByRole("button", { name: "Create replacement reservation" }).click(); await expect(page.getByText("Replacement reservation created", { exact: true })).toBeVisible();
 });
