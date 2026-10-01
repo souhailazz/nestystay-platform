@@ -15,6 +15,9 @@ export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(() => loadSession());
   const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
   const [isAuthBusy, setIsAuthBusy] = useState(false);
+  // Always start in a hydrating state so a protected route cannot redirect
+  // before the server-managed cookie has had a chance to identify the user.
+  const [isAuthHydrating, setIsAuthHydrating] = useState(true);
 
   useEffect(() => {
     const onStorage = () => setSession(loadSession());
@@ -23,18 +26,21 @@ export function useAuth() {
   }, []);
 
   // Rehydrate identity from the server-managed HttpOnly session cookie after
-  // a refresh.  The profile request deliberately never receives a bearer
+  // a refresh. The profile request deliberately never receives a bearer
   // secret in JavaScript; accessToken stays an empty compatibility field.
+  // This also covers cookie-only sessions where localStorage is unavailable.
   useEffect(() => {
     const storedSession = loadSession();
-    // An anonymous public visit has no session hint. Avoid an expected 401
-    // request on every public route while preserving cookie rehydration for
-    // sessions created by this frontend.
-    if (!storedSession) return;
+    setIsAuthHydrating(true);
     let active = true;
     void api.getProfile().then((profile) => {
       if (!active) return;
-      const previous = loadSession() ?? storedSession;
+      // A login may complete while the initial profile request is in flight.
+      // Never let the older request overwrite the newly selected account.
+      const current = loadSession();
+      if (storedSession && current && current.userId !== storedSession.userId) return;
+      if (!profile?.userId || !profile.email || !Array.isArray(profile.roles)) return;
+      const previous = current ?? storedSession;
       const next: AuthSession = {
         userId: profile.userId,
         email: profile.email,
@@ -50,10 +56,17 @@ export function useAuth() {
       if (!active) return;
       const status = (error as { status?: number } | null)?.status;
       if (status === 401 || status === 403) {
-        clearSession();
-        setSession(null);
-        setPendingChallenge(null);
+        // Do not clear a session created after this probe started (for
+        // example, a fast login on the public login page).
+        const current = loadSession();
+        if (!storedSession || !current || current.userId === storedSession.userId) {
+          clearSession();
+          setSession(null);
+          setPendingChallenge(null);
+        }
       }
+    }).finally(() => {
+      if (active) setIsAuthHydrating(false);
     });
     return () => { active = false; };
   }, []);
@@ -245,6 +258,7 @@ export function useAuth() {
       pendingChallenge,
       isAuthenticated: Boolean(session),
       isAuthBusy,
+      isAuthHydrating,
       register,
       login,
       requestPasswordlessLogin,
@@ -257,7 +271,7 @@ export function useAuth() {
       verify,
       logout,
     }),
-    [completePasswordlessLogin, isAuthBusy, login, logout, pendingChallenge, register, registerPasskey, requestPasswordlessLogin, requestSmsFallback, session, signInWithGoogle, signInWithPasskey, verify, verifySmsFallback],
+    [completePasswordlessLogin, isAuthBusy, isAuthHydrating, login, logout, pendingChallenge, register, registerPasskey, requestPasswordlessLogin, requestSmsFallback, session, signInWithGoogle, signInWithPasskey, verify, verifySmsFallback],
   );
 }
 

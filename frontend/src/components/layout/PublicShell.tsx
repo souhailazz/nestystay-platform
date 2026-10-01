@@ -80,7 +80,7 @@ export function PublicFooter({ variant = "deep" }: { variant?: "deep" | "night" 
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink>
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink>
             <AppLink className="underline-offset-2 hover:text-on-dark-body hover:underline" href="/refund-policy">Refunds</AppLink>
-            <button className="underline-offset-2 hover:text-on-dark-body hover:underline" onClick={openCookieSettings} type="button">Cookie settings</button>
+            <button className="underline-offset-2 hover:text-on-dark-body hover:underline" data-cookie-settings-trigger="true" onClick={openCookieSettings} type="button">Cookie settings</button>
           </nav>
         </div>
       </div>

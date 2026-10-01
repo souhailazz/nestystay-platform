@@ -3,15 +3,17 @@ import { AppLink, navigate } from "../../components/AppLink";
 import type { AuthController } from "../../hooks/useAuth";
 import { AuthModalSuite } from "./AuthModalSuite";
 import { postAuthRoute } from "./postAuthRoute";
+import type { PublicWorkspaceRole } from "./workspaceOptions";
 
 interface AuthStateContainerProps {
   mode?: "login" | "register" | "forgot-password";
   auth: AuthController;
   returnTo?: string;
+  workspaceRole?: PublicWorkspaceRole;
 }
 
-export function AuthStateContainer({ mode = "login", auth, returnTo }: AuthStateContainerProps) {
-  return <AuthModalSuite initialMode={mode} auth={auth} returnTo={returnTo} />;
+export function AuthStateContainer({ mode = "login", auth, returnTo, workspaceRole }: AuthStateContainerProps) {
+  return <AuthModalSuite initialMode={mode} auth={auth} returnTo={returnTo} workspaceRole={workspaceRole} />;
 }
 
 export function PasswordlessCompletionPage({ auth }: { auth: AuthController }) {

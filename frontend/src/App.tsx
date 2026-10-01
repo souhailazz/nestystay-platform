@@ -567,7 +567,7 @@ export default function App() {
   const reduceMotion = usePrefersReducedMotion();
   const auth = useAuth();
   const route = useRoute();
-  const access = getRouteAccess(route, auth.session);
+  const access = getRouteAccess(route, auth.session, { hydrating: auth.isAuthHydrating });
   const canRenderWorkspace = access.kind === "allowed" && isWorkspaceRoute(route);
   const canonicalPath = route.canonicalPath.includes(":") ? window.location.pathname : route.canonicalPath;
   const publicRoute = ["home", "explore", "map-search", "property", "public-content", "experiences", "journal", "directory-spec", "business-directory"].includes(route.name)
@@ -650,6 +650,9 @@ export default function App() {
   }, [route, `${window.location.pathname}${window.location.search}`]);
 
   const renderRouteContent = () => {
+    if (access.kind === "hydrating") {
+      return <div aria-live="polite" className="min-h-[50vh] p-8">Checking your NestyStay session…</div>;
+    }
     if (access.kind === "auth-required") {
       return <SignInRequiredPage returnTo={access.returnTo} />;
     }

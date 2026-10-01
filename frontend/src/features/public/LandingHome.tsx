@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from "react";
 import Hero3D from "../../components/landing/Hero3D";
+import { EcosystemStrip } from "../../components/landing/EcosystemStrip";
 
 const ScrollStory = lazy(() => import("../../components/landing/ScrollStory"));
 const FeatureCards = lazy(() => import("../../components/landing/FeatureCards"));
@@ -52,6 +53,7 @@ export function LandingHome() {
   return (
     <>
       <Hero3D />
+      <EcosystemStrip />
       <DeferredLandingSection section={ScrollStory} minHeight="100svh" />
       <DeferredLandingSection section={FeatureCards} minHeight="28rem" />
       <DeferredLandingSection section={PropertyShowcase} minHeight="30rem" />

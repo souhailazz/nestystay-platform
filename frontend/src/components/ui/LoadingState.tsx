@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { usePatois } from "../../lib/patois";
 import { cx } from "../../lib/ui";
 
@@ -18,8 +19,14 @@ function Skeleton({ className }: { className?: string }) {
   );
 }
 
-export function LoadingState({ label = "Loading Nesty Stay data" }: { label?: string }) {
+export function LoadingState({ label = "Loading Nesty Stay data", onRetry, timeoutMs = 12000 }: { label?: string; onRetry?: () => void; timeoutMs?: number }) {
   const { showPatois } = usePatois();
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    setTimedOut(false);
+    const timer = window.setTimeout(() => setTimedOut(true), timeoutMs);
+    return () => window.clearTimeout(timer);
+  }, [timeoutMs]);
   return (
     <div
       aria-busy="true"
@@ -39,6 +46,7 @@ export function LoadingState({ label = "Loading Nesty Stay data" }: { label?: st
         )}
         <span className="sr-only">{label}</span>
       </div>
+      {timedOut && <div className="grid justify-items-center gap-2 rounded-field border border-amber/30 bg-amber-tint px-3 py-2 text-center text-xs text-amber-text" role="status"><strong>This is taking longer than expected.</strong><span>Check your connection, then retry the request.</span><button className="min-h-10 rounded-pill bg-deep px-4 text-xs font-bold text-white" onClick={() => onRetry ? onRetry() : window.location.reload()} type="button">Retry</button></div>}
       <div aria-hidden="true" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[0, 1, 2].map((item) => (
           <div className="grid gap-2.5" key={item}>

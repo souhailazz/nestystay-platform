@@ -150,6 +150,15 @@ test("every configured role reaches its landing route and is denied a foreign wo
     Officer: "/officer/wellness",
     Admin: "/admin",
   };
+  const expectedRouteNames: Partial<Record<(typeof USER_ROLES)[number], string>> = {
+    Guest: "guest-dashboard",
+    Host: "host-dashboard",
+    PropertyManager: "pm-dashboard",
+    Owner: "owner-dashboard",
+    ServiceProvider: "provider-dashboard",
+    LocalBusiness: "provider-dashboard",
+    Officer: "officer-wellness",
+  };
   const checks: Array<Record<string, unknown>> = [];
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const testableRoles = USER_ROLES.filter((role) => role !== "Admin");
@@ -159,6 +168,9 @@ test("every configured role reaches its landing route and is denied a foreign wo
     sessions.set(role, session);
     await gotoAuthenticatedRoute(page, session, landingRoutes[role]);
     await expect(page.locator("[data-route-name]")).toHaveCount(1);
+    await expect(page.locator("[data-route-name]")).toHaveAttribute("data-route-name", expectedRouteNames[role]);
+    if (role === "ServiceProvider") await expect(page.getByRole("heading", { name: "Your provider profile", exact: true })).toBeVisible();
+    if (role === "LocalBusiness") await expect(page.getByRole("heading", { name: "Your local business profile", exact: true })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Workspace navigation", exact: true })).toBeVisible();
     const mobileNavigation = page.locator('nav[aria-label="Mobile workspace navigation"]');
     await expect(mobileNavigation).toHaveCount(1);

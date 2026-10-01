@@ -43,6 +43,11 @@ function AuthProbe() {
   );
 }
 
+function HydrationProbe() {
+  const auth = useAuth();
+  return <span data-testid="hydration-state">{auth.isAuthHydrating ? "hydrating" : auth.session ? auth.session.roles[0] : "signed-out"}</span>;
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   vi.clearAllMocks();
@@ -53,6 +58,25 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("useAuth workflows", () => {
+  it("waits for the server profile before exposing a cached role", async () => {
+    let resolveProfile!: (profile: unknown) => void;
+    apiMock.getProfile.mockReturnValue(new Promise((resolve) => { resolveProfile = resolve; }));
+    window.localStorage.setItem("nestyStay.session", JSON.stringify({
+      userId: "cached-user",
+      email: "cached@example.test",
+      accessToken: "",
+      expiresAt,
+      roles: ["PropertyManager"],
+      permissions: [],
+    }));
+
+    render(<HydrationProbe />);
+    expect(screen.getByTestId("hydration-state").textContent).toBe("hydrating");
+
+    resolveProfile({ userId: "cached-user", email: "cached@example.test", roles: ["PropertyManager"] });
+    await waitFor(() => expect(screen.getByTestId("hydration-state").textContent).toBe("PropertyManager"));
+  });
+
   it("creates a cookie-compatible session, persists it, and logs out cleanly", async () => {
     apiMock.login.mockResolvedValue(loginSession);
     render(<AuthProbe />);

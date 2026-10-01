@@ -178,7 +178,7 @@ test("critical UI smoke works in Chromium, Firefox, WebKit, and mobile Chromium"
 test("stable representative screens match visual baselines", async ({ page }) => {
   // Keep the consent surface out of deterministic page snapshots; it has its
   // own dedicated functional coverage in privacy-compliance.spec.ts.
-  await page.addInitScript(() => window.localStorage.setItem("nesty-cookie-consent-v1", "rejected"));
+  await page.addInitScript(() => window.localStorage.setItem("nesty-cookie-consent-v2", JSON.stringify({ version: "2026-09", essential: true, analytics: false, marketing: false, updatedAt: "2026-10-01T00:00:00.000Z", expiresAt: "2027-03-30T00:00:00.000Z" })));
   for (const route of ["/login", "/register", "/401", "/403", "/404", "/directory/police"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page).toHaveScreenshot(`${route.replaceAll("/", "-").replace(/^-/, "") || "home"}.png`, { fullPage: true, animations: "disabled", maxDiffPixelRatio: 0.01 });

@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Eye, EyeOff, X } from "lucide-react";
+import { BriefcaseBusiness, Building2, Compass, Eye, EyeOff, Home, ShieldCheck, Store, X, type LucideIcon } from "lucide-react";
 import { AppLink, navigate } from "../../components/AppLink";
 import { EmblemRoundel, deepPatternBackground } from "../../components/layout/PublicShell";
 import { api } from "../../lib/api";
 import { loadSession } from "../../lib/auth";
 import { userSafeErrorMessage } from "../../lib/errorMessages";
 import { cx } from "../../lib/ui";
-import { LEGAL_DETAILS } from "../../lib/legal";
+import { LEGAL_DETAILS, openCookieSettings } from "../../lib/legal";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { setUnsavedChanges } from "../../lib/unsavedChanges";
 import { signInWithGoogle } from "./googleSignIn";
-import { isSafeInternalReturnTo, postAuthRoute } from "./postAuthRoute";
+import { isRoleSafeReturnTo, postAuthRoute } from "./postAuthRoute";
 import type { AuthModalMode } from "./types";
 import type { AuthController } from "../../hooks/useAuth";
+import { PUBLIC_WORKSPACE_LOGIN_PATHS, PUBLIC_WORKSPACE_OPTIONS, type PublicWorkspaceRole } from "./workspaceOptions";
 
 interface AuthModalSuiteProps {
   initialMode?: AuthModalMode;
   auth: AuthController;
   onClose?: () => void;
   returnTo?: string;
+  workspaceRole?: PublicWorkspaceRole;
 }
 
 /* AUTH-01 (DS v2) — split brand panel + form cards. All auth logic and API
@@ -28,9 +30,76 @@ interface AuthModalSuiteProps {
 const inputClass =
   "min-h-12 w-full rounded-field border-[1.5px] border-sand-input bg-white px-4 font-sans text-[14.5px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-sand-500 focus:border-deep-hover focus:shadow-[0_0_0_3px_rgba(14,74,69,0.12)]";
 const labelText = "font-sans text-[13px] font-semibold text-ink";
-const cardClass = "flex flex-col gap-4 rounded-card border border-sand-border bg-cream p-7";
+const cardClass = "flex w-full max-w-[720px] self-center flex-col gap-4 rounded-card border border-sand-border bg-cream p-6 sm:p-7";
 const deepPill =
   "flex min-h-[50px] cursor-pointer items-center justify-center gap-2.5 rounded-pill border-none bg-deep font-sans text-[15px] font-semibold text-on-dark-heading transition-colors hover:bg-deep-hover disabled:pointer-events-none disabled:bg-shell disabled:text-sand-500";
+
+const workspaceIcons: Record<PublicWorkspaceRole, LucideIcon> = {
+  Guest: Compass,
+  Host: Home,
+  PropertyManager: Building2,
+  ServiceProvider: BriefcaseBusiness,
+  LocalBusiness: Store,
+  Officer: ShieldCheck,
+};
+
+const workspacePanelContent: Record<PublicWorkspaceRole, {
+  eyebrow: string;
+  title: string;
+  highlight: string;
+  description: string;
+  image: string;
+  imageAlt: string;
+}> = {
+  Guest: {
+    eyebrow: "For guests",
+    title: "Find a stay",
+    highlight: "that feels like yours.",
+    description: "Discover verified homes, local know-how, and the Jamaica beyond the guidebook.",
+    image: "/assets/auth/workspace-guest.webp",
+    imageAlt: "Guest arriving at a Jamaican guesthouse with a rolling suitcase",
+  },
+  Host: {
+    eyebrow: "For hosts & owners",
+    title: "Share the place",
+    highlight: "you call home.",
+    description: "List your property, welcome guests, and manage reservations with confidence.",
+    image: "/assets/auth/workspace-host.webp",
+    imageAlt: "Jamaican host welcoming guests from a villa doorway",
+  },
+  PropertyManager: {
+    eyebrow: "For property managers",
+    title: "Keep the whole portfolio",
+    highlight: "in rhythm.",
+    description: "Manage properties, owners, finances, and daily operations from one workspace.",
+    image: "/assets/auth/workspace-property-manager.webp",
+    imageAlt: "Property manager reviewing a tablet and keys in a Jamaican guesthouse courtyard",
+  },
+  ServiceProvider: {
+    eyebrow: "For custodians & service providers",
+    title: "Bring your craft",
+    highlight: "into every stay.",
+    description: "Keep homes ready and offer trusted cleaning, maintenance, and hospitality support.",
+    image: "/assets/auth/workspace-service-provider.webp",
+    imageAlt: "Jamaican hospitality professional preparing fresh linens in a guest room",
+  },
+  LocalBusiness: {
+    eyebrow: "For local businesses",
+    title: "Put local",
+    highlight: "on the itinerary.",
+    description: "Connect your products, services, and community to people staying nearby.",
+    image: "/assets/auth/workspace-local-business.webp",
+    imageAlt: "Jamaican local business owner welcoming visitors from her shop",
+  },
+  Officer: {
+    eyebrow: "For wellness officers",
+    title: "Support the stay",
+    highlight: "with care.",
+    description: "Offer approved wellness and safety support while keeping your public role private.",
+    image: "/assets/auth/workspace-wellness-officer.webp",
+    imageAlt: "Jamaican wellness professional offering calm support beside a coastal garden",
+  },
+};
 
 function PasswordVisibilityButton({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
   return (
@@ -131,7 +200,7 @@ function CodeBoxes({ code, onChange }: { code: string; onChange: (code: string) 
   );
 }
 
-export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo }: AuthModalSuiteProps) {
+export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo, workspaceRole }: AuthModalSuiteProps) {
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -146,6 +215,7 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const [registerCapsLock, setRegisterCapsLock] = useState(false);
   const [confirmCapsLock, setConfirmCapsLock] = useState(false);
   const [registerRole, setRegisterRole] = useState<"Guest" | "Host" | "Owner" | "PropertyManager" | "Officer" | "ServiceProvider" | "LocalBusiness">("Guest");
+  const [selectedWorkspace, setSelectedWorkspace] = useState<PublicWorkspaceRole | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [registerErrors, setRegisterErrors] = useState<Record<string, string>>({});
@@ -162,6 +232,11 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const [resetSent, setResetSent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const countdown = useChallengeCountdown(auth.pendingChallenge?.expiresAt);
+
+  useEffect(() => {
+    setSelectedWorkspace(workspaceRole ?? null);
+    if (workspaceRole) setRegisterRole(workspaceRole);
+  }, [workspaceRole]);
 
   const registrationDirty = mode === "register" && Boolean(registerDisplayName || registerPhone || email || password || registerConfirmPassword || acceptedTerms || acceptedPrivacy);
 
@@ -199,14 +274,14 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
 
   function finishSignIn() {
     onClose?.();
-    if (isSafeInternalReturnTo(returnTo)) {
-      navigate(returnTo);
-      return;
-    }
     // Authentication writes the session synchronously, while React state is
     // updated asynchronously. Read the persisted session here so a newly
     // authenticated role is not routed through the guest fallback first.
     const roles = loadSession()?.roles ?? auth.session?.roles;
+    if (isRoleSafeReturnTo(returnTo, roles)) {
+      navigate(returnTo);
+      return;
+    }
     navigate(postAuthRoute(roles, registerRole));
   }
 
@@ -441,6 +516,8 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   const passwordScore = passwordChecks.filter(([, passed]) => passed).length;
   const passwordStrength = passwordScore === 0 ? "Start with a strong password" : passwordScore < 3 ? "Needs a little more strength" : passwordScore === 3 ? "Good password" : "Strong password";
   const confirmPasswordMismatch = registerConfirmPassword.length > 0 && password !== registerConfirmPassword;
+  const activeWorkspace = workspaceRole ?? "Guest";
+  const panelContent = workspacePanelContent[activeWorkspace];
 
   const noticePanel = notice && (
     <div
@@ -457,29 +534,36 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
   return (
     <div className="grid min-h-screen font-sans text-[15px] leading-[1.55] text-ink md:grid-cols-[minmax(320px,44%)_1fr]" id="AUTH-01">
       {/* Brand panel */}
-      <aside className="flex flex-col justify-between gap-10 p-11 px-11" style={deepPatternBackground}>
-        <AppLink aria-label="NestyStay home" className="flex items-center gap-3" href="/">
+      <aside className="relative isolate flex min-h-[520px] flex-col justify-between gap-10 overflow-hidden p-8 sm:p-11" style={deepPatternBackground}>
+        <img alt={panelContent.imageAlt} className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center opacity-45 mix-blend-screen" decoding="async" fetchPriority="high" height={1536} loading="eager" sizes="(max-width: 767px) 100vw, 44vw" src={panelContent.image} width={1024} />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(6,43,43,0.84),rgba(6,43,43,0.58)_42%,rgba(6,43,43,0.96))]" />
+        <AppLink aria-label="NestyStay home" className="relative z-10 flex items-center gap-3" href="/">
           <EmblemRoundel size={60} />
           <span aria-hidden="true" className="text-[18px] font-bold tracking-[0.14em] text-sand">NESTY STAY</span>
         </AppLink>
-        <div className="flex flex-col gap-3.5">
+        <div className="relative z-10 flex max-w-[430px] flex-col gap-3.5">
+          <span className="w-fit rounded-pill border border-yellow/50 bg-deep/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-yellow">{panelContent.eyebrow}</span>
           <h1 className="m-0 font-display text-[clamp(36px,4vw,56px)] font-normal leading-[1.02] tracking-[-0.015em] text-on-dark-heading [text-wrap:balance]">
-            Come back to your <em className="italic text-yellow">yard.</em>
+            {panelContent.title} <em className="italic text-yellow">{panelContent.highlight}</em>
           </h1>
           <p className="m-0 max-w-[380px] text-[14.5px] text-on-dark-muted">
-            Jamaica&apos;s own trusted stays platform — verified hosts, wellness visits, and local know-how.
+            {panelContent.description}
           </p>
         </div>
-        <div className="text-[13px] text-on-dark-faint">
-          nestystay.net ·{" "}
-          <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
-            {LEGAL_DETAILS.supportPhone}
-          </a>
+        <div className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-on-dark-faint">
+          <span>nestystay.net ·{" "}
+            <a className="text-on-dark-faint hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>
+              {LEGAL_DETAILS.supportPhone}
+            </a>
+          </span>
+          <AppLink className="text-on-dark-faint underline-offset-2 hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink>
+          <AppLink className="text-on-dark-faint underline-offset-2 hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink>
+          <button className="text-on-dark-faint underline-offset-2 hover:text-on-dark-body hover:underline" data-cookie-settings-trigger="true" onClick={openCookieSettings} type="button">Cookie settings</button>
         </div>
       </aside>
 
       {/* Forms column */}
-      <main className="flex max-w-[640px] flex-col gap-[22px] px-[clamp(24px,5vw,72px)] py-12">
+      <main className="flex min-w-0 w-full flex-col gap-[18px] px-[clamp(24px,5vw,72px)] py-8 sm:py-10 lg:py-12">
         {onClose && (
           <button
             aria-label="Close"
@@ -516,6 +600,38 @@ export function AuthModalSuite({ initialMode = "login", auth, onClose, returnTo 
             ))}
           </div>
         )}
+
+        {(mode === "login" || mode === "register") && (
+          <section aria-labelledby="workspace-chooser-heading" className="mx-auto grid w-full max-w-[720px] gap-3 rounded-card border border-sand-border bg-shell/60 p-4 shadow-[0_8px_24px_rgba(96,74,20,0.06)] sm:p-5">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-sand-600">The NestyStay ecosystem</span>
+              <h2 className="m-0 mt-1 font-display text-[clamp(24px,3vw,30px)] font-medium leading-tight" id="workspace-chooser-heading">More than a place to stay.</h2>
+              <p className="m-0 mt-1 text-[13px] text-gray-600">One platform for guests, hosts, property teams, local businesses, and wellness services.</p>
+              <h3 className="m-0 mt-3 text-xs font-bold uppercase tracking-[0.1em] text-deep-hover">Choose your workspace</h3>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {PUBLIC_WORKSPACE_OPTIONS.map((option) => {
+                const Icon = workspaceIcons[option.role];
+                const selected = selectedWorkspace === option.role;
+                return (
+                  <AppLink
+                    aria-current={selected ? "page" : undefined}
+                    className={cx("group flex min-h-[68px] items-center gap-2.5 rounded-field border bg-white p-2.5 transition-colors hover:border-deep-hover hover:bg-cream", selected ? "border-deep bg-cream shadow-[0_0_0_2px_rgba(14,74,69,0.12)]" : "border-sand-input")}
+                    href={`${mode === "register" ? "/register" : PUBLIC_WORKSPACE_LOGIN_PATHS[option.role]}?workspace=${encodeURIComponent(option.role)}`}
+                    key={option.role}
+                  >
+                    <span className={cx("grid size-8 shrink-0 place-items-center rounded-full", selected ? "bg-deep text-yellow" : "bg-shell text-deep-hover")}><Icon aria-hidden="true" size={16} /></span>
+                    <span className="min-w-0"><strong className="block text-[12px] leading-tight text-ink">{option.label}</strong><span className="mt-0.5 block text-[10.5px] leading-snug text-sand-600">{option.description}</span></span>
+                  </AppLink>
+                );
+              })}
+            </div>
+            <p className="m-0 text-[11.5px] leading-relaxed text-sand-600" role="note">Workspace selection sets context only. Your authenticated role and permissions always come from the server. Super Admin access is separate and is not offered here.</p>
+            {selectedWorkspace && <p aria-live="polite" className="m-0 rounded-field bg-success-tint px-3 py-2 text-xs font-semibold text-success-text">Selected: {PUBLIC_WORKSPACE_OPTIONS.find((option) => option.role === selectedWorkspace)?.label}. {mode === "register" ? "This role will be used for your account request." : "Your existing account role will determine the dashboard after sign-in."}</p>}
+          </section>
+        )}
+
+        {(mode === "login" || mode === "register") && <AppLink className="self-start text-xs font-semibold text-deep-hover underline underline-offset-4" href="/explore">Explore as a guest →</AppLink>}
 
         {mode === "login" && (
           <form className={cardClass} noValidate onSubmit={handleLogin}>

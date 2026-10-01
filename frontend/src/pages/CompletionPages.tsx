@@ -1788,7 +1788,11 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
   }
   if (slug) return <DataGate state={detail}>{(provider) => provider && <ProviderDetail provider={provider} auth={auth} />}</DataGate>;
   if (kind === "Provider" || kind === "ProviderDashboard") {
-    return <RequireSession auth={auth}>{(session) => <ProviderPortal session={session} mode={kind} />}</RequireSession>;
+    return <RequireSession auth={auth}>{(session) => {
+      const hasLocalBusinessRole = session.roles.some((role) => role.toLowerCase() === "localbusiness");
+      const dashboardRole = hasLocalBusinessRole && !session.roles.some((role) => role.toLowerCase() === "serviceprovider") ? "LocalBusiness" : "ServiceProvider";
+      return <ProviderPortal dashboardRole={dashboardRole} session={session} mode={kind} />;
+    }}</RequireSession>;
   }
   if (kind === "Verification") return <GuestVerificationUpsell auth={auth} />;
 
@@ -1919,13 +1923,14 @@ export function DirectorySpecPage({ kind, slug, auth }: { kind?: string; slug?: 
   );
 }
 
-function ProviderPortal({ session, mode }: { session: NonNullable<AuthController["session"]>; mode: string }) {
+function ProviderPortal({ session, mode, dashboardRole }: { session: NonNullable<AuthController["session"]>; mode: string; dashboardRole: "ServiceProvider" | "LocalBusiness" }) {
   const slug = `provider-${session.userId.slice(0, 8)}`;
+  const isLocalBusinessDashboard = dashboardRole === "LocalBusiness";
   const mine = useAsync(() => api.getM4DirectoryMine(session.accessToken), [session.accessToken]);
   const provider = useMemo(() => mine.data?.find((candidate) => candidate.slug === slug) ?? mine.data?.[0] ?? null, [mine.data, slug]);
   const [form, setForm] = useState({
     name: provider?.name ?? `${session.displayName} Services`,
-    kind: "LocalBusiness",
+    kind: isLocalBusinessDashboard ? "LocalBusiness" : "Trades",
     category: provider?.category ?? "Host services",
     parish: provider?.parish ?? "Kingston",
     badgeLevel: provider?.badgeLevel ?? "Verified",
@@ -2049,11 +2054,15 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
 
   /* DIR-PROV — profile form is persisted by the M4 moderation API. */
   return (
-    <div className="flex flex-col gap-5 font-sans text-ink" id={mode === "Provider" ? "DIR-04" : "DIR-PROV"}>
+    <div className="flex flex-col gap-5 font-sans text-ink" id={mode === "Provider" ? "DIR-04" : isLocalBusinessDashboard ? "DIR-PROV-BUSINESS" : "DIR-PROV-SERVICE"}>
       <h1 className="m-0 font-display text-[clamp(30px,3.4vw,40px)] font-normal tracking-[-0.01em]">
         {mode === "Provider" ? (
           <>
             Provider <em className="italic text-deep-hover">onboarding</em>
+          </>
+        ) : isLocalBusinessDashboard ? (
+          <>
+            Your local business <em className="italic text-deep-hover">profile</em>
           </>
         ) : (
           <>
@@ -2061,6 +2070,7 @@ function ProviderPortal({ session, mode }: { session: NonNullable<AuthController
           </>
         )}
       </h1>
+      {mode !== "Provider" && <p className="m-0 max-w-2xl text-sm text-sand-600">{isLocalBusinessDashboard ? "Manage the public business listing, opening hours, promotions, and guest-facing contact details for your local business account." : "Manage your service-provider profile, service areas, documents, quote requests, reviews, and platform messages."}</p>}
 
       <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
         <form className="flex flex-col gap-3.5 rounded-card border border-sand-border bg-cream p-[22px]" onSubmit={save}>

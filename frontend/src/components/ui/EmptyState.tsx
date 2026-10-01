@@ -22,7 +22,7 @@ export function EmptyState({
         {icon ?? <Compass aria-hidden="true" size={26} strokeWidth={1.5} />}
       </span>
       <h2 className="m-0 font-display text-xl font-medium leading-snug text-ink">{title}</h2>
-      {copy && <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{copy}</p>}
+      <p className="m-0 max-w-sm font-sans text-[13px] leading-relaxed text-gray-600">{copy ?? "There is nothing here yet. New activity will appear when this workspace has data."}</p>
       {action}
     </div>
   );

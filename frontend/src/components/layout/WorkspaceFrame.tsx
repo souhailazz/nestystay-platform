@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Bell, ChevronRight, Home, Search } from "lucide-react";
+import { ArrowLeft, Bell, CheckCircle2, ChevronRight, Command, HelpCircle, Home, Search, ShieldCheck, UserRound } from "lucide-react";
 import { AppLink } from "../AppLink";
 import { EmblemRoundel } from "./PublicShell";
 import { loadSession, type AuthSession } from "../../lib/auth";
@@ -9,6 +9,7 @@ import { getScreenDefinition, navigationForRole, type NavigationItem } from "../
 import { requestConfirmation } from "../../lib/confirmation";
 import { api } from "../../lib/api";
 import { LEGAL_DETAILS, openCookieSettings } from "../../lib/legal";
+import { Modal } from "../ui/Modal";
 
 const roleLabels: Record<AuthSession["roles"][number], string> = {
   Guest: "Guest workspace", Host: "Host workspace", Officer: "Officer workspace", ServiceProvider: "Provider workspace",
@@ -53,16 +54,17 @@ function prettyRoute(pathname: string) {
   return segment.replace(/[-_]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function Breadcrumbs({ pathname, screenId }: { pathname: string; screenId: string }) {
+function Breadcrumbs({ pathname, screenId, roleLabel }: { pathname: string; screenId: string; roleLabel: string }) {
   const active = getScreenDefinition(screenId)?.navigation;
   const current = active?.label ?? prettyRoute(pathname);
+  const isHomeLabel = current.toLowerCase() === "home";
   return (
     <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-sand-600 sm:mb-4">
       <AppLink className="inline-flex min-h-8 items-center gap-1 rounded-pill px-2 font-semibold text-deep-hover hover:bg-shell" href="/">
         <Home aria-hidden="true" size={13} /> Home
       </AppLink>
-      <ChevronRight aria-hidden="true" size={13} />
-      <span aria-current="page" className="font-semibold text-ink">{current}</span>
+      {!isHomeLabel && <><ChevronRight aria-hidden="true" size={13} /><span aria-current="page" className="font-semibold text-ink">{current}</span></>}
+      {isHomeLabel && <><ChevronRight aria-hidden="true" size={13} /><span aria-current="page" className="font-semibold text-ink">{roleLabel}</span></>}
     </nav>
   );
 }
@@ -79,6 +81,11 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
   const [searchTerm, setSearchTerm] = useState("");
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [profile, setProfile] = useState<{ displayName?: string; emailVerified?: boolean; isTwoFactorEnabled?: boolean; updatedAt?: string | null } | null>(null);
+  const [lastActivity, setLastActivity] = useState(() => sessionStorage.getItem("nesty:last-workspace-activity") ?? "");
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const shortcuts = roleQuickActions[activeRole] ?? allVisibleItems.slice(0, 3).map((item) => [item.label, item.href] as [string, string]);
   const searchResults = useMemo(() => {
@@ -92,6 +99,10 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
       if (event.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName ?? "")) {
         event.preventDefault();
         searchRef.current?.focus();
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
       }
       if (event.key === "Escape" && document.activeElement === searchRef.current) {
         setSearchTerm("");
@@ -111,6 +122,44 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
       window.removeEventListener("nesty:feedback", onFeedback);
     };
   }, []);
+
+  useEffect(() => {
+    const now = new Date().toISOString();
+    sessionStorage.setItem("nesty:last-workspace-activity", now);
+    setLastActivity(now);
+  }, [routeName]);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 560);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let retryTimer: number | undefined;
+    if (!session) {
+      setProfile(null);
+      return () => { active = false; };
+    }
+    let attempts = 0;
+    const loadProfile = () => {
+      attempts += 1;
+      void api.getProfile(session.accessToken)
+        .then((result) => { if (active) setProfile(result); })
+        .catch(() => {
+          if (!active) return;
+          if (attempts < 3) {
+            retryTimer = window.setTimeout(loadProfile, 600);
+          } else {
+            setProfile(null);
+          }
+        });
+    };
+    loadProfile();
+    return () => { active = false; if (retryTimer) window.clearTimeout(retryTimer); };
+  }, [session?.accessToken, session?.userId]);
 
   useEffect(() => {
     let active = true;
@@ -163,10 +212,14 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
       </nav>
       <div className="flex min-h-screen min-w-0 flex-col">
         <main className="workspace-main w-full max-w-[1120px] flex-1 px-[clamp(20px,3.5vw,44px)] pb-24 pt-6 lg:py-9" id="main-content" tabIndex={-1}>
-          <div className="workspace-toolbar mb-5 flex flex-wrap items-center justify-between gap-3">
-            <Breadcrumbs pathname={pathname} screenId={screenId} />
-            <div className="flex items-center gap-2"><button aria-label="Go back" className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" onClick={() => window.history.length > 1 && window.history.back()} type="button"><ArrowLeft aria-hidden="true" size={14} /> Back</button><AppLink aria-label={unreadCount && unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" href="/traveler/notifications"><Bell aria-hidden="true" size={14} /> Alerts{unreadCount !== null && unreadCount > 0 && <span aria-label={`${unreadCount} unread`} className="inline-flex min-w-5 items-center justify-center rounded-pill bg-coral px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}</AppLink></div>
+          <div className="workspace-toolbar workspace-sticky-toolbar mb-5 flex flex-wrap items-center justify-between gap-3">
+            <Breadcrumbs pathname={pathname} roleLabel={roleLabels[activeRole]} screenId={screenId} />
+            <div className="flex items-center gap-2"><button aria-label="Go back" className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" onClick={() => window.history.length > 1 && window.history.back()} type="button"><ArrowLeft aria-hidden="true" size={14} /> Back</button><button aria-label="Open command menu" className="hidden min-h-9 items-center gap-1 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover sm:inline-flex" onClick={() => setCommandOpen(true)} type="button"><Command aria-hidden="true" size={13} /> <span>Menu</span><kbd className="rounded border border-sand-input px-1 text-[10px]">Ctrl K</kbd></button><AppLink aria-label={unreadCount && unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-sand-input bg-cream px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover" href="/traveler/notifications"><Bell aria-hidden="true" size={14} /> Alerts{unreadCount !== null && unreadCount > 0 && <span aria-label={`${unreadCount} unread`} className="inline-flex min-w-5 items-center justify-center rounded-pill bg-coral px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}</AppLink></div>
           </div>
+          <section aria-label={`${roleLabels[activeRole]} profile context`} className="mb-5 grid gap-3 rounded-card border border-sand-border bg-cream p-3 shadow-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
+            <div className="flex min-w-0 items-center gap-3"><span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-deep text-sm font-bold text-yellow"><UserRound size={17} /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong className="truncate text-sm text-ink">{profile?.displayName ?? session?.displayName ?? "NestyStay account"}</strong><span className="rounded-pill bg-shell px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-deep-hover">{roleLabels[activeRole]}</span></div><p className="m-0 truncate text-xs text-sand-600">{session?.email ?? "Signed out"} · Last active {lastActivity ? new Date(lastActivity).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "now"}</p></div></div>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold"><span className={cx("inline-flex items-center gap-1 rounded-pill px-2.5 py-1.5", profile?.emailVerified === false ? "bg-amber-tint text-amber-text" : profile ? "bg-success-tint text-success-text" : "bg-shell text-sand-600")}><ShieldCheck aria-hidden="true" size={13} /> {profile?.emailVerified === false ? "Email verification needed" : profile ? "Email verified" : "Verification status loading"}</span><span className="inline-flex items-center gap-1 rounded-pill bg-shell px-2.5 py-1.5 text-deep-hover"><CheckCircle2 aria-hidden="true" size={13} /> {profile?.isTwoFactorEnabled ? "2FA enabled" : "Account active"}</span><AppLink className="font-semibold text-deep-hover underline underline-offset-2" href="/profile">Profile &amp; security</AppLink></div>
+          </section>
           <section aria-label="Quick actions" className="quick-actions mb-6 flex flex-wrap items-center gap-2 rounded-card border border-sand-border bg-cream p-3 shadow-card"><span className="mr-1 text-xs font-semibold uppercase tracking-[0.08em] text-sand-600">Quick actions</span>{shortcuts.map(([label, href]) => <AppLink className="inline-flex min-h-9 items-center rounded-pill border border-sand-input bg-white px-3 text-xs font-semibold text-deep-hover transition-colors hover:border-deep-hover hover:bg-shell" href={href} key={href}>{label}</AppLink>)}</section>
           {feedback && (() => {
             let feedbackClass = "border-green/20 bg-success-tint text-success-text";
@@ -176,10 +229,14 @@ export function WorkspaceFrame({ routeName, screenId, children }: { routeName: s
           })()}
           {children}
         </main>
-        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-footer px-6 py-[18px] text-[13px] text-on-dark-muted"><span>nestystay.net · <a className="text-on-dark-muted hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>{LEGAL_DETAILS.supportPhone}</a></span><nav aria-label="Legal and support" className="flex flex-wrap gap-x-3 gap-y-1"><AppLink className="hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/refund-policy">Refunds</AppLink><button className="hover:text-on-dark-body hover:underline" onClick={openCookieSettings} type="button">Cookie settings</button></nav></footer>
+        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-footer px-6 py-[18px] text-[13px] text-on-dark-muted"><span>nestystay.net · <a className="text-on-dark-muted hover:text-on-dark-body" href={LEGAL_DETAILS.supportTel}>{LEGAL_DETAILS.supportPhone}</a></span><nav aria-label="Legal and support" className="flex flex-wrap gap-x-3 gap-y-1"><AppLink className="hover:text-on-dark-body hover:underline" href="/privacy">Privacy</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/terms">Terms</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/cookies">Cookies</AppLink><AppLink className="hover:text-on-dark-body hover:underline" href="/refund-policy">Refunds</AppLink><button className="hover:text-on-dark-body hover:underline" data-cookie-settings-trigger="true" onClick={openCookieSettings} type="button">Cookie settings</button></nav></footer>
       </div>
       <nav aria-label="Mobile workspace navigation" className="workspace-mobile-nav fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-card border border-sand-border bg-deep/95 p-2 shadow-navbar backdrop-blur md:hidden">{mobileItems.map((item) => { const active = isActive(item, screenId, pathname); const itemKey = `${item.screenId}-${item.href}`; if (item.more) { return <button aria-label="Open more workspace destinations" className="grid min-h-12 place-items-center rounded-field px-1 text-center text-[10px] font-semibold text-on-dark-nav hover:bg-on-dark-heading/10" key={itemKey} onClick={() => window.dispatchEvent(new CustomEvent("nesty:workspace-more"))} type="button">{item.label}</button>; } return <AppLink aria-current={active ? "page" : undefined} className={cx("grid min-h-12 place-items-center rounded-field px-1 text-center text-[10px] font-semibold", active ? "bg-yellow text-deep" : "text-on-dark-nav hover:bg-on-dark-heading/10")} href={item.href} key={itemKey}>{item.label}</AppLink>; })}</nav>
       <WorkspaceMoreSheet items={moreItems} roleLabel={roleLabels[activeRole]} />
+      {showBackToTop && <button aria-label="Back to top" className="fixed bottom-24 right-5 z-40 inline-flex min-h-10 items-center gap-1 rounded-pill border border-sand-border bg-cream px-3 text-xs font-bold text-deep-hover shadow-card transition-colors hover:bg-white md:bottom-6" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} type="button">↑ Top</button>}
+      <Modal open={commandOpen} title={`${roleLabels[activeRole]} menu`} onClose={() => { setCommandOpen(false); setCommandQuery(""); }} variant="sheet">
+        <div className="grid gap-4"><label className="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-sand-600">Search workspace<input autoFocus className="min-h-12 rounded-field border border-sand-input bg-white px-3 text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-deep-hover" onChange={(event) => setCommandQuery(event.target.value)} placeholder="Bookings, invoices, messages…" value={commandQuery} /></label><div className="grid gap-1" role="listbox" aria-label="Workspace destinations">{[...allVisibleItems, ...shortcuts.map(([label, href]) => ({ label, href, screenId: href, roles: [activeRole] as AuthSession["roles"], description: "Quick action" }))].filter((item, index, items) => items.findIndex((candidate) => candidate.href === item.href) === index).filter((item) => !commandQuery.trim() || `${item.label} ${item.description ?? ""}`.toLowerCase().includes(commandQuery.trim().toLowerCase())).slice(0, 10).map((item) => <AppLink className="flex min-h-11 items-center justify-between rounded-field border border-transparent px-3 py-2 text-sm font-semibold hover:border-sand-border hover:bg-shell" href={item.href} key={item.href} onClick={() => { setCommandOpen(false); setCommandQuery(""); }}><span>{item.label}</span><span className="text-xs text-sand-500">{item.description ?? "Open"} →</span></AppLink>)}</div>{commandQuery.trim() && !allVisibleItems.some((item) => `${item.label} ${item.description ?? ""}`.toLowerCase().includes(commandQuery.trim().toLowerCase())) && <p className="m-0 text-sm text-sand-600">No matching workspace destination. Try a broader term.</p>}<details className="rounded-field border border-sand-border bg-shell p-3 text-sm"><summary className="flex cursor-pointer items-center gap-2 font-semibold"><HelpCircle aria-hidden="true" size={16} /> Workspace help</summary><p className="m-0 mt-2 text-xs leading-relaxed text-sand-600">Use this menu to jump between your {roleLabels[activeRole].toLowerCase()} areas. Booking, payment, verification, and document statuses always come from the server; open Profile &amp; security for account controls.</p></details></div>
+      </Modal>
     </div>
   );
 }

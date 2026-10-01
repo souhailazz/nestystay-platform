@@ -6,7 +6,7 @@ import { AdminPermissions, hasAdminPermission, isAdminSession } from "./adminPer
 import { requestConfirmation } from "./confirmation";
 import { announceFeedback } from "./feedback";
 import { classifyError, userSafeErrorMessage } from "./errorMessages";
-import { LEGAL_DETAILS, COOKIE_CONSENT_STORAGE_KEY, openCookieSettings } from "./legal";
+import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, LEGAL_DETAILS, createCookieConsent, isCurrentCookieConsent, openCookieSettings } from "./legal";
 import { cx } from "./ui";
 import { getStayImage, stayImages } from "./stayImages";
 import { StatusChip, statusToneOf } from "../components/ui/StatusChip";
@@ -99,6 +99,13 @@ describe("platform foundation helpers", () => {
   it("keeps legal and consent constants stable for footer and settings links", () => {
     expect(LEGAL_DETAILS.website).toBe("https://nestystay.net");
     expect(LEGAL_DETAILS.supportTel).toMatch(/^tel:\+/);
-    expect(COOKIE_CONSENT_STORAGE_KEY).toBe("nesty-cookie-consent-v1");
+    expect(COOKIE_CONSENT_STORAGE_KEY).toBe("nesty-cookie-consent-v2");
+    expect(COOKIE_CONSENT_VERSION).toBe("2026-09");
+    const consent = createCookieConsent(true, false, Date.UTC(2026, 8, 1));
+    expect(consent.essential).toBe(true);
+    expect(consent.analytics).toBe(true);
+    expect(consent.marketing).toBe(false);
+    expect(isCurrentCookieConsent(consent, Date.UTC(2026, 8, 2))).toBe(true);
+    expect(isCurrentCookieConsent({ ...consent, version: "old" }, Date.UTC(2026, 8, 2))).toBe(false);
   });
 });

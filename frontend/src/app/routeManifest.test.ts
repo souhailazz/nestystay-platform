@@ -78,7 +78,7 @@ describe("canonical route manifest", () => {
 
   it("keeps all aliases deterministic and free of loops", () => {
     const aliases = SCREEN_MANIFEST.flatMap((screen) => screen.patterns.slice(1).map((alias) => ({ screen, alias })));
-    expect(aliases).toHaveLength(57);
+    expect(aliases).toHaveLength(63);
     expect(manifestAliases()).toEqual(aliases.map(({ alias }) => alias));
     aliases.forEach(({ screen, alias }) => {
       expect(alias).not.toBe(screen.patterns[0]);
@@ -164,10 +164,14 @@ describe("canonical route manifest", () => {
   it("enforces public, signed-out, wrong-role, and correct-role states", () => {
     const publicRoute = parseRoute("/explore", new URLSearchParams());
     const protectedRoute = parseRoute("/pm/dashboard", new URLSearchParams());
+    const guestDashboard = parseRoute("/guest-dashboard", new URLSearchParams());
     expect(getRouteAccess(publicRoute, null).kind).toBe("allowed");
     expect(getRouteAccess(protectedRoute, null).kind).toBe("auth-required");
     expect(getRouteAccess(protectedRoute, { roles: ["Guest"] }).kind).toBe("forbidden");
     expect(getRouteAccess(protectedRoute, { roles: ["PropertyManager"] }).kind).toBe("allowed");
+    expect(getRouteAccess(guestDashboard, { roles: ["PropertyManager"] }).kind).toBe("forbidden");
+    expect(getRouteAccess(guestDashboard, { roles: ["Guest"] }).kind).toBe("allowed");
+    expect(getRouteAccess(protectedRoute, { roles: ["PropertyManager"] }, { hydrating: true }).kind).toBe("hydrating");
   });
 
   it("materializes one canonical URL for every reachable registered screen", () => {

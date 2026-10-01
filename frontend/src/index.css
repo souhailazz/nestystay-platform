@@ -105,8 +105,82 @@ body {
   transform: translateY(0);
 }
 
+/* Cookie consent stays attached to the viewport edge without covering the
+   active form. The body reserve lets the page scroll past the banner on long
+   forms, while the bounded surface remains usable on short mobile screens. */
+body.cookie-consent-open {
+  padding-bottom: 176px;
+}
+
+.cookie-consent-shell {
+  position: fixed;
+  z-index: 1000;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: max(12px, env(safe-area-inset-left));
+  width: min(760px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin-inline: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  isolation: isolate;
+}
+
+.cookie-consent-surface {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cookie-consent-control:focus-visible {
+  outline: 3px solid var(--yellow, #ffd22e);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  body.cookie-consent-open {
+    padding-bottom: 214px;
+  }
+
+  .cookie-consent-shell {
+    width: min(100% - 20px, 760px);
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+  }
+
+  /* Workspace bottom navigation remains visible below the consent surface. */
+  body.cookie-consent-open:has(.workspace-mobile-nav) {
+    padding-bottom: 300px;
+  }
+
+  body.cookie-consent-open:has(.workspace-mobile-nav) .cookie-consent-shell {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
 .workspace-main:focus {
   outline: none;
+}
+
+/* Keep context visible on long operational screens without covering the first
+   heading. The shell owns the background so tables/cards do not bleed through. */
+.workspace-sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-inline: calc(clamp(20px, 3.5vw, 44px) * -1);
+  padding: 0.5rem clamp(20px, 3.5vw, 44px) 0.7rem;
+  background: color-mix(in srgb, var(--color-sand, #faf3e4) 94%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 767px) {
+  .workspace-sticky-toolbar {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
 }
 
 /* Route headings receive programmatic focus after SPA navigation for screen
@@ -428,6 +502,15 @@ main h2:focus,
     flex: 0 1 min(220px, calc(100vw - 84px));
     width: min(220px, calc(100vw - 84px));
     min-width: min(220px, calc(100vw - 84px)) !important;
+  }
+
+  /* Phones use the fixed bottom tabs as the primary workspace navigation.
+     Keep the top rail focused on brand + search so links do not appear twice
+     or create a second horizontal navigation row above the content. */
+  .workspace-sidebar > a:has(.workspace-sidebar-link-label),
+  .workspace-sidebar > a[aria-label="Sign out"],
+  .workspace-sidebar-divider {
+    display: none;
   }
 
   .workspace-main {

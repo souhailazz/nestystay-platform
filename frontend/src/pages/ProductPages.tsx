@@ -56,6 +56,7 @@ import { HostStateContainer } from "../features/host/HostStateContainer";
 import { HostReservations } from "../features/host/HostReservations";
 import { PublicStateContainer } from "../features/public/PublicStateContainer";
 import { AuthStateContainer } from "../features/auth/AuthStateContainer";
+import { isPublicWorkspaceRole, type PublicWorkspaceRole } from "../features/auth/workspaceOptions";
 import {
   api,
   formatMoney,
@@ -140,8 +141,19 @@ export function PropertyDetailsPage({
 }
 
 export function AuthPage({ auth, mode = "login" }: { auth: AuthController; mode?: "login" | "register" }) {
-  const returnTo = new URLSearchParams(window.location.search).get("returnTo") ?? undefined;
-  return <AuthStateContainer mode={mode} auth={auth} returnTo={returnTo} />;
+  const search = new URLSearchParams(window.location.search);
+  const returnTo = search.get("returnTo") ?? undefined;
+  const workspace = search.get("workspace");
+  const workspaceByPath: Record<string, PublicWorkspaceRole> = {
+    "/login/guest": "Guest",
+    "/login/host": "Host",
+    "/login/property-manager": "PropertyManager",
+    "/login/service-provider": "ServiceProvider",
+    "/login/local-business": "LocalBusiness",
+    "/login/wellness-officer": "Officer",
+  };
+  const workspaceRole = isPublicWorkspaceRole(workspace) ? workspace : workspaceByPath[window.location.pathname];
+  return <AuthStateContainer mode={mode} auth={auth} returnTo={returnTo} workspaceRole={workspaceRole} />;
 }
 
 function MetricCard({

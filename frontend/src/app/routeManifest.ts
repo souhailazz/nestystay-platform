@@ -160,7 +160,7 @@ export const SCREEN_MANIFEST = [
   publicDefinition(screen("PUB-04", "/properties/:propertyId", ["/properties/:propertyId"], (_, __, params) => ({ name: "property", propertyId: params.propertyId?.startsWith(":") ? SAMPLE_PROPERTY_ID : params.propertyId }), { title: "Property detail", productArea: "Public discovery", componentKey: "property", showPublicNav: true })),
   publicDefinition(screen("PUB-SOON", "/coming-soon", ["/coming-soon"], () => ({ name: "coming-soon" }), { title: "Coming soon", productArea: "Public discovery", componentKey: "coming-soon", showPublicNav: true, screenType: "preview" })),
   publicDefinition(screen("PUB-CONTENT", "/about", ["/about", "/trust", "/help", "/contact", "/terms", "/privacy", "/cookies", "/refund-policy", "/maintenance", "/help/:slug"], (path) => ({ name: "public-content", slug: path.slice(1) }), { title: "Public content", productArea: "Public content", componentKey: "public-content", showPublicNav: true })),
-  publicDefinition(screen("AUTH-01", "/login", ["/login", "/register"], (path) => ({ name: path === "/register" ? "register" : "login" }), { title: "Login and signup", productArea: "Authentication", componentKey: "login", shell: "minimal", showPublicNav: false })),
+  publicDefinition(screen("AUTH-01", "/login", ["/login", "/register", "/login/guest", "/login/host", "/login/property-manager", "/login/service-provider", "/login/local-business", "/login/wellness-officer"], (path) => ({ name: path === "/register" ? "register" : "login" }), { title: "Login and signup", productArea: "Authentication", componentKey: "login", shell: "minimal", showPublicNav: false })),
   publicDefinition(screen("AUTH-FLOW", "/auth/role", ["/auth/role", "/auth/email-verification", "/auth/phone-verification", "/auth/otp", "/auth/forgot-password", "/auth/reset-password", "/auth/2fa-setup", "/auth/recovery-codes", "/auth/social-consent"], (path) => {
     const segment = path.split("/").at(-1) ?? "role";
     const canonicalKind: Record<string, string> = {
@@ -186,7 +186,7 @@ export const SCREEN_MANIFEST = [
   publicDefinition(screen("BOOK-07", "/booking/:bookingId/pending", ["/booking/:bookingId/pending"], (_, __, params) => ({ name: "booking-state", bookingId: params.bookingId, state: "pending" }), { title: "Booking pending", productArea: "Booking", componentKey: "booking-state", showPublicNav: true })),
   publicDefinition(screen("BOOK-CONF", "/booking/:bookingId/success", ["/booking/:bookingId/success", "/booking/:bookingId/failure", "/booking/:bookingId/rejected", "/booking/:bookingId/cancelled", "/booking/:bookingId/invoice", "/booking/:bookingId/receipt"], (path, _, params) => ({ name: "booking-state", bookingId: params.bookingId, state: path.split("/").at(-1) ?? "success" }), { title: "Booking outcome", productArea: "Booking", componentKey: "booking-state", showPublicNav: true })),
   publicDefinition(screen("BOOK-FLOW", "/booking/:bookingId/:state", ["/booking/:bookingId/:state", "/booking/:bookingId"], (path, _, params) => ({ name: "booking-state", bookingId: params.bookingId, state: params.state ?? "review" }), { title: "Booking state", productArea: "Booking", componentKey: "booking-state", showPublicNav: true, screenType: "internal" })),
-  authenticatedDefinition(screen("TRAV-01", "/guest-dashboard", ["/guest-dashboard"], () => ({ name: "guest-dashboard" }), { title: "Traveler dashboard", productArea: "Traveler", componentKey: "guest-dashboard", navigation: { label: "Trips", description: "Upcoming and past stays" }, mobileNavigation: { label: "Trips", priority: 2 } })),
+  workspaceDefinition(screen("TRAV-01", "/guest-dashboard", ["/guest-dashboard"], () => ({ name: "guest-dashboard" }), { title: "Traveler dashboard", productArea: "Traveler", componentKey: "guest-dashboard", roleAccess: ["Guest"], navigation: { label: "Trips", description: "Upcoming and past stays" }, mobileNavigation: { label: "Trips", priority: 2 } })),
   authenticatedDefinition(screen("TRAV-RES", "/traveler/reservations", ["/traveler/reservations", "/traveler/reservations/upcoming", "/traveler/reservations/past", "/traveler/reservations/cancelled", "/traveler/reservations/:reservationId"], (path, _, params) => {
     if (path.endsWith("/past")) return { name: "traveler-spec", view: "reservations-past" };
     if (path.endsWith("/cancelled")) return { name: "traveler-spec", view: "reservations-cancelled" };
@@ -347,11 +347,12 @@ export function hasPublicNav(route: Route) {
   return getRouteDefinition(route)?.showPublicNav === true;
 }
 
-export type RouteAccess = { kind: "allowed" } | { kind: "auth-required"; returnTo: string } | { kind: "forbidden"; requiredRoles: readonly UserRole[] };
+export type RouteAccess = { kind: "allowed" } | { kind: "hydrating" } | { kind: "auth-required"; returnTo: string } | { kind: "forbidden"; requiredRoles: readonly UserRole[] };
 
-export function getRouteAccess(route: Route, session: { roles?: readonly UserRole[] } | null | undefined): RouteAccess {
+export function getRouteAccess(route: Route, session: { roles?: readonly UserRole[] } | null | undefined, options?: { hydrating?: boolean }): RouteAccess {
   const definition = getRouteDefinition(route);
   if (!definition || definition.auth === "public") return { kind: "allowed" };
+  if (options?.hydrating) return { kind: "hydrating" };
   if (!session) return { kind: "auth-required", returnTo: `${window.location.pathname}${window.location.search}${window.location.hash}` };
   if (definition.auth === "role" && !definition.roleAccess.some((role) => session.roles?.includes(role))) {
     return { kind: "forbidden", requiredRoles: definition.roleAccess };

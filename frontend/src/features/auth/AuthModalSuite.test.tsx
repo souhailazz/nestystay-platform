@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AuthController } from "../../hooks/useAuth";
 import { AuthModalSuite } from "./AuthModalSuite";
+import type { PublicWorkspaceRole } from "./workspaceOptions";
 
 const mocks = vi.hoisted(() => ({
   beginTwoFactorEnrollment: vi.fn(),
@@ -71,6 +72,20 @@ afterEach(() => {
 });
 
 describe("AuthModalSuite", () => {
+  it.each([
+    ["Guest", "For guests", "Find a stay"],
+    ["Host", "For hosts & owners", "Share the place"],
+    ["PropertyManager", "For property managers", "Keep the whole portfolio"],
+    ["ServiceProvider", "For custodians & service providers", "Bring your craft"],
+    ["LocalBusiness", "For local businesses", "Put local"],
+    ["Officer", "For wellness officers", "Support the stay"],
+  ] as const)("shows the right role context for %s", (role, eyebrow, title) => {
+    render(<AuthModalSuite auth={makeAuth()} workspaceRole={role as PublicWorkspaceRole} />);
+
+    expect(screen.getByText(eyebrow)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: new RegExp(title) })).toBeTruthy();
+  });
+
   it("lets users reveal and hide the login password", () => {
     render(<AuthModalSuite auth={makeAuth()} />);
     const password = screen.getByLabelText("Password") as HTMLInputElement;
