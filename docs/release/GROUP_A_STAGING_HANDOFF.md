@@ -2,6 +2,10 @@
 
 This is a non-secret handoff for Terrence-controlled staging acceptance. Do not put passwords, API keys, session cookies, database credentials or provider tokens in this file.
 
+## Confidentiality note
+
+The current handoff repository `souhailazz/nestystay-platform` is public. These documents contain no passwords, tokens, credentials, private QA records or customer data, but they do disclose internal architecture, staging URLs, defect status and operational acceptance details. Treat the public branch as publication-risk material; prefer an authorized private repository or direct client delivery for further sharing. Do not change repository visibility or delete history without authorization.
+
 ## Required staging accounts
 
 Provision or confirm disposable accounts through the normal application/invitation paths. Report only account email, role, status and expected page.
@@ -18,6 +22,8 @@ Provision or confirm disposable accounts through the normal application/invitati
 | Local Business | Active | `/directory/provider`, `/directory/businesses` | Business directory checks |
 
 Do not convert `qa-pmstaff` into Gate Guard by directly editing the database. Use the PM invitation flow so the invitation, acceptance, assignment, revocation and audit records are exercised.
+
+Terrence has confirmed that staging QA accounts exist and has independently verified Super Admin and Property Manager sign-in. This handoff does not reproduce passwords, tokens or private QA records. The current Codex boundary is the absence of an authorized authenticated staging session/credential injection, not evidence that the QA accounts are absent. Confirm the exact email, role and active/invited status through the approved handoff channel before testing.
 
 ## Dedicated Admin host
 
@@ -59,10 +65,17 @@ The existing Caddy deployment pattern can use the same common proxy block for bo
 
 ### PM records
 
-Use explicitly synthetic records and clean them up only after evidence is captured. Demonstrate create, reload, update/status, permission denial and export/download where applicable for owner portal, invoices, statements, payments, utilities, maintenance, vendors, community, documents and gate communication.
+Use explicitly synthetic records and clean them up only after evidence is captured. Local evidence is strongest for persisted API workflows: owner/invoice/utility/payment/statement round-trip, document download/expiry, subscription lifecycle, community notices, gate/QR history, governance/proxy scope, professional completion records, maintenance/readiness and cross-portfolio authorization. Browser evidence currently covers PM dashboard owner/unit/invoice/utility rendering and QR validation in `e2e/m5-property-manager.spec.ts`; it does not prove a complete browser-backed create/reload/update/export/download journey for every PM area. On staging, demonstrate create, reload, update/status, permission denial and export/download where applicable for owner portal, invoices, statements, payments, utilities, maintenance, vendors, community, documents and gate communication.
 
 Common-area utility bills and executive-term retrieval must not be accepted until Terrence defines executive-term start/end rules. Meetings/minutes/agendas/governing documents likewise require the approved workflow and permission/quorum rules before implementation claims are made.
+
+### Known specification-dependent gaps
+
+- **A27:** existing utility persistence does not provide common-area bill period/executive-term retrieval. Before implementation, confirm executive-term definition, inclusive dates, scope, roles, allocation, attachments and retention. The likely implementation requires a small schema/API/UI extension and is estimated at 5–8 working days after approval; no migration is prepared or applied.
+- **A28:** existing proposal/ballot/proxy behavior is not a meeting/minutes/agenda/governing-document workflow. Before implementation, confirm lifecycle, roles, notice/deadline, quorum, ballot linkage, minutes approval/publication, document versioning and audit rules. The likely implementation requires new API/UI/persistence and is estimated at 7–10 working days after approval; no migration is prepared or applied.
 
 ## Current evidence boundary
 
 Local tests and public health endpoints do not constitute staging acceptance. Staging rows remain `BLOCKED_EXTERNAL` until the correct deployed PR heads and authorized accounts are used in the workflows above.
+
+Latest local evidence is: Playwright 233 started / 213 passed / 0 failed / 20 documented skips / 0 not run; backend 307 passed / 0 failed / 2 environment-gated skips; frontend 208 passed; local MinIO I/O, authorization and restart persistence passed. Frontend PR #25 improves calendar E2E synchronization and diagnostics only; it does not prove live staging synchronization.
