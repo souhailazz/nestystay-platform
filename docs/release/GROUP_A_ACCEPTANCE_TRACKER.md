@@ -38,12 +38,34 @@ This tracker separates local evidence, pushed review work, deployed evidence, an
 ## Current local verification
 
 - Frontend PR #22: 208 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed.
-- Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI pending at time of tracker creation.
+- Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed (run `38068235877`, job `114260163666`); deploy skipped.
 - Backend directory-audience branch: 308 tests passed, 0 failed, 1 pre-existing MinIO skip; Release build passed.
 - Local disposable MinIO: real roundtrip, signed download, wrong-credential denial, traversal/oversize checks and restart persistence passed.
 - Staging public health: live 200; ready 200 with database ready and storage configured.
 - Staging backend version: `e86be7daa0b4c38cf3525ec8678a2f796b476692`.
 - Staging frontend `/version.json`: reports `commitSha: local`; deployed frontend SHA is therefore unknown.
+
+## Clean local Playwright certification run
+
+Run date: 2026-10-10 (Africa/Casablanca). The run used the clean frontend at current `origin/main` (`e09dc5c878439c5b2a32dac8f626f2668777c144`), the clean backend at current `origin/main` (`e86be7daa0b4c38cf3525ec8678a2f796b476692`), a fresh disposable PostgreSQL database, and a disposable local API/frontend pair. No staging or production systems were changed.
+
+- Discovered: 233
+- Started: 230
+- Passed: 173
+- Failed: 9
+- Skipped: 48
+- Did not run: 3
+
+Failure evidence:
+
+- `final-hardening-email.spec.ts`: 3 browser-project failures; `GET /api/spec/auth/development/flows/{id}` returned HTTP 404 because the local run did not expose the development secret retrieval configuration. This is not staging evidence and is classified as local test-environment configuration, not a staging PASS.
+- `final-hardening-m5.spec.ts`: tablet and mobile failures; the cookie-consent surface intercepted the `Validate access` control.
+- `final-contract-validation.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
+- `m1-m2-real-workflows.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
+- `mobile-client-booking-gallery.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
+- `property-manager-mobile-matrix.spec.ts`: mobile failure; the fixed mobile navigation/cookie-consent surfaces intercepted `Record reading`.
+
+The complete suite therefore executed to completion but did not meet the zero-failure / zero-did-not-run acceptance gate. These results must not be represented as full product PASS until the test setup or UI interaction defects are corrected and rerun.
 
 ## Acceptance rule
 
