@@ -55,6 +55,7 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 | Frontend [#21](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/21) | `434aeef808c0d5ae2da2e3b5baa8a7f15e4e0aba` | Directory audience API client/filtering/UI and tests |
 | Frontend [#22](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/22) | `4daaa7c30f9756c7867732cfc68f8905da0cf9bd` | PM responsive layout/sample-value cleanup and tests |
 | Frontend [#23](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/23) | `78310ae189895db59b1aae5266f9be46b7ea9637` | Dedicated admin host routing: `src/app/routeManifest.ts` and test |
+| Frontend [#24](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/24) | `da3d2f661878525db3cb801fee45971bfc328e87` | Playwright consent state is generated for the configured test origin: `playwright.config.ts` |
 | Backend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/16) | `aa73f4b6112c5f8fd1b3868e2d10a727cfcda4a0` | Branded password-reset delivery and API regression test |
 | Backend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/17) | `ec6e32720d14d19c3477ae5376f9039e4de30d3a` | Worker integration status and health tests |
 | Backend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/18) | `d01132be7a519ae7f0caa23b6da0a857499e4e86` | Directory audience enforcement/API/store/tests |
@@ -62,6 +63,7 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 - Frontend PR #22: 208 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed.
 - Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed (run `38068235877`, job `114260163666`); deploy skipped.
 - Clean frontend current-main local Vitest rerun: 208 tests across 49 files; 208 passed, 0 failed. The previously observed Gate QR assertion passes when rerun in isolation and in the complete suite; no frontend defect was created for it. Frontend PR #12 and PR #13 hosted CI checks are green.
+- Frontend PR #24 (`da3d2f661878525db3cb801fee45971bfc328e87`) contains only the Playwright harness fix for origin-scoped cookie consent state. Local typecheck and targeted ESLint passed; hosted CI was queued at tracker update time.
 - Frontend current main is `e09dc5c878439c5b2a32dac8f626f2668777c144`. PR #12 (`9aa28fcc53a62ecf9c3a27f033b716755142e557`) and PR #13 (`80cd86a7881bcc4400062bd320e4cb56d0807f6f`) both report `MERGEABLE` against that exact base; GitHub `BLOCKED` reflects protected-branch review requirements, not a merge conflict. Their deployment jobs were skipped.
 - Backend current-main clean checkout (`e86be7daa0b4c38cf3525ec8678a2f796b476692`): `dotnet test NestyStay.sln --no-restore --configuration Release` passed with 309 total, 307 passed, 0 failed, and 2 skipped. Release build/test process completed successfully; the skips are environment-gated PostgreSQL integration coverage.
 - Local disposable MinIO: real roundtrip, signed download, wrong-credential denial, traversal/oversize checks and restart persistence passed.
@@ -74,27 +76,22 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 - Item 27: `src/NestyStay.Domain/PropertyManagement/PropertyManagementEntities.cs:39-47` has a legacy `UtilityBill` record with community, storage-object, utility type, amount, currency and allocation fields, and `NestyStayDbContext.cs:128` maps it. The exposed PM API instead uses property/owner-scoped charges and readings (`PropertyManagerController.cs:98-123`, `PropertyManagerModels.cs:111-115`); it has no common-area bill create/list/download route, no bill-period field on `UtilityBill`, and no executive-term relation or date rules. This is an implementation gap, but the executive-term definition and authorization model must be specified before adding schema/API behavior.
 - Item 28: association persistence exists (`AssociationManagementEntities.cs:5-51`, `NestyStayDbContext.cs:134-139`) for meetings, meeting documents, votes, vote results and proxies, but no API controller exposes those entities. The current PM controller exposes only proposal/discussion/close/vote/proxy endpoints (`PropertyManagerController.cs:183-208`), which are a separate milestone governance model. Meeting creation, agendas, minutes, governing-document availability and their permission/quorum rules therefore remain unconnected and require Terrence's workflow confirmation before implementation.
 
-## Clean local Playwright certification run
+## Clean local Playwright certification runs
 
-Run date: 2026-10-10 (Africa/Casablanca). The run used the clean frontend at current `origin/main` (`e09dc5c878439c5b2a32dac8f626f2668777c144`), the clean backend at current `origin/main` (`e86be7daa0b4c38cf3525ec8678a2f796b476692`), a fresh disposable PostgreSQL database, and a disposable local API/frontend pair. No staging or production systems were changed.
+Run date: 2026-10-10 (Africa/Casablanca). The runs used the clean frontend at current `origin/main` (`e09dc5c878439c5b2a32dac8f626f2668777c144`), the clean backend at current `origin/main` (`e86be7daa0b4c38cf3525ec8678a2f796b476692`), a fresh disposable PostgreSQL database, and a disposable local API/frontend pair. No staging or production systems were changed.
+
+The corrected harness was exercised on the isolated frontend branch for PR #24. Targeted consent/email coverage passed: 11 passed and 5 skipped; the email workflow passed in all three Chromium viewports. The complete matrix then ran all discovered tests:
 
 - Discovered: 233
-- Started: 230
-- Passed: 173
-- Failed: 9
-- Skipped: 48
-- Did not run: 3
+- Started: 233
+- Passed: 212
+- Failed: 1
+- Skipped: 20
+- Did not run: 0
 
-Failure evidence:
+The sole full-matrix failure was the tablet `e2e/calendar-operations.spec.ts` feed-label assertion. The same test passed on an immediate isolated tablet rerun against the same disposable API/database, so this is classified as a flaky full-suite state/timing observation pending a clean repeat, not as a confirmed product defect. No application calendar code was changed.
 
-- `final-hardening-email.spec.ts`: 3 browser-project failures; `GET /api/spec/auth/development/flows/{id}` returned HTTP 404 because the local run did not expose the development secret retrieval configuration. This is not staging evidence and is classified as local test-environment configuration, not a staging PASS.
-- `final-hardening-m5.spec.ts`: tablet and mobile failures; the cookie-consent surface intercepted the `Validate access` control.
-- `final-contract-validation.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
-- `m1-m2-real-workflows.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
-- `mobile-client-booking-gallery.spec.ts`: mobile failure; the cookie-consent surface intercepted the booking quote control.
-- `property-manager-mobile-matrix.spec.ts`: mobile failure; the fixed mobile navigation/cookie-consent surfaces intercepted `Record reading`.
-
-The complete suite therefore executed to completion but did not meet the zero-failure / zero-did-not-run acceptance gate. These results must not be represented as full product PASS until the test setup or UI interaction defects are corrected and rerun.
+The earlier baseline run is retained in git history; it is superseded for current evidence because it used static consent state tied to a different local origin and lacked the disposable worker/development-auth setup.
 
 ## Acceptance rule
 
