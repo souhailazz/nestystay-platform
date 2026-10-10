@@ -83,16 +83,16 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 
 Run date: 2026-10-10 (Africa/Casablanca). The runs used the clean frontend at current `origin/main` (`e09dc5c878439c5b2a32dac8f626f2668777c144`), the clean backend at current `origin/main` (`e86be7daa0b4c38cf3525ec8678a2f796b476692`), a fresh disposable PostgreSQL database, and a disposable local API/frontend pair. No staging or production systems were changed.
 
-The corrected harness was exercised on the isolated frontend branch for PR #24. Targeted consent/email coverage passed: 11 passed and 5 skipped; the email workflow passed in all three Chromium viewports. The complete matrix then ran all discovered tests:
+The corrected harness was exercised on the isolated frontend branch for PR #24. Targeted consent/email coverage passed: 11 passed and 5 skipped; the email workflow passed in all three Chromium viewports. The combined PR #24 + PR #25 test worktree then ran all discovered tests:
 
 - Discovered: 233
 - Started: 233
-- Passed: 212
-- Failed: 1
+- Passed: 213
+- Failed: 0
 - Skipped: 20
 - Did not run: 0
 
-The sole full-matrix failure was the tablet `e2e/calendar-operations.spec.ts` feed-label assertion. The same test passed on an immediate isolated tablet rerun against the same disposable API/database, a follow-up desktop+tablet rerun passed 2/2, and the synchronized desktop/tablet/mobile test in PR #25 passed 3/3. This is classified as a test synchronization issue, not as a confirmed product defect. No application calendar code was changed.
+The prior full-matrix calendar assertion was eliminated by the test-only synchronization in PR #25. The combined run passed the calendar workflow on desktop, tablet and mobile Chromium and produced no failures or not-run tests. No application calendar code was changed.
 
 Focused local authorization/Gate Guard/PM/Safety evidence rerun: 7 Playwright tests passed (`final-hardening-security`, `m4-qr-gate`, `m5-professional-completion`, and `m5-property-manager`) on desktop Chromium against the disposable API/database.
 
