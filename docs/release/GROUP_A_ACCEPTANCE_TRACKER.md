@@ -4,6 +4,8 @@ Last updated: 2026-10-10 (Africa/Casablanca)
 
 This tracker separates local evidence, pushed review work, deployed evidence, and client-controlled staging acceptance. No row is marked `STAGING_VERIFIED` without an authorized staging workflow.
 
+Revalidation on 2026-10-10 confirmed the listed frontend/backend PR heads remain open and `MERGEABLE` against `main` with successful required CI checks; protected-branch review is still the reason their merge state is `BLOCKED`. Public staging checks remain live `200`, ready `200` with database ready and storage configured, backend version `e86be7daa0b4c38cf3525ec8678a2f796b476692`, and frontend version SHA `local` (deployed frontend SHA still unknown).
+
 | Item | Requirement | Status | Local / PR evidence | Staging status | Remaining owner/action |
 |---:|---|---|---|---|---|
 | 1 | Branded password-reset email with usable link | PR_OPEN | Backend PR #16 (`aa73f4b`), branded template and regression test | BLOCKED_EXTERNAL | Terrence merge/deploy, then exercise delivery |
