@@ -47,6 +47,11 @@ This tracker separates local evidence, pushed review work, deployed evidence, an
 - Staging backend version: `e86be7daa0b4c38cf3525ec8678a2f796b476692`.
 - Staging frontend `/version.json`: reports `commitSha: local`; deployed frontend SHA is therefore unknown.
 
+## Specification-dependent implementation evidence
+
+- Item 27: `src/NestyStay.Domain/PropertyManagement/PropertyManagementEntities.cs:39-47` has a legacy `UtilityBill` record with community, storage-object, utility type, amount, currency and allocation fields, and `NestyStayDbContext.cs:128` maps it. The exposed PM API instead uses property/owner-scoped charges and readings (`PropertyManagerController.cs:98-123`, `PropertyManagerModels.cs:111-115`); it has no common-area bill create/list/download route, no bill-period field on `UtilityBill`, and no executive-term relation or date rules. This is an implementation gap, but the executive-term definition and authorization model must be specified before adding schema/API behavior.
+- Item 28: association persistence exists (`AssociationManagementEntities.cs:5-51`, `NestyStayDbContext.cs:134-139`) for meetings, meeting documents, votes, vote results and proxies, but no API controller exposes those entities. The current PM controller exposes only proposal/discussion/close/vote/proxy endpoints (`PropertyManagerController.cs:183-208`), which are a separate milestone governance model. Meeting creation, agendas, minutes, governing-document availability and their permission/quorum rules therefore remain unconnected and require Terrence's workflow confirmation before implementation.
+
 ## Clean local Playwright certification run
 
 Run date: 2026-10-10 (Africa/Casablanca). The run used the clean frontend at current `origin/main` (`e09dc5c878439c5b2a32dac8f626f2668777c144`), the clean backend at current `origin/main` (`e86be7daa0b4c38cf3525ec8678a2f796b476692`), a fresh disposable PostgreSQL database, and a disposable local API/frontend pair. No staging or production systems were changed.
