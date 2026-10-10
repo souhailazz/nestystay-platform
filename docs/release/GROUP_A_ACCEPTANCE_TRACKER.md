@@ -39,7 +39,7 @@ This tracker separates local evidence, pushed review work, deployed evidence, an
 
 - Frontend PR #22: 208 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed.
 - Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed (run `38068235877`, job `114260163666`); deploy skipped.
-- Backend directory-audience branch: 308 tests passed, 0 failed, 1 pre-existing MinIO skip; Release build passed.
+- Backend current-main clean checkout (`e86be7daa0b4c38cf3525ec8678a2f796b476692`): `dotnet test NestyStay.sln --no-restore --configuration Release` passed with 309 total, 307 passed, 0 failed, and 2 skipped. Release build/test process completed successfully; the skips are environment-gated PostgreSQL integration coverage.
 - Local disposable MinIO: real roundtrip, signed download, wrong-credential denial, traversal/oversize checks and restart persistence passed.
 - Staging public health: live 200; ready 200 with database ready and storage configured.
 - Staging backend version: `e86be7daa0b4c38cf3525ec8678a2f796b476692`.
