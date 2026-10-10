@@ -19,7 +19,7 @@ This tracker separates local evidence, pushed review work, deployed evidence, an
 | 11 | Searchable Admin entity selectors | PR_OPEN | Frontend PR #12 (`9aa28f`), CI green | BLOCKED_EXTERNAL | Terrence merge/deploy, then Admin form acceptance |
 | 12 | Campaign timestamps displayed in Jamaica time | PR_OPEN | Frontend PR #13 (`80cd86a`), CI green | BLOCKED_EXTERNAL | Terrence merge/deploy, then Campaigns acceptance |
 | 13 | Worker status reflects default in-process jobs | PR_OPEN | Backend PR #17 (`ec6e327`), 14 focused health tests passed | BLOCKED_EXTERNAL | Terrence merge/deploy; verify runtime heartbeat/config |
-| 14 | Separate Super Admin host/login | PR_OPEN | Frontend PR #23 (`8be7d34`), 209 tests/typecheck/build/lint pass; hosted CI passed | BLOCKED_EXTERNAL | Terrence configure DNS/TLS/server routing and verify |
+| 14 | Separate Super Admin host/login | PR_OPEN | Frontend PR #23 (`78310ae`), 209 tests/typecheck/build/lint pass; hosted CI passed | BLOCKED_EXTERNAL | Terrence configure DNS/TLS/server routing and verify |
 | 15 | Welcoming role-specific sign-in presentation | EXISTING_IMPLEMENTATION | Current main role cards and image assets; auth tests pass | BLOCKED_EXTERNAL | Authorized staging visual check |
 | 16 | Remove developer/debug text from user screens | PR_OPEN | Frontend PR #18 (`b1a030f`), full frontend checks pass | BLOCKED_EXTERNAL | Terrence merge/deploy, then visual check |
 | 17 | Center booking/sign-out and affected modals | PR_OPEN | Frontend PR #16 (`d3b4579`); modal accessibility tests | BLOCKED_EXTERNAL | Terrence merge/deploy, then browser check |
