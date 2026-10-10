@@ -56,6 +56,7 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 | Frontend [#22](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/22) | `4daaa7c30f9756c7867732cfc68f8905da0cf9bd` | PM responsive layout/sample-value cleanup and tests |
 | Frontend [#23](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/23) | `78310ae189895db59b1aae5266f9be46b7ea9637` | Dedicated admin host routing: `src/app/routeManifest.ts` and test |
 | Frontend [#24](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/24) | `da3d2f661878525db3cb801fee45971bfc328e87` | Playwright consent state is generated for the configured test origin: `playwright.config.ts` |
+| Frontend [#25](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/25) | `5fcf9c78c33940e75639a0e3d74e65e12ba31589` | Calendar E2E synchronization/response diagnostics: `e2e/calendar-operations.spec.ts` |
 | Backend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/16) | `aa73f4b6112c5f8fd1b3868e2d10a727cfcda4a0` | Branded password-reset delivery and API regression test |
 | Backend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/17) | `ec6e32720d14d19c3477ae5376f9039e4de30d3a` | Worker integration status and health tests |
 | Backend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/18) | `d01132be7a519ae7f0caa23b6da0a857499e4e86` | Directory audience enforcement/API/store/tests |
@@ -64,6 +65,7 @@ All entries below target `main`, report `MERGEABLE`, have a successful required 
 - Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed (run `38068235877`, job `114260163666`); deploy skipped.
 - Clean frontend current-main local Vitest rerun: 208 tests across 49 files; 208 passed, 0 failed. The previously observed Gate QR assertion passes when rerun in isolation and in the complete suite; no frontend defect was created for it. Frontend PR #12 and PR #13 hosted CI checks are green.
 - Frontend PR #24 (`da3d2f661878525db3cb801fee45971bfc328e87`) contains only the Playwright harness fix for origin-scoped cookie consent state. Local typecheck and targeted ESLint passed; hosted `Typecheck, test and build` passed (run `38076289423`, job `114283800762`); deploy job skipped.
+- Frontend PR #25 (`5fcf9c78c33940e75639a0e3d74e65e12ba31589`) contains only calendar E2E synchronization and response diagnostics. Local typecheck/lint and desktop, tablet and mobile calendar tests passed; hosted `Typecheck, test and build` passed (run `38077200968`, job `114286553878`); deploy job skipped.
 - Frontend current main is `e09dc5c878439c5b2a32dac8f626f2668777c144`. PR #12 (`9aa28fcc53a62ecf9c3a27f033b716755142e557`) and PR #13 (`80cd86a7881bcc4400062bd320e4cb56d0807f6f`) both report `MERGEABLE` against that exact base; GitHub `BLOCKED` reflects protected-branch review requirements, not a merge conflict. Their deployment jobs were skipped.
 - Backend current-main clean checkout (`e86be7daa0b4c38cf3525ec8678a2f796b476692`): `dotnet test NestyStay.sln --no-restore --configuration Release` passed with 309 total, 307 passed, 0 failed, and 2 skipped. Release build/test process completed successfully; the skips are environment-gated PostgreSQL integration coverage.
 - Local disposable MinIO: real roundtrip, signed download, wrong-credential denial, traversal/oversize checks and restart persistence passed.
@@ -90,7 +92,7 @@ The corrected harness was exercised on the isolated frontend branch for PR #24. 
 - Skipped: 20
 - Did not run: 0
 
-The sole full-matrix failure was the tablet `e2e/calendar-operations.spec.ts` feed-label assertion. The same test passed on an immediate isolated tablet rerun against the same disposable API/database, and a follow-up desktop+tablet rerun passed 2/2. This is classified as a flaky full-suite state/timing observation, not as a confirmed product defect. No application calendar code was changed.
+The sole full-matrix failure was the tablet `e2e/calendar-operations.spec.ts` feed-label assertion. The same test passed on an immediate isolated tablet rerun against the same disposable API/database, a follow-up desktop+tablet rerun passed 2/2, and the synchronized desktop/tablet/mobile test in PR #25 passed 3/3. This is classified as a test synchronization issue, not as a confirmed product defect. No application calendar code was changed.
 
 Focused local authorization/Gate Guard/PM/Safety evidence rerun: 7 Playwright tests passed (`final-hardening-security`, `m4-qr-gate`, `m5-professional-completion`, and `m5-property-manager`) on desktop Chromium against the disposable API/database.
 
