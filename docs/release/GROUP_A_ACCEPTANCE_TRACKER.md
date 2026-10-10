@@ -91,6 +91,8 @@ The corrected harness was exercised on the isolated frontend branch for PR #24. 
 
 The sole full-matrix failure was the tablet `e2e/calendar-operations.spec.ts` feed-label assertion. The same test passed on an immediate isolated tablet rerun against the same disposable API/database, and a follow-up desktop+tablet rerun passed 2/2. This is classified as a flaky full-suite state/timing observation, not as a confirmed product defect. No application calendar code was changed.
 
+Focused local authorization/Gate Guard/PM/Safety evidence rerun: 7 Playwright tests passed (`final-hardening-security`, `m4-qr-gate`, `m5-professional-completion`, and `m5-property-manager`) on desktop Chromium against the disposable API/database.
+
 The earlier baseline run is retained in git history; it is superseded for current evidence because it used static consent state tied to a different local origin and lacked the disposable worker/development-auth setup.
 
 ## Acceptance rule
