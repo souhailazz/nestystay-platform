@@ -37,6 +37,28 @@ This tracker separates local evidence, pushed review work, deployed evidence, an
 
 ## Current local verification
 
+## Reviewable PR index
+
+All entries below target `main`, report `MERGEABLE`, have a successful required build/test check, and have deployment jobs skipped. `BLOCKED` is the protected-branch review state, not a merge conflict.
+
+| Repository / PR | Head SHA | Scope and changed files |
+|---|---|---|
+| Frontend [#12](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/12) | `9aa28fcc53a62ecf9c3a27f033b716755142e557` | Admin selectors: `src/pages/ProductPages.tsx`, `src/coverage/admin-surfaces.test.tsx`, `src/coverage/product-surfaces.test.tsx` |
+| Frontend [#13](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/13) | `80cd86a7881bcc4400062bd320e4cb56d0807f6f` | Jamaica time: `src/lib/campaignTime.ts`, test, `src/pages/ProductPages.tsx` |
+| Frontend [#14](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/14) | `50a90c1919553ec135bae7dbf5e86581aae64ff2` | Password reset UI: `src/pages/CompletionPages.tsx`, `e2e/final-hardening-email.spec.ts` |
+| Frontend [#15](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/15) | `ec0640980190cdd0c45f525c38aaf81064667e0b` | Booking state/pending listings: `src/components/booking/BookingModal.tsx`, `src/features/public/PropertyDetailPage.tsx`, `src/features/public/PublicSearchMap.tsx`, tests |
+| Frontend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/16) | `d3b4579127ae55983e656490b0ad3b5e1abf7d62` | Booking/modal layout: `BookingModal.tsx`, `Modal.tsx`, `src/index.css`, tests |
+| Frontend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/17) | `949ca56f3638c5bca6c96d980bec662e36b49762` | Admin moderation review: `src/features/admin/AdminProperties.tsx` and test |
+| Frontend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/18) | `b1a030fd19cab0240bbae9fd8fb73abe980b5a28` | Remove debug copy: `CompletionPages.tsx`, `PropertyManagerPages.tsx` |
+| Frontend [#19](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/19) | `cc5a32015d1200e70aeeb809e25141977bfa2df6` | Wellness terminology across auth/layout/product/safety files and tests |
+| Frontend [#20](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/20) | `f7562fc731ce443a2af189b71b4341ac926b2738` | PM workspace top navigation and test |
+| Frontend [#21](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/21) | `434aeef808c0d5ae2da2e3b5baa8a7f15e4e0aba` | Directory audience API client/filtering/UI and tests |
+| Frontend [#22](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/22) | `4daaa7c30f9756c7867732cfc68f8905da0cf9bd` | PM responsive layout/sample-value cleanup and tests |
+| Frontend [#23](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/23) | `78310ae189895db59b1aae5266f9be46b7ea9637` | Dedicated admin host routing: `src/app/routeManifest.ts` and test |
+| Backend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/16) | `aa73f4b6112c5f8fd1b3868e2d10a727cfcda4a0` | Branded password-reset delivery and API regression test |
+| Backend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/17) | `ec6e32720d14d19c3477ae5376f9039e4de30d3a` | Worker integration status and health tests |
+| Backend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/18) | `d01132be7a519ae7f0caa23b6da0a857499e4e86` | Directory audience enforcement/API/store/tests |
+
 - Frontend PR #22: 208 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed.
 - Frontend PR #23: 209 tests passed, typecheck passed, build passed, lint 0 errors / 32 existing warnings; hosted CI passed (run `38068235877`, job `114260163666`); deploy skipped.
 - Clean frontend current-main local Vitest rerun: 208 tests across 49 files; 208 passed, 0 failed. The previously observed Gate QR assertion passes when rerun in isolation and in the complete suite; no frontend defect was created for it. Frontend PR #12 and PR #13 hosted CI checks are green.
