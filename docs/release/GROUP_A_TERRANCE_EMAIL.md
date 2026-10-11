@@ -29,6 +29,7 @@ PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR16 and PR
 - Backend Release tests: **307 passed, 0 failed, 2 environment-gated skips**.
 - Frontend Vitest: the prior baseline remains **208 passed, 0 failed**; the A18 follow-up focused run passed **32 tests**. PR16's focused booking run passed **4 tests**; its broader local run exposed **3 unrelated existing failures**, so no blanket frontend-suite pass is claimed for that branch.
 - Focused Gate Guard, QR, authorization, Safety and PM tests: **7 passed**.
+- New targeted local browser evidence: Gate Guard/QR **2/2**, calendar plus PM calendar/QR **3/3**, officer/wellness plus PM completion **2/2**, PM professional completion **1/1**, and incident create/reload/resolve/authorization **1/1**. These runs used a disposable local API/database and are not staging acceptance.
 - MinIO local I/O, authorization and restart persistence: **passed**.
 - Frontend PR #25 improves calendar E2E synchronization and diagnostics; it does **not** establish successful live staging calendar synchronization.
 - A28 backend full suite: **309 passed, 0 failed, 2 environment-gated skips** (311 total). The route-count authorization assertion was updated from the old 193 baseline to the current 199 protected descriptions and then passed.
