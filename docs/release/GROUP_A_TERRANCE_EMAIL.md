@@ -50,6 +50,14 @@ The detailed walkthrough is in `GROUP_A_STAGING_HANDOFF.md`. The priority pages 
 
 Please review/deploy PR26 before accepting A18; its final commit is `5feaf78` and its required CI is green. Please also review Frontend PR #31 for A8; its required CI has passed, but staging must run the pending-property negative flow before acceptance. Backend PR #21 is the A22 follow-up; after its CI/review/deployment, staging must run the authorized badge status-change check. Frontend PR #32 is the A20 route-level follow-up; after its CI/review/deployment, staging must run the real PM invitation, Guard acceptance/login, assigned-property and QR checks. A23 and A26 still need authorized staging workflows. A27 is code-complete for the statement attachment path in the updated PR #19/#29 heads, subject to review, merge, deployment, additive migration approval and staging verification. A28 now includes the dedicated property-scoped governing-document workflow in Backend PR #20 and current-main Frontend successor PR #33, subject to Frontend CI, review, merge, deployment, existing meeting-migration approval and staging verification. For A27, verify `/pm/utilities`; for A28, verify `/pm/governance`. The detailed steps, expected results and authorization checks are in `GROUP_A_STAGING_HANDOFF.md`.
 
+## Conditional delivery dates
+
+- A26: one focused PM acceptance session, targeted for October 14 if the authorized disposable PM/Owner session is available by October 13.
+- A27: code/test package is ready now; after your review, migration approval/application and deployment, the focused statement/attachment acceptance is targeted for October 14 if those prerequisites complete by October 13.
+- A28: code/test package is ready now; after your review, migration approval/application and deployment, the focused governance/document acceptance is targeted for October 15 if those prerequisites complete by October 14.
+
+These are conditional targets, not staging acceptance claims. If a prerequisite arrives later, the acceptance session moves to the next working day after it is available.
+
 Group B additions remain excluded. No production, provider, pricing, date-hold, migration or deployment-pipeline changes were made.
 
 Regards,
