@@ -6,17 +6,16 @@ Hi Terrence,
 
 Thank you for the staging feedback. I reconciled the Group A handoff against the current GitHub PR state and local evidence. The complete A1–A28 matrix is in the tracker, with each item’s PR, head SHA, merge state, evidence boundary and staging action.
 
-## Priority review queue
+## Current review queue
 
-1. **Password reset:** [Backend #16](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/16), `aa73f4b6112c5f8fd1b3868e2d10a727cfcda4a0`; [Frontend #14](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/14), `50a90c1919553ec135bae7dbf5e86581aae64ff2`.
-2. **Booking correctness:** [Frontend #15](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/15), `ec0640980190cdd0c45f525c38aaf81064667e0b`.
-3. **Booking modal:** [Frontend #16](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/16), `d3b4579127ae55983e656490b0ad3b5e1abf7d62`.
-4. **Admin:** [Frontend #12](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/12), [#13](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/13) and [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/17).
-5. **Remaining Group A fixes:** Frontend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/18), [#19](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/19), [#20](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/20), [#21](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/21), [#22](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/22), [#23](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/23), [#24](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/24), [#25](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/25); Backend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/17) and [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/18).
+The earlier Group A PRs are already merged. The current reviewable work is:
 
-All listed PRs are currently **OPEN**, **MERGEABLE**, and have successful required build/test checks; protected review is why GitHub reports their merge state as `BLOCKED`. Deployment jobs are skipped. They are therefore not yet merged, deployed or staging-verified.
+1. **Frontend #16** — `762b9c3f025f7a222ce9c14eea0d8a0599c64539`: semantic booking/modal reconciliation preserving the pending-listing fix; CI green.
+2. **Frontend #26** — `84e0ba19964c020558332b9d71cd4793e9da78f0`: role-specific Patois greeting framework; CI green.
+3. **Frontend #27** — `7dfe8898d1a07eac4205aaae8fe9cd7f87f70868`: responsive role/workspace sign-in redesign; CI green.
+4. **Frontend #28** — `3e46498b4c71cdb9e237654cc619fa39a57b2caa`: public/staging Admin-route denial follow-up; GitHub has not reported CI yet.
 
-Recommended order is Backend #16 → Frontend #14; Frontend #15 → #16; Frontend #12 → #13 → #17; Backend #17 after Backend #16 because both touch health-test coverage; Backend #18 separately; then the remaining UI/host/navigation PRs after rechecking the shared-file overlaps. Frontend #19/#23, #20/#22 and #18/#21 share files, so GitHub mergeability should be rechecked after each earlier merge. No branch currently requires a rebase based on its present `MERGEABLE` state.
+PR16, PR26 and PR27 are currently open and mergeable, with protected review still required. PR28 is open and mergeable but its checks are not yet reported. None of these has been deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
 ## Verified local evidence
 
@@ -35,7 +34,7 @@ Please merge the approved PRs and deploy them to staging, then provide an author
 
 The detailed walkthrough is in `GROUP_A_STAGING_HANDOFF.md`. The priority pages are password reset, the pending/approved booking flows, `/admin/ops/properties`, `/pm/calendar`, `/safety`, `/pm/professional?tab=incidents`, `/pm/team`, `/gate/guard`, `/gate/qr` and the PM record workspace.
 
-Before A18 can be completed, please provide the approved role-specific Patois wording and translations. Before A27/A28 implementation can begin, please confirm executive-term utility rules and the required meetings/minutes/agendas/governing-document lifecycle, permissions and quorum rules. Those items are intentionally not invented or migrated without approval.
+Please review/deploy PR26 before accepting A18. A20, A22, A23 and A26 still need authorized staging workflows. Before A27/A28 implementation can begin, please confirm executive-term utility rules and the required meetings/minutes/agendas/governing-document lifecycle, permissions and quorum rules. Those items are intentionally not invented or migrated without approval.
 
 Group B additions remain excluded. No production, provider, pricing, date-hold, migration or deployment-pipeline changes were made.
 

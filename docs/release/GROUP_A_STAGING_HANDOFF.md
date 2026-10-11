@@ -27,7 +27,7 @@ Terrence has confirmed that staging QA accounts exist and has independently veri
 
 ## Dedicated Admin host
 
-After Frontend PR #23 is deployed:
+After Frontend PR #23 and its public-route follow-up PR #28 are deployed:
 
 1. Create DNS `admin.nestystay.net` pointing to the same approved frontend origin/server as staging.
 2. Issue TLS for `admin.nestystay.net`; redirect HTTP to HTTPS.
@@ -71,6 +71,7 @@ Common-area utility bills and executive-term retrieval must not be accepted unti
 
 ### Known specification-dependent gaps
 
+- **A18:** Frontend PR #26 provides the role-specific Patois greeting framework and is awaiting merge/deploy and client wording/visual acceptance. The staging check must confirm each role sees the correct greeting without changing authorization.
 - **A27:** existing utility persistence does not provide common-area bill period/executive-term retrieval. Before implementation, confirm executive-term definition, inclusive dates, scope, roles, allocation, attachments and retention. The likely implementation requires a small schema/API/UI extension and is estimated at 5–8 working days after approval; no migration is prepared or applied.
 - **A28:** existing proposal/ballot/proxy behavior is not a meeting/minutes/agenda/governing-document workflow. Before implementation, confirm lifecycle, roles, notice/deadline, quorum, ballot linkage, minutes approval/publication, document versioning and audit rules. The likely implementation requires new API/UI/persistence and is estimated at 7–10 working days after approval; no migration is prepared or applied.
 
