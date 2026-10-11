@@ -13,9 +13,9 @@ The earlier Group A PRs are already merged. The current reviewable work is:
 1. **Frontend #16** — `762b9c3f025f7a222ce9c14eea0d8a0599c64539`: semantic booking/modal reconciliation preserving the pending-listing fix; CI green.
 2. **Frontend #26** — `84e0ba19964c020558332b9d71cd4793e9da78f0`: role-specific Patois greeting framework; CI green.
 3. **Frontend #27** — `7dfe8898d1a07eac4205aaae8fe9cd7f87f70868`: responsive role/workspace sign-in redesign; CI green.
-4. **Frontend #28** — `3e46498b4c71cdb9e237654cc619fa39a57b2caa`: public/staging Admin-route denial follow-up; GitHub has not reported CI yet.
+4. **Frontend #28** — `3e46498b4c71cdb9e237654cc619fa39a57b2caa`: public/staging Admin-route denial follow-up; CI green.
 
-PR16, PR26 and PR27 are currently open and mergeable, with protected review still required. PR28 is open and mergeable but its checks are not yet reported. None of these has been deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
+PR16, PR26, PR27 and PR28 are currently open and mergeable, with successful required CI checks and protected review still required. None of these has been deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
 ## Verified local evidence
 
