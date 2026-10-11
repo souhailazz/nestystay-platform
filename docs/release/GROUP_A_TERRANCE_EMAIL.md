@@ -19,7 +19,7 @@ The earlier Group A PRs are already merged. The current reviewable work is:
 7. **Backend #20** — `b2caffedf429cc72652726706edb47b12cf53bcf`: A28 governance meetings, agenda/attendance, linked proposals and immutable published minutes; additive migration review only; backend CI green.
 8. **Frontend #30** — `0ae5fa10afe63acc22580c0896823fc61f52890f`: A28 governance-meeting/minutes workspace; frontend CI green.
 9. **Frontend #31** — `7d4b1bbece72069c4523dbeb46a6dfa81277a971`: A8 follow-up correcting the known pending-property quote error heading while preserving generic handling for unrelated failures; required frontend CI passed. [PR #31](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/31)
-10. **Backend #21** — `2c6e1bf0f03d81febe364be5c35b76fd24665076`: A22 follow-up deriving public Explore badges from the host's current active assignment, with a regression test for a Free listing becoming Verified after badge purchase. The required backend CI was queued when this handoff was updated. [PR #21](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/21)
+10. **Backend #21** — `2c6e1bf0f03d81febe364be5c35b76fd24665076`: A22 follow-up deriving public Explore badges from the host's current active assignment, with a regression test for a Free listing becoming Verified after badge purchase. The required backend CI is green; deploy jobs were skipped. [PR #21](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/21)
 
 PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR29, PR30 and PR31 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
@@ -35,7 +35,7 @@ PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR29, PR30 
 - A27 focused utility-bill persistence/attachment/statement/authorization test: **1 passed**; backend build passed.
 - A27 and A28 frontend suites: **223 passed, 0 failed** each; typecheck and production build passed; lint had 0 errors and existing warnings only.
 - A8 follow-up PR #31: **4 focused Vitest tests passed**, typecheck/lint/build passed, and the focused Playwright business-error test passed; hosted required CI passed.
-- A22 follow-up Backend PR #21: the new regression and the complete `BadgeAuthorizationTests` class (**5 passed**) passed locally; no staging acceptance is claimed.
+- A22 follow-up Backend PR #21: the new regression and the complete `BadgeAuthorizationTests` class (**5 passed**) passed locally; the full backend solution passed **309** with **2 environment-gated skips**; required CI is green and no staging acceptance is claimed.
 
 Public staging health was observed live `200`, ready `200` with database ready and storage configured. The last observed staging backend SHA was `e86be7daa0b4c38cf3525ec8678a2f796b476692`, while the latest fetched backend `main` is `a53ccb3e0fb1040cebde5aa515b6bd2ef9bd51b9`; staging parity is therefore not current. Frontend `/version.json` still reports `commitSha: local`, so the deployed frontend SHA is not independently verified.
 
