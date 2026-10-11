@@ -81,7 +81,7 @@ For A28, open `/pm/governance` as an authorized Property Manager. Create a draft
 
 ## Current evidence boundary
 
-Local tests and public health endpoints do not constitute staging acceptance. Staging rows remain `BLOCKED_EXTERNAL` until the correct deployed PR heads and authorized accounts are used in the workflows above.
+Local tests and public health endpoints do not constitute staging acceptance. Staging rows remain `BLOCKED_EXTERNAL` until the correct deployed PR heads and authorized accounts are used in the workflows above. The latest focused backend run passed the pending-property/card-hold cancellation persistence test (**1/1**) and the selected calendar/Gate Guard/Property Manager authorization API tests (**15/15**). This does not establish staging behavior or real provider delivery.
 
 Latest local evidence is: Playwright 233 started / 213 passed / 0 failed / 20 documented skips / 0 not run; A28 backend full suite 309 passed / 0 failed / 2 environment-gated skips (311 total); A27 focused utility persistence/authorization test passed; A27/A28 frontend suites each 223 passed with typecheck and production build passing; local MinIO I/O, authorization and restart persistence passed. Frontend PR #25 improves calendar E2E synchronization and diagnostics only; it does not prove live staging synchronization. No A27/A28 staging workflow has been claimed.
 
