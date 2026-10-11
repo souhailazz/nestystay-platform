@@ -10,7 +10,7 @@ Thank you for the staging feedback. I reconciled the Group A handoff against the
 
 The earlier Group A implementation PRs are merged. The current reviewable work is:
 
-1. **Frontend #36** — `f51bfca`: focused A15 tablet-layout follow-up to merged Frontend #27. It prevents the sign-in form from collapsing at 1024px and adds a tablet regression test. AuthModalSuite 13/13, tablet Playwright 1/1, typecheck, lint and build passed; required CI passed in run `38178347340`. [PR #36](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/36)
+1. **Frontend #36** — `f51bfca7fcb75b2e2a7c92ce287dcf2c8104a951`: focused A15 tablet-layout follow-up to merged Frontend #27. It prevents the sign-in form from collapsing at 1024px and adds a tablet regression test. AuthModalSuite 13/13, tablet Playwright 1/1, typecheck, lint and build passed; required CI passed in run `38178347340`. [PR #36](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/36)
 
 2. **Backend #19** — `2be9a65019cb63941491211c5be3ffff8fe7364f`: A27 utility bills, common-area/period/executive-term persistence, attachments, scoped retrieval and statement attachment mapping. The additive migration remains review-only. [PR #19](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/19)
 3. **Frontend #34** — `fe16c77d0bc5fd511da5a5072827b3548e6a1229`: current-main A27 successor for the utility-bill workspace and statement attachment actions; local focused tests 4/4, typecheck, build and targeted persisted utility browser flow 1/1 passed; required hosted CI passed in run `38175769454` and deployment was skipped. It preserves current Gate Guard/staff changes and supersedes conflicting Frontend #29. [PR #34](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/34)
