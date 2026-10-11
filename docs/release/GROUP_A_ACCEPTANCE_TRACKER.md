@@ -89,13 +89,13 @@ Live GitHub reconciliation: PR-linked rows below show the current actual state. 
 4. **Backend follow-ups:** review Backend #17 after Backend #16 because both touch `HealthEndpointTests.cs`; Backend #18 is file-independent and can be reviewed separately.
 5. **Remaining frontend work:** recheck after earlier merges. Known shared-file pairs are #19/#23 (`src/app/routeManifest.ts`), #20/#22 (`PropertyManagerPages.tsx` and its test), and #18/#21 (`CompletionPages.tsx`). PR #24 is Playwright consent harness only; PR #25 is calendar E2E synchronization/diagnostics only.
 
-At the current snapshot the active Group A review queue is Frontend #33, #34 and #35 plus Backend #19 and #20. Frontend #29 and #30 are conflicting superseded A27/A28 branches; Frontend #31 is a redundant A8 follow-up because the behavior is already in merged PR #15/current main. Frontend #33/#34 and Backend #19/#20 have successful required CI; Frontend #35 was just opened and its required CI was still running at the handoff update. The other PRs cited in the matrix are already merged. No merge, deploy, migration execution or rewrite was performed by this handoff.
+At the current snapshot the active Group A review queue is Frontend #33, #34 and #35 plus Backend #19 and #20. Frontend #29 and #30 are conflicting superseded A27/A28 branches; Frontend #31 is a redundant A8 follow-up because the behavior is already in merged PR #15/current main. Frontend #33/#34, Backend #19/#20 and the Frontend #35 follow-up have successful required CI; all deployment jobs were skipped as intended. The other PRs cited in the matrix are already merged. No merge, deploy, migration execution or rewrite was performed by this handoff.
 
 ## Current local verification
 
 ## Historical PR index and current review queue
 
-The inventory below retains earlier PR references for traceability. The current review queue is Frontend #33 and #34 plus Backend #19 and #20; see their exact heads in the authoritative matrix above. Frontend #29 and #30 are superseded/conflicting branches, and Frontend #31 is a redundant A8 follow-up. `BLOCKED` is the protected-branch review state, not a merge conflict.
+The inventory below retains earlier PR references for traceability. The current review queue is Frontend #33, #34 and #35 plus Backend #19 and #20; see their exact heads in the authoritative matrix above. Frontend #29 and #30 are superseded/conflicting branches, and Frontend #31 is a redundant A8 follow-up. `BLOCKED` is the protected-branch review state, not a merge conflict.
 
 | Repository / PR | Head SHA | Scope and changed files |
 |---|---|---|
@@ -103,7 +103,7 @@ The inventory below retains earlier PR references for traceability. The current 
 | Frontend [#13](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/13) | `80cd86a7881bcc4400062bd320e4cb56d0807f6f` | Jamaica time: `src/lib/campaignTime.ts`, test, `src/pages/ProductPages.tsx` |
 | Frontend [#14](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/14) | `50a90c1919553ec135bae7dbf5e86581aae64ff2` | Password reset UI: `src/pages/CompletionPages.tsx`, `e2e/final-hardening-email.spec.ts` |
 | Frontend [#15](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/15) | `ec0640980190cdd0c45f525c38aaf81064667e0b` | Booking state/pending listings: `src/components/booking/BookingModal.tsx`, `src/features/public/PropertyDetailPage.tsx`, `src/features/public/PublicSearchMap.tsx`, tests |
-| Frontend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/16) | `762b9c3f025f7a222ce9c14eea0d8a0599c64539` | OPEN reconciled booking/modal layout and pending-listing behavior; CI green |
+| Frontend [#16](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/16) | `762b9c3f025f7a222ce9c14eea0d8a0599c64539` | MERGED — reconciled booking/modal layout and pending-listing behavior; CI green; merge `61585ea3a895d68203fad409af3ef0769cc867b3` |
 | Frontend [#17](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/17) | `949ca56f3638c5bca6c96d980bec662e36b49762` | Admin moderation review: `src/features/admin/AdminProperties.tsx` and test |
 | Frontend [#18](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/18) | `b1a030fd19cab0240bbae9fd8fb73abe980b5a28` | Remove debug copy: `CompletionPages.tsx`, `PropertyManagerPages.tsx` |
 | Frontend [#19](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/19) | `cc5a32015d1200e70aeeb809e25141977bfa2df6` | Wellness terminology across auth/layout/product/safety files and tests |
