@@ -149,7 +149,7 @@ The inventory below retains earlier PR references for traceability. The current 
 
 ### A27/A28 delivery estimate
 
-- **Code/review package:** A28 is ready for Terrence's review with green required CI. A27 is reviewable with local checks passed and hosted CI still in progress for PR #34.
+- **Code/review package:** A27 and A28 are ready for Terrence's review with green required CI. A27 PR #34 completed required CI successfully in run `38172925359`; deployment jobs were skipped as intended.
 - **Staging acceptance:** one controlled window after merge/deploy and client-approved migration application; no fixed staging date is asserted because deployment and schema execution remain Terrence-controlled.
 - **Remaining work after deployment:** verify persisted records, attachment/private-document behavior, scoped authorization and cleanup for A27; verify meeting lifecycle, immutable minutes publication, retrieval and authorization for A28.
 
