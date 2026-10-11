@@ -14,12 +14,12 @@ The earlier Group A PRs are already merged. The current reviewable work is:
 2. **Frontend #26** — `84e0ba19964c020558332b9d71cd4793e9da78f0`: role-specific Patois greeting framework; CI green.
 3. **Frontend #27** — `7dfe8898d1a07eac4205aaae8fe9cd7f87f70868`: responsive role/workspace sign-in redesign; CI green.
 4. **Frontend #28** — `3e46498b4c71cdb9e237654cc619fa39a57b2caa`: public/staging Admin-route denial follow-up; CI green.
-5. **Backend #19** — `795a8f170abd00973a4089d167acc7abb97a1e87`: A27 utility bills, common-area/period/executive-term persistence, attachments and scoped retrieval; additive migration review only; backend CI rerunning after the authorization-matrix baseline was updated.
+5. **Backend #19** — `795a8f170abd00973a4089d167acc7abb97a1e87`: A27 utility bills, common-area/period/executive-term persistence, attachments and scoped retrieval; additive migration review only; backend CI green after the authorization-matrix baseline was updated.
 6. **Frontend #29** — `22db3ce2cd1367a6a7e8018f169d88cc89a9f103`: A27 Property Manager utility-bill/executive-term workspace; frontend CI green.
 7. **Backend #20** — `b2caffedf429cc72652726706edb47b12cf53bcf`: A28 governance meetings, agenda/attendance, linked proposals and immutable published minutes; additive migration review only; backend CI green.
 8. **Frontend #30** — `0ae5fa10afe63acc22580c0896823fc61f52890f`: A28 governance-meeting/minutes workspace; frontend CI green.
 
-PR16, PR26, PR27, PR28, PR29 and PR30 are open and reviewable; PR29 and PR30 have successful required CI. Backend PR20 is green; Backend PR19 is rerunning its required check after the route-count regression fix. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
+PR16, PR26, PR27, PR28, PR29 and PR30 are open and reviewable; PR29 and PR30 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
 ## Verified local evidence
 
