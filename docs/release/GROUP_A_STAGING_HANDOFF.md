@@ -75,7 +75,7 @@ For A28, open `/pm/governance` as an authorized Property Manager. Create a draft
 
 ### Known specification-dependent gaps
 
-- **A18:** Frontend PR #26 provides the role-specific Patois greeting framework and is awaiting merge/deploy and client wording/visual acceptance. The staging check must confirm each role sees the correct greeting without changing authorization.
+- **A18:** Frontend PR #26 (`5feaf7836b4c0d263ce83261e60524f22e09ea94`) provides the role-specific Patois greeting registry and now derives post-login/sign-out copy from authenticated roles. The mapping is presentation-only and does not grant access. Focused registry/AuthModal tests passed (32), with typecheck/build/lint passing locally; CI was in progress when this handoff was updated. After merge/deploy, confirm each role sees the correct greeting without changing authorization.
 - **A27:** implementation is now reviewable in Backend PR #19 and Frontend PR #29. The migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and client-controlled schema application.
 - **A28:** implementation is now reviewable in Backend PR #20 and Frontend PR #30. The migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and client-controlled schema application.
 

@@ -11,7 +11,7 @@ Thank you for the staging feedback. I reconciled the Group A handoff against the
 The earlier Group A PRs are already merged. The current reviewable work is:
 
 1. **Frontend #16** — `762b9c3f025f7a222ce9c14eea0d8a0599c64539`: semantic booking/modal reconciliation preserving the pending-listing fix; CI green.
-2. **Frontend #26** — `84e0ba19964c020558332b9d71cd4793e9da78f0`: role-specific Patois greeting framework; CI green.
+2. **Frontend #26** — `5feaf7836b4c0d263ce83261e60524f22e09ea94`: role-specific Patois greeting registry plus authenticated-role wiring for post-login and sign-out surfaces; focused registry/AuthModal tests (32), typecheck, build and lint passed locally; hosted CI was running at handoff time. [PR #26](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/26)
 3. **Frontend #27** — `7dfe8898d1a07eac4205aaae8fe9cd7f87f70868`: responsive role/workspace sign-in redesign; CI green.
 4. **Frontend #28** — `3e46498b4c71cdb9e237654cc619fa39a57b2caa`: public/staging Admin-route denial follow-up; CI green.
 5. **Backend #19** — `795a8f170abd00973a4089d167acc7abb97a1e87`: A27 utility bills, common-area/period/executive-term persistence, attachments and scoped retrieval; additive migration review only; backend CI green after the authorization-matrix baseline was updated.
@@ -21,13 +21,13 @@ The earlier Group A PRs are already merged. The current reviewable work is:
 9. **Frontend #31** — `7d4b1bbece72069c4523dbeb46a6dfa81277a971`: A8 follow-up correcting the known pending-property quote error heading while preserving generic handling for unrelated failures; required frontend CI passed. [PR #31](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/31)
 10. **Backend #21** — `2c6e1bf0f03d81febe364be5c35b76fd24665076`: A22 follow-up deriving public Explore badges from the host's current active assignment, with a regression test for a Free listing becoming Verified after badge purchase. The required backend CI is green; deploy jobs were skipped. [PR #21](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/21)
 
-PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR29, PR30 and PR31 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
+PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR16 has successful required CI, while PR26 was awaiting its new required CI result at handoff. PR29, PR30 and PR31 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
 ## Verified local evidence
 
 - Playwright: **233 started, 213 passed, 0 failed, 20 documented skips, 0 not run**.
 - Backend Release tests: **307 passed, 0 failed, 2 environment-gated skips**.
-- Frontend Vitest: **208 passed, 0 failed**.
+- Frontend Vitest: the prior baseline remains **208 passed, 0 failed**; the A18 follow-up focused run passed **32 tests**. PR16's focused booking run passed **4 tests**; its broader local run exposed **3 unrelated existing failures**, so no blanket frontend-suite pass is claimed for that branch.
 - Focused Gate Guard, QR, authorization, Safety and PM tests: **7 passed**.
 - MinIO local I/O, authorization and restart persistence: **passed**.
 - Frontend PR #25 improves calendar E2E synchronization and diagnostics; it does **not** establish successful live staging calendar synchronization.
@@ -45,7 +45,7 @@ Please merge the approved PRs and deploy them to staging, then provide an author
 
 The detailed walkthrough is in `GROUP_A_STAGING_HANDOFF.md`. The priority pages are password reset, the pending/approved booking flows, `/admin/ops/properties`, `/pm/calendar`, `/safety`, `/pm/professional?tab=incidents`, `/pm/team`, `/gate/guard`, `/gate/qr` and the PM record workspace.
 
-Please review/deploy PR26 before accepting A18. Please also review Frontend PR #31 for A8; its required CI has passed, but staging must run the pending-property negative flow before acceptance. Backend PR #21 is the A22 follow-up; after its CI/review/deployment, staging must run the authorized badge status-change check. A20, A23 and A26 still need authorized staging workflows. A27 and A28 are now implementation PR pairs ready for review; their additive migrations are not applied and require your approval before controlled staging application. For A27, verify `/pm/utilities`; for A28, verify `/pm/governance`. The detailed steps, expected results and authorization checks are in `GROUP_A_STAGING_HANDOFF.md`.
+Please review/deploy PR26 before accepting A18; its new commit is `5feaf78` and its required CI was still running when this handoff was updated. Please also review Frontend PR #31 for A8; its required CI has passed, but staging must run the pending-property negative flow before acceptance. Backend PR #21 is the A22 follow-up; after its CI/review/deployment, staging must run the authorized badge status-change check. A20, A23 and A26 still need authorized staging workflows. A27 and A28 are now implementation PR pairs ready for review; their additive migrations are not applied and require your approval before controlled staging application. For A27, verify `/pm/utilities`; for A28, verify `/pm/governance`. The detailed steps, expected results and authorization checks are in `GROUP_A_STAGING_HANDOFF.md`.
 
 Group B additions remain excluded. No production, provider, pricing, date-hold, migration or deployment-pipeline changes were made.
 
