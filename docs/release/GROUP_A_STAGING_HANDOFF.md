@@ -61,7 +61,7 @@ The pending-listing error-heading correction is in Frontend PR #31. After it is 
 
 1. Authorized user opens `/safety` and reviews emergency guidance.
 2. PM creates an incident at `/pm/professional?tab=incidents`; reload and retrieve it; test a role without scope and expect denial.
-3. PM invites a Gate Guard at `/pm/team`; the Guard accepts through the real invitation and signs in. The local implementation persists this invitation through `/api/property-manager/p0/members`, restricts acceptance to the invited account, and synchronizes the role only after acceptance. The current browser suite still provisions the disposable fixture through an API helper, so this remains an explicit staging/UI acceptance step rather than a claimed local UI pass.
+3. PM opens `/pm/team`, selects the owner/property scope, enters an existing account ID, selects `GATE_GUARD` and submits the invitation. Frontend PR #32 adds this missing route-level workflow while retaining the existing server-authoritative `/api/property-manager/p0/members` implementation. The fresh-branch browser flow passed **1/1** for UI invitation plus persisted membership; the Guard must still accept through the real invitation, sign in and be checked on staging.
 4. Assign the Guard to one property, validate a valid QR at `/gate/qr`, then test malformed, expired, revoked and wrong-property codes.
 5. Confirm `/gate/guard` exposes only the assigned property and the audit record persists.
 
@@ -76,12 +76,13 @@ For A28, open `/pm/governance` as an authorized Property Manager. Create a draft
 ### Remaining implementation and acceptance boundaries
 
 - **A18:** Frontend PR #26 (`5feaf7836b4c0d263ce83261e60524f22e09ea94`) provides the role-specific Patois greeting registry and derives sign-in, post-login and sign-out copy from authenticated roles, with the NestyStay emblem included in the displayed greeting. The mapping is presentation-only and does not grant access. Focused registry/AuthModal tests passed (32), with typecheck/build/lint passing locally; required CI passed and the deploy job was skipped. After merge/deploy, confirm each supported role visually and confirm that authorization is unchanged.
+- **A20:** Frontend PR #32 (`39328572381b6f1b53bdc8813fa270dd2d84bc4c`) exposes the existing scoped Gate Guard invitation API at `/pm/team`. Focused module tests passed (3) and the fresh-branch browser flow passed (1); hosted CI was queued when this handoff was updated. After CI/review/merge/deploy, use the exact staging invitation/acceptance/QR sequence above.
 - **A27:** implementation is reviewable in Backend PR #19 and Frontend PR #29. The specification is actionable; the migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and Terrence-controlled schema application.
 - **A28:** implementation is reviewable in Backend PR #20 and Frontend PR #30. The specification is actionable; the migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and Terrence-controlled schema application.
 
 ### Delivery timing
 
-- **By 2026-10-15:** the reviewable code and handoff evidence are ready now; Terrence’s review/merge decision is required for the open PRs, especially A5/A8/A14/A15/A18/A22/A27/A28.
+- **By 2026-10-15:** the reviewable code and handoff evidence are ready now; Terrence’s review/merge decision is required for the open PRs, especially A5/A8/A14/A15/A18/A20/A22/A27/A28.
 - **After each approved deployment:** staging acceptance can be run immediately for the deployed item when the required QA role, disposable records and provider/service configuration are available. No staging completion date is asserted by Codex because deployment, migrations and account provisioning remain Terrence-controlled.
 - **Not complete:** Group A is not declared complete. The matrix contains 28 accounted-for rows, but several remain blocked by unmerged code, missing authorized staging workflows, unexecuted additive migrations or missing provider/service evidence.
 
