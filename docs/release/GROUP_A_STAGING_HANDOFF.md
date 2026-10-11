@@ -55,11 +55,13 @@ The existing Caddy deployment pattern can use the same common proxy block for bo
 4. Property Manager opens `/pm/calendar` and verifies a disposable reservation/event persists after reload.
 5. Check the worker status/heartbeat before claiming scheduled synchronization; manual calendar operations alone do not prove the worker is running.
 
+The pending-listing error-heading correction is in Frontend PR #31. After it is merged and deployed, the quote rejection must show `Booking unavailable` with `This property is not available for booking yet.`; unrelated transport/server errors must retain the generic error state.
+
 ### Safety and Gate Guard
 
 1. Authorized user opens `/safety` and reviews emergency guidance.
 2. PM creates an incident at `/pm/professional?tab=incidents`; reload and retrieve it; test a role without scope and expect denial.
-3. PM invites a Gate Guard at `/pm/team`; the Guard accepts through the real invitation and signs in.
+3. PM invites a Gate Guard at `/pm/team`; the Guard accepts through the real invitation and signs in. The local implementation persists this invitation through `/api/property-manager/p0/members`, restricts acceptance to the invited account, and synchronizes the role only after acceptance. The current browser suite still provisions the disposable fixture through an API helper, so this remains an explicit staging/UI acceptance step rather than a claimed local UI pass.
 4. Assign the Guard to one property, validate a valid QR at `/gate/qr`, then test malformed, expired, revoked and wrong-property codes.
 5. Confirm `/gate/guard` exposes only the assigned property and the audit record persists.
 

@@ -18,8 +18,9 @@ The earlier Group A PRs are already merged. The current reviewable work is:
 6. **Frontend #29** — `22db3ce2cd1367a6a7e8018f169d88cc89a9f103`: A27 Property Manager utility-bill/executive-term workspace; frontend CI green.
 7. **Backend #20** — `b2caffedf429cc72652726706edb47b12cf53bcf`: A28 governance meetings, agenda/attendance, linked proposals and immutable published minutes; additive migration review only; backend CI green.
 8. **Frontend #30** — `0ae5fa10afe63acc22580c0896823fc61f52890f`: A28 governance-meeting/minutes workspace; frontend CI green.
+9. **Frontend #31** — `7d4b1bbece72069c4523dbeb46a6dfa81277a971`: A8 follow-up correcting the known pending-property quote error heading while preserving generic handling for unrelated failures; required frontend CI passed. [PR #31](https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/31)
 
-PR16, PR26, PR27, PR28, PR29 and PR30 are open and reviewable; PR29 and PR30 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
+PR16, PR26, PR27, PR28, PR29, PR30 and PR31 are open and reviewable; PR29, PR30 and PR31 and Backend PR19/PR20 have successful required CI. None of these has been merged or deployed by Codex. The exact A1–A28 merged/open status is in the tracker.
 
 ## Verified local evidence
 
@@ -32,8 +33,9 @@ PR16, PR26, PR27, PR28, PR29 and PR30 are open and reviewable; PR29 and PR30 and
 - A28 backend full suite: **309 passed, 0 failed, 2 environment-gated skips** (311 total). The route-count authorization assertion was updated from the old 193 baseline to the current 199 protected descriptions and then passed.
 - A27 focused utility-bill persistence/attachment/statement/authorization test: **1 passed**; backend build passed.
 - A27 and A28 frontend suites: **223 passed, 0 failed** each; typecheck and production build passed; lint had 0 errors and existing warnings only.
+- A8 follow-up PR #31: **4 focused Vitest tests passed**, typecheck/lint/build passed, and the focused Playwright business-error test passed; hosted required CI passed.
 
-Public staging health is currently live `200`, ready `200` with database ready and storage configured. The backend reports SHA `e86be7daa0b4c38cf3525ec8678a2f796b476692`. Frontend `/version.json` still reports `commitSha: local`, so the deployed frontend SHA is not independently verified.
+Public staging health was observed live `200`, ready `200` with database ready and storage configured. The last observed staging backend SHA was `e86be7daa0b4c38cf3525ec8678a2f796b476692`, while the latest fetched backend `main` is `a53ccb3e0fb1040cebde5aa515b6bd2ef9bd51b9`; staging parity is therefore not current. Frontend `/version.json` still reports `commitSha: local`, so the deployed frontend SHA is not independently verified.
 
 ## Staging acceptance needed
 
@@ -41,7 +43,7 @@ Please merge the approved PRs and deploy them to staging, then provide an author
 
 The detailed walkthrough is in `GROUP_A_STAGING_HANDOFF.md`. The priority pages are password reset, the pending/approved booking flows, `/admin/ops/properties`, `/pm/calendar`, `/safety`, `/pm/professional?tab=incidents`, `/pm/team`, `/gate/guard`, `/gate/qr` and the PM record workspace.
 
-Please review/deploy PR26 before accepting A18. A20, A22, A23 and A26 still need authorized staging workflows. A27 and A28 are now implementation PR pairs ready for review; their additive migrations are not applied and require your approval before controlled staging application. For A27, verify `/pm/utilities`; for A28, verify `/pm/governance`. The detailed steps, expected results and authorization checks are in `GROUP_A_STAGING_HANDOFF.md`.
+Please review/deploy PR26 before accepting A18. Please also review Frontend PR #31 for A8; its required CI has passed, but staging must run the pending-property negative flow before acceptance. A20, A22, A23 and A26 still need authorized staging workflows. A27 and A28 are now implementation PR pairs ready for review; their additive migrations are not applied and require your approval before controlled staging application. For A27, verify `/pm/utilities`; for A28, verify `/pm/governance`. The detailed steps, expected results and authorization checks are in `GROUP_A_STAGING_HANDOFF.md`.
 
 Group B additions remain excluded. No production, provider, pricing, date-hold, migration or deployment-pipeline changes were made.
 
