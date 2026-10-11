@@ -73,11 +73,17 @@ For A27, open `/pm/utilities` as an authorized Property Manager. Create an execu
 
 For A28, open `/pm/governance` as an authorized Property Manager. Create a draft meeting with agenda and attendance, link an existing proposal, save and reload, publish minutes, download/retrieve the generated private PDF, and attempt a second edit/publication. Expected result: the legal notice is present, the published document is immutable, publication is single-use, the proposal link is scoped, and unauthorized users cannot read or mutate the meeting. The additive A28 migration is review-only until Terrence approves and applies it.
 
-### Known specification-dependent gaps
+### Remaining implementation and acceptance boundaries
 
-- **A18:** Frontend PR #26 (`5feaf7836b4c0d263ce83261e60524f22e09ea94`) provides the role-specific Patois greeting registry and now derives post-login/sign-out copy from authenticated roles. The mapping is presentation-only and does not grant access. Focused registry/AuthModal tests passed (32), with typecheck/build/lint passing locally; required CI passed and the deploy job was skipped. After merge/deploy, confirm each role sees the correct greeting without changing authorization.
-- **A27:** implementation is now reviewable in Backend PR #19 and Frontend PR #29. The migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and client-controlled schema application.
-- **A28:** implementation is now reviewable in Backend PR #20 and Frontend PR #30. The migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and client-controlled schema application.
+- **A18:** Frontend PR #26 (`5feaf7836b4c0d263ce83261e60524f22e09ea94`) provides the role-specific Patois greeting registry and derives sign-in, post-login and sign-out copy from authenticated roles, with the NestyStay emblem included in the displayed greeting. The mapping is presentation-only and does not grant access. Focused registry/AuthModal tests passed (32), with typecheck/build/lint passing locally; required CI passed and the deploy job was skipped. After merge/deploy, confirm each supported role visually and confirm that authorization is unchanged.
+- **A27:** implementation is reviewable in Backend PR #19 and Frontend PR #29. The specification is actionable; the migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and Terrence-controlled schema application.
+- **A28:** implementation is reviewable in Backend PR #20 and Frontend PR #30. The specification is actionable; the migration is additive and unexecuted. Staging remains blocked until review, merge, deployment and Terrence-controlled schema application.
+
+### Delivery timing
+
+- **By 2026-10-15:** the reviewable code and handoff evidence are ready now; Terrence’s review/merge decision is required for the open PRs, especially A5/A8/A14/A15/A18/A22/A27/A28.
+- **After each approved deployment:** staging acceptance can be run immediately for the deployed item when the required QA role, disposable records and provider/service configuration are available. No staging completion date is asserted by Codex because deployment, migrations and account provisioning remain Terrence-controlled.
+- **Not complete:** Group A is not declared complete. The matrix contains 28 accounted-for rows, but several remain blocked by unmerged code, missing authorized staging workflows, unexecuted additive migrations or missing provider/service evidence.
 
 ## Current evidence boundary
 
