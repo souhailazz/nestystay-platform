@@ -31,6 +31,7 @@ Backend #19 and #20, plus Frontend #29 and #30, are superseded/stale or conflict
 - **A14:** Frontend PRs #23 and #28 are merged in current `main`. A credential-free Playwright check on staging confirmed that `/admin` and `/admin/sign-in` render the localized Not Found page rather than an Admin login or dashboard. The proposed `admin.staging.nestystay.net` hostname currently has no DNS record, so dedicated Admin login, TLS and authenticated staging verification remain client-controlled.
 - **A18:** Frontend PR #26 is merged. `src/lib/roleGreetings.ts` provides centralized role/screen greetings with English translations for the supported workspaces; the copy is intentionally client-editable initial wording.
 - **A22:** Backend PR #21 is merged. A credential-free staging check on `/explore` and `/explore/map` visibly showed `★ TRUSTED`, `FREE`, `✦ WELLNESS` and `✓ VERIFIED` on the expected cards. Formal acceptance still needs an authorized moderation status change and isolation check; the frontend deployed SHA remains unknown.
+- **A23 staging observation:** Credential-free navigation to `/safety`, `/pm/professional?tab=incidents` and `/pm/calendar` correctly showed the sign-in-required screen. Authenticated calendar synchronization, incident/emergency workflows and Stripe test-mode card-hold release still require authorized staging roles and provider access.
 
 These are implementation/local-evidence statements, not formal staging acceptance. Formal acceptance begins only after the applicable deployed revision and authorized QA workflow are available.
 
