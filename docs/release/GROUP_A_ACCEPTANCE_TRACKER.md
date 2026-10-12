@@ -145,8 +145,8 @@ The inventory below retains earlier PR references for traceability. The current 
 - Backend current main is `38984ecf686c0786cc961c45e6509e2a2b3a545c`. Fresh current-main successor checkouts were used for A27/A28: Backend #22 head `14a9731e63856f6c46667e03d27b87a62fa3fed5` recorded `dotnet test NestyStay.sln --no-restore --configuration Release` as **310 passed, 0 failed, 2 environment-gated skips**; Backend #23 head `fce2d70c8ca848b0220bf4802d70aac1affabb53` recorded **311 passed, 0 failed, 2 environment-gated skips**. No migrations were applied. The skips are environment-gated PostgreSQL/MinIO integration coverage.
 - Local disposable MinIO: real roundtrip, signed download, wrong-credential denial, traversal/oversize checks and restart persistence passed.
 - Staging public health: live 200; ready 200 with database ready and storage configured.
-- Last observed staging backend version: `e86be7daa0b4c38cf3525ec8678a2f796b476692` (does not match latest backend main `38984ecf686c0786cc961c45e6509e2a2b3a545c`).
-- Staging frontend `/version.json`: reports `commitSha: local`; deployed frontend SHA is therefore unknown.
+- Staging backend version rechecked on 2026-10-12: `/api/health/version` reports `38984ecf686c0786cc961c45e6509e2a2b3a545c`, exactly matching current backend `main`; the endpoint reports environment `Development`, so this is version parity only, not production-mode or feature acceptance evidence.
+- Staging frontend `/version.json` rechecked on 2026-10-12: reports `commitSha: local`; deployed frontend SHA is therefore still unknown.
 
 ## Implementation evidence for formerly open specification items
 
