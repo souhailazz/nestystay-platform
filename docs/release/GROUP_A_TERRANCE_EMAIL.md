@@ -32,6 +32,7 @@ Backend #19 and #20, plus Frontend #29 and #30, are superseded/stale or conflict
 - **A18:** Frontend PR #26 is merged. `src/lib/roleGreetings.ts` provides centralized role/screen greetings with English translations for the supported workspaces; the copy is intentionally client-editable initial wording.
 - **A22:** Backend PR #21 is merged. A credential-free staging check on `/explore` and `/explore/map` visibly showed `★ TRUSTED`, `FREE`, `✦ WELLNESS` and `✓ VERIFIED` on the expected cards. Formal acceptance still needs an authorized moderation status change and isolation check; the frontend deployed SHA remains unknown.
 - **A23 staging observation:** Credential-free navigation to `/safety`, `/pm/professional?tab=incidents` and `/pm/calendar` correctly showed the sign-in-required screen. Authenticated calendar synchronization, incident/emergency workflows and Stripe test-mode card-hold release still require authorized staging roles and provider access.
+- **A20 staging observation:** `/gate/qr` is intentionally the public scanned-pass validator; a forged token was rejected with `ACCESS DENIED` / `INVALID QR access token is invalid` and no booking details were disclosed. The Gate Guard workspace and authenticated validation remain scoped; real invitation acceptance, assigned-property access and valid/revoked QR checks still need authorized staging accounts.
 
 These are implementation/local-evidence statements, not formal staging acceptance. Formal acceptance begins only after the applicable deployed revision and authorized QA workflow are available.
 
