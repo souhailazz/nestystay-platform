@@ -19,6 +19,16 @@ The earlier Group A implementation PRs are merged. The current reviewable work i
 
 Backend #19 and #20, plus Frontend #29 and #30, are superseded/stale or conflicting and should not be reviewed as the active A27/A28 candidates. Frontend #31 is a redundant A8 follow-up because merged Frontend #15/current main already contains the pending-property business-error behavior. A1–A26 implementation PRs referenced by the matrix are merged or their implementation is already in current main. No merge or deploy was performed by Codex.
 
+## Resolved implementation points
+
+- **A5/A17:** Frontend PR #16 is already merged as `61585ea3a895d68203fad409af3ef0769cc867b3`. It preserves the PR #15 date/guest and pending-listing behavior while adding the responsive booking/sign-out modal layout. The previously reported conflict is no longer present.
+- **A8:** Frontend PR #15 (`ec0640980190cdd0c45f525c38aaf81064667e0b`) is the correction PR. In `src/components/booking/BookingModal.tsx`, the known pending-listing denial uses the heading/action `Booking unavailable` and the message `This property is not available for booking yet.` Frontend #31 is redundant.
+- **A14:** Frontend PRs #23 and #28 are merged in current `main`. The application uses `admin.nestystay.net` as the dedicated Admin host and denies Admin paths on the public host; DNS/TLS and authenticated staging verification remain client-controlled.
+- **A18:** Frontend PR #26 is merged. `src/lib/roleGreetings.ts` provides centralized role/screen greetings with English translations for the supported workspaces; the copy is intentionally client-editable initial wording.
+- **A22:** Backend PR #21 is merged. Explore and map cards use the server-derived host badge; the local API-backed evidence included an approved verified listing displaying `✓ VERIFIED` without falsely labeling unverified records.
+
+These are implementation/local-evidence statements, not formal staging acceptance. Formal acceptance begins only after the applicable deployed revision and authorized QA workflow are available.
+
 ## Verified local evidence
 
 - Playwright: **233 started, 213 passed, 0 failed, 20 documented skips, 0 not run**.

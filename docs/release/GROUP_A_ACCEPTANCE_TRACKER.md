@@ -12,7 +12,7 @@ Revalidation on 2026-10-11/12 confirmed the current PR heads and the latest loca
 | 2 | Reset link carries required identifiers; no manual request ID | PR_OPEN | Frontend PR #14 (`50a90c1`) and reset-flow tests | BLOCKED_EXTERNAL | Terrence merge/deploy, then complete authorized flow |
 | 3 | Visible reset confirmation and Login action | PR_OPEN | Frontend PR #14 (`50a90c1`) | BLOCKED_EXTERNAL | Terrence merge/deploy, then desktop/mobile check |
 | 4 | Listing-selected dates and guests reach booking | PR_OPEN | Frontend PR #15 (`ec06409`), booking modal tests | BLOCKED_EXTERNAL | Terrence merge/deploy, then authorized booking check |
-| 5 | Compact centered responsive booking modal | PR_OPEN | Frontend PR #16 (`d3b4579`), modal tests | BLOCKED_EXTERNAL | Terrence merge/deploy, then desktop/tablet/mobile check |
+| 5 | Compact centered responsive booking modal | MERGED | Frontend PR #16 (`762b9c3`), merge commit `61585ea`; modal tests and CI passed | BLOCKED_EXTERNAL | Terrence deploy current frontend main, then desktop/tablet/mobile check |
 | 6 | Pending listings never show instant approval | PR_OPEN | Frontend PR #15; backend moderation state is authoritative | BLOCKED_EXTERNAL | Terrence merge/deploy, then moderation fixture check |
 | 7 | Pending listings cannot quote or book | PR_OPEN | Frontend PR #15; backend booking hardening on current main | BLOCKED_EXTERNAL | Terrence merge/deploy, then authorized negative test |
 | 8 | Clear pending-listing business error | PR_OPEN | Frontend PR #15 message and regression coverage | BLOCKED_EXTERNAL | Terrence merge/deploy, then verify API/UI response |
@@ -21,11 +21,11 @@ Revalidation on 2026-10-11/12 confirmed the current PR heads and the latest loca
 | 11 | Searchable Admin entity selectors | PR_OPEN | Frontend PR #12 (`9aa28f`), CI green | BLOCKED_EXTERNAL | Terrence merge/deploy, then Admin form acceptance |
 | 12 | Campaign timestamps displayed in Jamaica time | PR_OPEN | Frontend PR #13 (`80cd86a`), CI green | BLOCKED_EXTERNAL | Terrence merge/deploy, then Campaigns acceptance |
 | 13 | Worker status reflects default in-process jobs | PR_OPEN | Backend PR #17 (`ec6e327`), 14 focused health tests passed | BLOCKED_EXTERNAL | Terrence merge/deploy; verify runtime heartbeat/config |
-| 14 | Separate Super Admin host/login | PR_OPEN | Frontend PR #23 (`78310ae`), 209 tests/typecheck/build/lint pass; hosted CI passed | BLOCKED_EXTERNAL | Terrence configure DNS/TLS/server routing and verify |
+| 14 | Separate Super Admin host/login | EXISTING_IMPLEMENTATION | Frontend PR #23 (`78310ae`) plus merged public-route denial follow-up #28; dedicated-host routing is in current main | BLOCKED_EXTERNAL | Terrence configure DNS/TLS/server routing and verify |
 | 15 | Welcoming role-specific sign-in presentation | EXISTING_IMPLEMENTATION | Current main role cards and image assets; auth tests pass | BLOCKED_EXTERNAL | Authorized staging visual check |
 | 16 | Remove developer/debug text from user screens | PR_OPEN | Frontend PR #18 (`b1a030f`), full frontend checks pass | BLOCKED_EXTERNAL | Terrence merge/deploy, then visual check |
-| 17 | Center booking/sign-out and affected modals | PR_OPEN | Frontend PR #16 (`d3b4579`); modal accessibility tests | BLOCKED_EXTERNAL | Terrence merge/deploy, then browser check |
-| 18 | Role-specific Patois greeting framework | NEEDS_CLARIFICATION | Existing `PatoisProvider`/`PatoisPhrase`; final approved wording not supplied | BLOCKED_EXTERNAL | Terrence approve exact wording and role mapping |
+| 17 | Center booking/sign-out and affected modals | MERGED | Frontend PR #16 (`762b9c3`), merge commit `61585ea`; modal accessibility tests passed | BLOCKED_EXTERNAL | Terrence deploy current frontend main, then browser check |
+| 18 | Role-specific Patois greeting framework | EXISTING_IMPLEMENTATION | Frontend PR #26 (`5feaf78`) adds a centralized role/location greeting registry with simultaneous English translations; wording remains client-editable initial copy | BLOCKED_EXTERNAL | Terrence review the copy visually after deployment |
 | 19 | Approved wellness terminology | PR_OPEN | Frontend PR #19 (`cc5a320`), 209 tests/typecheck/build pass | BLOCKED_EXTERNAL | Terrence merge/deploy, then terminology sweep |
 | 20 | Gate Guard invitation, assignment, QR and scope | EXISTING_IMPLEMENTATION | Current main Gate Guard routes/tests and local backend workflow coverage | BLOCKED_EXTERNAL | Terrence provision authorized staging PM/Guard accounts |
 | 21 | Separate guest and operations provider audiences | PR_OPEN | Backend PR #18 (`d01132b`) + Frontend PR #21 (`434aeef`), CI green | BLOCKED_EXTERNAL | Terrence merge/deploy, then role-filtered directory checks |
@@ -84,7 +84,7 @@ Live GitHub reconciliation: PR-linked rows below show the current actual state. 
 ## Safe review queue and overlap notes
 
 1. **Password reset:** merge Backend #16 first, then Frontend #14; the frontend consumes the backend’s usable reset-link contract. Recheck both required CI checks after the backend merge.
-2. **Booking correctness:** merge Frontend #15, then Frontend #16 because both modify `src/components/booking/BookingModal.tsx` and its test. Resolve any post-merge conflict semantically; do not overwrite the booking-state fix with the layout change.
+2. **Booking correctness:** Frontend #15 and #16 are both merged. PR #16 was resolved through merge commit `61585ea3a895d68203fad409af3ef0769cc867b3`, preserving PR #15 booking-state/pending-listing restrictions and PR #16 responsive modal layout. No conflict remains to resolve; staging still needs the deployed negative and responsive checks.
 3. **Admin:** review Frontend #12, then #13 because both modify `src/pages/ProductPages.tsx`; review #17 independently for moderation. #12/#13 are currently mergeable, so no rebase is required before review.
 4. **Backend follow-ups:** review Backend #17 after Backend #16 because both touch `HealthEndpointTests.cs`; Backend #18 is file-independent and can be reviewed separately.
 5. **Remaining frontend work:** recheck after earlier merges. Known shared-file pairs are #19/#23 (`src/app/routeManifest.ts`), #20/#22 (`PropertyManagerPages.tsx` and its test), and #18/#21 (`CompletionPages.tsx`). PR #24 is Playwright consent harness only; PR #25 is calendar E2E synchronization/diagnostics only.
