@@ -97,7 +97,7 @@ At the current snapshot the active Group A review queue is Frontend #33, #34, #3
 
 ## Historical PR index and current review queue
 
-The inventory below retains earlier PR references for traceability. The current review queue is Frontend #33, #34, #35 and #36 plus Backend #22, #23 and dependent follow-up #24; see their exact heads in the authoritative matrix above. Backend #19/#20 and Frontend #29/#30 are superseded/conflicting branches, and Frontend #31 is a redundant A8 follow-up. `BLOCKED` is the protected-branch review state, not a merge conflict.
+The inventory below retains earlier PR references for traceability. The current review queue is Frontend #33, #34, #35, #36 and #37 plus Backend #22, #23 and dependent follow-up #24; see their exact heads in the authoritative matrix above. Backend #19/#20 and Frontend #29/#30 are superseded/conflicting branches, and Frontend #31 is a redundant A8 follow-up superseded by #37. `BLOCKED` is the protected-branch review state, not a merge conflict.
 
 | Repository / PR | Head SHA | Scope and changed files |
 |---|---|---|
