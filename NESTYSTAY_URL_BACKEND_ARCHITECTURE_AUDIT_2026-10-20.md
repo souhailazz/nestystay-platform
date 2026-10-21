@@ -454,3 +454,15 @@ The Backend #74 behavior was applied semantically in a disposable worktree on to
 | Temporary worktree | `C:\Users\Administrator\AppData\Local\Temp\nestystay-backend-integrated-profile-20261021` |
 
 This confirms that allowing a credential-free profile probe to return 204, while retaining 401 for invalid or revoked credentials, is compatible with the integrated role, payment, worker, migration, and API test candidate. The two skips are known environment-gated integration prerequisites; they are not failures. Staging remains unverified until the PR is merged and deployed.
+
+### 11.7 Diagnostics exposure source verification — 21 October 2026
+
+The known staging observation that unauthenticated requests reached development diagnostics was compared with the clean integrated backend freeze rather than treated as a current source defect. The freeze contains the two focused protections:
+
+| Surface | Source evidence in the integrated freeze | Candidate behavior |
+|---|---|---|
+| Platform metadata | `src/NestyStay.Api/Controllers/PlatformController.cs`, commit `4b4d0b8` | Requires `Admin.SystemConfiguration` for `/api/platform/*` |
+| Schema diagnostics | `src/NestyStay.Api/Controllers/BackendSchemaController.cs`, included with the diagnostics protection | Requires `Admin.SystemConfiguration`; payloads are additionally limited to Testing or explicitly allowed Development diagnostics |
+| Job diagnostics | `src/NestyStay.Api/Controllers/BackendJobsController.cs`, commit `0b4dc5d` | Requires `Admin.SystemConfiguration`; returns `404` outside Testing or explicitly allowed Development diagnostics |
+
+The corresponding controller/health tests are present in `tests/NestyStay.Api.Tests/BackendJobsControllerTests.cs`, `HealthEndpointTests.cs`, and `StorageAndPlatformControllerTests.cs`, and were included in the integrated backend campaign. This is not staging acceptance: staging currently reports backend `3bd5e2171f89b15b9b195ceff3215856af6ba950` with `environment=Development`, while the integrated freeze is `07bccd28a916f7e20617d72396ec896a737c9787`. Terrence must merge and deploy the protected candidate, then repeat anonymous and authorized diagnostics probes.
