@@ -472,3 +472,23 @@ The PR #74 behavior was applied semantically in a disposable worktree on top of 
 | Disposable integration worktree | `C:\Users\Administrator\AppData\Local\Temp\nestystay-backend-integrated-profile-20261021` |
 
 This confirms the 204 anonymous-probe behavior and 401 invalid/stale-credential behavior remain compatible with the integrated multi-role, payment, worker, migration, and API test candidate. The two skips are the existing MinIO browser/provider gate and the two-instance PostgreSQL integration prerequisite; they do not represent test failures.
+
+## 19. Performance publication check — 21 October 2026
+
+The performance work was checked against the current frontend remote `main` rather than inferred from the historical PR list. The effective implementation commits below are all ancestors of frontend `main` (`07dc7bc32fc4d92dd4e4dc3cf1ff2887dc487489`):
+
+| Commit | Published state | Scope |
+|---|---|---|
+| `fd9711a` | Ancestor of frontend `main` | Defer payment SDK and improve public image loading |
+| `bb4b024` | Ancestor of frontend `main` | Optimize initial delivery and accessibility |
+| `ff75859` | Ancestor of frontend `main` | Stabilize cookie notice during font loading |
+| `0e6451e` | Ancestor of frontend `main` | Import host lazy-loading helpers |
+| `26c3fc2` | Ancestor of frontend `main` | Keep host imports at module scope |
+| `48df730` | Ancestor of frontend `main` | Merge performance core changes |
+| `b2c29e7` | Ancestor of frontend `main` | Merge cookie CLS performance changes |
+
+The measured before/after evidence remains in `C:\Users\Administrator\Desktop\nestystay-performance-optimization-2026-10-14\BEFORE_AFTER_METRICS.md` and `EXECUTIVE_REPORT.md`. The reported improvements include Stripe.js removal from unrelated public routes, lower public transfer and JavaScript delivery, reduced image payloads, improved mobile content-ready timings, and landing-page CLS reduction.
+
+Historical Frontend PR #43 (`https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/43`) and PR #44 (`https://github.com/NestyStayJamaica/NESTY-STAY_Frontend/pull/44`) are closed records with no `merged_at` timestamp. They must not be described as merged. Their effective performance content is nevertheless present in current frontend `main` through the ancestor commits above, so no duplicate performance PR is required. Commit `21d9476` was an intermediate integration commit and is not an ancestor of current `main`; it is not counted as published.
+
+This publication check does not claim performance acceptance on staging or production. Terrence still controls merge/deploy and must verify deployed performance under representative staging conditions.
