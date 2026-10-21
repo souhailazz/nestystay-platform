@@ -393,7 +393,7 @@ The desktop workspace does not contain one clean, authoritative checkout:
 
 | Checkout | Branch | Revision | State | Audit treatment |
 |---|---|---|---|---|
-| Root umbrella | `codex/frontend-hardening-release-candidate` | `cf31733fdf9b73e344403a35570aba74e5a65f44` | Dirty; evidence, screenshots, generated files, and the latest audit-document commits | Not used as a release source |
+| Root umbrella | `codex/frontend-hardening-release-candidate` | `cf31733fdf9b73e344403a35570aba74e5a65f44` (audited source baseline) | Dirty; evidence, screenshots, generated files, and subsequent audit-document commits | Not used as a release source |
 | Nested frontend | `codex/fix-pm-owner-invitation-feedback` | `c0269a95ca7f283f2f0cbb38524a44decc4116a7` | Dirty; source and test changes | Not used as the clean architecture baseline |
 | Nested backend | `codex/fix-minio-test-skip` | `a7a45f4bc819d215b7eaf62eb0e2d55189412481` | Dirty; generated test output | Not used as the clean architecture baseline |
 | Clean frontend freeze | `codex/final-frontend-freeze-20261020` | `2844cea0bb06b1633f11a55f5b6f58ddb391c1e3` | Clean local integration freeze | **Authoritative frontend architecture baseline** |
