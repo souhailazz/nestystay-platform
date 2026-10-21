@@ -440,3 +440,17 @@ This is an important architecture boundary: an absent credential may be treated 
 ### 11.5 Updated conclusion
 
 The architecture remains **PARTIALLY VERIFIED**. The URL and backend boundaries are understandable and testable, and the clean integrated freeze has strong local evidence. The anonymous-profile successor is now CI-green, but the workspace still has multiple dirty revisions and staging/provider acceptance remains external. The correct next action is to merge/deploy the approved heads, then compare deployed SHAs and authenticated staging behavior against the clean release candidate.
+
+### 11.6 Integrated backend compatibility recheck — 21 October 2026
+
+The Backend #74 behavior was applied semantically in a disposable worktree on top of the clean backend freeze `07bccd28a916f7e20617d72396ec896a737c9787`; no reviewed branch or shared environment was modified.
+
+| Check | Result |
+|---|---|
+| Focused auth/health/security regressions | 30 passed, 0 failed, 0 skipped |
+| Full backend solution | 353 passed, 0 failed, 2 environment-gated skips |
+| Release build | 0 warnings, 0 errors |
+| `git diff --check` | Passed |
+| Temporary worktree | `C:\Users\Administrator\AppData\Local\Temp\nestystay-backend-integrated-profile-20261021` |
+
+This confirms that allowing a credential-free profile probe to return 204, while retaining 401 for invalid or revoked credentials, is compatible with the integrated role, payment, worker, migration, and API test candidate. The two skips are known environment-gated integration prerequisites; they are not failures. Staging remains unverified until the PR is merged and deployed.

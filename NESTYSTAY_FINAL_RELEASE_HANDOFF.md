@@ -458,3 +458,17 @@ Backend PR [#74](https://github.com/NestyStayJamaica/NESTY-STAY_Backend/pull/74)
 | Files changed | `AuthController.cs`, `HealthEndpointTests.cs`, `M1AuthenticationAndRecommendationTests.cs` only |
 
 The first PR head `761853e` was not retained as the accepted state because `[AllowAnonymous]` alone changed invalid/stale credential responses from 401 to 204. The follow-up commit restores that distinction. This PR is ready for Terrence’s review, but it is not staging acceptance evidence until merged and deployed.
+
+### Integrated backend recheck
+
+The PR #74 behavior was applied semantically in a disposable worktree on top of the final backend freeze `07bccd28a916f7e20617d72396ec896a737c9787`. This was a verification-only integration; the freeze branch and protected branches were not changed.
+
+| Check | Result |
+|---|---|
+| Focused auth/health/security regressions | 30 passed, 0 failed, 0 skipped |
+| Full backend solution | 353 passed, 0 failed, 2 environment-gated skips |
+| Release build | 0 warnings, 0 errors |
+| Diff check | Passed |
+| Disposable integration worktree | `C:\Users\Administrator\AppData\Local\Temp\nestystay-backend-integrated-profile-20261021` |
+
+This confirms the 204 anonymous-probe behavior and 401 invalid/stale-credential behavior remain compatible with the integrated multi-role, payment, worker, migration, and API test candidate. The two skips are the existing MinIO browser/provider gate and the two-instance PostgreSQL integration prerequisite; they do not represent test failures.
